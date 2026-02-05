@@ -1,0 +1,62 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
+*.log
+server.log
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+*.out
+coverage/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.exe
+*.exe~
+*.test
+*.prof
+
+# Android
+packages/android/.gradle/
+packages/android/build/
+packages/android/app/build/
+packages/android/local.properties
+packages/android/.cxx/
+packages/android/captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
