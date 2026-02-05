@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -23,10 +24,10 @@ type User struct {
 	TotalTasksCompleted int       `gorm:"default:0" json:"total_tasks_completed"`
 	TotalTasksPosted    int       `gorm:"default:0" json:"total_tasks_posted"`
 	TotalEarnings       int64     `gorm:"default:0" json:"total_earnings"`
-	IsTasker            bool      `gorm:"default:false" json:"is_tasker"`
-	TaskerBio           *string   `gorm:"size:500" json:"tasker_bio,omitempty"`
-	TaskerSkills        []string  `gorm:"type:text[]" json:"tasker_skills,omitempty"`
-	CreatedAt           time.Time `gorm:"autoCreateTime" json:"created_at"`
+	IsTasker            bool           `gorm:"default:false" json:"is_tasker"`
+	TaskerBio           *string        `gorm:"size:500" json:"tasker_bio,omitempty"`
+	TaskerSkills        pq.StringArray `gorm:"type:text[]" json:"tasker_skills,omitempty"`
+	CreatedAt           time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt           time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
 )
@@ -82,10 +83,12 @@ func (r *userGormRepository) BecomeTasker(ctx context.Context, userID int64, bio
 	updates := map[string]interface{}{
 		"is_tasker":     true,
 		"tasker_bio":    &bio,
-		"tasker_skills": skills,
+		"tasker_skills": pq.Array(skills),
 	}
 
-	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Updates(updates)
+	// Use UpdateColumns instead of Updates to skip BeforeUpdate validation hook
+	// This allows partial field updates without validating the entire zero-valued User model
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).UpdateColumns(updates)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update user to tasker: %w", result.Error)
 	}
@@ -96,7 +99,9 @@ func (r *userGormRepository) BecomeTasker(ctx context.Context, userID int64, bio
 }
 
 func (r *userGormRepository) UpdateRating(ctx context.Context, userID int64, rating float64) error {
-	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("rating", rating)
+	// Use UpdateColumn instead of Update to skip BeforeUpdate validation hook
+	// This allows updating just the rating field without validating the entire User model
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).UpdateColumn("rating", rating)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update rating: %w", result.Error)
 	}
