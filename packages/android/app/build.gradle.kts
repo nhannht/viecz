@@ -44,6 +44,12 @@ android {
     }
 }
 
+// Workaround for Hilt Gradle plugin compatibility issue with AGP 8.12+
+// See: https://github.com/google/dagger/issues/4976
+hilt {
+    enableAggregatingTask = false
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)

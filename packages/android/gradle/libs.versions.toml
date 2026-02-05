@@ -22,7 +22,7 @@ ksp = "2.0.21-1.0.28"
 datastore = "1.1.1"
 lifecycle-runtime = "2.8.7"
 # Dependency Injection
-hilt = "2.54"
+hilt = "2.52"
 # Testing
 mockk = "1.13.13"
 coroutines-test = "1.10.1"

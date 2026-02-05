@@ -1,13 +1,14 @@
 package com.viecz.vieczandroid.data.repository
 
 import android.util.Log
-import com.viecz.vieczandroid.data.api.RetrofitClient
+import com.viecz.vieczandroid.data.api.TaskApi
 import com.viecz.vieczandroid.data.models.*
 import retrofit2.HttpException
 import java.io.IOException
 
-class TaskRepository {
-    private val api = RetrofitClient.taskApi
+class TaskRepository(
+    private val api: TaskApi
+) {
 
     companion object {
         private const val TAG = "TaskRepository"

@@ -149,11 +149,7 @@ fun VieczNavHost(
 
         // Profile screen
         composable(NavigationRoutes.PROFILE) {
-            val context = LocalContext.current
-            val tokenManager = TokenManager(context)
-
             ProfileScreen(
-                tokenManager = tokenManager,
                 onNavigateBack = { navController.popBackStack() },
                 onLogout = {
                     navController.navigate(NavigationRoutes.LOGIN) {

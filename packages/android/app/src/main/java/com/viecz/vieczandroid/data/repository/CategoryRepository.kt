@@ -1,13 +1,14 @@
 package com.viecz.vieczandroid.data.repository
 
 import android.util.Log
-import com.viecz.vieczandroid.data.api.RetrofitClient
+import com.viecz.vieczandroid.data.api.CategoryApi
 import com.viecz.vieczandroid.data.models.Category
 import retrofit2.HttpException
 import java.io.IOException
 
-class CategoryRepository {
-    private val api = RetrofitClient.categoryApi
+class CategoryRepository(
+    private val api: CategoryApi
+) {
 
     companion object {
         private const val TAG = "CategoryRepository"

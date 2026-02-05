@@ -9,15 +9,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.viecz.vieczandroid.data.models.ApplyTaskRequest
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class ApplyTaskUiState(
     val proposedPrice: String = "",
@@ -29,8 +31,10 @@ data class ApplyTaskUiState(
     val messageError: String? = null
 )
 
-class ApplyTaskViewModel : ViewModel() {
-    private val repository = TaskRepository()
+@HiltViewModel
+class ApplyTaskViewModel @Inject constructor(
+    private val repository: TaskRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ApplyTaskUiState())
     val uiState: StateFlow<ApplyTaskUiState> = _uiState.asStateFlow()
@@ -104,7 +108,7 @@ fun ApplyTaskScreen(
     taskId: Long,
     originalPrice: Long,
     onNavigateBack: () -> Unit,
-    viewModel: ApplyTaskViewModel = viewModel()
+    viewModel: ApplyTaskViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

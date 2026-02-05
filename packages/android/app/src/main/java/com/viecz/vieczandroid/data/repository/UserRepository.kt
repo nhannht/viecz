@@ -1,14 +1,15 @@
 package com.viecz.vieczandroid.data.repository
 
 import android.util.Log
-import com.viecz.vieczandroid.data.api.RetrofitClient
 import com.viecz.vieczandroid.data.api.UpdateProfileRequest
+import com.viecz.vieczandroid.data.api.UserApi
 import com.viecz.vieczandroid.data.models.User
 import retrofit2.HttpException
 import java.io.IOException
 
-class UserRepository {
-    private val api = RetrofitClient.userApi
+class UserRepository(
+    private val api: UserApi
+) {
 
     companion object {
         private const val TAG = "UserRepository"
