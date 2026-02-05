@@ -30,4 +30,7 @@ object RetrofitClient {
 
     val paymentApi: PaymentApi = retrofit.create(PaymentApi::class.java)
     val authApi: AuthApi = retrofit.create(AuthApi::class.java)
+    val taskApi: TaskApi = retrofit.create(TaskApi::class.java)
+    val categoryApi: CategoryApi = retrofit.create(CategoryApi::class.java)
+    val userApi: UserApi = retrofit.create(UserApi::class.java)
 }
