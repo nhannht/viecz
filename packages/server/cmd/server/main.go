@@ -45,6 +45,12 @@ func main() {
 		log.Printf("Auto migration warning: %v (continuing anyway)", err)
 	}
 
+	// Seed initial data (categories and test user)
+	log.Println("Seeding initial data...")
+	if err := database.SeedData(db); err != nil {
+		log.Printf("Seed data warning: %v (continuing anyway)", err)
+	}
+
 	// Initialize GORM repositories
 	userRepo := repository.NewUserGormRepository(db)
 	taskRepo := repository.NewTaskGormRepository(db)
