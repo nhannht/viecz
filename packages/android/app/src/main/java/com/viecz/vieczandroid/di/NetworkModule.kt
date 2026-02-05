@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.di
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.viecz.vieczandroid.data.api.*
+import com.viecz.vieczandroid.data.local.TokenManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,11 +37,19 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideAuthInterceptor(tokenManager: TokenManager): AuthInterceptor {
+        return AuthInterceptor(tokenManager)
+    }
+
+    @Provides
+    @Singleton
     fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
         loggingInterceptor: HttpLoggingInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
+            .addInterceptor(authInterceptor)  // Add auth interceptor first to inject token
+            .addInterceptor(loggingInterceptor)  // Add logging interceptor to see requests with token
             .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
