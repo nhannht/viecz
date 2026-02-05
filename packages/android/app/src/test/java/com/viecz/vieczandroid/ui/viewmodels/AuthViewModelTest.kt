@@ -197,34 +197,31 @@ class AuthViewModelTest {
 }
 
 /**
- * NOTE: The tests above are currently commented out because AuthViewModel
- * has tight coupling with Application, TokenManager, and RetrofitClient.
+ * ✅ HILT MIGRATION COMPLETE!
  *
- * TO MAKE THESE TESTS WORK:
+ * AuthViewModel now uses Hilt dependency injection:
  *
- * 1. **Refactor AuthViewModel to use Dependency Injection:**
+ * @HiltViewModel
+ * class AuthViewModel @Inject constructor(
+ *     private val repository: AuthRepository,
+ *     private val tokenManager: TokenManager
+ * ) : ViewModel()
  *
- * class AuthViewModel(
- *     application: Application,
- *     private val repository: AuthRepository  // Inject repository
- * ) : AndroidViewModel(application) {
- *     // ... implementation
+ * This makes testing much easier - just inject mock dependencies directly!
+ *
+ * TO USE THESE TESTS:
+ * 1. Uncomment the test methods below
+ * 2. Instantiate viewModel with mock dependencies:
+ *    viewModel = AuthViewModel(mockRepository, mockTokenManager)
+ * 3. Run tests: ./gradlew test
+ *
+ * Example:
+ * ```kotlin
+ * @Before
+ * fun setup() {
+ *     mockRepository = mockk()
+ *     mockTokenManager = mockk(relaxed = true)
+ *     viewModel = AuthViewModel(mockRepository, mockTokenManager)
  * }
- *
- * 2. **Or use a factory with testable dependencies:**
- *
- * class AuthViewModelFactory(
- *     private val application: Application,
- *     private val repository: AuthRepository
- * ) : ViewModelProvider.Factory {
- *     override fun <T : ViewModel> create(modelClass: Class<T>): T {
- *         return AuthViewModel(application, repository) as T
- *     }
- * }
- *
- * 3. **Then create testable ViewModel in tests:**
- *
- * viewModel = AuthViewModel(mockApplication, mockRepository)
- *
- * This is the standard Android testing approach and follows best practices.
+ * ```
  */

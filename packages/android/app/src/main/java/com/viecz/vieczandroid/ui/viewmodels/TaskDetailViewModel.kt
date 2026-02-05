@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.TaskApplication
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class TaskDetailUiState(
     val task: Task? = null,
@@ -19,8 +21,10 @@ data class TaskDetailUiState(
     val acceptSuccess: Boolean = false
 )
 
-class TaskDetailViewModel : ViewModel() {
-    private val repository = TaskRepository()
+@HiltViewModel
+class TaskDetailViewModel @Inject constructor(
+    private val repository: TaskRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskDetailUiState())
     val uiState: StateFlow<TaskDetailUiState> = _uiState.asStateFlow()

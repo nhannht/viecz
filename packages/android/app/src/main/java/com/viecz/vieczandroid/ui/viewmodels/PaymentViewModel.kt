@@ -6,9 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.viecz.vieczandroid.data.api.RetrofitClient
 import com.viecz.vieczandroid.data.repository.PaymentRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed class PaymentUiState {
     data object Idle : PaymentUiState()
@@ -17,8 +18,9 @@ sealed class PaymentUiState {
     data class Error(val message: String) : PaymentUiState()
 }
 
-class PaymentViewModel(
-    private val repository: PaymentRepository = PaymentRepository(RetrofitClient.paymentApi)
+@HiltViewModel
+class PaymentViewModel @Inject constructor(
+    private val repository: PaymentRepository
 ) : ViewModel() {
 
     companion object {

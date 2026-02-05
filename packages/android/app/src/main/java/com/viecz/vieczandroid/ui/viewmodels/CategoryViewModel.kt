@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.data.repository.CategoryRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class CategoryUiState(
     val categories: List<Category> = emptyList(),
@@ -16,8 +18,10 @@ data class CategoryUiState(
     val error: String? = null
 )
 
-class CategoryViewModel : ViewModel() {
-    private val repository = CategoryRepository()
+@HiltViewModel
+class CategoryViewModel @Inject constructor(
+    private val repository: CategoryRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
