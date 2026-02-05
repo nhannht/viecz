@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.CreateTaskViewModel
@@ -22,8 +22,8 @@ import com.viecz.vieczandroid.ui.viewmodels.CreateTaskViewModel
 fun CreateTaskScreen(
     onNavigateBack: () -> Unit,
     onTaskCreated: (Long) -> Unit,
-    createTaskViewModel: CreateTaskViewModel = viewModel(),
-    categoryViewModel: CategoryViewModel = viewModel()
+    createTaskViewModel: CreateTaskViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
     val uiState by createTaskViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()

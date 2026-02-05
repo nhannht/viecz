@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
@@ -31,8 +31,8 @@ fun HomeScreen(
     onNavigateToTaskDetail: (Long) -> Unit,
     onNavigateToCreateTask: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    taskListViewModel: TaskListViewModel = viewModel(),
-    categoryViewModel: CategoryViewModel = viewModel()
+    taskListViewModel: TaskListViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
     val taskUiState by taskListViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()

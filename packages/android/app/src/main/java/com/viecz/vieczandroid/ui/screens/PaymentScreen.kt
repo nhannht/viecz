@@ -10,13 +10,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.ui.viewmodels.PaymentUiState
 import com.viecz.vieczandroid.ui.viewmodels.PaymentViewModel
 
 @Composable
 fun PaymentScreen(
-    viewModel: PaymentViewModel = viewModel()
+    viewModel: PaymentViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState = viewModel.uiState

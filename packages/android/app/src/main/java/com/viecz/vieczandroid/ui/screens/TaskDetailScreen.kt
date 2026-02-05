@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.ApplicationStatus
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.TaskApplication
@@ -32,7 +32,7 @@ fun TaskDetailScreen(
     taskId: Long,
     onNavigateBack: () -> Unit,
     onNavigateToApply: (Long) -> Unit,
-    viewModel: TaskDetailViewModel = viewModel()
+    viewModel: TaskDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAcceptDialog by remember { mutableStateOf<TaskApplication?>(null) }
