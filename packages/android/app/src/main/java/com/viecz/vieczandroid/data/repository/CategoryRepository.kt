@@ -17,9 +17,9 @@ class CategoryRepository(
     suspend fun getCategories(): Result<List<Category>> {
         return try {
             Log.d(TAG, "Fetching categories")
-            val response = api.getCategories()
-            Log.d(TAG, "Categories fetched successfully: ${response.categories.size} categories")
-            Result.success(response.categories)
+            val categories = api.getCategories()
+            Log.d(TAG, "Categories fetched successfully: ${categories.size} categories")
+            Result.success(categories)
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error fetching categories: ${e.code()}", e)
             Result.failure(e)
