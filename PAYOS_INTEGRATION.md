@@ -11,7 +11,7 @@ The integration consists of:
 
 ## Architecture
 
-### Server Component (`packages/server/`)
+### Server Component (`server/`)
 
 Built with Go and Gin framework, the server provides:
 
@@ -99,7 +99,7 @@ Built with React Native and Expo, the client provides:
 
 ### 2. Configure Server
 
-Create `packages/server/.env`:
+Create `server/.env`:
 
 ```env
 PORT=8080
@@ -114,7 +114,7 @@ CLIENT_URL=http://localhost:8081
 
 ```bash
 # From project root
-cd packages/server
+cd server
 go mod download
 
 # Or using yarn workspace
@@ -124,7 +124,7 @@ yarn workspace @viecz/server install:deps
 ### 4. Run Server
 
 ```bash
-# From packages/server/
+# From server/
 yarn dev
 
 # Or from project root
