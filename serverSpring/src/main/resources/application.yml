@@ -36,7 +36,7 @@ server:
 # Application-specific configuration
 app:
   jwt:
-    secret: ${JWT_SECRET:your-secret-key-change-this-in-production}
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     expiration-ms: 86400000  # 24 hours
 
   client-url: ${CLIENT_URL:http://localhost:3000}

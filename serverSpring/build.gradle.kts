@@ -49,9 +49,18 @@ dependencies {
     // ===== HTTP CLIENT (for PayOS integration) =====
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
+    // ===== PAYMENT GATEWAY =====
+    implementation("vn.payos:payos-java:2.0.1")
+
     // ===== UTILITIES =====
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
+
+    // MapStruct for Entity <-> DTO mapping
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+    // Binding to make Lombok + MapStruct work together
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 
     // ===== DEVELOPMENT TOOLS =====
     developmentOnly("org.springframework.boot:spring-boot-devtools")

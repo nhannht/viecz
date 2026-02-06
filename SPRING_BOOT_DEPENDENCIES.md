@@ -88,6 +88,11 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
+    // MapStruct - Entity <-> DTO mapping
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+
     // JSON Processing (Jackson is included in spring-boot-starter-web)
     // No additional dependency needed
 
@@ -226,17 +231,38 @@ implementation("org.springframework.boot:spring-boot-starter-validation")
 ```kotlin
 compileOnly("org.projectlombok:lombok")
 annotationProcessor("org.projectlombok:lombok")
+
+implementation("org.mapstruct:mapstruct:1.6.3")
+annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 ```
-**Provides**:
+
+**Lombok** provides:
 - `@Data` - Generates getters, setters, equals, hashCode, toString
 - `@Builder` - Builder pattern
 - `@NoArgsConstructor`, `@AllArgsConstructor`
 - `@Slf4j` - Logger injection
 
-**Why use Lombok**:
-- Reduces boilerplate code
-- Cleaner entity and DTO classes
-- Standard in Java Spring projects
+**MapStruct** provides:
+- Compile-time Entity ↔ DTO mapping
+- Type-safe conversions
+- Spring DI integration with `@Mapper(componentModel = "spring")`
+- Works seamlessly with Lombok (via lombok-mapstruct-binding)
+
+**Example**:
+```java
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+public interface UserMapper {
+    UserResponse toResponse(User user);
+    List<UserResponse> toResponseList(List<User> users);
+}
+```
+
+**Why use MapStruct**:
+- Eliminates manual mapping code (100s of lines saved)
+- Compile-time safety (errors if fields mismatch)
+- High performance (no reflection, pure Java code)
+- Standard in modern Spring Boot projects
 
 ---
 
@@ -318,10 +344,10 @@ Provides automatic API documentation at `/swagger-ui.html`
 | Database | 3 |
 | Security | 3 |
 | HTTP Client | 1 |
-| Utilities | 1 |
+| Utilities | 4 (Lombok + MapStruct + binding) |
 | Development | 2 |
 | Testing | 5 |
-| **Total** | **21** |
+| **Total** | **24** |
 
 ---
 
@@ -340,6 +366,8 @@ This ensures:
 
 **Manually versioned**:
 - `io.jsonwebtoken:jjwt-*:0.12.5` (JWT library)
+- `org.mapstruct:mapstruct:1.6.3` (Object mapping)
+- `org.projectlombok:lombok-mapstruct-binding:0.2.0` (Lombok + MapStruct integration)
 - `io.rest-assured:rest-assured:5.4.0` (API testing)
 - `org.springdoc:springdoc-openapi-*:2.3.0` (if using Swagger)
 
@@ -352,6 +380,9 @@ This ensures:
 - [JWT Authentication in Spring Boot 2025](https://medium.com/@pendemmukulsai/implementing-jwt-authentication-in-spring-boot-2025-03a565333814)
 - [Spring Boot + PostgreSQL Example](https://mkyong.com/spring-boot/spring-boot-spring-data-jpa-postgresql/)
 - [Context7 Spring Boot Starter Dependencies](https://context7.com/spring-projects/spring-boot/)
+- [MapStruct 1.6.3 Reference Guide](https://mapstruct.org/documentation/stable/reference/html/)
+- [MapStruct 1.7.0.Beta1 Release (Java 21 Support)](https://mapstruct.org/news/2026-02-01-mapstruct-1_7_0_Beta1-is-out/)
+- [Using MapStruct With Lombok | Baeldung](https://www.baeldung.com/java-mapstruct-lombok)
 
 ---
 

@@ -12,6 +12,89 @@ Viecz is a multi-package project containing:
 
 **Current Status**: Migrating backend from Go to Spring Boot 4 + Spring Framework 7
 
+## YouTrack Project Management
+
+**Main Project**: "khởi nghiệp sinh viên" (Project Key: **KNS**)
+- This is the primary YouTrack project for Viecz development
+- Use KNS project key when creating issues, tracking tasks, and logging work
+- All Spring Boot migration phases should be tracked here
+- YouTrack Instance: https://youtrack.fishcmus.io.vn
+
+### YouTrack Workflow (MANDATORY - ALWAYS FOLLOW)
+
+**CRITICAL RULE**: Before starting any task or bug fix, create a YouTrack issue FIRST.
+
+**Workflow**:
+1. User requests a task or reports a bug
+2. **Create YouTrack issue** (concise format)
+3. Get issue ID (e.g., KNS-4)
+4. Update issue to "In Progress"
+5. Do the work
+6. Add comment with results
+7. Update issue to "Done"
+8. Log work time
+
+**Example**:
+```
+User: "Add JWT authentication"
+→ Create KNS-4: "Implement JWT authentication"
+→ Update to "In Progress"
+→ Write code
+→ Add comment: "Added JwtFilter + SecurityConfig"
+→ Update to "Done"
+→ Log 4h of work
+```
+
+**Why**: All work must be tracked for team visibility and project management.
+
+### YouTrack Writing Guidelines (CRITICAL - ALWAYS FOLLOW)
+
+**IMPORTANT**: YouTrack issues are visible to multiple users (team members). Follow these rules:
+
+1. **Privacy**: NEVER include personal information
+   - ❌ Emails, phone numbers, addresses
+   - ❌ Passwords, tokens, API keys
+   - ❌ Local directory paths with usernames (e.g., `~/username/...`)
+   - ✅ Use generic paths instead (e.g., `serverSpring/` or `project root`)
+2. **Writing Style**: Use concise, technical documentation style
+   - Brief summaries and descriptions
+   - Bullet points over paragraphs
+   - Technical facts, not lengthy explanations
+   - No one wants to read long documents in issue trackers
+3. **Exceptions** (when to write detailed content):
+   - Bug logging data (stack traces, error logs, reproduction steps)
+   - When explicitly asked to write long and detailed content
+4. **Format**:
+   - Summary: 1 line, clear and actionable
+   - Description: Brief overview + bullet points
+   - Use Markdown for code blocks and lists
+   - Link to external docs if needed
+
+**Example - Good (Concise)**:
+```
+Summary: Implement JWT authentication filter
+Description:
+- Add JwtAuthenticationFilter class
+- Configure Spring Security filter chain
+- Validate Bearer tokens from Authorization header
+- Tech: Spring Security 7, JJWT 0.12.5
+```
+
+**Example - Bad (Too verbose)**:
+```
+Summary: We need to implement authentication
+Description: In this task, we will be implementing a comprehensive
+authentication system that will allow users to log in and access
+protected resources. First, we'll create a filter that intercepts
+HTTP requests and checks for the presence of a JWT token... [500 words]
+```
+
+### Other Available Projects:
+- **FISHcmus (FIS)** - Team project
+- **personal management (PM)** - Personal tasks
+- **gothel (IT)** - IT project
+- **financial (FIN)** - Financial tracking
+
 ## Project Structure
 
 ```
