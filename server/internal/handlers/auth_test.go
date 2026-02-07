@@ -17,30 +17,75 @@ import (
 
 // Mock user repository for testing
 type mockUserRepository struct {
-	users map[string]*models.User // keyed by email
+	users      map[string]*models.User // keyed by email
+	usersById  map[int64]*models.User  // keyed by ID
+	shouldFail bool                    // for testing error cases
 }
 
 func newMockUserRepository() *mockUserRepository {
 	return &mockUserRepository{
-		users: make(map[string]*models.User),
+		users:     make(map[string]*models.User),
+		usersById: make(map[int64]*models.User),
 	}
 }
 
 func (m *mockUserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	if m.shouldFail {
+		return false, errors.New("database error")
+	}
 	_, exists := m.users[email]
 	return exists, nil
 }
 
+func (m *mockUserRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
+	if m.shouldFail {
+		return nil, errors.New("user not found")
+	}
+	for _, user := range m.usersById {
+		if user.Phone != nil && *user.Phone == phone {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
+func (m *mockUserRepository) Delete(ctx context.Context, id int64) error {
+	if m.shouldFail {
+		return errors.New("delete failed")
+	}
+	delete(m.usersById, id)
+	return nil
+}
+
+func (m *mockUserRepository) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
+	if m.shouldFail {
+		return false, errors.New("database error")
+	}
+	for _, user := range m.usersById {
+		if user.Phone != nil && *user.Phone == phone {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (m *mockUserRepository) Create(ctx context.Context, user *models.User) error {
+	if m.shouldFail {
+		return errors.New("create failed")
+	}
 	if _, exists := m.users[user.Email]; exists {
 		return errors.New("email already exists")
 	}
 	user.ID = int64(len(m.users) + 1)
 	m.users[user.Email] = user
+	m.usersById[user.ID] = user
 	return nil
 }
 
 func (m *mockUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+	if m.shouldFail {
+		return nil, errors.New("user not found")
+	}
 	user, exists := m.users[email]
 	if !exists {
 		return nil, errors.New("user not found")
@@ -50,10 +95,22 @@ func (m *mockUserRepository) GetByEmail(ctx context.Context, email string) (*mod
 
 // Implement other UserRepository methods (not used in handler tests but required by interface)
 func (m *mockUserRepository) GetByID(ctx context.Context, id int64) (*models.User, error) {
-	return nil, errors.New("not implemented")
+	if m.shouldFail {
+		return nil, errors.New("user not found")
+	}
+	user, exists := m.usersById[id]
+	if !exists {
+		return nil, errors.New("user not found")
+	}
+	return user, nil
 }
 
 func (m *mockUserRepository) Update(ctx context.Context, user *models.User) error {
+	if m.shouldFail {
+		return errors.New("update failed")
+	}
+	m.usersById[user.ID] = user
+	m.users[user.Email] = user
 	return nil
 }
 

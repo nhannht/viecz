@@ -644,6 +644,522 @@ func TestTaskService_AcceptApplication(t *testing.T) {
 	}
 }
 
+func TestTaskService_GetTask(t *testing.T) {
+	tests := []struct {
+		name        string
+		taskID      int64
+		setupRepo   func(*mockTaskRepository)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:   "task exists",
+			taskID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					Title:       "Test Task",
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:        "task not found",
+			taskID:      999,
+			setupRepo:   func(taskRepo *mockTaskRepository) {},
+			wantErr:     true,
+			errContains: "task not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(taskRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			ctx := context.Background()
+
+			task, err := service.GetTask(ctx, tt.taskID)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if task == nil {
+					t.Error("Expected task to be returned, got nil")
+				}
+			}
+		})
+	}
+}
+
+func TestTaskService_UpdateTask(t *testing.T) {
+	tests := []struct {
+		name        string
+		taskID      int64
+		requesterID int64
+		input       *CreateTaskInput
+		setupRepo   func(*mockTaskRepository, *mockCategoryRepository)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "valid update",
+			taskID:      1,
+			requesterID: 1,
+			input: &CreateTaskInput{
+				Title:       "Updated Task",
+				Description: "Updated Description",
+				CategoryID:  1,
+				Price:       15000,
+				Location:    "Updated Location",
+			},
+			setupRepo: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+			},
+			wantErr: false,
+		},
+		{
+			name:        "task not found",
+			taskID:      999,
+			requesterID: 1,
+			input:       &CreateTaskInput{Title: "Test", CategoryID: 1, Price: 10000},
+			setupRepo:   func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository) {},
+			wantErr:     true,
+			errContains: "task not found",
+		},
+		{
+			name:        "not authorized",
+			taskID:      1,
+			requesterID: 999,
+			input:       &CreateTaskInput{Title: "Test", CategoryID: 1, Price: 10000},
+			setupRepo: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+			},
+			wantErr:     true,
+			errContains: "not authorized",
+		},
+		{
+			name:        "task not open",
+			taskID:      1,
+			requesterID: 1,
+			input:       &CreateTaskInput{Title: "Test", CategoryID: 1, Price: 10000},
+			setupRepo: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusCompleted,
+				}
+			},
+			wantErr:     true,
+			errContains: "only update tasks with status 'open'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(taskRepo, catRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			ctx := context.Background()
+
+			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if task == nil {
+					t.Error("Expected task to be updated, got nil")
+				}
+			}
+		})
+	}
+}
+
+func TestTaskService_DeleteTask(t *testing.T) {
+	tests := []struct {
+		name        string
+		taskID      int64
+		requesterID int64
+		setupRepo   func(*mockTaskRepository)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "valid deletion",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:        "task not found",
+			taskID:      999,
+			requesterID: 1,
+			setupRepo:   func(taskRepo *mockTaskRepository) {},
+			wantErr:     true,
+			errContains: "task not found",
+		},
+		{
+			name:        "not authorized",
+			taskID:      1,
+			requesterID: 999,
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+			},
+			wantErr:     true,
+			errContains: "not authorized",
+		},
+		{
+			name:        "task in progress",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusInProgress,
+				}
+			},
+			wantErr:     true,
+			errContains: "only delete tasks with status 'open'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(taskRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			ctx := context.Background()
+
+			err := service.DeleteTask(ctx, tt.taskID, tt.requesterID)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestTaskService_ListTasks(t *testing.T) {
+	tests := []struct {
+		name      string
+		filters   repository.TaskFilters
+		setupRepo func(*mockTaskRepository)
+		wantCount int
+		wantErr   bool
+	}{
+		{
+			name:    "list all tasks",
+			filters: repository.TaskFilters{},
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskRepo.tasks[1] = &models.Task{ID: 1, Status: models.TaskStatusOpen}
+				taskRepo.tasks[2] = &models.Task{ID: 2, Status: models.TaskStatusOpen}
+			},
+			wantCount: 2,
+			wantErr:   false,
+		},
+		{
+			name:      "empty list",
+			filters:   repository.TaskFilters{},
+			setupRepo: func(taskRepo *mockTaskRepository) {},
+			wantCount: 0,
+			wantErr:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(taskRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			ctx := context.Background()
+
+			tasks, total, err := service.ListTasks(ctx, tt.filters)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if len(tasks) != tt.wantCount {
+					t.Errorf("Expected %d tasks, got %d", tt.wantCount, len(tasks))
+				}
+				if total != tt.wantCount {
+					t.Errorf("Expected total %d, got %d", tt.wantCount, total)
+				}
+			}
+		})
+	}
+}
+
+func TestTaskService_CompleteTask(t *testing.T) {
+	tests := []struct {
+		name        string
+		taskID      int64
+		requesterID int64
+		setupRepo   func(*mockTaskRepository)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "valid completion",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskerID := int64(2)
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					TaskerID:    &taskerID,
+					Status:      models.TaskStatusInProgress,
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:        "task not found",
+			taskID:      999,
+			requesterID: 1,
+			setupRepo:   func(taskRepo *mockTaskRepository) {},
+			wantErr:     true,
+			errContains: "task not found",
+		},
+		{
+			name:        "not authorized",
+			taskID:      1,
+			requesterID: 999,
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskerID := int64(2)
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					TaskerID:    &taskerID,
+					Status:      models.TaskStatusInProgress,
+				}
+			},
+			wantErr:     true,
+			errContains: "not authorized",
+		},
+		{
+			name:        "task not in progress",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+			},
+			wantErr:     true,
+			errContains: "not in progress",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(taskRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			ctx := context.Background()
+
+			err := service.CompleteTask(ctx, tt.taskID, tt.requesterID)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestTaskService_GetTaskApplications(t *testing.T) {
+	tests := []struct {
+		name        string
+		taskID      int64
+		requesterID int64
+		setupRepo   func(*mockTaskRepository, *mockApplicationRepository)
+		wantCount   int
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "valid retrieval",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+				appRepo.applications[1] = &models.TaskApplication{ID: 1, TaskID: 1, TaskerID: 2}
+				appRepo.applications[2] = &models.TaskApplication{ID: 2, TaskID: 1, TaskerID: 3}
+			},
+			wantCount: 2,
+			wantErr:   false,
+		},
+		{
+			name:        "task not found",
+			taskID:      999,
+			requesterID: 1,
+			setupRepo:   func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {},
+			wantErr:     true,
+			errContains: "task not found",
+		},
+		{
+			name:        "not authorized",
+			taskID:      1,
+			requesterID: 999,
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+			},
+			wantErr:     true,
+			errContains: "not authorized",
+		},
+		{
+			name:        "no applications",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+				}
+			},
+			wantCount: 0,
+			wantErr:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(taskRepo, appRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			ctx := context.Background()
+
+			apps, err := service.GetTaskApplications(ctx, tt.taskID, tt.requesterID)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if len(apps) != tt.wantCount {
+					t.Errorf("Expected %d applications, got %d", tt.wantCount, len(apps))
+				}
+			}
+		})
+	}
+}
+
 // Helper functions
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || (len(s) > 0 && len(substr) > 0 && hasSubstring(s, substr)))
