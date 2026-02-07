@@ -7,17 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Viecz is a multi-package project containing:
 
 - **@viecz/android** (`android/`) - Native Kotlin Android application using Jetpack Compose
-- **@viecz/server** (`server/`) - Go backend (legacy, being migrated to Spring Boot)
-- **@viecz/serverSpring** (`serverSpring/`) - Spring Boot 4 + Java 21 backend (new implementation)
+- **@viecz/server** (`server/`) - Go backend with comprehensive test coverage
 
-**Current Status**: Migrating backend from Go to Spring Boot 4 + Spring Framework 7
+**Current Status**: Active development on Go backend and Android app
 
 ## YouTrack Project Management
 
 **Main Project**: "khởi nghiệp sinh viên" (Project Key: **KNS**)
 - This is the primary YouTrack project for Viecz development
 - Use KNS project key when creating issues, tracking tasks, and logging work
-- All Spring Boot migration phases should be tracked here
 - YouTrack Instance: https://youtrack.fishcmus.io.vn
 
 ### YouTrack Workflow (MANDATORY - ALWAYS FOLLOW)
@@ -55,7 +53,7 @@ User: "Add JWT authentication"
    - ❌ Emails, phone numbers, addresses
    - ❌ Passwords, tokens, API keys
    - ❌ Local directory paths with usernames (e.g., `~/username/...`)
-   - ✅ Use generic paths instead (e.g., `serverSpring/` or `project root`)
+   - ✅ Use generic paths instead (e.g., `server/` or `project root`)
 2. **Writing Style**: Use concise, technical documentation style
    - Brief summaries and descriptions
    - Bullet points over paragraphs
@@ -72,12 +70,12 @@ User: "Add JWT authentication"
 
 **Example - Good (Concise)**:
 ```
-Summary: Implement JWT authentication filter
+Summary: Implement JWT authentication middleware
 Description:
-- Add JwtAuthenticationFilter class
-- Configure Spring Security filter chain
+- Add JWT validation middleware
+- Configure Gin routes with auth middleware
 - Validate Bearer tokens from Authorization header
-- Tech: Spring Security 7, JJWT 0.12.5
+- Tech: golang-jwt/jwt v5, Gin framework
 ```
 
 **Example - Bad (Too verbose)**:
@@ -103,27 +101,20 @@ viecz/
 │   ├── app/              # Main application module
 │   ├── gradle/           # Gradle wrapper and version catalog
 │   └── build.gradle.kts
-├── server/               # Go backend (legacy, being replaced)
-├── serverSpring/         # Spring Boot 4 backend (new implementation)
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/viecz/server/
-│   │   │   └── resources/
-│   │   └── test/
-│   ├── build.gradle.kts
-│   ├── settings.gradle.kts
-│   └── gradlew
+├── server/               # Go backend
+│   ├── cmd/              # Application entrypoints
+│   ├── internal/         # Private application code
+│   │   ├── handlers/     # HTTP handlers
+│   │   ├── services/     # Business logic
+│   │   ├── repository/   # Data access layer
+│   │   ├── models/       # Data models
+│   │   └── middleware/   # HTTP middleware
+│   ├── go.mod
+│   └── go.sum
 └── CLAUDE.md
 ```
 
-## Naming Conventions (CRITICAL - PLATFORM SPECIFIC)
-
-**IMPORTANT**: Android and Spring Boot have **different naming conventions** by design. Do NOT force them to match!
-
-### Unified Base Domain
-```
-All projects share: com.viecz
-```
+## Naming Conventions
 
 ### Android Naming Conventions
 
@@ -146,85 +137,46 @@ applicationId = "com.viecz.vieczandroid"  // ⚠️ NEVER change after publishin
 - ✅ Class names: PascalCase (e.g., `MainActivity`)
 - ✅ Variables/methods: camelCase
 
-**Why Different from Spring Boot?**
-- Android Application IDs have technical restrictions (no dashes)
-- Android uses reverse domain notation for the full identifier
-- Android ecosystem conventions differ from Maven/Gradle
-
-### Spring Boot Naming Conventions
-
-**Project Name** (settings.gradle.kts):
-```kotlin
-rootProject.name = "viecz-server"  // ✅ kebab-case (Maven/Gradle standard)
+**File Naming**:
+```
+✅ MainActivity.kt          (PascalCase for Kotlin files)
+✅ activity_main.xml        (snake_case for resources)
+✅ ic_launcher.png          (snake_case for resources)
+✅ strings.xml              (snake_case for resources)
 ```
 
-**Maven Coordinates**:
-```kotlin
-group = "com.viecz"
-version = "0.0.1-SNAPSHOT"
-// Artifact ID from rootProject.name: "viecz-server"
+### Go Backend Naming Conventions
+
+**Package Names**:
+```go
+package handlers  // ✅ lowercase, no underscores
+package services
+package models
 ```
 
-**Package**:
-```kotlin
-package com.viecz.server  // ✅ Lowercase with dots
+**File Names**:
+```
+✅ user_handler.go          (snake_case)
+✅ payment_service.go       (snake_case)
+✅ wallet_test.go          (snake_case with _test suffix)
 ```
 
-**Rules**:
-- ✅ Project name: kebab-case (e.g., `viecz-server`)
-- ✅ Package names: lowercase with dots
-- ✅ Class names: PascalCase (e.g., `VieczServerApplication`)
-- ✅ Methods/variables: camelCase
-- ✅ Config files: kebab-case (e.g., `application-dev.yml`)
-- ✅ Constants: UPPER_SNAKE_CASE
+**Identifiers**:
+```go
+// Exported (public) - PascalCase
+type UserService struct { }
+func CreateUser() { }
 
-**Why kebab-case?**
-- Maven Central standard for artifact names
-- Better readability: `spring-boot-starter-web`
-- Unix/Linux filesystem compatibility
-- Industry standard for Java libraries
-
-### Complete Convention Matrix
-
-| Element | Android | Spring Boot | Reason for Difference |
-|---------|---------|-------------|----------------------|
-| **Project name** | `vieczandroid` | `viecz-server` | Android: no separators; Spring: kebab-case |
-| **Base domain** | `com.viecz` | `com.viecz` | ✅ Same (unified) |
-| **Package** | `com.viecz.vieczandroid` | `com.viecz.server` | Platform naming |
-| **Supports dashes** | ❌ No (ID restriction) | ✅ Yes | Technical limitation |
-| **Java classes** | `MainActivity` | `VieczServerApplication` | ✅ Same (PascalCase) |
-| **Methods** | `onCreate()` | `main()` | ✅ Same (camelCase) |
-| **Config files** | N/A | `application-dev.yml` | Spring specific |
-
-### File Naming Conventions
-
-**Kotlin/Java source files**:
-```
-✅ MainActivity.kt
-✅ VieczServerApplication.java
-✅ UserRepository.java
-```
-
-**Configuration files**:
-```
-✅ application.yml
-✅ application-dev.yml
-✅ build.gradle.kts
-✅ settings.gradle.kts
-```
-
-**Resource files (Android)**:
-```
-✅ activity_main.xml        (snake_case)
-✅ ic_launcher.png          (snake_case)
-✅ strings.xml              (snake_case)
+// Unexported (private) - camelCase
+type userRepository struct { }
+func validateEmail() { }
 ```
 
 ### Documentation References
 
 - [Android Package Name vs Application ID](https://www.geeksforgeeks.org/android/android-package-name-vs-application-id/)
 - [Android Naming Conventions Best Practices](https://halilozel1903.medium.com/naming-conventions-in-android-development-best-practices-for-cleaner-code-14c843bbc8a7)
-- Maven/Gradle kebab-case standard
+- [Effective Go - Naming](https://golang.org/doc/effective_go#names)
 
 ## Development Commands
 
@@ -334,75 +286,48 @@ All Gradle commands use the existing daemon - no restart needed.
 - **Dependency Injection**: Constructor injection with Hilt
 - **Reactive Streams**: StateFlow/SharedFlow for reactive data
 
-### Server Development (Spring Boot)
-- Primary location: `serverSpring/`
-- **Language**: Java 21 LTS
-- **Framework**: Spring Boot 4.0.2, Spring Framework 7.0.3
-- **Build System**: Gradle 8.14+ with Kotlin DSL
-- **Database**: PostgreSQL with Spring Data JPA + Hibernate
-- **Package**: `com.viecz.server`
-- **Configuration**: YAML format (`application.yml`)
-
-#### Spring Boot Development Rules (CRITICAL - ALWAYS FOLLOW)
-
-**MANDATORY Gradle Build Rules**:
-
-1. **NEVER run Gradle builds automatically**
-   - Always explicitly ask the user before running `./gradlew build` or any Gradle task
-   - Gradle builds take significant time and resources
-   - Only execute Gradle commands when user explicitly approves
-
-2. **Suggest, don't execute**
-   - When a build is needed, say: "Should I run `./gradlew build` to verify?"
-   - Wait for user approval before executing
-
-3. **For build-related bugs/errors**:
-   - Use **Context7** to search Spring Boot/Gradle documentation
-   - Use **Web Search** for current solutions (2026 best practices)
-   - Follow the Bug Fixing Protocol from CLAUDE.md (mandatory for ALL bugs)
-
-#### Building and Running
-
-**IMPORTANT**: Always ask permission before running these commands!
-
-```bash
-cd serverSpring
-
-# Build project (ask first!)
-./gradlew build
-
-# Run application
-./gradlew bootRun
-
-# Run with specific profile
-./gradlew bootRun --args='--spring.profiles.active=dev'
-
-# Clean build
-./gradlew clean build
-
-# Run tests only
-./gradlew test
-
-# Check dependencies
-./gradlew dependencies
-```
+### Go Backend Development
+- Primary location: `server/`
+- **Language**: Go 1.21+
+- **Framework**: Gin web framework
+- **Database**: PostgreSQL with GORM ORM
+- **Package**: `viecz.vieczserver`
+- **Testing**: Comprehensive unit tests with ~70%+ coverage
 
 #### Key Technologies
-- Spring Boot 4 with Spring Framework 7
-- Spring Data JPA + Hibernate for ORM
-- Spring Security 7 with JWT authentication
-- Spring WebSocket + STOMP for real-time chat
-- Flyway for database migrations
-- Testcontainers for integration testing
-- Lombok for reducing boilerplate
+- Gin for HTTP routing and middleware
+- GORM for ORM and database migrations
+- golang-jwt/jwt for JWT authentication
+- Gorilla WebSocket for real-time chat
+- PayOS integration for payments
+- SQLite in-memory for fast testing
 
 #### Architecture Patterns
-- **Controller Layer**: REST endpoints with `@RestController`
-- **Service Layer**: Business logic with `@Service`
-- **Repository Layer**: Spring Data JPA repositories
-- **Security**: JWT-based authentication with Spring Security
-- **Configuration**: `@ConfigurationProperties` for YAML configs
-- **WebSocket**: STOMP messaging over WebSocket
+- **Handler Layer**: HTTP endpoints using Gin
+- **Service Layer**: Business logic
+- **Repository Layer**: GORM-based data access (interface + implementation pattern)
+- **Models**: Data structures with validation and GORM hooks
+- **Middleware**: JWT authentication, logging, CORS
+- **WebSocket**: Real-time messaging with private channels
+
+#### Running the Server
+
+```bash
+cd server
+
+# Run the server
+go run cmd/server/main.go
+
+# Run tests
+go test ./...
+
+# Run tests with coverage
+go test -v -cover ./...
+
+# Generate coverage report
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
 
 ### Shared UI Components (Not Yet Implemented)
 - Planned location: `packages/ui/`
@@ -465,11 +390,17 @@ cd android
 
 ## Project Status
 
-- ✅ Android app (Native Kotlin with Jetpack Compose) - Active development
-- ⏳ Server component - Planned, not yet implemented
-- ⏳ Shared UI component library - Planned, not yet implemented
-- ❌ iOS app - Not planned (Android-only)
-- ❌ Web app - Not planned (Android-only)
+- ✅ **Android app** - Native Kotlin with Jetpack Compose (Active development)
+- ✅ **Go Backend** - Fully implemented with ~70%+ test coverage (Production ready)
+  - Authentication & JWT
+  - Payment processing (PayOS integration)
+  - Wallet & transaction management
+  - Task management system
+  - Real-time messaging (WebSocket)
+  - User profiles & categories
+- ⏳ **Shared UI component library** - Planned, not yet implemented
+- ❌ **iOS app** - Not planned (Android-only)
+- ❌ **Web app** - Not planned (Android-only)
 
 ## Context7 MCP Integration (CRITICAL - ALWAYS FOLLOW)
 
