@@ -183,7 +183,7 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun `register with server 409 conflict should return meaningful error`() = runTest {
+    fun `register with server 409 conflict should return failure`() = runTest {
         // Given
         val request = RegisterRequest(
             email = testEmail,
@@ -203,7 +203,118 @@ class AuthRepositoryTest {
 
         // Then
         assertTrue(result.isFailure)
-        // In a real implementation, you'd parse the error message from the response
+        // org.json.JSONObject is stubbed in JVM unit tests, so error parsing
+        // may not extract the specific message. Just verify it's a failure.
+        assertTrue(result.exceptionOrNull() is Exception)
+    }
+
+    @Test
+    fun `login with network error should return network error message`() = runTest {
+        // Given
+        val request = LoginRequest(
+            email = testEmail,
+            password = testPassword
+        )
+        val exception = java.io.IOException("No internet connection")
+        coEvery { mockAuthApi.login(request) } throws exception
+
+        // When
+        val result = repository.login(testEmail, testPassword)
+
+        // Then
+        assertTrue(result.isFailure)
+        assertEquals("Network error. Please check your connection.", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `refreshAccessToken with valid token should return new access token`() = runTest {
+        // Given
+        val refreshToken = "valid_refresh_token"
+        val newAccessToken = "new_access_token"
+        val refreshResponse = com.viecz.vieczandroid.data.models.RefreshTokenResponse(
+            accessToken = newAccessToken
+        )
+        coEvery { mockAuthApi.refreshToken(any()) } returns refreshResponse
+        coEvery { mockTokenManager.updateAccessToken(any()) } just Runs
+
+        // When
+        val result = repository.refreshAccessToken(refreshToken)
+
+        // Then
+        assertTrue(result.isSuccess)
+        assertEquals(newAccessToken, result.getOrNull())
+        coVerify(exactly = 1) { mockTokenManager.updateAccessToken(newAccessToken) }
+    }
+
+    @Test
+    fun `refreshAccessToken with expired token should return failure`() = runTest {
+        // Given
+        val expiredRefreshToken = "expired_refresh_token"
+        val exception = retrofit2.HttpException(
+            retrofit2.Response.error<Any>(
+                401,
+                okhttp3.ResponseBody.create(null, "{\"error\": \"Invalid or expired refresh token\"}")
+            )
+        )
+        coEvery { mockAuthApi.refreshToken(any()) } throws exception
+
+        // When
+        val result = repository.refreshAccessToken(expiredRefreshToken)
+
+        // Then
+        assertTrue(result.isFailure)
+        coVerify(exactly = 0) { mockTokenManager.updateAccessToken(any()) }
+    }
+
+    @Test
+    fun `register should save user info after successful registration`() = runTest {
+        // Given
+        val request = RegisterRequest(
+            email = testEmail,
+            password = testPassword,
+            name = testName
+        )
+        coEvery { mockAuthApi.register(request) } returns testTokenResponse
+        coEvery { mockTokenManager.saveTokens(any(), any()) } just Runs
+        coEvery { mockTokenManager.saveUserInfo(any(), any(), any()) } just Runs
+
+        // When
+        val result = repository.register(testEmail, testPassword, testName)
+
+        // Then
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) {
+            mockTokenManager.saveUserInfo(
+                testUser.id,
+                testUser.email,
+                testUser.name
+            )
+        }
+    }
+
+    @Test
+    fun `login should save user info after successful login`() = runTest {
+        // Given
+        val request = LoginRequest(
+            email = testEmail,
+            password = testPassword
+        )
+        coEvery { mockAuthApi.login(request) } returns testTokenResponse
+        coEvery { mockTokenManager.saveTokens(any(), any()) } just Runs
+        coEvery { mockTokenManager.saveUserInfo(any(), any(), any()) } just Runs
+
+        // When
+        val result = repository.login(testEmail, testPassword)
+
+        // Then
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 1) {
+            mockTokenManager.saveUserInfo(
+                testUser.id,
+                testUser.email,
+                testUser.name
+            )
+        }
     }
 }
 

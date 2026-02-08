@@ -5,154 +5,183 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Simple utility tests that work immediately without refactoring
- *
- * These tests demonstrate basic unit testing and can be run right away.
- * Add this utility class to your project to validate user input.
+ * Comprehensive tests for ValidationUtils
+ * Covers email, password, phone, and price validation
  */
 class ValidationUtilsTest {
 
+    // Email validation tests (10 test cases)
     @Test
-    fun `valid email should return true`() {
-        assertTrue(isValidEmail("test@example.com"))
-        assertTrue(isValidEmail("user.name@domain.co.uk"))
-        assertTrue(isValidEmail("first+last@company.com"))
-    }
-
-    @Test
-    fun `invalid email should return false`() {
-        assertFalse(isValidEmail(""))
-        assertFalse(isValidEmail("invalid"))
-        assertFalse(isValidEmail("@example.com"))
-        assertFalse(isValidEmail("test@"))
-        assertFalse(isValidEmail("test.example.com"))
+    fun `valid email formats should return true`() {
+        assertTrue(ValidationUtils.isValidEmail("test@example.com"))
+        assertTrue(ValidationUtils.isValidEmail("user.name@domain.co.uk"))
+        assertTrue(ValidationUtils.isValidEmail("first+last@company.com"))
+        assertTrue(ValidationUtils.isValidEmail("john_doe123@test-domain.com"))
+        assertTrue(ValidationUtils.isValidEmail("a@b.co"))
     }
 
     @Test
-    fun `strong password should return true`() {
-        // At least 8 chars, uppercase, lowercase, number
-        assertTrue(isStrongPassword("Password123"))
-        assertTrue(isStrongPassword("MyPass1word"))
-        assertTrue(isStrongPassword("Abcdefg1"))
+    fun `empty or blank email should return false`() {
+        assertFalse(ValidationUtils.isValidEmail(""))
+        assertFalse(ValidationUtils.isValidEmail("   "))
+        assertFalse(ValidationUtils.isValidEmail("\t"))
     }
 
     @Test
-    fun `weak password should return false`() {
-        assertFalse(isStrongPassword(""))
-        assertFalse(isStrongPassword("short1A")) // Too short
-        assertFalse(isStrongPassword("password123")) // No uppercase
-        assertFalse(isStrongPassword("PASSWORD123")) // No lowercase
-        assertFalse(isStrongPassword("PasswordABC")) // No number
-        assertFalse(isStrongPassword("Pass1")) // Too short
+    fun `email without @ symbol should return false`() {
+        assertFalse(ValidationUtils.isValidEmail("invalid"))
+        assertFalse(ValidationUtils.isValidEmail("test.example.com"))
+        assertFalse(ValidationUtils.isValidEmail("user.domain.com"))
     }
 
     @Test
-    fun `valid price should return true`() {
-        assertTrue(isValidPrice(10000))
-        assertTrue(isValidPrice(50000))
-        assertTrue(isValidPrice(1000000))
+    fun `email without domain should return false`() {
+        assertFalse(ValidationUtils.isValidEmail("test@"))
+        assertFalse(ValidationUtils.isValidEmail("user@"))
     }
 
     @Test
-    fun `invalid price should return false`() {
-        assertFalse(isValidPrice(0))
-        assertFalse(isValidPrice(-100))
-        assertFalse(isValidPrice(500)) // Below minimum
+    fun `email without local part should return false`() {
+        assertFalse(ValidationUtils.isValidEmail("@example.com"))
+        assertFalse(ValidationUtils.isValidEmail("@domain.co.uk"))
     }
 
     @Test
-    fun `valid phone number should return true`() {
-        assertTrue(isValidPhone("0123456789"))
-        assertTrue(isValidPhone("0987654321"))
-        assertTrue(isValidPhone("+84123456789"))
+    fun `email with invalid characters should return false`() {
+        assertFalse(ValidationUtils.isValidEmail("test space@example.com"))
+        assertFalse(ValidationUtils.isValidEmail("user#name@domain.com"))
     }
 
     @Test
-    fun `invalid phone number should return false`() {
-        assertFalse(isValidPhone(""))
-        assertFalse(isValidPhone("123")) // Too short
-        assertFalse(isValidPhone("abcd123456")) // Contains letters
-        assertFalse(isValidPhone("012345678901234")) // Too long
+    fun `email without TLD should return false`() {
+        assertFalse(ValidationUtils.isValidEmail("test@example"))
+        assertFalse(ValidationUtils.isValidEmail("user@localhost"))
     }
 
-    // Utility functions to test (add these to a real ValidationUtils.kt file)
-    private fun isValidEmail(email: String): Boolean {
-        if (email.isBlank()) return false
-        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
-        return emailRegex.matches(email)
+    // Password validation tests (8 test cases)
+    @Test
+    fun `strong password with all requirements should return true`() {
+        assertTrue(ValidationUtils.isStrongPassword("Password123"))
+        assertTrue(ValidationUtils.isStrongPassword("MyPass1word"))
+        assertTrue(ValidationUtils.isStrongPassword("Abcdefg1"))
+        assertTrue(ValidationUtils.isStrongPassword("Test1234"))
     }
 
-    private fun isStrongPassword(password: String): Boolean {
-        if (password.length < 8) return false
-
-        val hasUppercase = password.any { it.isUpperCase() }
-        val hasLowercase = password.any { it.isLowerCase() }
-        val hasDigit = password.any { it.isDigit() }
-
-        return hasUppercase && hasLowercase && hasDigit
+    @Test
+    fun `empty or blank password should return false`() {
+        assertFalse(ValidationUtils.isStrongPassword(""))
+        assertFalse(ValidationUtils.isStrongPassword("       "))
     }
 
-    private fun isValidPrice(price: Long): Boolean {
-        return price >= 1000 // Minimum 1000 VND
+    @Test
+    fun `password shorter than 8 characters should return false`() {
+        assertFalse(ValidationUtils.isStrongPassword("Pass1")) // 5 chars
+        assertFalse(ValidationUtils.isStrongPassword("Ab1")) // 3 chars
+        assertFalse(ValidationUtils.isStrongPassword("short1A")) // 7 chars
     }
 
-    private fun isValidPhone(phone: String): Boolean {
-        if (phone.isBlank()) return false
-        if (phone.length < 10 || phone.length > 12) return false
+    @Test
+    fun `password without uppercase should return false`() {
+        assertFalse(ValidationUtils.isStrongPassword("password123"))
+        assertFalse(ValidationUtils.isStrongPassword("alllowercase1"))
+    }
 
-        // Remove + prefix if present
-        val cleanPhone = phone.removePrefix("+")
+    @Test
+    fun `password without lowercase should return false`() {
+        assertFalse(ValidationUtils.isStrongPassword("PASSWORD123"))
+        assertFalse(ValidationUtils.isStrongPassword("ALLUPPERCASE1"))
+    }
 
-        // Check if all characters are digits
-        return cleanPhone.all { it.isDigit() }
+    @Test
+    fun `password without digit should return false`() {
+        assertFalse(ValidationUtils.isStrongPassword("PasswordABC"))
+        assertFalse(ValidationUtils.isStrongPassword("NoDigits"))
+    }
+
+    @Test
+    fun `password with special characters is acceptable`() {
+        assertTrue(ValidationUtils.isStrongPassword("Pass@word1"))
+        assertTrue(ValidationUtils.isStrongPassword("Test#123"))
+    }
+
+    // Phone validation tests (6 test cases)
+    @Test
+    fun `valid Vietnamese phone numbers should return true`() {
+        assertTrue(ValidationUtils.isValidPhone("0123456789")) // 10 digits
+        assertTrue(ValidationUtils.isValidPhone("0987654321")) // 10 digits
+        assertTrue(ValidationUtils.isValidPhone("091234567890")) // 12 digits
+    }
+
+    @Test
+    fun `valid phone number with country code should return true`() {
+        assertTrue(ValidationUtils.isValidPhone("+84123456789"))
+        assertTrue(ValidationUtils.isValidPhone("+84987654321"))
+    }
+
+    @Test
+    fun `empty or blank phone number should return false`() {
+        assertFalse(ValidationUtils.isValidPhone(""))
+        assertFalse(ValidationUtils.isValidPhone("   "))
+    }
+
+    @Test
+    fun `phone number too short should return false`() {
+        assertFalse(ValidationUtils.isValidPhone("123")) // 3 digits
+        assertFalse(ValidationUtils.isValidPhone("012345678")) // 9 digits
+    }
+
+    @Test
+    fun `phone number too long should return false`() {
+        assertFalse(ValidationUtils.isValidPhone("012345678901234")) // 15 digits
+    }
+
+    @Test
+    fun `phone number with letters should return false`() {
+        assertFalse(ValidationUtils.isValidPhone("abcd123456"))
+        assertFalse(ValidationUtils.isValidPhone("0123abc789"))
+    }
+
+    // Price validation tests (5 test cases)
+    @Test
+    fun `valid prices should return true`() {
+        assertTrue(ValidationUtils.isValidPrice(1000)) // Minimum
+        assertTrue(ValidationUtils.isValidPrice(10000))
+        assertTrue(ValidationUtils.isValidPrice(50000))
+        assertTrue(ValidationUtils.isValidPrice(1000000))
+    }
+
+    @Test
+    fun `zero price should return false`() {
+        assertFalse(ValidationUtils.isValidPrice(0))
+    }
+
+    @Test
+    fun `negative price should return false`() {
+        assertFalse(ValidationUtils.isValidPrice(-100))
+        assertFalse(ValidationUtils.isValidPrice(-1000))
+    }
+
+    @Test
+    fun `price below minimum should return false`() {
+        assertFalse(ValidationUtils.isValidPrice(500))
+        assertFalse(ValidationUtils.isValidPrice(999))
+    }
+
+    // Additional utility tests
+    @Test
+    fun `isNotBlank should correctly validate strings`() {
+        assertTrue(ValidationUtils.isNotBlank("test"))
+        assertTrue(ValidationUtils.isNotBlank("  test  "))
+        assertFalse(ValidationUtils.isNotBlank(""))
+        assertFalse(ValidationUtils.isNotBlank("   "))
+    }
+
+    @Test
+    fun `isInRange should correctly validate ranges`() {
+        assertTrue(ValidationUtils.isInRange(50, 0, 100))
+        assertTrue(ValidationUtils.isInRange(0, 0, 100))
+        assertTrue(ValidationUtils.isInRange(100, 0, 100))
+        assertFalse(ValidationUtils.isInRange(-1, 0, 100))
+        assertFalse(ValidationUtils.isInRange(101, 0, 100))
     }
 }
-
-/**
- * TO USE THESE VALIDATION FUNCTIONS IN YOUR APP:
- *
- * 1. Create file: app/src/main/java/com/viecz/vieczandroid/utils/ValidationUtils.kt
- *
- * 2. Copy the validation functions:
- *
- * package com.viecz.vieczandroid.utils
- *
- * object ValidationUtils {
- *     fun isValidEmail(email: String): Boolean {
- *         if (email.isBlank()) return false
- *         val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
- *         return emailRegex.matches(email)
- *     }
- *
- *     fun isStrongPassword(password: String): Boolean {
- *         if (password.length < 8) return false
- *         val hasUppercase = password.any { it.isUpperCase() }
- *         val hasLowercase = password.any { it.isLowerCase() }
- *         val hasDigit = password.any { it.isDigit() }
- *         return hasUppercase && hasLowercase && hasDigit
- *     }
- *
- *     fun isValidPrice(price: Long): Boolean {
- *         return price >= 1000
- *     }
- *
- *     fun isValidPhone(phone: String): Boolean {
- *         if (phone.isBlank()) return false
- *         if (phone.length < 10 || phone.length > 12) return false
- *         val cleanPhone = phone.removePrefix("+")
- *         return cleanPhone.all { it.isDigit() }
- *     }
- * }
- *
- * 3. Use in your ViewModels/Composables:
- *
- * if (!ValidationUtils.isValidEmail(email)) {
- *     _errorState.value = "Invalid email format"
- *     return
- * }
- *
- * if (!ValidationUtils.isStrongPassword(password)) {
- *     _errorState.value = "Password must be at least 8 characters with uppercase, lowercase, and number"
- *     return
- * }
- */

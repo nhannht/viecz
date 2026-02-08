@@ -1,0 +1,245 @@
+package com.viecz.vieczandroid.ui.viewmodels
+
+import app.cash.turbine.test
+import com.viecz.vieczandroid.data.models.*
+import com.viecz.vieczandroid.data.repository.MessageRepository
+import com.viecz.vieczandroid.data.repository.PaymentRepository
+import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.testutil.CoroutineTestRule
+import com.viecz.vieczandroid.testutil.TestData
+import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class TaskDetailViewModelTest {
+
+    @get:Rule
+    val coroutineRule = CoroutineTestRule()
+
+    private lateinit var mockTaskRepository: TaskRepository
+    private lateinit var mockPaymentRepository: PaymentRepository
+    private lateinit var mockMessageRepository: MessageRepository
+    private lateinit var viewModel: TaskDetailViewModel
+
+    @Before
+    fun setup() {
+        mockTaskRepository = mockk()
+        mockPaymentRepository = mockk()
+        mockMessageRepository = mockk()
+        viewModel = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository)
+    }
+
+    @After
+    fun tearDown() {
+        clearAllMocks()
+    }
+
+    @Test
+    fun `initial state should be empty`() = runTest {
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertNull(state.task)
+            assertTrue(state.applications.isEmpty())
+            assertFalse(state.isLoading)
+            assertNull(state.error)
+        }
+    }
+
+    @Test
+    fun `loadTask should emit task on success`() = runTest {
+        val task = TestData.createTask(id = 5, title = "Clean Room")
+        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(emptyList())
+
+        viewModel.loadTask(5)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertNotNull(state.task)
+            assertEquals("Clean Room", state.task?.title)
+            assertFalse(state.isLoading)
+        }
+    }
+
+    @Test
+    fun `loadTask should also load applications`() = runTest {
+        val task = TestData.createTask(id = 5)
+        val applications = listOf(
+            TestData.createTaskApplication(id = 1, taskId = 5),
+            TestData.createTaskApplication(id = 2, taskId = 5)
+        )
+        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(applications)
+
+        viewModel.loadTask(5)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(2, state.applications.size)
+        }
+    }
+
+    @Test
+    fun `loadTask with error should emit error state`() = runTest {
+        coEvery { mockTaskRepository.getTask(5) } returns Result.failure(Exception("Not found"))
+
+        viewModel.loadTask(5)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertNull(state.task)
+            assertEquals("Not found", state.error)
+            assertFalse(state.isLoading)
+        }
+    }
+
+    @Test
+    fun `acceptApplication success should trigger escrow payment`() = runTest {
+        val task = TestData.createTask(id = 1)
+        val escrowResponse = CreateEscrowPaymentResponse(
+            transaction = TestData.createTransaction(),
+            checkoutUrl = null // Mock wallet mode
+        )
+        coEvery { mockTaskRepository.getTask(1) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(1) } returns Result.success(emptyList())
+        coEvery { mockTaskRepository.acceptApplication(10) } returns Result.success(
+            TestData.createAcceptApplicationResponse()
+        )
+        coEvery { mockPaymentRepository.createEscrowPayment(1) } returns Result.success(escrowResponse)
+
+        // Set up task first
+        viewModel.loadTask(1)
+        advanceUntilIdle()
+
+        viewModel.acceptApplication(10)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.acceptSuccess)
+            assertTrue(state.paymentSuccess)
+        }
+    }
+
+    @Test
+    fun `acceptApplication with PayOS checkout should emit checkout URL`() = runTest {
+        val task = TestData.createTask(id = 1)
+        val escrowResponse = CreateEscrowPaymentResponse(
+            transaction = TestData.createTransaction(),
+            checkoutUrl = "https://pay.example.com/checkout"
+        )
+        coEvery { mockTaskRepository.getTask(1) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(1) } returns Result.success(emptyList())
+        coEvery { mockTaskRepository.acceptApplication(10) } returns Result.success(
+            TestData.createAcceptApplicationResponse()
+        )
+        coEvery { mockPaymentRepository.createEscrowPayment(1) } returns Result.success(escrowResponse)
+
+        viewModel.loadTask(1)
+        advanceUntilIdle()
+
+        viewModel.acceptApplication(10)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.acceptSuccess)
+            assertEquals("https://pay.example.com/checkout", state.paymentCheckoutUrl)
+        }
+    }
+
+    @Test
+    fun `acceptApplication failure should emit error`() = runTest {
+        val task = TestData.createTask(id = 1)
+        coEvery { mockTaskRepository.getTask(1) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(1) } returns Result.success(emptyList())
+        coEvery { mockTaskRepository.acceptApplication(10) } returns Result.failure(Exception("Unauthorized"))
+
+        viewModel.loadTask(1)
+        advanceUntilIdle()
+
+        viewModel.acceptApplication(10)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals("Unauthorized", state.error)
+            assertFalse(state.acceptSuccess)
+        }
+    }
+
+    @Test
+    fun `completeTask should release payment and complete task`() = runTest {
+        val completedTask = TestData.createTask(id = 1, status = TaskStatus.COMPLETED)
+        coEvery { mockPaymentRepository.releasePayment(1) } returns Result.success("Payment released")
+        coEvery { mockTaskRepository.completeTask(1) } returns Result.success(completedTask)
+
+        viewModel.completeTask(1)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.paymentSuccess)
+            assertEquals(TaskStatus.COMPLETED, state.task?.status)
+        }
+    }
+
+    @Test
+    fun `completeTask with payment release failure should emit payment error`() = runTest {
+        coEvery { mockPaymentRepository.releasePayment(1) } returns Result.failure(Exception("Insufficient funds"))
+
+        viewModel.completeTask(1)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals("Insufficient funds", state.paymentError)
+            assertFalse(state.paymentSuccess)
+        }
+    }
+
+    @Test
+    fun `clearError should clear error`() = runTest {
+        coEvery { mockTaskRepository.getTask(5) } returns Result.failure(Exception("Error"))
+        viewModel.loadTask(5)
+        advanceUntilIdle()
+
+        viewModel.clearError()
+
+        viewModel.uiState.test {
+            assertNull(awaitItem().error)
+        }
+    }
+
+    @Test
+    fun `clearAcceptSuccess should reset acceptSuccess flag`() = runTest {
+        viewModel.clearAcceptSuccess()
+
+        viewModel.uiState.test {
+            assertFalse(awaitItem().acceptSuccess)
+        }
+    }
+
+    @Test
+    fun `clearPaymentCheckoutUrl should clear checkout URL`() = runTest {
+        viewModel.clearPaymentCheckoutUrl()
+
+        viewModel.uiState.test {
+            assertNull(awaitItem().paymentCheckoutUrl)
+        }
+    }
+}

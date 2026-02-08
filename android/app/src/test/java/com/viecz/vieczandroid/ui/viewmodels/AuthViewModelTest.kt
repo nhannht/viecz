@@ -1,237 +1,212 @@
 package com.viecz.vieczandroid.ui.viewmodels
 
-import android.app.Application
 import app.cash.turbine.test
-import com.viecz.vieczandroid.data.models.User
+import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.repository.AuthRepository
+import com.viecz.vieczandroid.testutil.CoroutineTestRule
+import com.viecz.vieczandroid.testutil.TestData
 import io.mockk.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.*
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-/**
- * Unit tests for AuthViewModel
- *
- * Testing Strategy:
- * - Mock repository and dependencies
- * - Test state transitions (Idle -> Loading -> Success/Error)
- * - Test coroutine behavior with TestDispatcher
- * - Use Turbine for Flow testing
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
 
-    // Test dispatcher for coroutines
-    private val testDispatcher = StandardTestDispatcher()
+    @get:Rule
+    val coroutineRule = CoroutineTestRule()
 
-    // Mocks
-    private lateinit var mockApplication: Application
     private lateinit var mockRepository: AuthRepository
+    private lateinit var mockTokenManager: TokenManager
     private lateinit var viewModel: AuthViewModel
 
-    // Test data
-    private val testEmail = "test@example.com"
-    private val testPassword = "Password123"
-    private val testName = "Test User"
-    private val testUser = User(
-        id = 1,
-        email = testEmail,
-        name = testName,
-        avatarUrl = null,
-        phone = null,
-        university = "Test University",
-        studentId = null,
-        isVerified = false,
-        rating = 0.0,
-        totalTasksCompleted = 0,
-        totalTasksPosted = 0,
-        totalEarnings = 0L,
-        isTasker = false,
-        taskerBio = null,
-        createdAt = "2024-01-01T00:00:00Z",
-        updatedAt = "2024-01-01T00:00:00Z"
-    )
+    private val testUser = TestData.createUser()
 
     @Before
     fun setup() {
-        // Set main dispatcher for coroutines
-        Dispatchers.setMain(testDispatcher)
-
-        // Create mocks
-        mockApplication = mockk(relaxed = true)
         mockRepository = mockk()
+        mockTokenManager = mockk(relaxed = true)
 
-        // Mock Application.applicationContext
-        every { mockApplication.applicationContext } returns mockApplication
+        every { mockTokenManager.isLoggedIn } returns MutableStateFlow(false)
 
-        // TODO: In a real implementation, you'd need to mock TokenManager and RetrofitClient
-        // For now, we're assuming AuthViewModel can be instantiated with mocked dependencies
-        // viewModel = AuthViewModel(mockApplication)
+        viewModel = AuthViewModel(mockRepository, mockTokenManager)
     }
 
     @After
     fun tearDown() {
-        Dispatchers.resetMain()
         clearAllMocks()
     }
 
     @Test
-    fun `register with valid credentials should emit Success state`() = runTest {
-        // Given
-        coEvery { mockRepository.register(testEmail, testPassword, testName) } returns Result.success(testUser)
-
-        // When
-        // viewModel.register(testEmail, testPassword, testName)
-        // advanceUntilIdle() // Process all pending coroutines
-
-        // Then
-        // viewModel.authState.test {
-        //     assertIs<AuthState.Loading>(awaitItem())
-        //     val successState = awaitItem()
-        //     assertIs<AuthState.Success>(successState)
-        //     assertEquals(testUser, (successState as AuthState.Success).user)
-        // }
-
-        // Verify repository was called
-        // coVerify(exactly = 1) { mockRepository.register(testEmail, testPassword, testName) }
-    }
-
-    @Test
-    fun `register with invalid credentials should emit Error state`() = runTest {
-        // Given
-        val errorMessage = "Email already exists"
-        coEvery {
-            mockRepository.register(testEmail, testPassword, testName)
-        } returns Result.failure(Exception(errorMessage))
-
-        // When
-        // viewModel.register(testEmail, testPassword, testName)
-        // advanceUntilIdle()
-
-        // Then
-        // viewModel.authState.test {
-        //     val errorState = awaitItem()
-        //     assertIs<AuthState.Error>(errorState)
-        //     assertEquals(errorMessage, (errorState as AuthState.Error).message)
-        // }
+    fun `initial state should be Idle`() = runTest {
+        viewModel.authState.test {
+            assertIs<AuthState.Idle>(awaitItem())
+        }
     }
 
     @Test
     fun `login with valid credentials should emit Success state`() = runTest {
-        // Given
-        coEvery { mockRepository.login(testEmail, testPassword) } returns Result.success(testUser)
+        coEvery { mockRepository.login(any(), any()) } returns Result.success(testUser)
 
-        // When
-        // viewModel.login(testEmail, testPassword)
-        // advanceUntilIdle()
+        viewModel.login("test@example.com", "Password123")
+        advanceUntilIdle()
 
-        // Then
-        // viewModel.authState.test {
-        //     assertIs<AuthState.Loading>(awaitItem())
-        //     val successState = awaitItem()
-        //     assertIs<AuthState.Success>(successState)
-        //     assertEquals(testUser, (successState as AuthState.Success).user)
-        // }
+        viewModel.authState.test {
+            val state = awaitItem()
+            assertIs<AuthState.Success>(state)
+            assertEquals(testUser, (state as AuthState.Success).user)
+        }
     }
 
     @Test
     fun `login with invalid credentials should emit Error state`() = runTest {
-        // Given
-        val errorMessage = "Invalid credentials"
-        coEvery {
-            mockRepository.login(testEmail, testPassword)
-        } returns Result.failure(Exception(errorMessage))
+        coEvery { mockRepository.login(any(), any()) } returns Result.failure(Exception("Invalid credentials"))
 
-        // When
-        // viewModel.login(testEmail, testPassword)
-        // advanceUntilIdle()
+        viewModel.login("test@example.com", "wrong")
+        advanceUntilIdle()
 
-        // Then
-        // viewModel.authState.test {
-        //     val errorState = awaitItem()
-        //     assertIs<AuthState.Error>(errorState)
-        //     assertEquals(errorMessage, (errorState as AuthState.Error).message)
-        // }
+        viewModel.authState.test {
+            val state = awaitItem()
+            assertIs<AuthState.Error>(state)
+            assertEquals("Invalid credentials", (state as AuthState.Error).message)
+        }
+    }
+
+    @Test
+    fun `login with network error should emit Error state`() = runTest {
+        coEvery { mockRepository.login(any(), any()) } returns Result.failure(Exception("Network error. Please check your connection."))
+
+        viewModel.login("test@example.com", "Password123")
+        advanceUntilIdle()
+
+        viewModel.authState.test {
+            val state = awaitItem()
+            assertIs<AuthState.Error>(state)
+            assertEquals("Network error. Please check your connection.", (state as AuthState.Error).message)
+        }
+    }
+
+    @Test
+    fun `register with valid data should emit Success state`() = runTest {
+        coEvery { mockRepository.register(any(), any(), any()) } returns Result.success(testUser)
+
+        viewModel.register("test@example.com", "Password123", "Test User")
+        advanceUntilIdle()
+
+        viewModel.authState.test {
+            val state = awaitItem()
+            assertIs<AuthState.Success>(state)
+            assertEquals(testUser, (state as AuthState.Success).user)
+        }
+    }
+
+    @Test
+    fun `register with duplicate email should emit Error state`() = runTest {
+        coEvery { mockRepository.register(any(), any(), any()) } returns Result.failure(Exception("Email already exists"))
+
+        viewModel.register("test@example.com", "Password123", "Test User")
+        advanceUntilIdle()
+
+        viewModel.authState.test {
+            val state = awaitItem()
+            assertIs<AuthState.Error>(state)
+            assertEquals("Email already exists", (state as AuthState.Error).message)
+        }
+    }
+
+    @Test
+    fun `register with null error message should use fallback message`() = runTest {
+        coEvery { mockRepository.register(any(), any(), any()) } returns Result.failure(Exception())
+
+        viewModel.register("test@example.com", "Password123", "Test User")
+        advanceUntilIdle()
+
+        viewModel.authState.test {
+            val state = awaitItem()
+            assertIs<AuthState.Error>(state)
+            assertEquals("Registration failed", (state as AuthState.Error).message)
+        }
     }
 
     @Test
     fun `logout should emit Idle state`() = runTest {
-        // Given
         coEvery { mockRepository.logout() } just Runs
 
-        // When
-        // viewModel.logout()
-        // advanceUntilIdle()
+        viewModel.logout()
+        advanceUntilIdle()
 
-        // Then
-        // viewModel.authState.test {
-        //     assertIs<AuthState.Idle>(awaitItem())
-        // }
-        // coVerify(exactly = 1) { mockRepository.logout() }
+        viewModel.authState.test {
+            assertIs<AuthState.Idle>(awaitItem())
+        }
+
+        coVerify(exactly = 1) { mockRepository.logout() }
     }
 
     @Test
     fun `resetState should emit Idle state`() = runTest {
-        // When
-        // viewModel.resetState()
+        // First set a non-idle state
+        coEvery { mockRepository.login(any(), any()) } returns Result.success(testUser)
+        viewModel.login("test@example.com", "Password123")
+        advanceUntilIdle()
 
-        // Then
-        // viewModel.authState.test {
-        //     assertIs<AuthState.Idle>(awaitItem())
-        // }
+        // Then reset
+        viewModel.resetState()
+
+        viewModel.authState.test {
+            assertIs<AuthState.Idle>(awaitItem())
+        }
     }
 
     @Test
-    fun `multiple register calls should only process the latest`() = runTest {
-        // Given
-        coEvery { mockRepository.register(any(), any(), any()) } coAnswers {
-            delay(100)
-            Result.success(testUser)
+    fun `login should call repository with correct parameters`() = runTest {
+        coEvery { mockRepository.login(any(), any()) } returns Result.success(testUser)
+
+        viewModel.login("user@test.com", "MyPassword1")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { mockRepository.login("user@test.com", "MyPassword1") }
+    }
+
+    @Test
+    fun `register should call repository with correct parameters`() = runTest {
+        coEvery { mockRepository.register(any(), any(), any()) } returns Result.success(testUser)
+
+        viewModel.register("user@test.com", "MyPassword1", "John Doe")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { mockRepository.register("user@test.com", "MyPassword1", "John Doe") }
+    }
+
+    @Test
+    fun `isLoggedIn should reflect TokenManager state`() = runTest {
+        val loggedInFlow = MutableStateFlow(true)
+        every { mockTokenManager.isLoggedIn } returns loggedInFlow
+
+        val vm = AuthViewModel(mockRepository, mockTokenManager)
+
+        vm.isLoggedIn.test {
+            assertEquals(true, awaitItem())
         }
+    }
 
-        // When
-        // viewModel.register("user1@example.com", "pass1", "User 1")
-        // viewModel.register("user2@example.com", "pass2", "User 2")
-        // advanceUntilIdle()
+    @Test
+    fun `login failure with null message should use Login failed fallback`() = runTest {
+        coEvery { mockRepository.login(any(), any()) } returns Result.failure(Exception())
 
-        // Then - both calls should complete (no cancellation in current implementation)
-        // If you implement collectLatest or other flow operators, behavior may change
+        viewModel.login("test@example.com", "Password123")
+        advanceUntilIdle()
+
+        viewModel.authState.test {
+            val state = awaitItem()
+            assertIs<AuthState.Error>(state)
+            assertEquals("Login failed", (state as AuthState.Error).message)
+        }
     }
 }
-
-/**
- * ✅ HILT MIGRATION COMPLETE!
- *
- * AuthViewModel now uses Hilt dependency injection:
- *
- * @HiltViewModel
- * class AuthViewModel @Inject constructor(
- *     private val repository: AuthRepository,
- *     private val tokenManager: TokenManager
- * ) : ViewModel()
- *
- * This makes testing much easier - just inject mock dependencies directly!
- *
- * TO USE THESE TESTS:
- * 1. Uncomment the test methods below
- * 2. Instantiate viewModel with mock dependencies:
- *    viewModel = AuthViewModel(mockRepository, mockTokenManager)
- * 3. Run tests: ./gradlew test
- *
- * Example:
- * ```kotlin
- * @Before
- * fun setup() {
- *     mockRepository = mockk()
- *     mockTokenManager = mockk(relaxed = true)
- *     viewModel = AuthViewModel(mockRepository, mockTokenManager)
- * }
- * ```
- */
