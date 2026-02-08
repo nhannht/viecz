@@ -61,6 +61,15 @@ hilt {
     enableAggregatingTask = false
 }
 
+// Enable JaCoCo coverage for Robolectric tests
+// See: https://github.com/robolectric/robolectric/issues/5575
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
