@@ -145,6 +145,19 @@ dependencies {
     kspAndroidTest(libs.hilt.compiler)
 }
 
+// Shared JaCoCo file filters for generated code
+val jacocoFileFilter = listOf(
+    "**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+    "**/Manifest*.*", "**/*Test*.*", "**/android/**/*.*",
+    // Hilt generated
+    "**/*_HiltModules*.*", "**/*_Factory.*", "**/*_MembersInjector.*",
+    "**/Hilt_*.*", "**/*Module_*.*",
+    // Dagger generated
+    "**/Dagger*Component*.*", "**/*_Provide*Factory.*",
+    // Moshi generated
+    "**/*JsonAdapter.*"
+)
+
 tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn("testDebugUnitTest")
 
@@ -154,20 +167,34 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/html"))
     }
 
-    val fileFilter = listOf(
-        "**/R.class", "**/R\$*.class", "**/BuildConfig.*",
-        "**/Manifest*.*", "**/*Test*.*", "**/android/**/*.*",
-        // Hilt generated
-        "**/*_HiltModules*.*", "**/*_Factory.*", "**/*_MembersInjector.*",
-        "**/Hilt_*.*", "**/*Module_*.*",
-        // Dagger generated
-        "**/Dagger*Component*.*", "**/*_Provide*Factory.*",
-        // Moshi generated
-        "**/*JsonAdapter.*"
-    )
+    val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+        exclude(jacocoFileFilter)
+    }
+
+    sourceDirectories.setFrom(files("src/main/java"))
+    classDirectories.setFrom(debugTree)
+    executionData.setFrom(fileTree(layout.buildDirectory) {
+        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+        include("jacoco/testDebugUnitTest.exec")
+    })
+}
+
+// Package-specific JaCoCo report task
+// Usage: ./gradlew jacocoPackageReport -PjacocoPackage=data/api
+tasks.register<JacocoReport>("jacocoPackageReport") {
+    dependsOn("testDebugUnitTest")
+
+    val pkg = project.findProperty("jacocoPackage")?.toString() ?: "**"
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/package-html"))
+    }
 
     val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
-        exclude(fileFilter)
+        include("com/viecz/vieczandroid/$pkg/**")
+        exclude(jacocoFileFilter)
     }
 
     sourceDirectories.setFrom(files("src/main/java"))
