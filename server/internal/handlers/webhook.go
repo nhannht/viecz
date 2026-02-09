@@ -33,61 +33,88 @@ func NewWebhookHandler(
 }
 
 // HandleWebhook processes webhook notifications from PayOS
+// PayOS sends: {"code":"00","desc":"success","success":true,"data":{...},"signature":"..."}
+// SDK VerifyData returns the inner "data" object directly after signature verification
 func (h *WebhookHandler) HandleWebhook(c *gin.Context) {
 	// Parse webhook body
 	var webhookData map[string]interface{}
 	if err := c.ShouldBindJSON(&webhookData); err != nil {
 		log.Printf("Failed to parse webhook body: %v", err)
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error:   "invalid_webhook_data",
-			Message: "Failed to parse request body",
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code": "01",
+			"desc": "Failed to parse request body",
 		})
 		return
 	}
 
-	// Verify webhook signature
+	// Verify webhook signature — returns the inner "data" object
 	verifiedData, err := h.payos.VerifyWebhookData(c.Request.Context(), webhookData)
 	if err != nil {
 		log.Printf("Webhook verification failed: %v", err)
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Error:   "verification_failed",
-			Message: "Invalid webhook signature",
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code": "01",
+			"desc": "Invalid webhook signature",
 		})
 		return
 	}
 
-	// Extract data from verified webhook
 	log.Printf("Webhook received and verified: %v", verifiedData)
 
-	// Try to extract order code and status if available
-	if data, ok := verifiedData["data"].(map[string]interface{}); ok {
-		if orderCode, ok := data["orderCode"].(float64); ok {
-			orderCodeInt := int64(orderCode)
-			if code, ok := data["code"].(string); ok {
-				switch code {
-				case "00":
-					log.Printf("Payment successful for order %d", orderCodeInt)
-					// Update transaction status to success
-					if err := h.handlePaymentSuccess(c.Request.Context(), orderCodeInt); err != nil {
-						log.Printf("Failed to handle payment success: %v", err)
-					}
-				case "01":
-					log.Printf("Payment cancelled for order %d", orderCodeInt)
-					// Update transaction status to cancelled
-					if err := h.handlePaymentCancelled(c.Request.Context(), orderCodeInt); err != nil {
-						log.Printf("Failed to handle payment cancellation: %v", err)
-					}
-				default:
-					log.Printf("Unknown payment status code: %s for order %d", code, orderCodeInt)
+	// Extract orderCode and code directly from verified data
+	// (VerifyData returns the inner "data" object, not the wrapper)
+	if orderCode, ok := verifiedData["orderCode"].(float64); ok {
+		orderCodeInt := int64(orderCode)
+		if code, ok := verifiedData["code"].(string); ok {
+			switch code {
+			case "00":
+				log.Printf("Payment successful for order %d", orderCodeInt)
+				if err := h.handlePaymentSuccess(c.Request.Context(), orderCodeInt); err != nil {
+					log.Printf("Failed to handle payment success: %v", err)
 				}
+			case "01":
+				log.Printf("Payment cancelled for order %d", orderCodeInt)
+				if err := h.handlePaymentCancelled(c.Request.Context(), orderCodeInt); err != nil {
+					log.Printf("Failed to handle payment cancellation: %v", err)
+				}
+			default:
+				log.Printf("Unknown payment status code: %s for order %d", code, orderCodeInt)
 			}
 		}
 	}
 
-	// Respond with success
-	c.JSON(http.StatusOK, models.WebhookResponse{
-		Success: true,
-		Message: "Webhook processed successfully",
+	// Respond with PayOS expected format
+	c.JSON(http.StatusOK, gin.H{
+		"code": "00",
+		"desc": "success",
+	})
+}
+
+// ConfirmWebhook registers the webhook URL with PayOS
+func (h *WebhookHandler) ConfirmWebhook(c *gin.Context) {
+	var req struct {
+		WebhookURL string `json:"webhook_url" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	confirmedURL, err := h.payos.ConfirmWebhook(c.Request.Context(), req.WebhookURL)
+	if err != nil {
+		log.Printf("Failed to confirm webhook: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "confirm_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "Webhook URL confirmed",
+		"webhook_url": confirmedURL,
 	})
 }
 

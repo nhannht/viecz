@@ -1,0 +1,11 @@
+*.test
+*.out
+*.prof
+*.log
+*.db
+*.sqlite
+.env
+.env.*
+vendor/
+tmp/
+coverage/

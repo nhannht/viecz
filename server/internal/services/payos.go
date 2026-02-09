@@ -85,6 +85,15 @@ func (s *PayOSService) VerifyWebhookData(ctx context.Context, webhookData map[st
 	return result, nil
 }
 
+// ConfirmWebhook registers/confirms the webhook URL with PayOS
+func (s *PayOSService) ConfirmWebhook(ctx context.Context, webhookURL string) (string, error) {
+	confirmedURL, err := s.client.Webhooks.Confirm(ctx, webhookURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to confirm webhook URL: %w", err)
+	}
+	return confirmedURL, nil
+}
+
 // GetPaymentInfo retrieves payment information by order code
 func (s *PayOSService) GetPaymentInfo(ctx context.Context, orderCode int64) (*payos.PaymentLink, error) {
 	result, err := s.client.PaymentRequests.Get(ctx, orderCode)

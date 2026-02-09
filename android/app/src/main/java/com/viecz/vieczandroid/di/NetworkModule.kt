@@ -2,6 +2,7 @@ package com.viecz.vieczandroid.di
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.api.*
 import com.viecz.vieczandroid.data.local.TokenManager
 import dagger.Module
@@ -24,7 +25,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://localhost:8080/api/v1/"
+    private val BASE_URL = BuildConfig.API_BASE_URL
     private const val TIMEOUT_SECONDS = 30L
 
     @Provides

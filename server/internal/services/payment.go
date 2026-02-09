@@ -18,6 +18,7 @@ type PaymentService struct {
 	payosService    *PayOSService
 	mockMode        bool
 	platformFeeRate float64 // Platform fee as percentage (e.g., 0.10 for 10%)
+	serverURL       string
 }
 
 // NewPaymentService creates a new payment service
@@ -26,6 +27,7 @@ func NewPaymentService(
 	taskRepo repository.TaskRepository,
 	walletService *WalletService,
 	payosService *PayOSService,
+	serverURL string,
 ) *PaymentService {
 	// Check if mock mode is enabled via environment variable
 	mockMode := os.Getenv("PAYMENT_MOCK_MODE") == "true"
@@ -40,6 +42,7 @@ func NewPaymentService(
 		payosService:    payosService,
 		mockMode:        mockMode,
 		platformFeeRate: platformFeeRate,
+		serverURL:       serverURL,
 	}
 }
 
@@ -110,15 +113,8 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 	orderCode := time.Now().Unix()
 	transaction.PayOSOrderCode = &orderCode
 
-	returnURL := os.Getenv("PAYOS_RETURN_URL")
-	if returnURL == "" {
-		returnURL = "http://localhost:8080/api/v1/payments/return"
-	}
-
-	cancelURL := os.Getenv("PAYOS_CANCEL_URL")
-	if cancelURL == "" {
-		cancelURL = "http://localhost:8080/api/v1/payments/cancel"
-	}
+	returnURL := fmt.Sprintf("%s/api/v1/payments/return", s.serverURL)
+	cancelURL := fmt.Sprintf("%s/api/v1/payments/return", s.serverURL)
 
 	// Create payment link with PayOS
 	result, err := s.payosService.CreatePaymentLink(

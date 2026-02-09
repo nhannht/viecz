@@ -30,10 +30,12 @@ android {
     buildTypes {
         debug {
             enableUnitTestCoverage = true
+            buildConfigField("String", "API_BASE_URL", "\"https://viecz-api-dev.fishcmus.io.vn/api/v1/\"")
         }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField("String", "API_BASE_URL", "\"https://viecz-api-dev.fishcmus.io.vn/api/v1/\"")
         }
     }
     kotlinOptions {
@@ -45,6 +47,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {

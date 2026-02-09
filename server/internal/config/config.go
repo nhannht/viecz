@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Port             string
 	Env              string
+	ServerURL        string
 	PayOSClientID    string
 	PayOSAPIKey      string
 	PayOSChecksumKey string
@@ -39,6 +40,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Port:             getEnv("PORT", "8080"),
 		Env:              getEnv("GO_ENV", "development"),
+		ServerURL:        getEnv("SERVER_URL", "http://localhost:8080"),
 		PayOSClientID:    os.Getenv("PAYOS_CLIENT_ID"),
 		PayOSAPIKey:      os.Getenv("PAYOS_API_KEY"),
 		PayOSChecksumKey: os.Getenv("PAYOS_CHECKSUM_KEY"),

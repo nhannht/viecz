@@ -159,7 +159,7 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 			}
 
 			// Create payment service
-			service := NewPaymentService(txRepo, taskRepo, walletService, nil)
+			service := NewPaymentService(txRepo, taskRepo, walletService, nil, "http://localhost:8080")
 			service.mockMode = true
 
 			ctx := context.Background()
@@ -465,7 +465,7 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
 
-			service := NewPaymentService(txRepo, taskRepo, walletService, nil)
+			service := NewPaymentService(txRepo, taskRepo, walletService, nil, "http://localhost:8080")
 			service.mockMode = true
 
 			ctx := context.Background()
@@ -616,7 +616,7 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
 
-			service := NewPaymentService(txRepo, taskRepo, walletService, nil)
+			service := NewPaymentService(txRepo, taskRepo, walletService, nil, "http://localhost:8080")
 			service.mockMode = true
 
 			ctx := context.Background()
@@ -674,7 +674,7 @@ func TestPaymentService_GetTransactionsByTask(t *testing.T) {
 				tt.setupRepos(txRepo)
 			}
 
-			service := NewPaymentService(txRepo, nil, nil, nil)
+			service := NewPaymentService(txRepo, nil, nil, nil, "http://localhost:8080")
 			ctx := context.Background()
 
 			transactions, err := service.GetTransactionsByTask(ctx, tt.taskID)

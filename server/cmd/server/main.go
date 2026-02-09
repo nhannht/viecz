@@ -87,6 +87,7 @@ func main() {
 		taskRepo,
 		walletService,
 		payosService,
+		cfg.ServerURL,
 	)
 
 	// Initialize WebSocket Hub (Phase 4)
@@ -100,7 +101,7 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, cfg.JWTSecret)
 	userHandler := handlers.NewUserHandler(userService)
-	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL)
+	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL, cfg.ServerURL)
 	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo)
 	returnHandler := handlers.NewReturnHandler(payosService, cfg.ClientURL)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
@@ -140,6 +141,7 @@ func main() {
 			payment.POST("/create", paymentHandler.CreatePayment)
 			payment.GET("/return", returnHandler.HandleReturn)
 			payment.POST("/webhook", webhookHandler.HandleWebhook)
+			payment.POST("/confirm-webhook", webhookHandler.ConfirmWebhook)
 		}
 
 		// Category routes (public)
