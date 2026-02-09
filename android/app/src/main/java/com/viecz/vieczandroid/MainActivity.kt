@@ -7,9 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -108,7 +105,6 @@ class MainActivity : ComponentActivity() {
 fun VieczApp(paymentResultFlow: StateFlow<PaymentResult?>) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showMenu by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val paymentResult by paymentResultFlow.collectAsStateWithLifecycle()
 
@@ -130,53 +126,6 @@ fun VieczApp(paymentResultFlow: StateFlow<PaymentResult?>) {
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Viecz") },
-                actions = {
-                    IconButton(onClick = { showMenu = !showMenu }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options"
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Settings") },
-                            onClick = {
-                                showMenu = false
-                                // Handle settings click
-                            }
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Replace with your own action",
-                            actionLabel = "Action",
-                            duration = SnackbarDuration.Long
-                        )
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = "Email"
-                )
-            }
-        },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }

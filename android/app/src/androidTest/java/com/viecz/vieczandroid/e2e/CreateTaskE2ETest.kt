@@ -2,7 +2,7 @@ package com.viecz.vieczandroid.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -25,9 +25,9 @@ class CreateTaskE2ETest : BaseE2ETest() {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Ensure composition is fully settled before clicking FAB
-        composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("Create Task").performClick()
+        // Use testTag for FAB click — semantic performClick() on merged content
+        // description nodes may not trigger FloatingActionButton's onClick
+        composeRule.onNodeWithTag("fab_create_task").performClick()
 
         composeRule.waitUntil(timeoutMillis = 15000) {
             composeRule.onAllNodes(hasText("Create New Task"))
@@ -36,7 +36,7 @@ class CreateTaskE2ETest : BaseE2ETest() {
 
         composeRule.onNodeWithText("Create New Task").assertIsDisplayed()
 
-        // Fill in the form (labels have asterisks: "Task Title *", etc.)
+        // Fill in the form
         composeRule.onNodeWithText("Task Title *").performClick()
         composeRule.onNodeWithText("Task Title *").performTextInput("My New Task")
 
@@ -49,7 +49,7 @@ class CreateTaskE2ETest : BaseE2ETest() {
         composeRule.onNodeWithText("Location *").performClick()
         composeRule.onNodeWithText("Location *").performTextInput("HCMUS Campus")
 
-        // Select category (button text is "Select Category *")
+        // Select category
         composeRule.onNodeWithText("Select Category *").performClick()
 
         composeRule.waitUntil(timeoutMillis = 10000) {
@@ -59,10 +59,7 @@ class CreateTaskE2ETest : BaseE2ETest() {
 
         composeRule.onNodeWithText("Giao hàng").performClick()
 
-        // Wait for dialog to dismiss and form to settle
-        composeRule.waitForIdle()
-
-        // Submit (button text is "Create Task")
+        // Submit
         composeRule.onNodeWithText("Create Task").performClick()
 
         // Should navigate to task detail after creation
