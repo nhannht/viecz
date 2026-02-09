@@ -154,6 +154,7 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.mockwebserver)
     kspAndroidTest(libs.hilt.compiler)
 }
 
