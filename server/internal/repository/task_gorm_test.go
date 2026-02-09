@@ -692,8 +692,8 @@ func TestTaskGormRepository_AssignTasker(t *testing.T) {
 					if task.TaskerID == nil || *task.TaskerID != tt.taskerID {
 						t.Errorf("Expected tasker ID %d, got %v", tt.taskerID, task.TaskerID)
 					}
-					if task.Status != models.TaskStatusInProgress {
-						t.Errorf("Expected status InProgress, got %s", task.Status)
+					if task.Status != models.TaskStatusOpen {
+						t.Errorf("Expected status Open, got %s", task.Status)
 					}
 				}
 			}
