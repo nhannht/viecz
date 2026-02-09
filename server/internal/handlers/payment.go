@@ -91,7 +91,7 @@ type CreateEscrowPaymentResponse struct {
 
 // CreateEscrowPayment creates an escrow payment for a task
 func (h *PaymentHandler) CreateEscrowPayment(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "unauthorized",
@@ -136,7 +136,7 @@ type ReleasePaymentRequest struct {
 
 // ReleasePayment releases escrowed funds to tasker when task is completed
 func (h *PaymentHandler) ReleasePayment(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "unauthorized",
@@ -180,7 +180,7 @@ type RefundPaymentRequest struct {
 
 // RefundPayment refunds escrowed funds to requester when task is cancelled
 func (h *PaymentHandler) RefundPayment(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "unauthorized",

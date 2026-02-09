@@ -28,7 +28,7 @@ func TestWalletHandler_GetWallet(t *testing.T) {
 		{
 			name: "successful wallet retrieval",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			mockWallet:     testutil.NewWalletBuilder().WithUserID(1).WithBalance(100000).Build(),
 			mockError:      nil,
@@ -45,7 +45,7 @@ func TestWalletHandler_GetWallet(t *testing.T) {
 		{
 			name: "wallet creation for new user",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(999)) // Non-existent user - wallet will be created
+				c.Set("user_id", int64(999)) // Non-existent user - wallet will be created
 			},
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
@@ -132,7 +132,7 @@ func TestWalletHandler_Deposit(t *testing.T) {
 		{
 			name: "successful deposit",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			requestBody: DepositRequest{
 				Amount:      50000,
@@ -144,7 +144,7 @@ func TestWalletHandler_Deposit(t *testing.T) {
 		{
 			name: "successful deposit with default description",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			requestBody: DepositRequest{
 				Amount: 50000,
@@ -167,7 +167,7 @@ func TestWalletHandler_Deposit(t *testing.T) {
 		{
 			name: "invalid request - negative amount",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			requestBody: DepositRequest{
 				Amount: -1000,
@@ -178,7 +178,7 @@ func TestWalletHandler_Deposit(t *testing.T) {
 		{
 			name: "invalid request - zero amount",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			requestBody: DepositRequest{
 				Amount: 0,
@@ -189,7 +189,7 @@ func TestWalletHandler_Deposit(t *testing.T) {
 		{
 			name: "invalid request - malformed JSON",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			requestBody:    "invalid json",
 			expectedStatus: http.StatusBadRequest,
@@ -269,7 +269,7 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 		{
 			name: "successful retrieval with default pagination",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			queryParams: map[string]string{},
 			mockWallet:  testutil.NewWalletBuilder().WithID(1).WithUserID(1).Build(),
@@ -283,7 +283,7 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 		{
 			name: "successful retrieval with custom limit",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			queryParams: map[string]string{
 				"limit":  "1",
@@ -300,7 +300,7 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 		{
 			name: "successful retrieval with offset",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			queryParams: map[string]string{
 				"limit":  "10",
@@ -317,7 +317,7 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 		{
 			name: "invalid limit parameter - fallback to default",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			queryParams: map[string]string{
 				"limit": "invalid",
@@ -329,7 +329,7 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 		{
 			name: "negative limit parameter - fallback to default",
 			setupContext: func(c *gin.Context) {
-				c.Set("userID", int64(1))
+				c.Set("user_id", int64(1))
 			},
 			queryParams: map[string]string{
 				"limit": "-1",

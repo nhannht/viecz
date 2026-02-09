@@ -34,7 +34,7 @@ func NewWalletHandler(walletService *services.WalletService) *WalletHandler {
 // @Router /wallet [get]
 // @Security BearerAuth
 func (h *WalletHandler) GetWallet(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "unauthorized",
@@ -76,7 +76,7 @@ type DepositRequest struct {
 // @Router /wallet/deposit [post]
 // @Security BearerAuth
 func (h *WalletHandler) Deposit(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "unauthorized",
@@ -131,7 +131,7 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 // @Router /wallet/transactions [get]
 // @Security BearerAuth
 func (h *WalletHandler) GetTransactionHistory(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "unauthorized",

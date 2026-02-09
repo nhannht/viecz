@@ -106,7 +106,7 @@ func TestPaymentHandler_CreateEscrowPayment(t *testing.T) {
 
 			router.POST("/escrow", func(c *gin.Context) {
 				if tt.userID != nil {
-					c.Set("userID", *tt.userID)
+					c.Set("user_id", *tt.userID)
 				}
 				handler.CreateEscrowPayment(c)
 			})
@@ -197,7 +197,7 @@ func TestPaymentHandler_ReleasePayment(t *testing.T) {
 
 			router.POST("/release", func(c *gin.Context) {
 				if tt.userID != nil {
-					c.Set("userID", *tt.userID)
+					c.Set("user_id", *tt.userID)
 				}
 				handler.ReleasePayment(c)
 			})
@@ -287,7 +287,7 @@ func TestPaymentHandler_RefundPayment(t *testing.T) {
 
 			router.POST("/refund", func(c *gin.Context) {
 				if tt.userID != nil {
-					c.Set("userID", *tt.userID)
+					c.Set("user_id", *tt.userID)
 				}
 				handler.RefundPayment(c)
 			})
