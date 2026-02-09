@@ -6,7 +6,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dagger.hilt.android.testing.HiltAndroidTest
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -15,14 +14,10 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class BrowseTasksE2ETest : BaseE2ETest() {
 
-    @Before
-    fun setup() {
-        loginAsTestUser()
-    }
+    override val shouldStartLoggedIn = true
 
     @Test
     fun homeShowsTasks() {
-        // Wait for home screen with tasks loaded
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
@@ -30,7 +25,6 @@ class BrowseTasksE2ETest : BaseE2ETest() {
 
         composeRule.onNodeWithText("Viecz - Task Marketplace").assertIsDisplayed()
 
-        // Verify tasks are displayed
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("Deliver package to campus"))
                 .fetchSemanticsNodes().isNotEmpty()
@@ -48,7 +42,6 @@ class BrowseTasksE2ETest : BaseE2ETest() {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Wait for categories to load
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("All"))
                 .fetchSemanticsNodes().isNotEmpty()
@@ -67,10 +60,8 @@ class BrowseTasksE2ETest : BaseE2ETest() {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Click on a task
         composeRule.onNodeWithText("Deliver package to campus").performClick()
 
-        // Verify task detail screen
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("Task Details"))
                 .fetchSemanticsNodes().isNotEmpty()

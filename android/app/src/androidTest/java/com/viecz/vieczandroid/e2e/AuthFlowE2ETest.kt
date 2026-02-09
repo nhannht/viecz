@@ -1,12 +1,12 @@
 package com.viecz.vieczandroid.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dagger.hilt.android.testing.HiltAndroidTest
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -15,25 +15,20 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AuthFlowE2ETest : BaseE2ETest() {
 
-    @Before
-    fun setup() {
-        ensureLoggedOut()
-    }
+    override val shouldStartLoggedIn = false
 
     @Test
     fun splashToLoginToHome() {
         // App starts at splash
         composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodes(
-                androidx.compose.ui.test.hasText("MiniJob")
-            ).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("MiniJob"))
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
         // Wait for navigation to login
         composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodes(
-                androidx.compose.ui.test.hasText("Welcome Back")
-            ).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Welcome Back"))
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithText("Welcome Back").assertIsDisplayed()
@@ -50,9 +45,8 @@ class AuthFlowE2ETest : BaseE2ETest() {
 
         // Wait for home screen
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(
-                androidx.compose.ui.test.hasText("Viecz - Task Marketplace")
-            ).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithText("Viecz - Task Marketplace").assertIsDisplayed()
@@ -62,9 +56,8 @@ class AuthFlowE2ETest : BaseE2ETest() {
     fun loginToRegisterToHome() {
         // Wait for login screen
         composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodes(
-                androidx.compose.ui.test.hasText("Welcome Back")
-            ).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Welcome Back"))
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
         // Navigate to register
@@ -72,9 +65,8 @@ class AuthFlowE2ETest : BaseE2ETest() {
 
         // Wait for register screen
         composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodes(
-                androidx.compose.ui.test.hasText("Create Account")
-            ).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Create Account"))
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithText("Create Account").assertIsDisplayed()
@@ -94,9 +86,8 @@ class AuthFlowE2ETest : BaseE2ETest() {
 
         // Wait for home screen
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(
-                androidx.compose.ui.test.hasText("Viecz - Task Marketplace")
-            ).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithText("Viecz - Task Marketplace").assertIsDisplayed()

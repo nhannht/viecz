@@ -1,7 +1,6 @@
 package com.viecz.vieczandroid.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -9,7 +8,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dagger.hilt.android.testing.HiltAndroidTest
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -18,23 +16,17 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CreateTaskE2ETest : BaseE2ETest() {
 
-    @Before
-    fun setup() {
-        loginAsTestUser()
-    }
+    override val shouldStartLoggedIn = true
 
     @Test
     fun homeToCreateTaskFillFormAndSubmit() {
-        // Wait for home
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Click FAB to create task
         composeRule.onNodeWithContentDescription("Create Task").performClick()
 
-        // Wait for create task screen
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("Create New Task"))
                 .fetchSemanticsNodes().isNotEmpty()
