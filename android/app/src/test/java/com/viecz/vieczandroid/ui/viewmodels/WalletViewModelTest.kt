@@ -1,6 +1,7 @@
 package com.viecz.vieczandroid.ui.viewmodels
 
 import app.cash.turbine.test
+import com.viecz.vieczandroid.data.models.DepositResponse
 import com.viecz.vieczandroid.data.repository.WalletRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
@@ -111,10 +112,12 @@ class WalletViewModelTest {
     }
 
     @Test
-    fun `deposit should emit Success and reload wallet on success`() = runTest {
-        coEvery { mockRepository.deposit(any(), any()) } returns Result.success("Deposit successful")
-        coEvery { mockRepository.getWallet() } returns Result.success(TestData.createWallet())
-        coEvery { mockRepository.getTransactionHistory(any(), any()) } returns Result.success(emptyList())
+    fun `deposit should emit Success with checkout URL on success`() = runTest {
+        val depositResponse = DepositResponse(
+            checkoutUrl = "https://pay.payos.vn/test-checkout",
+            orderCode = 1234567890L
+        )
+        coEvery { mockRepository.deposit(any(), any()) } returns Result.success(depositResponse)
 
         viewModel.deposit(100000L, "Test deposit")
         advanceUntilIdle()
@@ -122,12 +125,9 @@ class WalletViewModelTest {
         viewModel.depositState.test {
             val state = awaitItem()
             assertIs<DepositUiState.Success>(state)
-            assertEquals("Deposit successful", (state as DepositUiState.Success).message)
+            assertEquals("https://pay.payos.vn/test-checkout", (state as DepositUiState.Success).checkoutUrl)
+            assertEquals(1234567890L, state.orderCode)
         }
-
-        // Verify wallet and transactions were reloaded
-        coVerify(atLeast = 2) { mockRepository.getWallet() }
-        coVerify(atLeast = 2) { mockRepository.getTransactionHistory(any(), any()) }
     }
 
     @Test
@@ -146,9 +146,8 @@ class WalletViewModelTest {
 
     @Test
     fun `deposit should pass correct parameters to repository`() = runTest {
-        coEvery { mockRepository.deposit(any(), any()) } returns Result.success("OK")
-        coEvery { mockRepository.getWallet() } returns Result.success(TestData.createWallet())
-        coEvery { mockRepository.getTransactionHistory(any(), any()) } returns Result.success(emptyList())
+        val depositResponse = DepositResponse(checkoutUrl = "https://example.com", orderCode = 999L)
+        coEvery { mockRepository.deposit(any(), any()) } returns Result.success(depositResponse)
 
         viewModel.deposit(200000L, "My deposit")
         advanceUntilIdle()
@@ -159,9 +158,8 @@ class WalletViewModelTest {
     @Test
     fun `resetDepositState should emit Idle`() = runTest {
         // First trigger a deposit
-        coEvery { mockRepository.deposit(any(), any()) } returns Result.success("OK")
-        coEvery { mockRepository.getWallet() } returns Result.success(TestData.createWallet())
-        coEvery { mockRepository.getTransactionHistory(any(), any()) } returns Result.success(emptyList())
+        val depositResponse = DepositResponse(checkoutUrl = "https://example.com", orderCode = 999L)
+        coEvery { mockRepository.deposit(any(), any()) } returns Result.success(depositResponse)
 
         viewModel.deposit(100000L)
         advanceUntilIdle()

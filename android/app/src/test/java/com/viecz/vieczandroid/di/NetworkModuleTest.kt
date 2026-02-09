@@ -83,7 +83,7 @@ class NetworkModuleTest {
 
         val retrofit = NetworkModule.provideRetrofit(okHttpClient, moshi)
 
-        assertEquals("http://localhost:8080/api/v1/", retrofit.baseUrl().toString())
+        assertEquals("https://viecz-api-dev.fishcmus.io.vn/api/v1/", retrofit.baseUrl().toString())
     }
 
     @Test
