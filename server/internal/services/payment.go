@@ -113,8 +113,8 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 	orderCode := time.Now().Unix()
 	transaction.PayOSOrderCode = &orderCode
 
-	returnURL := fmt.Sprintf("%s/api/v1/payments/return", s.serverURL)
-	cancelURL := fmt.Sprintf("%s/api/v1/payments/return", s.serverURL)
+	returnURL := fmt.Sprintf("%s/api/v1/payment/return", s.serverURL)
+	cancelURL := fmt.Sprintf("%s/api/v1/payment/return", s.serverURL)
 
 	// Create payment link with PayOS
 	result, err := s.payosService.CreatePaymentLink(

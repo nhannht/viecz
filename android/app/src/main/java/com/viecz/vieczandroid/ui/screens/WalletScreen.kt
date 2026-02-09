@@ -1,5 +1,7 @@
 package com.viecz.vieczandroid.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,11 +13,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.viecz.vieczandroid.data.models.WalletTransaction
 import com.viecz.vieczandroid.data.models.WalletTransactionType
 import com.viecz.vieczandroid.ui.viewmodels.*
@@ -31,8 +37,29 @@ fun WalletScreen(
     val walletState by viewModel.uiState.collectAsState()
     val transactionsState by viewModel.transactionsState.collectAsState()
     val depositState by viewModel.depositState.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var showDepositDialog by remember { mutableStateOf(false) }
+
+    // Auto-refresh wallet when returning from browser (RESUMED state)
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.loadWallet()
+            viewModel.loadTransactionHistory()
+        }
+    }
+
+    // Open browser when deposit succeeds
+    LaunchedEffect(depositState) {
+        if (depositState is DepositUiState.Success) {
+            val checkoutUrl = (depositState as DepositUiState.Success).checkoutUrl
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutUrl))
+            context.startActivity(intent)
+            showDepositDialog = false
+            viewModel.resetDepositState()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -294,7 +321,9 @@ fun DepositDialog(
     onDismiss: () -> Unit
 ) {
     var amount by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("Manual deposit") }
+    var description by remember { mutableStateOf("Wallet deposit") }
+    val amountLong = amount.toLongOrNull()
+    val isValidAmount = amountLong != null && amountLong >= 2000
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -305,8 +334,10 @@ fun DepositDialog(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("Amount (VND)") },
+                    supportingText = { Text("Minimum: 2,000 VND") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
+                    isError = amountLong != null && amountLong < 2000,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -322,17 +353,6 @@ fun DepositDialog(
                     is DepositUiState.Loading -> {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
-                    is DepositUiState.Success -> {
-                        Text(
-                            text = depositState.message,
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(1500)
-                            onDismiss()
-                        }
-                    }
                     is DepositUiState.Error -> {
                         Text(
                             text = depositState.message,
@@ -347,12 +367,11 @@ fun DepositDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val amountLong = amount.toLongOrNull()
-                    if (amountLong != null && amountLong > 0) {
-                        onDeposit(amountLong, description)
+                    if (isValidAmount) {
+                        onDeposit(amountLong!!, description)
                     }
                 },
-                enabled = depositState !is DepositUiState.Loading && amount.toLongOrNull() != null
+                enabled = depositState !is DepositUiState.Loading && isValidAmount
             ) {
                 Text("Deposit")
             }

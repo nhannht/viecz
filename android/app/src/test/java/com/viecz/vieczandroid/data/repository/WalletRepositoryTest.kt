@@ -2,7 +2,7 @@ package com.viecz.vieczandroid.data.repository
 
 import com.viecz.vieczandroid.data.api.WalletApi
 import com.viecz.vieczandroid.data.models.DepositRequest
-import com.viecz.vieczandroid.data.models.MessageResponse
+import com.viecz.vieczandroid.data.models.DepositResponse
 import com.viecz.vieczandroid.testutil.TestData
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
@@ -64,19 +64,26 @@ class WalletRepositoryTest {
     // --- deposit ---
 
     @Test
-    fun `deposit should return success message`() = runTest {
-        val response = MessageResponse(message = "Deposit successful")
+    fun `deposit should return DepositResponse on success`() = runTest {
+        val response = DepositResponse(
+            checkoutUrl = "https://pay.payos.vn/test-checkout",
+            orderCode = 1234567890L
+        )
         coEvery { mockApi.deposit(any()) } returns response
 
         val result = repository.deposit(100000L, "Test deposit")
 
         assertTrue(result.isSuccess)
-        assertEquals("Deposit successful", result.getOrNull())
+        assertEquals("https://pay.payos.vn/test-checkout", result.getOrNull()?.checkoutUrl)
+        assertEquals(1234567890L, result.getOrNull()?.orderCode)
     }
 
     @Test
     fun `deposit should pass correct request parameters`() = runTest {
-        val response = MessageResponse(message = "OK")
+        val response = DepositResponse(
+            checkoutUrl = "https://pay.payos.vn/checkout",
+            orderCode = 999L
+        )
         coEvery { mockApi.deposit(any()) } returns response
 
         repository.deposit(200000L, "My deposit")
@@ -85,13 +92,16 @@ class WalletRepositoryTest {
     }
 
     @Test
-    fun `deposit with default description should use Manual deposit`() = runTest {
-        val response = MessageResponse(message = "OK")
+    fun `deposit with default description should use Wallet deposit`() = runTest {
+        val response = DepositResponse(
+            checkoutUrl = "https://pay.payos.vn/checkout",
+            orderCode = 999L
+        )
         coEvery { mockApi.deposit(any()) } returns response
 
         repository.deposit(100000L)
 
-        coVerify { mockApi.deposit(DepositRequest(100000L, "Manual deposit")) }
+        coVerify { mockApi.deposit(DepositRequest(100000L, "Wallet deposit")) }
     }
 
     @Test

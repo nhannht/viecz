@@ -74,23 +74,23 @@ class WalletViewModel @Inject constructor(
         }
     }
 
-    fun deposit(amount: Long, description: String = "Manual deposit") {
+    fun deposit(amount: Long, description: String = "Wallet deposit") {
         viewModelScope.launch {
             _depositState.value = DepositUiState.Loading
-            Log.d(TAG, "Depositing $amount")
+            Log.d(TAG, "Creating deposit for $amount")
 
             walletRepository.deposit(amount, description)
-                .onSuccess { message ->
-                    Log.d(TAG, "Deposit successful")
-                    _depositState.value = DepositUiState.Success(message)
-                    // Reload wallet and transactions
-                    loadWallet()
-                    loadTransactionHistory()
+                .onSuccess { response ->
+                    Log.d(TAG, "Deposit created: checkoutUrl=${response.checkoutUrl}")
+                    _depositState.value = DepositUiState.Success(
+                        checkoutUrl = response.checkoutUrl,
+                        orderCode = response.orderCode
+                    )
                 }
                 .onFailure { error ->
                     Log.e(TAG, "Deposit failed", error)
                     _depositState.value = DepositUiState.Error(
-                        error.message ?: "Failed to deposit"
+                        error.message ?: "Failed to create deposit"
                     )
                 }
         }
@@ -116,6 +116,6 @@ sealed class TransactionsUiState {
 sealed class DepositUiState {
     object Idle : DepositUiState()
     object Loading : DepositUiState()
-    data class Success(val message: String) : DepositUiState()
+    data class Success(val checkoutUrl: String, val orderCode: Long) : DepositUiState()
     data class Error(val message: String) : DepositUiState()
 }

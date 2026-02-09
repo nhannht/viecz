@@ -75,7 +75,10 @@ class WalletApiTest {
 
     @Test
     fun `deposit sends POST to wallet_deposit with amount`() = runTest {
-        val responseJson = """{"message": "Deposit successful"}"""
+        val responseJson = """{
+            "checkout_url": "https://pay.payos.vn/test-checkout",
+            "order_code": 1234567890
+        }"""
 
         mockWebServer.enqueue(MockResponse().setBody(responseJson))
 
@@ -83,7 +86,8 @@ class WalletApiTest {
             DepositRequest(amount = 200000L, description = "Top up wallet")
         )
 
-        assertEquals("Deposit successful", result.message)
+        assertEquals("https://pay.payos.vn/test-checkout", result.checkoutUrl)
+        assertEquals(1234567890L, result.orderCode)
 
         val request = mockWebServer.takeRequest()
         assertEquals("POST", request.method)

@@ -48,7 +48,14 @@ enum class WalletTransactionType {
 @JsonClass(generateAdapter = true)
 data class DepositRequest(
     val amount: Long,
-    val description: String = "Manual deposit"
+    val description: String = "Wallet deposit"
+)
+
+// Response models
+@JsonClass(generateAdapter = true)
+data class DepositResponse(
+    @Json(name = "checkout_url") val checkoutUrl: String,
+    @Json(name = "order_code") val orderCode: Long
 )
 
 @JsonClass(generateAdapter = true)

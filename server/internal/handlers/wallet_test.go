@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +12,13 @@ import (
 	"viecz.vieczserver/internal/services"
 	"viecz.vieczserver/internal/testutil"
 )
+
+// newTestWalletHandler creates a WalletHandler with only walletService (for GetWallet/GetTransactionHistory tests)
+func newTestWalletHandler(walletService *services.WalletService) *WalletHandler {
+	return &WalletHandler{
+		walletService: walletService,
+	}
+}
 
 func TestWalletHandler_GetWallet(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -62,12 +68,6 @@ func TestWalletHandler_GetWallet(t *testing.T) {
 				mockWalletRepo.Wallets[tt.mockWallet.ID] = tt.mockWallet
 			}
 
-			if tt.mockError != nil {
-				// Inject error by using a custom wallet service that returns the error
-				// For simplicity, we'll skip the wallet in the repo to trigger "not found"
-				// or we create a failing scenario
-			}
-
 			// Create mock GORM DB
 			mockDB, cleanup, err := testutil.NewMockGormDB()
 			if err != nil {
@@ -76,7 +76,7 @@ func TestWalletHandler_GetWallet(t *testing.T) {
 			defer cleanup()
 
 			walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB)
-			handler := NewWalletHandler(walletService)
+			handler := newTestWalletHandler(walletService)
 
 			// Create test request
 			w := httptest.NewRecorder()
@@ -125,34 +125,9 @@ func TestWalletHandler_Deposit(t *testing.T) {
 		name           string
 		setupContext   func(*gin.Context)
 		requestBody    interface{}
-		mockWallet     *models.Wallet
 		expectedStatus int
 		expectedError  string
 	}{
-		{
-			name: "successful deposit",
-			setupContext: func(c *gin.Context) {
-				c.Set("user_id", int64(1))
-			},
-			requestBody: DepositRequest{
-				Amount:      50000,
-				Description: "Test deposit",
-			},
-			mockWallet:     testutil.NewWalletBuilder().WithUserID(1).WithBalance(0).Build(),
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name: "successful deposit with default description",
-			setupContext: func(c *gin.Context) {
-				c.Set("user_id", int64(1))
-			},
-			requestBody: DepositRequest{
-				Amount: 50000,
-				// No description - should use default
-			},
-			mockWallet:     testutil.NewWalletBuilder().WithUserID(1).WithBalance(0).Build(),
-			expectedStatus: http.StatusOK,
-		},
 		{
 			name: "unauthorized - no user ID",
 			setupContext: func(c *gin.Context) {
@@ -163,6 +138,17 @@ func TestWalletHandler_Deposit(t *testing.T) {
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedError:  "unauthorized",
+		},
+		{
+			name: "invalid request - amount below minimum (2000)",
+			setupContext: func(c *gin.Context) {
+				c.Set("user_id", int64(1))
+			},
+			requestBody: DepositRequest{
+				Amount: 1000,
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid_request",
 		},
 		{
 			name: "invalid request - negative amount",
@@ -199,23 +185,8 @@ func TestWalletHandler_Deposit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup mock wallet service
-			mockWalletRepo := testutil.NewMockWalletRepository()
-			mockWalletTxRepo := testutil.NewMockWalletTransactionRepository()
-
-			if tt.mockWallet != nil {
-				mockWalletRepo.Wallets[tt.mockWallet.ID] = tt.mockWallet
-			}
-
-			// Create mock GORM DB
-			mockDB, cleanup, err := testutil.NewMockGormDB()
-			if err != nil {
-				t.Fatalf("Failed to create mock GORM DB: %v", err)
-			}
-			defer cleanup()
-
-			walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB)
-			handler := NewWalletHandler(walletService)
+			// Handler with nil payos/txRepo — validation tests don't reach PayOS calls
+			handler := &WalletHandler{}
 
 			// Create request body
 			var bodyBytes []byte
@@ -370,7 +341,7 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 			defer cleanup()
 
 			walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB)
-			handler := NewWalletHandler(walletService)
+			handler := newTestWalletHandler(walletService)
 
 			// Create test request with query params
 			url := "/wallet/transactions"
@@ -420,35 +391,4 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Mock wallet service for testing error scenarios
-type mockWalletServiceWithError struct {
-	getOrCreateError          error
-	depositError              error
-	getTransactionHistoryError error
-}
-
-func (m *mockWalletServiceWithError) GetOrCreateWallet(ctx context.Context, userID int64) (*models.Wallet, error) {
-	return nil, m.getOrCreateError
-}
-
-func (m *mockWalletServiceWithError) Deposit(ctx context.Context, userID, amount int64, description string) error {
-	return m.depositError
-}
-
-func (m *mockWalletServiceWithError) GetTransactionHistory(ctx context.Context, userID int64, limit, offset int) ([]*models.WalletTransaction, error) {
-	return nil, m.getTransactionHistoryError
-}
-
-func (m *mockWalletServiceWithError) HoldInEscrow(ctx context.Context, userID, amount, taskID int64, transactionID *int64) error {
-	return nil
-}
-
-func (m *mockWalletServiceWithError) ReleaseFromEscrow(ctx context.Context, payerID, payeeID, amount, taskID int64, transactionID *int64) error {
-	return nil
-}
-
-func (m *mockWalletServiceWithError) RefundFromEscrow(ctx context.Context, userID, amount, taskID int64, transactionID *int64) error {
-	return nil
 }

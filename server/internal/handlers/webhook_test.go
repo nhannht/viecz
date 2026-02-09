@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"viecz.vieczserver/internal/models"
+	"viecz.vieczserver/internal/services"
 	"viecz.vieczserver/internal/testutil"
 )
 
@@ -36,17 +37,6 @@ func TestWebhookHandler_handlePaymentSuccess(t *testing.T) {
 				Build(),
 			expectedTxStatus:   models.TransactionStatusSuccess,
 			expectedTaskStatus: taskStatusPtr(models.TaskStatusInProgress),
-		},
-		{
-			name:      "successful payment - non-escrow transaction",
-			orderCode: 12346,
-			mockTransaction: &models.Transaction{
-				ID:             2,
-				Type:           models.TransactionTypeDeposit,
-				Status:         models.TransactionStatusPending,
-				PayOSOrderCode: int64Ptr(12346),
-			},
-			expectedTxStatus: models.TransactionStatusSuccess,
 		},
 		{
 			name:      "successful payment - escrow without task",
@@ -80,11 +70,12 @@ func TestWebhookHandler_handlePaymentSuccess(t *testing.T) {
 				mockTaskRepo.Tasks[tt.mockTask.ID] = tt.mockTask
 			}
 
-			// Create handler (PayOS service can be nil for this test)
+			// Create handler (PayOS and walletService can be nil for escrow tests)
 			handler := &WebhookHandler{
 				payos:           nil,
 				transactionRepo: mockTransactionRepo,
 				taskRepo:        mockTaskRepo,
+				walletService:   nil,
 			}
 
 			// Execute handler method
@@ -126,6 +117,109 @@ func TestWebhookHandler_handlePaymentSuccess(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestWebhookHandler_handlePaymentSuccess_Deposit tests deposit webhook crediting wallet
+func TestWebhookHandler_handlePaymentSuccess_Deposit(t *testing.T) {
+	// Setup mock repositories
+	mockTransactionRepo := testutil.NewMockTransactionRepository()
+	mockTaskRepo := testutil.NewMockTaskRepository()
+
+	// Setup real wallet service with mock repos
+	mockWalletRepo := testutil.NewMockWalletRepository()
+	mockWalletTxRepo := testutil.NewMockWalletTransactionRepository()
+
+	mockDB, cleanup, err := testutil.NewMockGormDB()
+	if err != nil {
+		t.Fatalf("Failed to create mock GORM DB: %v", err)
+	}
+	defer cleanup()
+
+	walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB)
+
+	// Pre-create a wallet for user 1
+	mockWalletRepo.Wallets[1] = testutil.NewWalletBuilder().WithID(1).WithUserID(1).WithBalance(0).Build()
+
+	// Create a pending deposit transaction
+	depositTx := &models.Transaction{
+		ID:             1,
+		PayerID:        1,
+		Amount:         50000,
+		NetAmount:      50000,
+		Type:           models.TransactionTypeDeposit,
+		Status:         models.TransactionStatusPending,
+		PayOSOrderCode: int64Ptr(99999),
+		Description:    "Wallet deposit",
+	}
+	mockTransactionRepo.Transactions[depositTx.ID] = depositTx
+
+	handler := &WebhookHandler{
+		payos:           nil,
+		transactionRepo: mockTransactionRepo,
+		taskRepo:        mockTaskRepo,
+		walletService:   walletService,
+	}
+
+	// Simulate webhook success
+	err = handler.handlePaymentSuccess(context.Background(), 99999)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Verify transaction is now success
+	updatedTx := mockTransactionRepo.Transactions[1]
+	if updatedTx.Status != models.TransactionStatusSuccess {
+		t.Errorf("Expected transaction status 'success', got '%s'", updatedTx.Status)
+	}
+
+	// Verify wallet was credited
+	wallet := mockWalletRepo.Wallets[1]
+	if wallet.Balance != 50000 {
+		t.Errorf("Expected wallet balance 50000, got %d", wallet.Balance)
+	}
+}
+
+// TestWebhookHandler_handlePaymentSuccess_DuplicateGuard tests that already-success transactions are skipped
+func TestWebhookHandler_handlePaymentSuccess_DuplicateGuard(t *testing.T) {
+	mockTransactionRepo := testutil.NewMockTransactionRepository()
+	mockTaskRepo := testutil.NewMockTaskRepository()
+
+	// Create a transaction that is already successful
+	completedAt := time.Now().Add(-1 * time.Hour)
+	alreadySuccessTx := &models.Transaction{
+		ID:             1,
+		PayerID:        1,
+		Amount:         50000,
+		NetAmount:      50000,
+		Type:           models.TransactionTypeDeposit,
+		Status:         models.TransactionStatusSuccess,
+		PayOSOrderCode: int64Ptr(11111),
+		CompletedAt:    &completedAt,
+	}
+	mockTransactionRepo.Transactions[alreadySuccessTx.ID] = alreadySuccessTx
+
+	handler := &WebhookHandler{
+		payos:           nil,
+		transactionRepo: mockTransactionRepo,
+		taskRepo:        mockTaskRepo,
+		walletService:   nil, // Should not be called
+	}
+
+	// Should return nil without error (skip processing)
+	err := handler.handlePaymentSuccess(context.Background(), 11111)
+	if err != nil {
+		t.Fatalf("Expected no error for duplicate webhook, got: %v", err)
+	}
+
+	// Verify transaction status is unchanged
+	tx := mockTransactionRepo.Transactions[1]
+	if tx.Status != models.TransactionStatusSuccess {
+		t.Errorf("Expected status to remain 'success', got '%s'", tx.Status)
+	}
+	// CompletedAt should be the original time, not updated
+	if tx.CompletedAt.Equal(completedAt) == false {
+		t.Error("CompletedAt should not have been updated")
 	}
 }
 
@@ -175,11 +269,12 @@ func TestWebhookHandler_handlePaymentCancelled(t *testing.T) {
 				mockTransactionRepo.Transactions[tt.mockTransaction.ID] = tt.mockTransaction
 			}
 
-			// Create handler (PayOS service can be nil for this test)
+			// Create handler
 			handler := &WebhookHandler{
 				payos:           nil,
 				transactionRepo: mockTransactionRepo,
 				taskRepo:        mockTaskRepo,
+				walletService:   nil,
 			}
 
 			// Execute handler method

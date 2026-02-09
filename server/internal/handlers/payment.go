@@ -45,8 +45,8 @@ func (h *PaymentHandler) CreatePayment(c *gin.Context) {
 	orderCode := time.Now().UnixNano() / int64(time.Millisecond)
 
 	// Build return and cancel URLs - these are server URLs that will redirect to the app
-	returnURL := fmt.Sprintf("%s/api/v1/payments/return", h.serverURL)
-	cancelURL := fmt.Sprintf("%s/api/v1/payments/return", h.serverURL)
+	returnURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
+	cancelURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
 
 	// Create payment link
 	result, err := h.payos.CreatePaymentLink(

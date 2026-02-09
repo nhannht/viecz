@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.data.repository
 import android.util.Log
 import com.viecz.vieczandroid.data.api.WalletApi
 import com.viecz.vieczandroid.data.models.DepositRequest
+import com.viecz.vieczandroid.data.models.DepositResponse
 import com.viecz.vieczandroid.data.models.Wallet
 import com.viecz.vieczandroid.data.models.WalletTransaction
 import javax.inject.Inject
@@ -28,14 +29,14 @@ class WalletRepository @Inject constructor(
         }
     }
 
-    suspend fun deposit(amount: Long, description: String = "Manual deposit"): Result<String> {
+    suspend fun deposit(amount: Long, description: String = "Wallet deposit"): Result<DepositResponse> {
         return try {
-            Log.d(TAG, "Depositing $amount to wallet")
+            Log.d(TAG, "Creating deposit for $amount")
             val response = api.deposit(DepositRequest(amount, description))
-            Log.d(TAG, "Deposit successful")
-            Result.success(response.message)
+            Log.d(TAG, "Deposit created: checkoutUrl=${response.checkoutUrl}")
+            Result.success(response)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to deposit", e)
+            Log.e(TAG, "Failed to create deposit", e)
             Result.failure(e)
         }
     }

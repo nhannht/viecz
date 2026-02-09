@@ -102,11 +102,11 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, cfg.JWTSecret)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL, cfg.ServerURL)
-	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo)
+	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo, walletService)
 	returnHandler := handlers.NewReturnHandler(payosService, cfg.ClientURL)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
-	walletHandler := handlers.NewWalletHandler(walletService)
+	walletHandler := handlers.NewWalletHandler(walletService, payosService, transactionRepo, cfg.ServerURL)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, cfg.JWTSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
 

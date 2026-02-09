@@ -1,7 +1,7 @@
 package com.viecz.vieczandroid.data.api
 
 import com.viecz.vieczandroid.data.models.DepositRequest
-import com.viecz.vieczandroid.data.models.MessageResponse
+import com.viecz.vieczandroid.data.models.DepositResponse
 import com.viecz.vieczandroid.data.models.Wallet
 import com.viecz.vieczandroid.data.models.WalletTransaction
 import retrofit2.http.Body
@@ -14,7 +14,7 @@ interface WalletApi {
     suspend fun getWallet(): Wallet
 
     @POST("wallet/deposit")
-    suspend fun deposit(@Body request: DepositRequest): MessageResponse
+    suspend fun deposit(@Body request: DepositRequest): DepositResponse
 
     @GET("wallet/transactions")
     suspend fun getTransactionHistory(
