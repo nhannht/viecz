@@ -1,0 +1,9 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: viecz-cloudflared
+    command: tunnel run --token ${CLOUDFLARED_TOKEN}
+    depends_on:
+      server:
+        condition: service_started
+    restart: unless-stopped
