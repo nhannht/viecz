@@ -1,24 +1,38 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"viecz.vieczserver/internal/models"
+	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/services"
 )
 
 // WalletHandler handles wallet-related HTTP requests
 type WalletHandler struct {
-	walletService *services.WalletService
+	walletService   *services.WalletService
+	payosService    services.PayOSServicer
+	transactionRepo repository.TransactionRepository
+	serverURL       string
 }
 
 // NewWalletHandler creates a new wallet handler
-func NewWalletHandler(walletService *services.WalletService) *WalletHandler {
+func NewWalletHandler(
+	walletService *services.WalletService,
+	payosService services.PayOSServicer,
+	transactionRepo repository.TransactionRepository,
+	serverURL string,
+) *WalletHandler {
 	return &WalletHandler{
-		walletService: walletService,
+		walletService:   walletService,
+		payosService:    payosService,
+		transactionRepo: transactionRepo,
+		serverURL:       serverURL,
 	}
 }
 
@@ -56,20 +70,26 @@ func (h *WalletHandler) GetWallet(c *gin.Context) {
 	c.JSON(http.StatusOK, wallet)
 }
 
-// DepositRequest represents request to deposit funds (dev/test mode only)
+// DepositRequest represents request to deposit funds via PayOS
 type DepositRequest struct {
-	Amount      int64  `json:"amount" binding:"required,min=1"`
+	Amount      int64  `json:"amount" binding:"required,min=2000"`
 	Description string `json:"description"`
 }
 
-// Deposit adds funds to wallet (for testing/dev mode)
+// DepositResponse represents the response with PayOS checkout URL
+type DepositResponse struct {
+	CheckoutURL string `json:"checkout_url"`
+	OrderCode   int64  `json:"order_code"`
+}
+
+// Deposit creates a PayOS payment link for wallet top-up
 // @Summary Deposit funds
-// @Description Adds funds to wallet (development/testing only)
+// @Description Creates a PayOS payment link for depositing funds to wallet
 // @Tags wallet
 // @Accept json
 // @Produce json
 // @Param request body DepositRequest true "Deposit request"
-// @Success 200 {object} map[string]string
+// @Success 200 {object} DepositResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
@@ -95,25 +115,57 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 	}
 
 	if req.Description == "" {
-		req.Description = "Manual deposit"
+		req.Description = "Wallet deposit"
 	}
 
-	if err := h.walletService.Deposit(
-		c.Request.Context(),
-		userID.(int64),
-		req.Amount,
-		req.Description,
-	); err != nil {
-		log.Printf("Failed to deposit funds: %v", err)
+	// Generate unique order code
+	orderCode := time.Now().UnixNano() / int64(time.Millisecond)
+
+	// Create pending transaction record
+	transaction := &models.Transaction{
+		PayerID:        userID.(int64),
+		Amount:         req.Amount,
+		PlatformFee:    0,
+		NetAmount:      req.Amount,
+		Type:           models.TransactionTypeDeposit,
+		Status:         models.TransactionStatusPending,
+		PayOSOrderCode: &orderCode,
+		Description:    req.Description,
+	}
+
+	if err := h.transactionRepo.Create(c.Request.Context(), transaction); err != nil {
+		log.Printf("Failed to create deposit transaction: %v", err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "deposit_failed",
-			Message: err.Error(),
+			Message: "Failed to create transaction",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Funds deposited successfully",
+	// Create PayOS payment link
+	returnURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
+	cancelURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
+
+	result, err := h.payosService.CreatePaymentLink(
+		c.Request.Context(),
+		orderCode,
+		int(req.Amount),
+		req.Description,
+		returnURL,
+		cancelURL,
+	)
+	if err != nil {
+		log.Printf("Failed to create PayOS payment link: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "deposit_failed",
+			Message: "Failed to create payment link",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, DepositResponse{
+		CheckoutURL: result.CheckoutUrl,
+		OrderCode:   orderCode,
 	})
 }
 

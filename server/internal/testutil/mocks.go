@@ -318,7 +318,6 @@ func (m *MockTaskRepository) AssignTasker(ctx context.Context, taskID, taskerID 
 		return errors.New("task not found")
 	}
 	task.TaskerID = &taskerID
-	task.Status = models.TaskStatusInProgress
 	return nil
 }
 
@@ -401,7 +400,10 @@ func (m *MockWalletService) RefundFromEscrow(ctx context.Context, userID, amount
 	return nil
 }
 
-// MockPayOSService is a mock implementation for testing payment service
+// MockPayOSService is a mock implementation for testing payment service.
+// Note: This mock is used by services/payment_test.go which creates PaymentService
+// directly with mockMode=true. For handler-level tests that need the PayOSServicer
+// interface, create a mock in the test file that returns *services.PaymentLinkResponse.
 type MockPayOSService struct {
 	CreatePaymentLinkCalls []CreatePaymentLinkCall
 	CancelPaymentLinkCalls []CancelPaymentLinkCall

@@ -14,21 +14,24 @@ import (
 
 // WebhookHandler handles PayOS webhook requests
 type WebhookHandler struct {
-	payos           *services.PayOSService
+	payos           services.PayOSServicer
 	transactionRepo repository.TransactionRepository
 	taskRepo        repository.TaskRepository
+	walletService   *services.WalletService
 }
 
 // NewWebhookHandler creates a new webhook handler
 func NewWebhookHandler(
-	payos *services.PayOSService,
+	payos services.PayOSServicer,
 	transactionRepo repository.TransactionRepository,
 	taskRepo repository.TaskRepository,
+	walletService *services.WalletService,
 ) *WebhookHandler {
 	return &WebhookHandler{
 		payos:           payos,
 		transactionRepo: transactionRepo,
 		taskRepo:        taskRepo,
+		walletService:   walletService,
 	}
 }
 
@@ -126,6 +129,12 @@ func (h *WebhookHandler) handlePaymentSuccess(ctx context.Context, orderCode int
 		return err
 	}
 
+	// Guard: skip if already processed (prevents double-crediting on webhook retry)
+	if transaction.Status == models.TransactionStatusSuccess {
+		log.Printf("Transaction %d already successful, skipping", transaction.ID)
+		return nil
+	}
+
 	// Update transaction status
 	transaction.Status = models.TransactionStatusSuccess
 	now := time.Now()
@@ -135,16 +144,25 @@ func (h *WebhookHandler) handlePaymentSuccess(ctx context.Context, orderCode int
 		return err
 	}
 
-	// If this is an escrow transaction, update task status to in_progress
-	if transaction.Type == models.TransactionTypeEscrow && transaction.TaskID != nil {
-		task, err := h.taskRepo.GetByID(ctx, *transaction.TaskID)
-		if err != nil {
+	switch transaction.Type {
+	case models.TransactionTypeDeposit:
+		// Credit the user's wallet
+		if err := h.walletService.Deposit(ctx, transaction.PayerID, transaction.Amount, transaction.Description); err != nil {
 			return err
 		}
 
-		task.Status = models.TaskStatusInProgress
-		if err := h.taskRepo.Update(ctx, task); err != nil {
-			return err
+	case models.TransactionTypeEscrow:
+		// Update task status to in_progress
+		if transaction.TaskID != nil {
+			task, err := h.taskRepo.GetByID(ctx, *transaction.TaskID)
+			if err != nil {
+				return err
+			}
+
+			task.Status = models.TaskStatusInProgress
+			if err := h.taskRepo.Update(ctx, task); err != nil {
+				return err
+			}
 		}
 	}
 

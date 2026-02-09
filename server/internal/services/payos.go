@@ -7,6 +7,18 @@ import (
 	"github.com/payOSHQ/payos-lib-golang/v2"
 )
 
+// PayOSServicer defines the interface for PayOS operations used by handlers.
+// Methods returning SDK-specific types (GetPaymentInfo, CancelPaymentLink)
+// stay on the concrete struct only.
+type PayOSServicer interface {
+	CreatePaymentLink(ctx context.Context, orderCode int64, amount int, description, returnURL, cancelURL string) (*PaymentLinkResponse, error)
+	VerifyWebhookData(ctx context.Context, webhookData map[string]interface{}) (map[string]interface{}, error)
+	ConfirmWebhook(ctx context.Context, webhookURL string) (string, error)
+}
+
+// Verify interface compliance
+var _ PayOSServicer = (*PayOSService)(nil)
+
 // PayOSService wraps the PayOS SDK client
 type PayOSService struct {
 	client *payos.PayOS

@@ -162,9 +162,9 @@ func (r *taskGormRepository) AssignTasker(ctx context.Context, taskID, taskerID 
 		return fmt.Errorf("failed to get task: %w", err)
 	}
 
-	// Update fields
+	// Update fields — only assign tasker, don't change status.
+	// Status transitions to in_progress when escrow payment is created.
 	task.TaskerID = &taskerID
-	task.Status = models.TaskStatusInProgress
 
 	// Save the task
 	if err := r.db.WithContext(ctx).Save(&task).Error; err != nil {
