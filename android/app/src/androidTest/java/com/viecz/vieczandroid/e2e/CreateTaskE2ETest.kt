@@ -5,6 +5,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -57,11 +58,11 @@ class CreateTaskE2ETest : BaseE2ETest() {
 
         composeRule.onNodeWithText("Giao hàng").performClick()
 
-        // Submit (button text is "Create Task")
-        composeRule.onNodeWithText("Create Task").performClick()
+        // Submit (button text is "Create Task") — scroll to ensure visible in LazyColumn
+        composeRule.onNodeWithText("Create Task").performScrollTo().performClick()
 
         // Should navigate to task detail after creation
-        composeRule.waitUntil(timeoutMillis = 10000) {
+        composeRule.waitUntil(timeoutMillis = 15000) {
             composeRule.onAllNodes(hasText("Task Details"))
                 .fetchSemanticsNodes().isNotEmpty()
         }

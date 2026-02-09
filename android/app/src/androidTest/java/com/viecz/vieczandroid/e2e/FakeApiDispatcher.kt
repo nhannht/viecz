@@ -11,8 +11,10 @@ import okhttp3.mockwebserver.RecordedRequest
 class FakeApiDispatcher : Dispatcher() {
 
     override fun dispatch(request: RecordedRequest): MockResponse {
-        val path = request.path ?: return notFound()
+        val fullPath = request.path ?: return notFound()
         val method = request.method ?: return notFound()
+        // Strip query parameters so endsWith checks work correctly
+        val path = fullPath.split("?").first()
 
         return when {
             // Auth
@@ -22,10 +24,13 @@ class FakeApiDispatcher : Dispatcher() {
             // Categories
             method == "GET" && path.endsWith("/categories") -> categoriesResponse()
 
+            // Task applications (must be before task detail)
+            method == "GET" && path.endsWith("/applications") -> applicationsResponse()
+
             // Tasks
             method == "POST" && path.endsWith("/tasks") -> createTaskResponse()
-            method == "GET" && path.contains("/tasks/") && !path.contains("?") -> taskDetailResponse()
-            method == "GET" && path.contains("/tasks") -> tasksListResponse()
+            method == "GET" && Regex(".*/tasks/\\d+$").matches(path) -> taskDetailResponse()
+            method == "GET" && path.endsWith("/tasks") -> tasksListResponse()
 
             // Users
             method == "GET" && path.endsWith("/users/me") -> userMeResponse()
@@ -96,6 +101,11 @@ class FakeApiDispatcher : Dispatcher() {
         .setResponseCode(201)
         .setHeader("Content-Type", "application/json")
         .setBody(taskJson(99, "My New Task", "This is a task I just created"))
+
+    private fun applicationsResponse() = MockResponse()
+        .setResponseCode(200)
+        .setHeader("Content-Type", "application/json")
+        .setBody("[]")
 
     private fun userMeResponse() = MockResponse()
         .setResponseCode(200)
