@@ -24,7 +24,8 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val connectionState: WebSocketState = WebSocketState.DISCONNECTED,
-    val isTyping: Boolean = false
+    val isTyping: Boolean = false,
+    val currentUserId: Long = 0
 )
 
 @HiltViewModel
@@ -44,6 +45,15 @@ class ChatViewModel @Inject constructor(
     private var currentConversationId: Long = 0
 
     init {
+        // Load current user ID
+        viewModelScope.launch {
+            tokenManager.userId.collect { userId ->
+                if (userId != null) {
+                    _uiState.update { it.copy(currentUserId = userId) }
+                }
+            }
+        }
+
         // Observe WebSocket connection state
         viewModelScope.launch {
             webSocketClient.connectionState.collect { state ->
@@ -166,7 +176,7 @@ class ChatViewModel @Inject constructor(
                 id = 0, // Temporary ID
                 createdAt = java.time.Instant.now().toString(),
                 conversationId = currentConversationId,
-                senderId = 0, // Will be set by server
+                senderId = _uiState.value.currentUserId,
                 content = content,
                 isRead = false
             )

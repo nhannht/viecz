@@ -169,7 +169,10 @@ fun ChatScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(uiState.messages) { message ->
-                        MessageBubble(message = message)
+                        MessageBubble(
+                            message = message,
+                            currentUserId = uiState.currentUserId
+                        )
                     }
 
                     // Typing indicator
@@ -185,10 +188,8 @@ fun ChatScreen(
 }
 
 @Composable
-fun MessageBubble(message: Message) {
-    // TODO: Get current user ID from UserRepository or auth state
-    // For now, assume messages with sender are from other user
-    val isFromMe = message.sender == null
+fun MessageBubble(message: Message, currentUserId: Long) {
+    val isFromMe = message.senderId == currentUserId
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -212,9 +213,9 @@ fun MessageBubble(message: Message) {
                 modifier = Modifier.padding(12.dp)
             ) {
                 // Sender name (if not from me)
-                if (!isFromMe) {
+                if (!isFromMe && message.sender != null) {
                     Text(
-                        text = message.sender!!.name,
+                        text = message.sender.name,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

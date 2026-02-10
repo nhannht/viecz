@@ -10,7 +10,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 object RetrofitClient {
     // Using ADB reverse port forwarding: adb reverse tcp:8080 tcp:8080
     // This works for both emulator and physical devices
-    private const val BASE_URL = "http://localhost:8080/api/v1/"
+    const val BASE_URL = "http://localhost:8080/api/v1/"
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(HttpLoggingInterceptor().apply {
