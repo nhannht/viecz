@@ -33,17 +33,10 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
 
-                <!-- Handle localhost deep links for development -->
-                <data
-                        android:scheme="http"
-                        android:host="localhost"
-                        android:port="8080"
-                        android:pathPrefix="/api/v1/payments/return"/>
-
-                <!-- Handle production deep links -->
+                <!-- Production deep links -->
                 <data
                         android:scheme="https"
-                        android:host="yourdomain.com"
+                        android:host="viecz-api.fishcmus.io.vn"
                         android:pathPrefix="/api/v1/payments/return"/>
 
                 <!-- Custom scheme for PayOS callback -->
