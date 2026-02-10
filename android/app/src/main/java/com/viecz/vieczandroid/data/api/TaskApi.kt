@@ -38,7 +38,7 @@ interface TaskApi {
     suspend fun getTaskApplications(@Path("id") taskId: Long): List<TaskApplication>
 
     @POST("tasks/{id}/complete")
-    suspend fun completeTask(@Path("id") taskId: Long): Task
+    suspend fun completeTask(@Path("id") taskId: Long): MessageResponse
 
     @POST("applications/{id}/accept")
     suspend fun acceptApplication(@Path("id") applicationId: Long): AcceptApplicationResponse

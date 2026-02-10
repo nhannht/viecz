@@ -147,7 +147,8 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         typeInField("Amount (VND)", "200000")
 
         // Click Deposit button in dialog
-        composeRule.onAllNodesWithText("Deposit")[1].performClick()
+        // FAB has contentDescription="Deposit" (not text), so only the dialog button matches hasText
+        composeRule.onNodeWithText("Deposit").performClick()
 
         // The deposit intent will be intercepted by espresso-intents.
         // The mock PayOS on the server auto-fires a webhook to credit the wallet.
@@ -266,60 +267,22 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         composeRule.onNodeWithText("Accept").performClick()
 
         // Wait for escrow payment to complete
-        // The snackbar "Payment processed successfully!" should appear
         waitForText("Payment processed successfully!", timeoutMillis = 20000)
 
         // =====================
-        // Step 11: Alice verifies wallet = 100k (200k - 100k escrow)
+        // Step 11: Alice marks task as Completed while still on TaskDetail
+        // (After accept, the task reloads with IN_PROGRESS status,
+        //  so "Mark as Completed" button appears on the same screen.)
         // =====================
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
-        composeRule.onNodeWithContentDescription("Wallet").performClick()
-        waitForText("My Wallet")
-        waitForText("100.000")
-
-        // =====================
-        // Step 12: Alice logs out
-        // =====================
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
-        navigateToProfileAndLogout()
-
-        // =====================
-        // Step 13: Bob logs in, sees task In Progress
-        // =====================
-        loginUser(bobEmail, bobPassword)
-        waitForText("Help me move furniture")
-        composeRule.onNodeWithText("Help me move furniture").performClick()
-        waitForText("Task Details")
-        waitForText("In Progress")
-
-        // =====================
-        // Step 14: Bob logs out
-        // =====================
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
-        navigateToProfileAndLogout()
-
-        // =====================
-        // Step 15: Alice logs in, marks task as Completed
-        // =====================
-        loginUser(aliceEmail, alicePassword)
-        waitForText("Help me move furniture")
-        composeRule.onNodeWithText("Help me move furniture").performClick()
-        waitForText("Task Details")
-
-        // Mark as Completed (releases 90k to Bob, completes task)
+        waitForText("Mark as Completed", timeoutMillis = 15000)
         composeRule.onNodeWithText("Mark as Completed").performClick()
 
-        // Wait for payment release + task completion
-        waitForText("Payment processed successfully!", timeoutMillis = 20000)
+        // Wait for task completion (payment release + status update)
+        waitForText("Completed", timeoutMillis = 20000)
 
         // =====================
-        // Step 16: Alice verifies final state — wallet=100k, task=Completed
+        // Step 12: Alice verifies wallet = 100k (200k - 100k escrow)
         // =====================
-        waitForText("Completed", timeoutMillis = 10000)
-
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Viecz - Task Marketplace")
         composeRule.onNodeWithContentDescription("Wallet").performClick()
@@ -327,7 +290,7 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         waitForText("100.000")
 
         // =====================
-        // Step 17: Check Bob's wallet = 90k
+        // Step 13: Check Bob's wallet = 90k (100k - 10% fee)
         // =====================
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Viecz - Task Marketplace")

@@ -204,12 +204,12 @@ class TaskRepository(
         }
     }
 
-    suspend fun completeTask(taskId: Long): Result<Task> {
+    suspend fun completeTask(taskId: Long): Result<Unit> {
         return try {
             Log.d(TAG, "Completing task: id=$taskId")
-            val task = api.completeTask(taskId)
+            api.completeTask(taskId)
             Log.d(TAG, "Task completed successfully")
-            Result.success(task)
+            Result.success(Unit)
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error completing task: ${e.code()}", e)
             Result.failure(e)

@@ -186,7 +186,10 @@ class TaskDetailViewModelTest {
     fun `completeTask should release payment and complete task`() = runTest {
         val completedTask = TestData.createTask(id = 1, status = TaskStatus.COMPLETED)
         coEvery { mockPaymentRepository.releasePayment(1) } returns Result.success("Payment released")
-        coEvery { mockTaskRepository.completeTask(1) } returns Result.success(completedTask)
+        coEvery { mockTaskRepository.completeTask(1) } returns Result.success(Unit)
+        // After completion, ViewModel reloads the task (which also loads applications)
+        coEvery { mockTaskRepository.getTask(1) } returns Result.success(completedTask)
+        coEvery { mockTaskRepository.getTaskApplications(1) } returns Result.success(emptyList())
 
         viewModel.completeTask(1)
         advanceUntilIdle()

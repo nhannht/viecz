@@ -201,14 +201,15 @@ class TaskDetailViewModel @Inject constructor(
                     // Step 2: Mark task as complete
                     val completeResult = repository.completeTask(taskId)
                     completeResult.fold(
-                        onSuccess = { task ->
+                        onSuccess = {
                             Log.d(TAG, "Task completed successfully")
                             _uiState.value = _uiState.value.copy(
-                                task = task,
                                 isLoading = false,
                                 paymentSuccess = true,
                                 error = null
                             )
+                            // Reload task to get updated status
+                            loadTask(taskId)
                         },
                         onFailure = { error ->
                             Log.e(TAG, "Failed to complete task", error)

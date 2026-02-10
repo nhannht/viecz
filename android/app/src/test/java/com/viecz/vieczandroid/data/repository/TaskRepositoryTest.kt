@@ -313,14 +313,12 @@ class TaskRepositoryTest {
     // --- completeTask ---
 
     @Test
-    fun `completeTask should return completed task`() = runTest {
-        val task = TestData.createTask(id = 1, status = TaskStatus.COMPLETED)
-        coEvery { mockApi.completeTask(1) } returns task
+    fun `completeTask should return success`() = runTest {
+        coEvery { mockApi.completeTask(1) } returns MessageResponse("task completed successfully")
 
         val result = repository.completeTask(1)
 
         assertTrue(result.isSuccess)
-        assertEquals(TaskStatus.COMPLETED, result.getOrNull()?.status)
     }
 
     @Test

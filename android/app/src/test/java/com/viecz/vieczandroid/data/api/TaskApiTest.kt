@@ -267,12 +267,12 @@ class TaskApiTest {
 
     @Test
     fun `completeTask sends POST to tasks_id_complete`() = runTest {
-        val completedTaskJson = taskJson.replace("\"status\": \"open\"", "\"status\": \"completed\"")
-        mockWebServer.enqueue(MockResponse().setBody(completedTaskJson))
+        val responseJson = """{"message": "task completed successfully"}"""
+        mockWebServer.enqueue(MockResponse().setBody(responseJson))
 
         val result = taskApi.completeTask(1)
 
-        assertEquals(com.viecz.vieczandroid.data.models.TaskStatus.COMPLETED, result.status)
+        assertEquals("task completed successfully", result.message)
 
         val request = mockWebServer.takeRequest()
         assertEquals("POST", request.method)

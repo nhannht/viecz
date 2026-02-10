@@ -1,0 +1,4 @@
+# Enable auto-env through sdkman config: sdk config set sdkman_auto_env=true
+java=21.0.9-tem
+kotlin=2.0.21
+gradle=9.3.1
