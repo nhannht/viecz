@@ -26,6 +26,7 @@ coverage/
 # Environment
 .env
 .env.*
+!.env.example
 
 # Cloudflare tunnel credentials
 cloudflared-credentials.json
