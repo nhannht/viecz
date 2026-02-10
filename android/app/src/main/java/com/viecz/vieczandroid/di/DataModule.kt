@@ -2,6 +2,7 @@ package com.viecz.vieczandroid.di
 
 import android.content.Context
 import androidx.room.Room
+import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.api.*
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.local.dao.CategoryDao
@@ -40,11 +41,17 @@ object DataModule {
     fun provideAppDatabase(
         @ApplicationContext context: Context
     ): AppDatabase {
-        return Room.databaseBuilder(
+        val builder = Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(AppDatabase.MIGRATION_1_2)
+
+        if (BuildConfig.DEBUG) {
+            builder.fallbackToDestructiveMigration()
+        }
+
+        return builder.build()
     }
 
     @Provides

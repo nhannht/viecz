@@ -7,6 +7,10 @@ plugins {
     id("jacoco")
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.viecz.vieczandroid"
     compileSdk = 36
