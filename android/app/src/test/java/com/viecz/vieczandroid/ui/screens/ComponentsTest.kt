@@ -217,7 +217,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                MessageBubble(message = message)
+                MessageBubble(message = message, currentUserId = 1L)
             }
         }
 
@@ -231,7 +231,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                MessageBubble(message = message)
+                MessageBubble(message = message, currentUserId = 999L)
             }
         }
 
@@ -245,7 +245,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                MessageBubble(message = message)
+                MessageBubble(message = message, currentUserId = 1L)
             }
         }
 

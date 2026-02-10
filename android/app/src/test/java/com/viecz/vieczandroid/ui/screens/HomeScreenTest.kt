@@ -3,12 +3,16 @@ package com.viecz.vieczandroid.ui.screens
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import com.viecz.vieczandroid.data.local.dao.NotificationDao
 import com.viecz.vieczandroid.data.repository.CategoryRepository
+import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
+import com.viecz.vieczandroid.ui.viewmodels.NotificationViewModel
 import com.viecz.vieczandroid.ui.viewmodels.TaskListViewModel
+import kotlinx.coroutines.flow.flowOf
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -32,11 +36,18 @@ class HomeScreenTest {
     private lateinit var mockCategoryRepo: CategoryRepository
     private lateinit var taskListViewModel: TaskListViewModel
     private lateinit var categoryViewModel: CategoryViewModel
+    private lateinit var notificationViewModel: NotificationViewModel
 
     @Before
     fun setup() {
         mockTaskRepo = mockk()
         mockCategoryRepo = mockk()
+
+        val mockNotificationDao: NotificationDao = mockk()
+        coEvery { mockNotificationDao.getAllNotifications() } returns flowOf(emptyList())
+        coEvery { mockNotificationDao.getUnreadCount() } returns flowOf(0)
+        val notificationRepository = NotificationRepository(mockNotificationDao)
+        notificationViewModel = NotificationViewModel(notificationRepository)
 
         val tasks = listOf(
             TestData.createTask(id = 1, title = "Clean apartment", description = "Deep cleaning needed", location = "D1"),
@@ -71,7 +82,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -89,7 +101,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -109,7 +122,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -129,7 +143,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -148,7 +163,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -169,7 +185,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -193,7 +210,8 @@ class HomeScreenTest {
                     onNavigateToProfile = { navigated = true },
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -214,7 +232,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = { navigated = true },
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -238,7 +257,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = emptyViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -263,7 +283,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = errorViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }
@@ -284,7 +305,8 @@ class HomeScreenTest {
                     onNavigateToProfile = {},
                     onNavigateToWallet = {},
                     taskListViewModel = taskListViewModel,
-                    categoryViewModel = categoryViewModel
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
                 )
             }
         }

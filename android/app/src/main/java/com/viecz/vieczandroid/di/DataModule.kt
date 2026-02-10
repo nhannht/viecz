@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.viecz.vieczandroid.data.api.*
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.local.dao.CategoryDao
+import com.viecz.vieczandroid.data.local.dao.NotificationDao
 import com.viecz.vieczandroid.data.local.dao.TaskDao
 import com.viecz.vieczandroid.data.local.database.AppDatabase
 import com.viecz.vieczandroid.data.repository.*
@@ -43,7 +44,7 @@ object DataModule {
             context,
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
@@ -56,6 +57,18 @@ object DataModule {
     @Singleton
     fun provideCategoryDao(database: AppDatabase): CategoryDao {
         return database.categoryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationDao(database: AppDatabase): NotificationDao {
+        return database.notificationDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(notificationDao: NotificationDao): NotificationRepository {
+        return NotificationRepository(notificationDao)
     }
 
     @Provides

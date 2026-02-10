@@ -23,6 +23,7 @@ object NavigationRoutes {
     const val PROFILE = "profile"
     const val WALLET = "wallet"
     const val CHAT = "chat/{conversationId}"
+    const val NOTIFICATIONS = "notifications"
     const val FIRST_SCREEN = "first_screen"
     const val SECOND_SCREEN = "second_screen"
     const val PAYMENT_SCREEN = "payment_screen"
@@ -103,6 +104,19 @@ fun VieczNavHost(
                 },
                 onNavigateToWallet = {
                     navController.navigate(NavigationRoutes.WALLET)
+                },
+                onNavigateToNotifications = {
+                    navController.navigate(NavigationRoutes.NOTIFICATIONS)
+                }
+            )
+        }
+
+        // Notifications screen
+        composable(NavigationRoutes.NOTIFICATIONS) {
+            NotificationScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTaskDetail = { taskId ->
+                    navController.navigate(NavigationRoutes.taskDetail(taskId))
                 }
             )
         }

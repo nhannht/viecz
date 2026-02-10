@@ -1,6 +1,7 @@
 package com.viecz.vieczandroid.ui.viewmodels
 
 import app.cash.turbine.test
+import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
@@ -24,12 +25,14 @@ class CreateTaskViewModelTest {
     val coroutineRule = CoroutineTestRule()
 
     private lateinit var mockRepository: TaskRepository
+    private lateinit var mockNotificationRepository: NotificationRepository
     private lateinit var viewModel: CreateTaskViewModel
 
     @Before
     fun setup() {
         mockRepository = mockk()
-        viewModel = CreateTaskViewModel(mockRepository)
+        mockNotificationRepository = mockk(relaxed = true)
+        viewModel = CreateTaskViewModel(mockRepository, mockNotificationRepository)
     }
 
     @After

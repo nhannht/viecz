@@ -13,6 +13,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.models.ApplyTaskRequest
+import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +34,8 @@ data class ApplyTaskUiState(
 
 @HiltViewModel
 class ApplyTaskViewModel @Inject constructor(
-    private val repository: TaskRepository
+    private val repository: TaskRepository,
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ApplyTaskUiState())
@@ -69,7 +71,7 @@ class ApplyTaskViewModel @Inject constructor(
         }
     }
 
-    fun applyForTask(taskId: Long) {
+    fun applyForTask(taskId: Long, taskTitle: String? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
@@ -81,6 +83,13 @@ class ApplyTaskViewModel @Inject constructor(
             val result = repository.applyForTask(taskId, request)
             result.fold(
                 onSuccess = {
+                    val title = taskTitle ?: "task #$taskId"
+                    notificationRepository.addNotification(
+                        type = "APPLICATION_SENT",
+                        title = "Application Sent",
+                        message = "You applied for '$title'",
+                        taskId = taskId
+                    )
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         success = true,

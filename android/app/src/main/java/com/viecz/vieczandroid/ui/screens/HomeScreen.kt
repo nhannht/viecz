@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -31,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
+import com.viecz.vieczandroid.ui.viewmodels.NotificationViewModel
 import com.viecz.vieczandroid.ui.viewmodels.TaskListViewModel
 import java.text.NumberFormat
 import java.util.*
@@ -42,11 +44,14 @@ fun HomeScreen(
     onNavigateToCreateTask: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToWallet: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     taskListViewModel: TaskListViewModel = hiltViewModel(),
-    categoryViewModel: CategoryViewModel = hiltViewModel()
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
+    notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val taskUiState by taskListViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
+    val notificationUiState by notificationViewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
 
@@ -68,6 +73,17 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = { showSearchBar = !showSearchBar }) {
                         Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                    IconButton(onClick = onNavigateToNotifications) {
+                        BadgedBox(
+                            badge = {
+                                if (notificationUiState.unreadCount > 0) {
+                                    Badge { Text("${notificationUiState.unreadCount}") }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                        }
                     }
                     IconButton(onClick = onNavigateToWallet) {
                         Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Wallet")

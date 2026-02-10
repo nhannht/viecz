@@ -5,6 +5,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.hasScrollToNodeAction
 import com.viecz.vieczandroid.data.repository.CategoryRepository
+import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
@@ -46,7 +47,8 @@ class CreateTaskScreenTest {
             )
         )
 
-        createTaskViewModel = CreateTaskViewModel(mockTaskRepo)
+        val mockNotificationRepo: NotificationRepository = mockk(relaxed = true)
+        createTaskViewModel = CreateTaskViewModel(mockTaskRepo, mockNotificationRepo)
         categoryViewModel = CategoryViewModel(mockCategoryRepo)
     }
 

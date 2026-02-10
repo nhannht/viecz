@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.models.CreateTaskRequest
 import com.viecz.vieczandroid.data.models.Task
+import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,8 @@ data class CreateTaskUiState(
 
 @HiltViewModel
 class CreateTaskViewModel @Inject constructor(
-    private val repository: TaskRepository
+    private val repository: TaskRepository,
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateTaskUiState())
@@ -152,6 +154,12 @@ class CreateTaskViewModel @Inject constructor(
             result.fold(
                 onSuccess = { task ->
                     Log.d(TAG, "Task created successfully: ${task.id}")
+                    notificationRepository.addNotification(
+                        type = "TASK_CREATED",
+                        title = "Task Posted",
+                        message = "Your task '${task.title}' has been posted",
+                        taskId = task.id
+                    )
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         createdTask = task,
