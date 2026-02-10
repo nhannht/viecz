@@ -35,7 +35,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "API_BASE_URL", "\"https://viecz-api-dev.fishcmus.io.vn/api/v1/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://viecz-api.fishcmus.io.vn/api/v1/\"")
         }
     }
     kotlinOptions {

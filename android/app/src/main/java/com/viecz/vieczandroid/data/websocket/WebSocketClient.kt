@@ -13,7 +13,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
-import com.viecz.vieczandroid.data.api.RetrofitClient
+import com.viecz.vieczandroid.BuildConfig
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,7 +24,7 @@ class WebSocketClient @Inject constructor(
 ) {
     companion object {
         private const val TAG = "WebSocketClient"
-        private val WS_URL: String = RetrofitClient.BASE_URL
+        private val WS_URL: String = BuildConfig.API_BASE_URL
             .replace("https://", "wss://")
             .replace("http://", "ws://")
             .trimEnd('/') + "/ws"
