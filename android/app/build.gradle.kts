@@ -128,6 +128,9 @@ dependencies {
     // DataStore for token storage
     implementation(libs.datastore.preferences)
 
+    // Encrypted SharedPreferences for secure token storage
+    implementation(libs.security.crypto)
+
     // Room Database
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

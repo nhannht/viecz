@@ -79,6 +79,13 @@
 }
 
 # ==========================================
+# AndroidX Security / Tink (EncryptedSharedPreferences)
+# ==========================================
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**
+-keep class androidx.security.crypto.** { *; }
+
+# ==========================================
 # Enums (used by Moshi and Room)
 # ==========================================
 -keepclassmembers enum * {
