@@ -252,15 +252,6 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 		}
 	}
 
-	// Update task status to completed
-	task.Status = models.TaskStatusCompleted
-	now := time.Now()
-	task.CompletedAt = &now
-
-	if err := s.taskRepo.Update(ctx, task); err != nil {
-		return fmt.Errorf("failed to update task status: %w", err)
-	}
-
 	return nil
 }
 

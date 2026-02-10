@@ -325,10 +325,9 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 			},
 			wantErr: false,
 			checkRepos: func(t *testing.T, taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
-				// Check task status updated to completed
+				// Task status should remain in_progress (CompleteTask handles status change)
 				task := taskRepo.Tasks[1]
-				testutil.AssertEqual(t, task.Status, models.TaskStatusCompleted, "Task status")
-				testutil.AssertNotNil(t, task.CompletedAt, "Task completed at")
+				testutil.AssertEqual(t, task.Status, models.TaskStatusInProgress, "Task status should remain in_progress")
 
 				// Check release transaction created
 				releaseFound := false

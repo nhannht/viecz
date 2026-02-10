@@ -150,6 +150,7 @@ dependencies {
     // Testing - Instrumented tests (Android)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.espresso.intents)
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.kotlin.test)
     androidTestImplementation(libs.coroutines.test)

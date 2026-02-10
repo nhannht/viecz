@@ -542,7 +542,7 @@ func TestTaskGormRepository_CountByFilters(t *testing.T) {
 }
 
 func TestTaskGormRepository_UpdateStatus(t *testing.T) {
-	t.Skip("Skipping due to repository implementation bug: UpdateStatus uses Model(&models.Task{}) which triggers BeforeUpdate validation on empty model")
+	// Bug fixed: UpdateStatus now uses UpdateColumn to skip BeforeUpdate hooks
 	tests := []struct {
 		name        string
 		setup       func(*gorm.DB) int64

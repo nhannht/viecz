@@ -492,7 +492,7 @@ func TestE2E_FullJobLifecycle(t *testing.T) {
 	t.Logf("Alice wallet after escrow: balance=%d, escrow=%d", aliceWallet.Balance, aliceWallet.EscrowBalance)
 
 	// =====================
-	// Step 13: Alice releases payment (90000 to Bob after 10% fee, task → completed)
+	// Step 13: Alice releases payment (90000 to Bob after 10% fee)
 	// =====================
 	w = doRequest(t, router, "POST", "/api/v1/payments/release", aliceToken, map[string]interface{}{
 		"task_id": taskID,
@@ -501,6 +501,15 @@ func TestE2E_FullJobLifecycle(t *testing.T) {
 		t.Fatalf("Release payment: expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 	t.Log("Payment released")
+
+	// =====================
+	// Step 13b: Alice completes the task (sets status to completed)
+	// =====================
+	w = doRequest(t, router, "POST", fmt.Sprintf("/api/v1/tasks/%d/complete", taskID), aliceToken, nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("Complete task: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	t.Log("Task completed")
 
 	// =====================
 	// Step 14: Alice checks wallet balance = 100000 (escrow already deducted)

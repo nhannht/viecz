@@ -1,0 +1,341 @@
+package com.viecz.vieczandroid.e2e
+
+import android.app.Instrumentation
+import android.content.Intent
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * Full Job Lifecycle E2E test against a real Go test server.
+ *
+ * Scenario:
+ *   Alice registers -> deposits 200k -> creates task (100k) ->
+ *   Bob registers -> becomes tasker -> applies ->
+ *   Alice accepts (escrow holds 100k) ->
+ *   Alice marks completed (releases 90k to Bob after 10% fee) ->
+ *   Verify: Alice=100k, Bob=90k, task=completed
+ *
+ * Requires: Go test server running on host at port 9999.
+ * Run via: ./scripts/run-full-e2e.sh
+ */
+@E2ETest
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
+class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
+
+    override val shouldStartLoggedIn = false
+
+    // Test user credentials
+    private val aliceEmail = "alice_${System.currentTimeMillis()}@test.com"
+    private val alicePassword = "Password123"
+    private val aliceName = "Alice TestUser"
+
+    private val bobEmail = "bob_${System.currentTimeMillis()}@test.com"
+    private val bobPassword = "Password123"
+    private val bobName = "Bob TestUser"
+
+    @Before
+    fun setup() {
+        // Stub all ACTION_VIEW intents (browser for PayOS checkout, deposit URL)
+        Intents.init()
+        Intents.intending(hasAction(Intent.ACTION_VIEW))
+            .respondWith(Instrumentation.ActivityResult(0, null))
+    }
+
+    @After
+    fun teardown() {
+        Intents.release()
+    }
+
+    // --- Helper functions ---
+
+    private fun waitForText(text: String, timeoutMillis: Long = 15000) {
+        composeRule.waitUntil(timeoutMillis) {
+            composeRule.onAllNodes(hasText(text, substring = true))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun typeInField(label: String, text: String) {
+        composeRule.onNodeWithText(label).performClick()
+        composeRule.onNodeWithText(label).performTextClearance()
+        composeRule.onNodeWithText(label).performTextInput(text)
+    }
+
+    private fun navigateToProfileAndLogout() {
+        // Go to profile
+        composeRule.onNodeWithContentDescription("Profile").performClick()
+        waitForText("Profile")
+
+        // Click logout icon
+        composeRule.onNodeWithContentDescription("Logout").performClick()
+
+        // Confirm logout dialog
+        waitForText("Are you sure you want to logout?")
+        composeRule.onAllNodesWithText("Logout")[1].performClick()
+
+        // Wait for login screen
+        waitForText("Welcome Back")
+    }
+
+    private fun registerUser(name: String, email: String, password: String) {
+        waitForText("Welcome Back")
+
+        // Navigate to register
+        composeRule.onNodeWithText("Don't have an account? Register").performClick()
+        waitForText("Create Account")
+
+        // Fill registration form
+        typeInField("Full Name", name)
+        typeInField("Email", email)
+        typeInField("Password", password)
+
+        // Submit
+        composeRule.onNodeWithText("Register").performClick()
+
+        // Wait for home screen
+        waitForText("Viecz - Task Marketplace", timeoutMillis = 20000)
+    }
+
+    private fun loginUser(email: String, password: String) {
+        waitForText("Welcome Back")
+
+        typeInField("Email", email)
+        typeInField("Password", password)
+
+        composeRule.onNodeWithText("Login").performClick()
+
+        waitForText("Viecz - Task Marketplace", timeoutMillis = 20000)
+    }
+
+    // --- Main E2E test ---
+
+    @Test
+    fun fullJobLifecycle_AliceCreatesBobCompletes() {
+        // =====================
+        // Step 1: Alice registers
+        // =====================
+        registerUser(aliceName, aliceEmail, alicePassword)
+
+        // =====================
+        // Step 2: Alice deposits 200k
+        // =====================
+        composeRule.onNodeWithContentDescription("Wallet").performClick()
+        waitForText("My Wallet")
+
+        // Click deposit FAB
+        composeRule.onNodeWithContentDescription("Deposit").performClick()
+        waitForText("Deposit Funds")
+
+        // Enter amount
+        typeInField("Amount (VND)", "200000")
+
+        // Click Deposit button in dialog
+        composeRule.onAllNodesWithText("Deposit")[1].performClick()
+
+        // The deposit intent will be intercepted by espresso-intents.
+        // The mock PayOS on the server auto-fires a webhook to credit the wallet.
+        // Wait for the wallet to update — navigate away and back to force refresh.
+        Thread.sleep(2000) // Wait for auto-webhook
+
+        // Navigate back to home and back to wallet to refresh
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        composeRule.onNodeWithContentDescription("Wallet").performClick()
+        waitForText("My Wallet")
+
+        // Assert balance shows 200,000 (Vietnamese format: 200.000)
+        waitForText("200.000")
+
+        // =====================
+        // Step 3: Alice creates a task (100k)
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+
+        composeRule.onNodeWithTag("fab_create_task").performClick()
+        waitForText("Create New Task")
+
+        typeInField("Task Title *", "Help me move furniture")
+        typeInField("Description *", "Need help moving furniture to new apartment downtown")
+        typeInField("Price (VND) *", "100000")
+        typeInField("Location *", "Ho Chi Minh City")
+
+        // Select category
+        composeRule.onNodeWithText("Select Category *").performClick()
+        waitForText("Select Category")
+        // Use the first category (Moving & Transport / Vận chuyển & Di chuyển)
+        waitForText("Vận chuyển")
+        composeRule.onAllNodes(hasText("Vận chuyển", substring = true))[0].performClick()
+
+        // Submit task
+        composeRule.onNodeWithText("Create Task").performClick()
+
+        // Wait for task detail screen
+        waitForText("Task Details", timeoutMillis = 20000)
+        waitForText("Help me move furniture")
+
+        // =====================
+        // Step 4: Alice logs out
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        navigateToProfileAndLogout()
+
+        // =====================
+        // Step 5: Bob registers
+        // =====================
+        registerUser(bobName, bobEmail, bobPassword)
+
+        // =====================
+        // Step 6: Bob becomes a Tasker
+        // =====================
+        composeRule.onNodeWithContentDescription("Profile").performClick()
+        waitForText("Profile")
+
+        composeRule.onNodeWithText("Become a Tasker").performClick()
+        waitForText("Become a Tasker") // Dialog title
+
+        composeRule.onNodeWithText("Yes, Register").performClick()
+
+        // Wait for snackbar or profile update
+        Thread.sleep(2000)
+
+        // =====================
+        // Step 7: Bob applies for the task
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+
+        // Find and click Alice's task
+        waitForText("Help me move furniture")
+        composeRule.onNodeWithText("Help me move furniture").performClick()
+        waitForText("Task Details")
+
+        // Apply for task
+        composeRule.onNodeWithText("Apply for this Task").performClick()
+        waitForText("Apply for Task")
+
+        // Fill application form (optional fields, just submit)
+        composeRule.onNodeWithText("Submit Application").performClick()
+
+        // Wait for application to be submitted
+        waitForText("Application Pending", timeoutMillis = 20000)
+
+        // =====================
+        // Step 8: Bob logs out
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        navigateToProfileAndLogout()
+
+        // =====================
+        // Step 9: Alice logs in
+        // =====================
+        loginUser(aliceEmail, alicePassword)
+
+        // =====================
+        // Step 10: Alice accepts application (escrow deducted)
+        // =====================
+        waitForText("Help me move furniture")
+        composeRule.onNodeWithText("Help me move furniture").performClick()
+        waitForText("Task Details")
+
+        // Scroll down to see applications and click Accept
+        waitForText("Accept Application", timeoutMillis = 10000)
+        composeRule.onNodeWithText("Accept Application").performClick()
+
+        // Confirm accept dialog
+        waitForText("Accept Application & Create Payment")
+        composeRule.onNodeWithText("Accept").performClick()
+
+        // Wait for escrow payment to complete
+        // The snackbar "Payment processed successfully!" should appear
+        waitForText("Payment processed successfully!", timeoutMillis = 20000)
+
+        // =====================
+        // Step 11: Alice verifies wallet = 100k (200k - 100k escrow)
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        composeRule.onNodeWithContentDescription("Wallet").performClick()
+        waitForText("My Wallet")
+        waitForText("100.000")
+
+        // =====================
+        // Step 12: Alice logs out
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        navigateToProfileAndLogout()
+
+        // =====================
+        // Step 13: Bob logs in, sees task In Progress
+        // =====================
+        loginUser(bobEmail, bobPassword)
+        waitForText("Help me move furniture")
+        composeRule.onNodeWithText("Help me move furniture").performClick()
+        waitForText("Task Details")
+        waitForText("In Progress")
+
+        // =====================
+        // Step 14: Bob logs out
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        navigateToProfileAndLogout()
+
+        // =====================
+        // Step 15: Alice logs in, marks task as Completed
+        // =====================
+        loginUser(aliceEmail, alicePassword)
+        waitForText("Help me move furniture")
+        composeRule.onNodeWithText("Help me move furniture").performClick()
+        waitForText("Task Details")
+
+        // Mark as Completed (releases 90k to Bob, completes task)
+        composeRule.onNodeWithText("Mark as Completed").performClick()
+
+        // Wait for payment release + task completion
+        waitForText("Payment processed successfully!", timeoutMillis = 20000)
+
+        // =====================
+        // Step 16: Alice verifies final state — wallet=100k, task=Completed
+        // =====================
+        waitForText("Completed", timeoutMillis = 10000)
+
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        composeRule.onNodeWithContentDescription("Wallet").performClick()
+        waitForText("My Wallet")
+        waitForText("100.000")
+
+        // =====================
+        // Step 17: Check Bob's wallet = 90k
+        // =====================
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Viecz - Task Marketplace")
+        navigateToProfileAndLogout()
+
+        loginUser(bobEmail, bobPassword)
+        composeRule.onNodeWithContentDescription("Wallet").performClick()
+        waitForText("My Wallet")
+        waitForText("90.000")
+    }
+}

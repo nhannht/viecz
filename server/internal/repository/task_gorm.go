@@ -142,7 +142,7 @@ func (r *taskGormRepository) CountByFilters(ctx context.Context, filters TaskFil
 }
 
 func (r *taskGormRepository) UpdateStatus(ctx context.Context, id int64, status models.TaskStatus) error {
-	result := r.db.WithContext(ctx).Model(&models.Task{}).Where("id = ?", id).Update("status", status)
+	result := r.db.WithContext(ctx).Model(&models.Task{}).Where("id = ?", id).UpdateColumn("status", status)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update task status: %w", result.Error)
 	}
