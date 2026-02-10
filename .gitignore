@@ -25,7 +25,7 @@ coverage/
 
 # Environment
 .env
-.env.local
+.env.*
 
 # Cloudflare tunnel credentials
 cloudflared-credentials.json
@@ -47,6 +47,7 @@ packages/android/app/build/
 packages/android/local.properties
 packages/android/.cxx/
 packages/android/captures/
+**/.kotlin/
 *.apk
 *.aab
 *.ap_
