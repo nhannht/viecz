@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import com.viecz.vieczandroid.ui.components.formatPrice
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons

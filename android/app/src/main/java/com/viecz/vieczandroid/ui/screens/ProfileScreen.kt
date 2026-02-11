@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -102,6 +103,9 @@ class ProfileViewModel @Inject constructor(
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToMyPostedJobs: () -> Unit = {},
+    onNavigateToMyAppliedJobs: () -> Unit = {},
+    onNavigateToMyCompletedJobs: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -167,7 +171,10 @@ fun ProfileScreen(
                 uiState.user != null -> {
                     ProfileContent(
                         user = uiState.user!!,
-                        onBecomeTasker = { showBecomeTaskerDialog = true }
+                        onBecomeTasker = { showBecomeTaskerDialog = true },
+                        onNavigateToMyPostedJobs = onNavigateToMyPostedJobs,
+                        onNavigateToMyAppliedJobs = onNavigateToMyAppliedJobs,
+                        onNavigateToMyCompletedJobs = onNavigateToMyCompletedJobs
                     )
                 }
             }
@@ -231,7 +238,10 @@ fun ProfileScreen(
 @Composable
 fun ProfileContent(
     user: User,
-    onBecomeTasker: () -> Unit
+    onBecomeTasker: () -> Unit,
+    onNavigateToMyPostedJobs: () -> Unit = {},
+    onNavigateToMyAppliedJobs: () -> Unit = {},
+    onNavigateToMyCompletedJobs: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -360,6 +370,44 @@ fun ProfileContent(
             }
         }
 
+        // My Jobs
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "My Jobs",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    MyJobsRow(
+                        icon = Icons.Default.Add,
+                        label = "My Posted Jobs",
+                        onClick = onNavigateToMyPostedJobs
+                    )
+                    HorizontalDivider()
+                    MyJobsRow(
+                        icon = Icons.Default.Work,
+                        label = "My Applied Jobs",
+                        onClick = onNavigateToMyAppliedJobs
+                    )
+                    HorizontalDivider()
+                    MyJobsRow(
+                        icon = Icons.Default.Check,
+                        label = "My Completed Jobs",
+                        onClick = onNavigateToMyCompletedJobs
+                    )
+                }
+            }
+        }
+
         // Become tasker button
         if (!user.isTasker) {
             item {
@@ -434,5 +482,39 @@ fun InfoRow(
                 fontWeight = FontWeight.Medium
             )
         }
+    }
+}
+
+@Composable
+fun MyJobsRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

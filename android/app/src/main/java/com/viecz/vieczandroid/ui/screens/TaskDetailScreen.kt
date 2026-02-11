@@ -1,5 +1,7 @@
 package com.viecz.vieczandroid.ui.screens
 
+import com.viecz.vieczandroid.ui.components.TaskStatusBadge
+import com.viecz.vieczandroid.ui.components.formatPrice
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*

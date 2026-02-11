@@ -15,6 +15,7 @@ import com.viecz.vieczandroid.ui.viewmodels.TaskListViewModel
 import kotlinx.coroutines.flow.flowOf
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import org.junit.After
 import org.junit.Before
@@ -53,7 +54,7 @@ class HomeScreenTest {
             TestData.createTask(id = 1, title = "Clean apartment", description = "Deep cleaning needed", location = "D1"),
             TestData.createTask(id = 2, title = "Deliver package", description = "Send to D7", location = "D3")
         )
-        coEvery { mockTaskRepo.getTasks(any(), any(), any(), any()) } returns Result.success(
+        coEvery { mockTaskRepo.getTasks(any(), any(), any(), any(), any(), any()) } returns Result.success(
             TestData.createTasksResponse(data = tasks, total = 2)
         )
 
@@ -244,7 +245,7 @@ class HomeScreenTest {
 
     @Test
     fun `HomeScreen shows empty state when no tasks`() {
-        coEvery { mockTaskRepo.getTasks(any(), any(), any(), any()) } returns Result.success(
+        coEvery { mockTaskRepo.getTasks(any(), any(), any(), any(), any(), any()) } returns Result.success(
             TestData.createTasksResponse(data = emptyList(), total = 0)
         )
         val emptyViewModel = TaskListViewModel(mockTaskRepo)
@@ -270,7 +271,7 @@ class HomeScreenTest {
 
     @Test
     fun `HomeScreen shows error state with retry button`() {
-        coEvery { mockTaskRepo.getTasks(any(), any(), any(), any()) } returns Result.failure(
+        coEvery { mockTaskRepo.getTasks(any(), any(), any(), any(), any(), any()) } returns Result.failure(
             Exception("Network error")
         )
         val errorViewModel = TaskListViewModel(mockTaskRepo)
@@ -318,5 +319,28 @@ class HomeScreenTest {
         composeTestRule.onNodeWithContentDescription("Search").performClick()
 
         composeTestRule.onNodeWithText("Search tasks...").assertIsDisplayed()
+    }
+
+    @Test
+    fun `HomeScreen refreshes task list when refreshTrigger is true`() {
+        composeTestRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    onNavigateToTaskDetail = {},
+                    onNavigateToCreateTask = {},
+                    onNavigateToProfile = {},
+                    onNavigateToWallet = {},
+                    refreshTrigger = true,
+                    taskListViewModel = taskListViewModel,
+                    categoryViewModel = categoryViewModel,
+                    notificationViewModel = notificationViewModel
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        // init{} call + refreshTrigger call = at least 2 invocations
+        coVerify(atLeast = 2) { mockTaskRepo.getTasks(any(), any(), any(), any(), any(), any()) }
     }
 }

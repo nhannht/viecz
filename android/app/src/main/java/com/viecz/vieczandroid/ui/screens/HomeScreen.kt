@@ -2,7 +2,6 @@ package com.viecz.vieczandroid.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,17 +24,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
-import com.viecz.vieczandroid.data.models.Task
+import com.viecz.vieczandroid.ui.components.TaskCard
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.NotificationViewModel
 import com.viecz.vieczandroid.ui.viewmodels.TaskListViewModel
-import java.text.NumberFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +40,7 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToWallet: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
+    refreshTrigger: Boolean = false,
     taskListViewModel: TaskListViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel(),
     notificationViewModel: NotificationViewModel = hiltViewModel()
@@ -54,6 +50,12 @@ fun HomeScreen(
     val notificationUiState by notificationViewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(refreshTrigger) {
+        if (refreshTrigger) {
+            taskListViewModel.refresh()
+        }
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     var showSearchBar by remember { mutableStateOf(false) }
@@ -240,104 +242,6 @@ fun CategoryFilterRow(
     }
 }
 
-@Composable
-fun TaskCard(
-    task: Task,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = task.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                TaskStatusBadge(status = task.status.name)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = task.location,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Text(
-                    text = formatPrice(task.price),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun TaskStatusBadge(status: String) {
-    val (color, text) = when (status.uppercase()) {
-        "OPEN" -> MaterialTheme.colorScheme.primary to "Open"
-        "IN_PROGRESS" -> MaterialTheme.colorScheme.tertiary to "In Progress"
-        "COMPLETED" -> MaterialTheme.colorScheme.secondary to "Completed"
-        "CANCELLED" -> MaterialTheme.colorScheme.error to "Cancelled"
-        else -> MaterialTheme.colorScheme.outline to status
-    }
-
-    Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = color
-        )
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
@@ -356,11 +260,6 @@ fun SearchBar(
         shape = MaterialTheme.shapes.medium,
         colors = OutlinedTextFieldDefaults.colors()
     )
-}
-
-fun formatPrice(price: Long): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("vi-VN"))
-    return formatter.format(price)
 }
 
 @Composable

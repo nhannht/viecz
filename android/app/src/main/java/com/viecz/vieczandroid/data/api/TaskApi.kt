@@ -10,7 +10,9 @@ interface TaskApi {
         @Query("limit") limit: Int = 20,
         @Query("category_id") categoryId: Long? = null,
         @Query("status") status: String? = null,
-        @Query("search") search: String? = null
+        @Query("search") search: String? = null,
+        @Query("requester_id") requesterId: Long? = null,
+        @Query("tasker_id") taskerId: Long? = null
     ): TasksResponse
 
     @GET("tasks/{id}")

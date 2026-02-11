@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.hasScrollToNodeAction
 import com.viecz.vieczandroid.data.models.*
 import com.viecz.vieczandroid.testutil.TestData
+import com.viecz.vieczandroid.ui.components.TaskCard
+import com.viecz.vieczandroid.ui.components.TaskStatusBadge
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

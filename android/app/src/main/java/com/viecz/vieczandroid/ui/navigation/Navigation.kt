@@ -24,6 +24,7 @@ object NavigationRoutes {
     const val WALLET = "wallet"
     const val CHAT = "chat/{conversationId}"
     const val NOTIFICATIONS = "notifications"
+    const val MY_JOBS = "my_jobs/{mode}"
     const val FIRST_SCREEN = "first_screen"
     const val SECOND_SCREEN = "second_screen"
     const val PAYMENT_SCREEN = "payment_screen"
@@ -31,6 +32,7 @@ object NavigationRoutes {
     fun taskDetail(taskId: Long) = "task_detail/$taskId"
     fun applyTask(taskId: Long, price: Long) = "apply_task/$taskId/$price"
     fun chat(conversationId: Long) = "chat/$conversationId"
+    fun myJobs(mode: String) = "my_jobs/$mode"
 }
 
 @Composable
@@ -88,7 +90,7 @@ fun VieczNavHost(
         }
 
         // Home screen - Task marketplace
-        composable(NavigationRoutes.HOME) {
+        composable(NavigationRoutes.HOME) { backStackEntry ->
             val context = LocalContext.current
             val tokenManager = TokenManager(context)
 
@@ -107,8 +109,12 @@ fun VieczNavHost(
                 },
                 onNavigateToNotifications = {
                     navController.navigate(NavigationRoutes.NOTIFICATIONS)
-                }
+                },
+                refreshTrigger = backStackEntry.savedStateHandle.get<Boolean>("refresh") == true
             )
+
+            // Consume the flag so it doesn't re-trigger
+            backStackEntry.savedStateHandle.remove<Boolean>("refresh")
         }
 
         // Notifications screen
@@ -145,6 +151,8 @@ fun VieczNavHost(
             CreateTaskScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onTaskCreated = { taskId ->
+                    navController.getBackStackEntry(NavigationRoutes.HOME)
+                        .savedStateHandle["refresh"] = true
                     navController.navigate(NavigationRoutes.taskDetail(taskId)) {
                         popUpTo(NavigationRoutes.HOME)
                     }
@@ -178,6 +186,30 @@ fun VieczNavHost(
                     navController.navigate(NavigationRoutes.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onNavigateToMyPostedJobs = {
+                    navController.navigate(NavigationRoutes.myJobs("posted"))
+                },
+                onNavigateToMyAppliedJobs = {
+                    navController.navigate(NavigationRoutes.myJobs("applied"))
+                },
+                onNavigateToMyCompletedJobs = {
+                    navController.navigate(NavigationRoutes.myJobs("completed"))
+                }
+            )
+        }
+
+        // My Jobs screen
+        composable(
+            route = NavigationRoutes.MY_JOBS,
+            arguments = listOf(navArgument("mode") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val mode = backStackEntry.arguments?.getString("mode") ?: "posted"
+            MyJobsScreen(
+                mode = mode,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTaskDetail = { taskId ->
+                    navController.navigate(NavigationRoutes.taskDetail(taskId))
                 }
             )
         }
