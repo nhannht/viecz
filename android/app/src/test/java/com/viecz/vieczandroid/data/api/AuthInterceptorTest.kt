@@ -1,9 +1,14 @@
 package com.viecz.vieczandroid.data.api
 
+import com.viecz.vieczandroid.data.auth.AuthEvent
+import com.viecz.vieczandroid.data.auth.AuthEventManager
 import com.viecz.vieczandroid.data.local.TokenManager
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -13,18 +18,21 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 
 class AuthInterceptorTest {
 
     private lateinit var mockWebServer: MockWebServer
     private lateinit var tokenManager: TokenManager
+    private lateinit var authEventManager: AuthEventManager
 
     @Before
     fun setup() {
         mockWebServer = MockWebServer()
         mockWebServer.start()
-        tokenManager = mockk()
+        tokenManager = mockk(relaxed = true)
+        authEventManager = AuthEventManager()
     }
 
     @After
@@ -36,7 +44,7 @@ class AuthInterceptorTest {
     fun `adds Authorization header when token exists`() = runTest {
         every { tokenManager.accessToken } returns flowOf("my-jwt-token")
 
-        val interceptor = AuthInterceptor(tokenManager)
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
         val client = OkHttpClient.Builder()
             .addInterceptor(interceptor)
             .build()
@@ -57,7 +65,7 @@ class AuthInterceptorTest {
     fun `does not add Authorization header when token is null`() = runTest {
         every { tokenManager.accessToken } returns flowOf(null)
 
-        val interceptor = AuthInterceptor(tokenManager)
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
         val client = OkHttpClient.Builder()
             .addInterceptor(interceptor)
             .build()
@@ -78,7 +86,7 @@ class AuthInterceptorTest {
     fun `preserves original request when no token`() = runTest {
         every { tokenManager.accessToken } returns flowOf(null)
 
-        val interceptor = AuthInterceptor(tokenManager)
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
         val client = OkHttpClient.Builder()
             .addInterceptor(interceptor)
             .build()
@@ -102,7 +110,7 @@ class AuthInterceptorTest {
     fun `adds header alongside existing headers`() = runTest {
         every { tokenManager.accessToken } returns flowOf("token-123")
 
-        val interceptor = AuthInterceptor(tokenManager)
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
         val client = OkHttpClient.Builder()
             .addInterceptor(interceptor)
             .build()
@@ -127,7 +135,7 @@ class AuthInterceptorTest {
     fun `uses Bearer token format`() = runTest {
         every { tokenManager.accessToken } returns flowOf("abc.def.ghi")
 
-        val interceptor = AuthInterceptor(tokenManager)
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
         val client = OkHttpClient.Builder()
             .addInterceptor(interceptor)
             .build()
@@ -144,5 +152,54 @@ class AuthInterceptorTest {
         val authHeader = request.getHeader("Authorization")!!
         assert(authHeader.startsWith("Bearer "))
         assertEquals("abc.def.ghi", authHeader.removePrefix("Bearer "))
+    }
+
+    @Test
+    fun `clears tokens and emits unauthorized event on 401 response`() = runTest {
+        every { tokenManager.accessToken } returns flowOf("expired-token")
+
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
+        val client = OkHttpClient.Builder()
+            .addInterceptor(interceptor)
+            .build()
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("""{"error":"unauthorized"}"""))
+
+        // Collect auth events in background using UnconfinedTestDispatcher for eager dispatch
+        val events = mutableListOf<AuthEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            authEventManager.authEvents.collect { events.add(it) }
+        }
+
+        client.newCall(
+            Request.Builder()
+                .url(mockWebServer.url("/api/v1/tasks"))
+                .build()
+        ).execute()
+
+        coVerify { tokenManager.clearTokens() }
+        assertEquals(1, events.size)
+        assertIs<AuthEvent.Unauthorized>(events.first())
+    }
+
+    @Test
+    fun `does not emit unauthorized event on successful response`() = runTest {
+        every { tokenManager.accessToken } returns flowOf("valid-token")
+
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
+        val client = OkHttpClient.Builder()
+            .addInterceptor(interceptor)
+            .build()
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+
+        client.newCall(
+            Request.Builder()
+                .url(mockWebServer.url("/api/v1/tasks"))
+                .build()
+        ).execute()
+
+        // Verify clearTokens was NOT called
+        coVerify(exactly = 0) { tokenManager.clearTokens() }
     }
 }

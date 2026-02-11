@@ -2,6 +2,7 @@ package com.viecz.vieczandroid.di
 
 import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.api.*
+import com.viecz.vieczandroid.data.auth.AuthEventManager
 import com.viecz.vieczandroid.data.local.TokenManager
 import io.mockk.mockk
 import okhttp3.logging.HttpLoggingInterceptor
@@ -25,7 +26,7 @@ class NetworkModuleTest {
     fun `provideAuthInterceptor returns AuthInterceptor`() {
         val tokenManager = mockk<TokenManager>(relaxed = true)
 
-        val interceptor = NetworkModule.provideAuthInterceptor(tokenManager)
+        val interceptor = NetworkModule.provideAuthInterceptor(tokenManager, AuthEventManager())
 
         assertNotNull(interceptor)
         assertIs<AuthInterceptor>(interceptor)
@@ -34,7 +35,7 @@ class NetworkModuleTest {
     @Test
     fun `provideOkHttpClient has both interceptors`() {
         val tokenManager = mockk<TokenManager>(relaxed = true)
-        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager)
+        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager, AuthEventManager())
         val loggingInterceptor = NetworkModule.provideHttpLoggingInterceptor()
 
         val client = NetworkModule.provideOkHttpClient(authInterceptor, loggingInterceptor)
@@ -47,7 +48,7 @@ class NetworkModuleTest {
     @Test
     fun `provideOkHttpClient has 30 second timeouts`() {
         val tokenManager = mockk<TokenManager>(relaxed = true)
-        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager)
+        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager, AuthEventManager())
         val loggingInterceptor = NetworkModule.provideHttpLoggingInterceptor()
 
         val client = NetworkModule.provideOkHttpClient(authInterceptor, loggingInterceptor)
@@ -77,7 +78,7 @@ class NetworkModuleTest {
     @Test
     fun `provideRetrofit has correct base URL`() {
         val tokenManager = mockk<TokenManager>(relaxed = true)
-        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager)
+        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager, AuthEventManager())
         val loggingInterceptor = NetworkModule.provideHttpLoggingInterceptor()
         val okHttpClient = NetworkModule.provideOkHttpClient(authInterceptor, loggingInterceptor)
         val moshi = NetworkModule.provideMoshi()
@@ -139,7 +140,7 @@ class NetworkModuleTest {
     @Test
     fun `auth interceptor is added before logging interceptor`() {
         val tokenManager = mockk<TokenManager>(relaxed = true)
-        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager)
+        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager, AuthEventManager())
         val loggingInterceptor = NetworkModule.provideHttpLoggingInterceptor()
 
         val client = NetworkModule.provideOkHttpClient(authInterceptor, loggingInterceptor)
@@ -152,7 +153,7 @@ class NetworkModuleTest {
     // Helper to build a Retrofit instance for API creation tests
     private fun buildRetrofit(): retrofit2.Retrofit {
         val tokenManager = mockk<TokenManager>(relaxed = true)
-        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager)
+        val authInterceptor = NetworkModule.provideAuthInterceptor(tokenManager, AuthEventManager())
         val loggingInterceptor = NetworkModule.provideHttpLoggingInterceptor()
         val okHttpClient = NetworkModule.provideOkHttpClient(authInterceptor, loggingInterceptor)
         val moshi = NetworkModule.provideMoshi()

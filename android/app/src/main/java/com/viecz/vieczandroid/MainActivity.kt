@@ -13,12 +13,18 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.viecz.vieczandroid.data.auth.AuthEvent
+import com.viecz.vieczandroid.data.auth.AuthEventManager
+import com.viecz.vieczandroid.ui.navigation.NavigationRoutes
 import com.viecz.vieczandroid.ui.navigation.VieczNavHost
 import com.viecz.vieczandroid.ui.theme.VieczTheme
+import javax.inject.Inject
 
 data class PaymentResult(
     val success: Boolean,
@@ -32,6 +38,9 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
+    @Inject
+    lateinit var authEventManager: AuthEventManager
+
     private val _paymentResult = MutableStateFlow<PaymentResult?>(null)
     val paymentResult: StateFlow<PaymentResult?> = _paymentResult.asStateFlow()
 
@@ -44,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             VieczTheme {
-                VieczApp(paymentResult)
+                VieczApp(paymentResult, authEventManager.authEvents)
             }
         }
     }
@@ -102,11 +111,31 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VieczApp(paymentResultFlow: StateFlow<PaymentResult?>) {
+fun VieczApp(
+    paymentResultFlow: StateFlow<PaymentResult?>,
+    authEvents: SharedFlow<AuthEvent> = MutableSharedFlow()
+) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val paymentResult by paymentResultFlow.collectAsStateWithLifecycle()
+
+    // Handle 401 Unauthorized — redirect to login
+    LaunchedEffect(Unit) {
+        authEvents.collect { event ->
+            when (event) {
+                is AuthEvent.Unauthorized -> {
+                    navController.navigate(NavigationRoutes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                    snackbarHostState.showSnackbar(
+                        message = "Session expired. Please log in again.",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
+        }
+    }
 
     // Handle payment result
     LaunchedEffect(paymentResult) {

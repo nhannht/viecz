@@ -4,6 +4,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.api.*
+import com.viecz.vieczandroid.data.auth.AuthEventManager
 import com.viecz.vieczandroid.data.local.TokenManager
 import dagger.Module
 import dagger.Provides
@@ -39,8 +40,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(tokenManager: TokenManager): AuthInterceptor {
-        return AuthInterceptor(tokenManager)
+    fun provideAuthInterceptor(tokenManager: TokenManager, authEventManager: AuthEventManager): AuthInterceptor {
+        return AuthInterceptor(tokenManager, authEventManager)
     }
 
     @Provides
