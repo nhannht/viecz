@@ -183,6 +183,58 @@ class AuthInterceptorTest {
     }
 
     @Test
+    fun `does not clear tokens on 401 from login endpoint`() = runTest {
+        every { tokenManager.accessToken } returns flowOf(null)
+
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
+        val client = OkHttpClient.Builder()
+            .addInterceptor(interceptor)
+            .build()
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("""{"error":"invalid credentials"}"""))
+
+        val events = mutableListOf<AuthEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            authEventManager.authEvents.collect { events.add(it) }
+        }
+
+        client.newCall(
+            Request.Builder()
+                .url(mockWebServer.url("/api/v1/auth/login"))
+                .build()
+        ).execute()
+
+        coVerify(exactly = 0) { tokenManager.clearTokens() }
+        assertEquals(0, events.size)
+    }
+
+    @Test
+    fun `does not clear tokens on 401 from register endpoint`() = runTest {
+        every { tokenManager.accessToken } returns flowOf(null)
+
+        val interceptor = AuthInterceptor(tokenManager, authEventManager)
+        val client = OkHttpClient.Builder()
+            .addInterceptor(interceptor)
+            .build()
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("""{"error":"email already exists"}"""))
+
+        val events = mutableListOf<AuthEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            authEventManager.authEvents.collect { events.add(it) }
+        }
+
+        client.newCall(
+            Request.Builder()
+                .url(mockWebServer.url("/api/v1/auth/register"))
+                .build()
+        ).execute()
+
+        coVerify(exactly = 0) { tokenManager.clearTokens() }
+        assertEquals(0, events.size)
+    }
+
+    @Test
     fun `does not emit unauthorized event on successful response`() = runTest {
         every { tokenManager.accessToken } returns flowOf("valid-token")
 

@@ -39,7 +39,12 @@ class AuthInterceptor(
 
         val response = chain.proceed(request)
 
-        if (response.code == 401) {
+        // Only handle 401 for authenticated endpoints — skip auth endpoints
+        // where 401 means "wrong credentials", not "expired token"
+        val path = originalRequest.url.encodedPath
+        val isAuthEndpoint = path.contains("/auth/login") || path.contains("/auth/register")
+
+        if (response.code == 401 && !isAuthEndpoint) {
             Log.d(TAG, "401 Unauthorized received, clearing tokens")
             runBlocking {
                 tokenManager.clearTokens()
