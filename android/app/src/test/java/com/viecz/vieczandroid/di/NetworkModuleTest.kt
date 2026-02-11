@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.di
 
+import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.api.*
 import com.viecz.vieczandroid.data.local.TokenManager
 import io.mockk.mockk
@@ -83,7 +84,7 @@ class NetworkModuleTest {
 
         val retrofit = NetworkModule.provideRetrofit(okHttpClient, moshi)
 
-        assertEquals("https://viecz-api-dev.fishcmus.io.vn/api/v1/", retrofit.baseUrl().toString())
+        assertEquals(BuildConfig.API_BASE_URL, retrofit.baseUrl().toString())
     }
 
     @Test

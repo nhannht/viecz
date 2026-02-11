@@ -58,14 +58,34 @@ android {
         testInstrumentationRunner = "com.viecz.vieczandroid.HiltTestRunner"
     }
 
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            val devUrl = localProperties.getProperty(
+                "API_BASE_URL_DEV",
+                "http://10.0.2.2:9999/api/v1/"
+            )
+            buildConfigField("String", "API_BASE_URL", "\"$devUrl\"")
+            resValue("string", "app_name", "Viecz Dev")
+        }
+        create("prod") {
+            dimension = "environment"
+            val prodUrl = localProperties.getProperty(
+                "API_BASE_URL_PROD",
+                "https://viecz-api.fishcmus.io.vn/api/v1/"
+            )
+            buildConfigField("String", "API_BASE_URL", "\"$prodUrl\"")
+            resValue("string", "app_name", "Viecz")
+        }
+    }
+
     buildTypes {
         debug {
             enableUnitTestCoverage = true
-            val debugUrl = localProperties.getProperty(
-                "API_BASE_URL_DEBUG",
-                "https://viecz-api-dev.fishcmus.io.vn/api/v1/"
-            )
-            buildConfigField("String", "API_BASE_URL", "\"$debugUrl\"")
         }
         release {
             isMinifyEnabled = true
@@ -74,11 +94,6 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            val releaseUrl = localProperties.getProperty(
-                "API_BASE_URL_RELEASE",
-                "https://viecz-api.fishcmus.io.vn/api/v1/"
-            )
-            buildConfigField("String", "API_BASE_URL", "\"$releaseUrl\"")
         }
     }
     kotlinOptions {
@@ -222,7 +237,7 @@ val jacocoFileFilter = listOf(
 )
 
 tasks.register<JacocoReport>("jacocoTestReport") {
-    dependsOn("testDebugUnitTest")
+    dependsOn("testDevDebugUnitTest")
 
     reports {
         xml.required.set(true)
@@ -230,22 +245,22 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/html"))
     }
 
-    val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+    val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/devDebug")) {
         exclude(jacocoFileFilter)
     }
 
     sourceDirectories.setFrom(files("src/main/java"))
     classDirectories.setFrom(debugTree)
     executionData.setFrom(fileTree(layout.buildDirectory) {
-        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
-        include("jacoco/testDebugUnitTest.exec")
+        include("outputs/unit_test_code_coverage/devDebugUnitTest/testDevDebugUnitTest.exec")
+        include("jacoco/testDevDebugUnitTest.exec")
     })
 }
 
 // Package-specific JaCoCo report task
 // Usage: ./gradlew jacocoPackageReport -PjacocoPackage=data/api
 tasks.register<JacocoReport>("jacocoPackageReport") {
-    dependsOn("testDebugUnitTest")
+    dependsOn("testDevDebugUnitTest")
 
     val pkg = project.findProperty("jacocoPackage")?.toString() ?: "**"
 
@@ -255,7 +270,7 @@ tasks.register<JacocoReport>("jacocoPackageReport") {
         html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/package-html"))
     }
 
-    val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+    val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/devDebug")) {
         include("com/viecz/vieczandroid/$pkg/**")
         exclude(jacocoFileFilter)
     }
@@ -263,7 +278,7 @@ tasks.register<JacocoReport>("jacocoPackageReport") {
     sourceDirectories.setFrom(files("src/main/java"))
     classDirectories.setFrom(debugTree)
     executionData.setFrom(fileTree(layout.buildDirectory) {
-        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
-        include("jacoco/testDebugUnitTest.exec")
+        include("outputs/unit_test_code_coverage/devDebugUnitTest/testDevDebugUnitTest.exec")
+        include("jacoco/testDevDebugUnitTest.exec")
     })
 }

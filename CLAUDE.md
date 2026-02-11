@@ -190,36 +190,60 @@ cd android
 
 **CRITICAL**: The user uses an IDE (Android Studio/IntelliJ IDEA) for Android development, which runs its own Gradle daemon. **NEVER** restart the Gradle daemon unless explicitly instructed. Avoid using `./gradlew --stop` or any commands that would kill the daemon.
 
+#### Product Flavors
+
+The project uses two product flavors:
+- **`dev`** — Points to localhost test server (`http://10.0.2.2:9999/api/v1/`), app name "Viecz Dev", separate applicationId (`.dev` suffix)
+- **`prod`** — Points to production server, app name "Viecz"
+
+Build variants: `devDebug`, `devRelease`, `prodDebug`, `prodRelease`
+
 #### Building and Running
 
 ```bash
-# Build debug APK
-./gradlew assembleDebug
+# Build dev debug APK (local test server)
+./gradlew assembleDevDebug
 
-# Build release APK
-./gradlew assembleRelease
+# Build prod debug APK (production server)
+./gradlew assembleProdDebug
 
-# Build and install debug APK on connected device/emulator
-./gradlew installDebug
+# Build prod release APK
+./gradlew assembleProdRelease
+
+# Install dev debug on emulator (for local development)
+./gradlew installDevDebug
+
+# Install prod debug on device
+./gradlew installProdDebug
 
 # Full build with tests
 ./gradlew build
+```
 
-# Run on connected device/emulator
-./gradlew run
+#### Dev Workflow (Local Development)
+
+```bash
+# 1. Start test server on host machine
+cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+
+# 2. Build and install dev APK on emulator
+cd android && ./gradlew installDevDebug
+
+# App shows "Viecz Dev", talks to localhost:9999, mock PayOS auto-completes deposits
+# Both "Viecz Dev" and "Viecz" can coexist on the same device
 ```
 
 #### Testing
 
 ```bash
-# Run unit tests
-./gradlew test
+# Run unit tests (dev flavor)
+./gradlew testDevDebugUnitTest
 
 # Run instrumented tests on connected device
 ./gradlew connectedAndroidTest
 
 # Run all tests
-./gradlew testDebugUnitTest connectedAndroidTest
+./gradlew testDevDebugUnitTest connectedAndroidTest
 ```
 
 #### Code Quality
@@ -315,7 +339,7 @@ All Gradle commands use the existing daemon - no restart needed.
 ```bash
 cd server
 
-# Run the server
+# Run the production server (requires PostgreSQL + .env)
 go run cmd/server/main.go
 
 # Run tests
@@ -328,6 +352,36 @@ go test -v -cover ./...
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```
+
+#### Test Server (Development/E2E)
+
+A standalone test server for local development and E2E testing. Uses SQLite in-memory (no PostgreSQL needed) with mock PayOS (auto-completes deposits via internal webhook).
+
+```bash
+cd server
+
+# Build the test server (requires CGO for SQLite)
+CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver
+
+# Run the test server
+./bin/testserver
+```
+
+**Test server details:**
+- **Source**: `server/cmd/testserver/main.go`
+- **Port**: 9999 (hardcoded)
+- **URL**: `http://localhost:9999`
+- **Database**: SQLite in-memory (fresh on each start)
+- **JWT Secret**: `e2e-test-secret-key` (hardcoded)
+- **PayOS**: Mock mode — `CreatePaymentLink` auto-fires webhook to credit wallet after 100ms
+- **Seed data**: Categories + test user (see `database/seed.go`)
+- **Health check**: `GET /api/v1/health`
+- **Routes**: Mirrors all production routes from `cmd/server/main.go`
+- **Use case**: Local Android development, E2E tests (`scripts/run-full-e2e.sh`), manual API testing
+
+**When to use which server:**
+- **Production server** (`cmd/server/main.go`): Requires PostgreSQL, real PayOS keys, `.env` file
+- **Test server** (`cmd/testserver/main.go`): Zero external dependencies, instant startup, auto-resets on restart
 
 ### Shared UI Components (Not Yet Implemented)
 - Planned location: `packages/ui/`
