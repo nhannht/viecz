@@ -1,0 +1,11 @@
+Viecz is a freelance task marketplace designed for university students. Post tasks, find workers, manage payments, and communicate in real time.
+
+Features:
+- Browse and post freelance tasks with categories and pricing
+- Secure JWT-based authentication with encrypted token storage
+- Integrated wallet system with PayOS payment processing
+- Real-time private messaging via WebSocket
+- User profiles with ratings and task history
+- Material Design 3 interface built with Jetpack Compose
+
+Built with free and open-source software. Server source code included under AGPL-3.0.
