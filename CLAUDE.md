@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## UI/UX Issue Investigation (CRITICAL - ALWAYS FOLLOW)
+
+**MANDATORY**: When the user asks about UI/UX behavior, visual bugs, or app navigation issues, follow this order:
+
+1. **Check the device first** — Use `adb` to interact with the running app
+   - `adb devices` to confirm a device/emulator is connected
+   - `adb shell screencap` / `adb exec-out screencap -p > screenshot.png` to capture current state
+   - `adb shell uiautomator dump` to inspect the UI hierarchy
+   - `adb shell input` to tap, swipe, or type to reproduce the issue
+   - `adb shell am start` to launch activities or deep links
+2. **Check logs** — `adb logcat` filtered to the app package for runtime errors
+3. **Check the code** — Only after understanding the actual device behavior
+
+**Why**: UI/UX issues are best understood by observing the real app. Code reading alone can miss runtime state, timing, and visual layout problems.
+
 ## Project Overview
 
 Viecz is a multi-package project containing:
@@ -527,6 +542,103 @@ Use Context7 MCP tools (`mcp__context7__query-docs`, `mcp__context7__resolve-lib
 - Don't wait for explicit "check the docs" requests from the user
 
 This proactive approach ensures code accuracy, follows current best practices, and prevents outdated API usage.
+
+## Claudtest - ADB-Based Device Interaction Testing (CRITICAL - ALWAYS FOLLOW)
+
+**Claudtest** is this project's custom definition for automated E2E-style testing performed by Claude Code on a real Android device connected via ADB. It combines raw ADB input commands with UI Automator inspection to mimic real human interaction — no extra framework (Maestro, Espresso, Appium) required.
+
+### What Claudtest Is
+
+Claudtest is an **observe-act loop** on a real device:
+
+1. **Observe** — Capture the current screen state
+   - `adb shell screencap` — Take a screenshot (Claude reads it visually)
+   - `adb shell uiautomator dump` — Dump the UI hierarchy XML to find element bounds, resource IDs, and text labels
+2. **Act** — Perform human-like interactions using element coordinates from the UI dump
+   - `adb shell input tap <x> <y>` — Tap a button/field
+   - `adb shell input text "<text>"` — Type into a focused field
+   - `adb shell input swipe <x1> <y1> <x2> <y2> <duration>` — Scroll/swipe
+   - `adb shell input keyevent <code>` — Press keys (Back=4, Enter=66, Home=3)
+   - `adb shell am start` — Launch activities or deep links
+3. **Verify** — Observe again to confirm the expected result
+   - Screenshot comparison (visual check)
+   - UI hierarchy assertion (element exists/contains text)
+   - `adb logcat` — Check for errors or expected log entries
+
+### How to Find Element Coordinates
+
+```bash
+# 1. Dump UI hierarchy
+adb shell uiautomator dump /sdcard/ui.xml
+adb pull /sdcard/ui.xml /tmp/ui.xml
+
+# 2. Parse bounds from XML — elements have bounds="[left,top][right,bottom]"
+# Example: <node text="Login" bounds="[100,900][640,980]" />
+# Tap center: x = (100+640)/2 = 370, y = (900+980)/2 = 940
+adb shell input tap 370 940
+```
+
+### When to Use Claudtest
+
+Use claudtest when:
+- Verifying a UI/UX fix on the real device after code changes
+- Reproducing a user-reported bug by following their steps
+- Testing a full user flow (register -> login -> navigate -> perform action)
+- The user asks to "test it on the device" or "try it on the phone"
+
+### Claudtest Workflow
+
+```
+1. Ensure device connected:     adb devices
+2. Launch app:                  adb shell am start -n <package>/<activity>
+3. Wait for load:               sleep 2-3
+4. Screenshot + UI dump:        Observe current state
+5. Find target element:         Parse bounds from UI XML
+6. Tap/type/swipe:              Perform interaction
+7. Wait for response:           sleep 1-2
+8. Screenshot + UI dump:        Verify result
+9. Repeat 5-8 for each step
+10. Check logcat if needed:     adb logcat -d --pid=$(adb shell pidof <package>)
+```
+
+### Example: Claudtest Login Flow
+
+```bash
+# Launch app
+adb shell am start -n com.viecz.vieczandroid.dev/com.viecz.vieczandroid.MainActivity
+sleep 3
+
+# Screenshot to see login screen
+adb shell screencap -p /sdcard/s1.png && adb pull /sdcard/s1.png /tmp/s1.png
+
+# Dump UI to find Email field coordinates
+adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml /tmp/ui.xml
+# Parse: Email field bounds="[64,650][696,730]" -> tap center (380, 690)
+
+# Tap email field and type
+adb shell input tap 380 690
+adb shell input text "test@example.com"
+
+# Tap password field and type
+adb shell input tap 380 820
+adb shell input text "password123"
+
+# Tap Login button
+adb shell input tap 380 950
+sleep 3
+
+# Verify: screenshot should show home screen, not login
+adb shell screencap -p /sdcard/s2.png && adb pull /sdcard/s2.png /tmp/s2.png
+```
+
+### Important Rules
+
+- **Always dump UI hierarchy** to get accurate coordinates — never guess coordinates
+- **Always wait** (`sleep`) after navigation or network calls before checking results
+- **Read screenshots visually** to confirm what the user would see
+- **Check logcat** when interactions don't produce expected results
+- **Report results** with screenshots so the user can see what happened
+- Claudtest is for **verification and debugging**, not a replacement for unit tests
 
 ## Bug Fixing Protocol (CRITICAL - ALWAYS FOLLOW)
 
