@@ -20,6 +20,13 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
 
+// Load local.properties for per-developer overrides (e.g., API_BASE_URL)
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties()
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
 android {
     namespace = "com.viecz.vieczandroid"
     compileSdk = 36
@@ -54,7 +61,11 @@ android {
     buildTypes {
         debug {
             enableUnitTestCoverage = true
-            buildConfigField("String", "API_BASE_URL", "\"https://viecz-api-dev.fishcmus.io.vn/api/v1/\"")
+            val debugUrl = localProperties.getProperty(
+                "API_BASE_URL_DEBUG",
+                "https://viecz-api-dev.fishcmus.io.vn/api/v1/"
+            )
+            buildConfigField("String", "API_BASE_URL", "\"$debugUrl\"")
         }
         release {
             isMinifyEnabled = true
@@ -63,7 +74,11 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "API_BASE_URL", "\"https://viecz-api.fishcmus.io.vn/api/v1/\"")
+            val releaseUrl = localProperties.getProperty(
+                "API_BASE_URL_RELEASE",
+                "https://viecz-api.fishcmus.io.vn/api/v1/"
+            )
+            buildConfigField("String", "API_BASE_URL", "\"$releaseUrl\"")
         }
     }
     kotlinOptions {
