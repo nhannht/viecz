@@ -4,12 +4,15 @@ import android.app.Instrumentation
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.intent.Intents
@@ -79,16 +82,18 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
     }
 
     private fun navigateToProfileAndLogout() {
-        // Go to profile
-        composeRule.onNodeWithContentDescription("Profile").performClick()
-        waitForText("Profile")
+        // Go to profile tab
+        composeRule.onNodeWithText("Profile").performClick()
+        waitForText("Statistics")
 
-        // Click logout icon
-        composeRule.onNodeWithContentDescription("Logout").performClick()
+        // Scroll LazyColumn to find the Logout button (off-screen in LazyColumn)
+        composeRule.onAllNodes(hasScrollToNodeAction()).onFirst()
+            .performScrollToNode(hasText("Logout"))
+        composeRule.onNodeWithText("Logout").performClick()
 
         // Confirm logout dialog
         waitForText("Are you sure you want to logout?")
-        composeRule.onAllNodesWithText("Logout")[1].performClick()
+        composeRule.onAllNodesWithText("Logout")[2].performClick()
 
         // Wait for login screen
         waitForText("Welcome Back")
@@ -109,8 +114,8 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // Submit
         composeRule.onNodeWithText("Register").performClick()
 
-        // Wait for home screen
-        waitForText("Viecz - Task Marketplace", timeoutMillis = 20000)
+        // Wait for main screen with bottom bar
+        waitForText("Marketplace", timeoutMillis = 20000)
     }
 
     private fun loginUser(email: String, password: String) {
@@ -121,7 +126,7 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
 
         composeRule.onNodeWithText("Login").performClick()
 
-        waitForText("Viecz - Task Marketplace", timeoutMillis = 20000)
+        waitForText("Marketplace", timeoutMillis = 20000)
     }
 
     // --- Main E2E test ---
@@ -136,10 +141,11 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // =====================
         // Step 2: Alice deposits 200k
         // =====================
-        composeRule.onNodeWithContentDescription("Wallet").performClick()
-        waitForText("My Wallet")
+        // Tap Wallet tab in bottom bar
+        composeRule.onNodeWithText("Wallet").performClick()
+        waitForText("Available Balance")
 
-        // Click deposit FAB
+        // Click deposit button in top bar (contentDescription = "Deposit")
         composeRule.onNodeWithContentDescription("Deposit").performClick()
         waitForText("Deposit Funds")
 
@@ -147,19 +153,18 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         typeInField("Amount (VND)", "200000")
 
         // Click Deposit button in dialog
-        // FAB has contentDescription="Deposit" (not text), so only the dialog button matches hasText
         composeRule.onNodeWithText("Deposit").performClick()
 
         // The deposit intent will be intercepted by espresso-intents.
         // The mock PayOS on the server auto-fires a webhook to credit the wallet.
-        // Wait for the wallet to update — navigate away and back to force refresh.
-        Thread.sleep(2000) // Wait for auto-webhook
+        // Wait for the auto-webhook
+        Thread.sleep(2000)
 
-        // Navigate back to home and back to wallet to refresh
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
-        composeRule.onNodeWithContentDescription("Wallet").performClick()
-        waitForText("My Wallet")
+        // Switch to marketplace tab and back to wallet to refresh
+        composeRule.onNodeWithText("Marketplace").performClick()
+        waitForText("Viecz")
+        composeRule.onNodeWithText("Wallet").performClick()
+        waitForText("Available Balance")
 
         // Assert balance shows 200,000 (Vietnamese format: 200.000)
         waitForText("200.000")
@@ -167,10 +172,11 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // =====================
         // Step 3: Alice creates a task (100k)
         // =====================
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
+        composeRule.onNodeWithText("Marketplace").performClick()
+        waitForText("Viecz")
 
-        composeRule.onNodeWithTag("fab_create_task").performClick()
+        // Tap "Add Job" icon in top bar
+        composeRule.onNodeWithContentDescription("Add Job").performClick()
         waitForText("Create New Task")
 
         typeInField("Task Title *", "Help me move furniture")
@@ -196,7 +202,7 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // Step 4: Alice logs out
         // =====================
         composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
+        waitForText("Marketplace")
         navigateToProfileAndLogout()
 
         // =====================
@@ -207,8 +213,8 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // =====================
         // Step 6: Bob becomes a Tasker
         // =====================
-        composeRule.onNodeWithContentDescription("Profile").performClick()
-        waitForText("Profile")
+        composeRule.onNodeWithText("Profile").performClick()
+        waitForText("Statistics")
 
         composeRule.onNodeWithText("Become a Tasker").performClick()
         waitForText("Become a Tasker") // Dialog title
@@ -221,8 +227,8 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // =====================
         // Step 7: Bob applies for the task
         // =====================
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
+        composeRule.onNodeWithText("Marketplace").performClick()
+        waitForText("Viecz")
 
         // Find and click Alice's task
         waitForText("Help me move furniture")
@@ -243,7 +249,7 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // Step 8: Bob logs out
         // =====================
         composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
+        waitForText("Marketplace")
         navigateToProfileAndLogout()
 
         // =====================
@@ -284,21 +290,21 @@ class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
         // Step 12: Alice verifies wallet = 100k (200k - 100k escrow)
         // =====================
         composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
-        composeRule.onNodeWithContentDescription("Wallet").performClick()
-        waitForText("My Wallet")
+        waitForText("Marketplace")
+        composeRule.onNodeWithText("Wallet").performClick()
+        waitForText("Available Balance")
         waitForText("100.000")
 
         // =====================
         // Step 13: Check Bob's wallet = 90k (100k - 10% fee)
         // =====================
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Viecz - Task Marketplace")
+        composeRule.onNodeWithText("Marketplace").performClick()
+        waitForText("Viecz")
         navigateToProfileAndLogout()
 
         loginUser(bobEmail, bobPassword)
-        composeRule.onNodeWithContentDescription("Wallet").performClick()
-        waitForText("My Wallet")
+        composeRule.onNodeWithText("Wallet").performClick()
+        waitForText("Available Balance")
         waitForText("90.000")
     }
 }

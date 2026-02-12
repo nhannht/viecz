@@ -2,7 +2,6 @@ package com.viecz.vieczandroid.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,18 +19,19 @@ class WalletFlowE2ETest : BaseE2ETest() {
     @Test
     fun homeToWalletShowsBalanceAndTransactions() {
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+            composeRule.onAllNodes(hasText("Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithContentDescription("Wallet").performClick()
+        // Tap Wallet tab in bottom bar
+        composeRule.onNodeWithText("Wallet").performClick()
 
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(hasText("My Wallet"))
+            composeRule.onAllNodes(hasText("Available Balance"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("My Wallet").assertIsDisplayed()
+        composeRule.onNodeWithText("Available Balance").assertIsDisplayed()
 
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("Initial deposit"))

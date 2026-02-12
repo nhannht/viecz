@@ -6,6 +6,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.TaskStatus
+import com.viecz.vieczandroid.ui.components.TaskCard
+import com.viecz.vieczandroid.ui.components.TaskStatusBadge
+import com.viecz.vieczandroid.ui.components.formatPrice
 import com.viecz.vieczandroid.ui.theme.VieczTheme
 import org.junit.Rule
 import org.junit.Test

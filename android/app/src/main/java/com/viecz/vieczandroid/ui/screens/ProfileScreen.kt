@@ -241,7 +241,8 @@ fun ProfileContent(
     onBecomeTasker: () -> Unit,
     onNavigateToMyPostedJobs: () -> Unit = {},
     onNavigateToMyAppliedJobs: () -> Unit = {},
-    onNavigateToMyCompletedJobs: () -> Unit = {}
+    onNavigateToMyCompletedJobs: () -> Unit = {},
+    onLogout: (() -> Unit)? = null
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -418,6 +419,23 @@ fun ProfileContent(
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Become a Tasker")
+                }
+            }
+        }
+
+        // Logout button (shown when used inside MainScreen tab)
+        if (onLogout != null) {
+            item {
+                OutlinedButton(
+                    onClick = onLogout,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Logout")
                 }
             }
         }

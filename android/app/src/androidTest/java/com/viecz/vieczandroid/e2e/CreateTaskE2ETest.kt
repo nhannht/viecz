@@ -2,6 +2,7 @@ package com.viecz.vieczandroid.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -21,13 +22,12 @@ class CreateTaskE2ETest : BaseE2ETest() {
     @Test
     fun homeToCreateTaskFillFormAndSubmit() {
         composeRule.waitUntil(timeoutMillis = 15000) {
-            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+            composeRule.onAllNodes(hasText("Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Use testTag for FAB click — semantic performClick() on merged content
-        // description nodes may not trigger FloatingActionButton's onClick
-        composeRule.onNodeWithTag("fab_create_task").performClick()
+        // Tap "Add Job" icon in top bar (replaced FAB)
+        composeRule.onNodeWithContentDescription("Add Job").performClick()
 
         composeRule.waitUntil(timeoutMillis = 15000) {
             composeRule.onAllNodes(hasText("Create New Task"))

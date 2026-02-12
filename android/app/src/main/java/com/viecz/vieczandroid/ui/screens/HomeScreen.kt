@@ -45,26 +45,11 @@ fun HomeScreen(
     categoryViewModel: CategoryViewModel = hiltViewModel(),
     notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
-    val taskUiState by taskListViewModel.uiState.collectAsState()
-    val categoryUiState by categoryViewModel.uiState.collectAsState()
     val notificationUiState by notificationViewModel.uiState.collectAsState()
-    val listState = rememberLazyListState()
-    val pullToRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(refreshTrigger) {
         if (refreshTrigger) {
             taskListViewModel.refresh()
-        }
-    }
-
-    var searchQuery by remember { mutableStateOf("") }
-    var showSearchBar by remember { mutableStateOf(false) }
-
-    // Load more when reaching end of list
-    LaunchedEffect(listState.layoutInfo.visibleItemsInfo) {
-        val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
-        if (lastVisibleItem != null && lastVisibleItem.index >= taskUiState.tasks.size - 2) {
-            taskListViewModel.loadMore()
         }
     }
 
@@ -73,9 +58,6 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Viecz - Task Marketplace") },
                 actions = {
-                    IconButton(onClick = { showSearchBar = !showSearchBar }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    }
                     IconButton(onClick = onNavigateToNotifications) {
                         BadgedBox(
                             badge = {
@@ -106,17 +88,60 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        PullToRefreshBox(
-            state = pullToRefreshState,
-            isRefreshing = taskUiState.isLoading && taskUiState.tasks.isNotEmpty(),
-            onRefresh = { taskListViewModel.refresh() },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+        HomeContent(
+            onNavigateToTaskDetail = onNavigateToTaskDetail,
+            taskListViewModel = taskListViewModel,
+            categoryViewModel = categoryViewModel,
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeContent(
+    onNavigateToTaskDetail: (Long) -> Unit,
+    taskListViewModel: TaskListViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
+) {
+    val taskUiState by taskListViewModel.uiState.collectAsState()
+    val categoryUiState by categoryViewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    var searchQuery by remember { mutableStateOf("") }
+    var showSearchBar by remember { mutableStateOf(false) }
+
+    // Load more when reaching end of list
+    LaunchedEffect(listState.layoutInfo.visibleItemsInfo) {
+        val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+        if (lastVisibleItem != null && lastVisibleItem.index >= taskUiState.tasks.size - 2) {
+            taskListViewModel.loadMore()
+        }
+    }
+
+    PullToRefreshBox(
+        state = pullToRefreshState,
+        isRefreshing = taskUiState.isLoading && taskUiState.tasks.isNotEmpty(),
+        onRefresh = { taskListViewModel.refresh() },
+        modifier = modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
+            // Search bar toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.End
             ) {
+                IconButton(onClick = { showSearchBar = !showSearchBar }) {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                }
+            }
+
             // Search bar
             if (showSearchBar) {
                 SearchBar(
@@ -207,7 +232,6 @@ fun HomeScreen(
                         }
                     }
                 }
-            }
             }
         }
     }

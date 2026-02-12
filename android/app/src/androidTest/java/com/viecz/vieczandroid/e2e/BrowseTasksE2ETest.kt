@@ -19,11 +19,9 @@ class BrowseTasksE2ETest : BaseE2ETest() {
     @Test
     fun homeShowsTasks() {
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+            composeRule.onAllNodes(hasText("Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-
-        composeRule.onNodeWithText("Viecz - Task Marketplace").assertIsDisplayed()
 
         composeRule.waitUntil(timeoutMillis = 10000) {
             composeRule.onAllNodes(hasText("Deliver package to campus"))
@@ -38,7 +36,7 @@ class BrowseTasksE2ETest : BaseE2ETest() {
     @Test
     fun homeShowsCategories() {
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+            composeRule.onAllNodes(hasText("Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 

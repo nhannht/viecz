@@ -254,12 +254,30 @@ cd android && ./gradlew installDevDebug
 # Run unit tests (dev flavor)
 ./gradlew testDevDebugUnitTest
 
-# Run instrumented tests on connected device
-./gradlew connectedAndroidTest
+# Run instrumented tests on connected device (dev flavor)
+./gradlew connectedDevDebugAndroidTest
 
 # Run all tests
-./gradlew testDevDebugUnitTest connectedAndroidTest
+./gradlew testDevDebugUnitTest connectedDevDebugAndroidTest
 ```
+
+#### E2E Testing (CRITICAL - ALWAYS FOLLOW)
+
+**MANDATORY**: When you need to run or update E2E tests, ALWAYS read the E2E testing guide first:
+
+```
+android/E2E_TESTING_GUIDE.md
+```
+
+**Key rules**:
+- E2E tests are **Gradle instrumented tests**, NOT manual ADB/claudtest — run them via `./gradlew connectedDevDebugAndroidTest`
+- All E2E test classes are in `android/app/src/androidTest/java/com/viecz/vieczandroid/e2e/`
+- Tests use `@E2ETest` annotation with Compose test rules (`waitUntil`, `performClick`, etc.)
+- `BaseE2ETest` tests use a mock server (no external dependencies)
+- `RealServerBaseE2ETest` tests (e.g., `FullJobLifecycleE2ETest`) require the Go test server running on port 9999
+- For LazyColumn scrolling in tests, use `performScrollToNode()` on the scrollable container — `performScrollTo()` does NOT work for off-screen LazyColumn items
+
+**Do NOT** use manual ADB claudtest for E2E scenarios that are already covered by instrumented tests.
 
 #### Code Quality
 

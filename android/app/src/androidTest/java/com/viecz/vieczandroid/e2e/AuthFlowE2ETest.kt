@@ -45,11 +45,11 @@ class AuthFlowE2ETest : BaseE2ETest() {
 
         // Wait for home screen
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+            composeRule.onAllNodes(hasText("Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Viecz - Task Marketplace").assertIsDisplayed()
+        composeRule.onNodeWithText("Marketplace").assertIsDisplayed()
     }
 
     @Test
@@ -86,10 +86,10 @@ class AuthFlowE2ETest : BaseE2ETest() {
 
         // Wait for home screen
         composeRule.waitUntil(timeoutMillis = 10000) {
-            composeRule.onAllNodes(hasText("Viecz - Task Marketplace"))
+            composeRule.onAllNodes(hasText("Marketplace"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText("Viecz - Task Marketplace").assertIsDisplayed()
+        composeRule.onNodeWithText("Marketplace").assertIsDisplayed()
     }
 }

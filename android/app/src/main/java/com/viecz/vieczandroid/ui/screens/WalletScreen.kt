@@ -85,86 +85,10 @@ fun WalletScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Wallet Balance Card
-            item {
-                when (val state = walletState) {
-                    is WalletUiState.Loading -> {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
-                    }
-                    is WalletUiState.Success -> {
-                        WalletBalanceCard(state.wallet)
-                    }
-                    is WalletUiState.Error -> {
-                        ErrorCard(state.message) {
-                            viewModel.loadWallet()
-                        }
-                    }
-                }
-            }
-
-            // Transaction History Header
-            item {
-                Text(
-                    text = "Transaction History",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Transaction List
-            when (val state = transactionsState) {
-                is TransactionsUiState.Loading -> {
-                    item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                }
-                is TransactionsUiState.Success -> {
-                    if (state.transactions.isEmpty()) {
-                        item {
-                            Text(
-                                text = "No transactions yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    } else {
-                        items(state.transactions) { transaction ->
-                            TransactionItem(transaction)
-                        }
-                    }
-                }
-                is TransactionsUiState.Error -> {
-                    item {
-                        ErrorCard(state.message) {
-                            viewModel.loadTransactionHistory()
-                        }
-                    }
-                }
-            }
-        }
+        WalletContent(
+            viewModel = viewModel,
+            modifier = Modifier.padding(paddingValues)
+        )
     }
 
     // Deposit Dialog
@@ -179,6 +103,95 @@ fun WalletScreen(
                 viewModel.resetDepositState()
             }
         )
+    }
+}
+
+@Composable
+fun WalletContent(
+    viewModel: WalletViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
+) {
+    val walletState by viewModel.uiState.collectAsState()
+    val transactionsState by viewModel.transactionsState.collectAsState()
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Wallet Balance Card
+        item {
+            when (val state = walletState) {
+                is WalletUiState.Loading -> {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+                is WalletUiState.Success -> {
+                    WalletBalanceCard(state.wallet)
+                }
+                is WalletUiState.Error -> {
+                    ErrorCard(state.message) {
+                        viewModel.loadWallet()
+                    }
+                }
+            }
+        }
+
+        // Transaction History Header
+        item {
+            Text(
+                text = "Transaction History",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Transaction List
+        when (val state = transactionsState) {
+            is TransactionsUiState.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+            is TransactionsUiState.Success -> {
+                if (state.transactions.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No transactions yet",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else {
+                    items(state.transactions) { transaction ->
+                        TransactionItem(transaction)
+                    }
+                }
+            }
+            is TransactionsUiState.Error -> {
+                item {
+                    ErrorCard(state.message) {
+                        viewModel.loadTransactionHistory()
+                    }
+                }
+            }
+        }
     }
 }
 

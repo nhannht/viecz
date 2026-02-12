@@ -17,6 +17,7 @@ object NavigationRoutes {
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val HOME = "home"
+    const val MAIN = "main"
     const val TASK_DETAIL = "task_detail/{taskId}"
     const val CREATE_TASK = "create_task"
     const val APPLY_TASK = "apply_task/{taskId}/{price}"
@@ -54,7 +55,7 @@ fun VieczNavHost(
                     }
                 },
                 onNavigateToHome = {
-                    navController.navigate(NavigationRoutes.HOME) {
+                    navController.navigate(NavigationRoutes.MAIN) {
                         popUpTo(NavigationRoutes.SPLASH) { inclusive = true }
                     }
                 }
@@ -68,7 +69,7 @@ fun VieczNavHost(
                     navController.navigate(NavigationRoutes.REGISTER)
                 },
                 onLoginSuccess = {
-                    navController.navigate(NavigationRoutes.HOME) {
+                    navController.navigate(NavigationRoutes.MAIN) {
                         popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
                     }
                 }
@@ -82,14 +83,25 @@ fun VieczNavHost(
                     navController.popBackStack()
                 },
                 onRegisterSuccess = {
-                    navController.navigate(NavigationRoutes.HOME) {
+                    navController.navigate(NavigationRoutes.MAIN) {
                         popUpTo(NavigationRoutes.REGISTER) { inclusive = true }
                     }
                 }
             )
         }
 
-        // Home screen - Task marketplace
+        // Main screen — persistent bottom nav with tabs
+        composable(NavigationRoutes.MAIN) { backStackEntry ->
+            MainScreen(
+                navController = navController,
+                refreshTrigger = backStackEntry.savedStateHandle.get<Boolean>("refresh") == true
+            )
+
+            // Consume the flag so it doesn't re-trigger
+            backStackEntry.savedStateHandle.remove<Boolean>("refresh")
+        }
+
+        // Legacy Home screen route (kept for backward compatibility)
         composable(NavigationRoutes.HOME) { backStackEntry ->
             val context = LocalContext.current
             val tokenManager = TokenManager(context)
@@ -151,10 +163,11 @@ fun VieczNavHost(
             CreateTaskScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onTaskCreated = { taskId ->
-                    navController.getBackStackEntry(NavigationRoutes.HOME)
+                    // Set refresh on MAIN's savedStateHandle
+                    navController.getBackStackEntry(NavigationRoutes.MAIN)
                         .savedStateHandle["refresh"] = true
                     navController.navigate(NavigationRoutes.taskDetail(taskId)) {
-                        popUpTo(NavigationRoutes.HOME)
+                        popUpTo(NavigationRoutes.MAIN)
                     }
                 }
             )
@@ -178,7 +191,7 @@ fun VieczNavHost(
             )
         }
 
-        // Profile screen
+        // Profile screen (standalone, pushed from detail screens)
         composable(NavigationRoutes.PROFILE) {
             ProfileScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -214,7 +227,7 @@ fun VieczNavHost(
             )
         }
 
-        // Wallet screen
+        // Wallet screen (standalone, pushed from detail screens)
         composable(NavigationRoutes.WALLET) {
             WalletScreen(
                 onNavigateBack = { navController.popBackStack() }
