@@ -1,7 +1,0 @@
-tunnel: dd03d35c-4c01-44a1-bc5f-bd12d5f3041a
-credentials-file: /etc/cloudflared/credentials.json
-
-ingress:
-  - hostname: viecz-api-dev.fishcmus.io.vn
-    service: http://host.docker.internal:8080
-  - service: http_status:404

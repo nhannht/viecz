@@ -3,8 +3,10 @@
 
 # Build output
 bin/
+main
 server
 viecz-server
+testserver
 *.exe
 *.dll
 *.so

@@ -28,8 +28,9 @@ coverage/
 .env.*
 !.env.example
 
-# Cloudflare tunnel credentials
+# Cloudflare tunnel
 cloudflared-credentials.json
+cloudflared-config.yml
 
 # OS
 .DS_Store
@@ -42,12 +43,6 @@ Thumbs.db
 *.prof
 
 # Android
-packages/android/.gradle/
-packages/android/build/
-packages/android/app/build/
-packages/android/local.properties
-packages/android/.cxx/
-packages/android/captures/
 **/.kotlin/
 *.apk
 *.aab
