@@ -87,7 +87,7 @@ func (s *MessageService) handleChatMessage(ctx context.Context, client *websocke
 		MessageID:      message.ID,
 		SenderID:       client.UserID,
 		Content:        message.Content,
-		CreatedAt:      message.CreatedAt,
+		CreatedAt:      models.FlexTime{Time: message.CreatedAt},
 	}
 
 	s.hub.Broadcast <- &websocket.BroadcastMessage{
@@ -144,7 +144,7 @@ func (s *MessageService) handleReadReceipt(ctx context.Context, client *websocke
 	wsMessage := &models.WebSocketMessage{
 		Type:           "read_confirmed",
 		ConversationID: msg.ConversationID,
-		CreatedAt:      time.Now(),
+		CreatedAt:      models.FlexTime{Time: time.Now()},
 	}
 
 	client.Send(wsMessage)
@@ -174,7 +174,7 @@ func (s *MessageService) handleJoinConversation(ctx context.Context, client *web
 	wsMessage := &models.WebSocketMessage{
 		Type:           "joined",
 		ConversationID: conversation.ID,
-		CreatedAt:      time.Now(),
+		CreatedAt:      models.FlexTime{Time: time.Now()},
 	}
 
 	client.Send(wsMessage)

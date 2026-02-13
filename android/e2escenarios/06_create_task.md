@@ -29,4 +29,4 @@ CreateTaskViewModel: Task created with ID: 1
 TaskDetailViewModel: Loading task ID 1
 ```
 
-**Automated Test:** `CreateTaskE2ETest.homeToCreateTaskFillFormAndSubmit()`
+**Automated Test:** `S06_CreateTaskE2ETest.homeToCreateTaskFillFormAndSubmit()`

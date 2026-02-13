@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Conversation
+import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.ui.viewmodels.ConversationListViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
 
@@ -105,11 +107,21 @@ fun ConversationCard(
     }
     val otherUserName = otherUser?.name ?: "Unknown"
     val taskTitle = conversation.task?.title ?: "Task #${conversation.taskId}"
+    val isFinished = conversation.task?.status == TaskStatus.COMPLETED ||
+            conversation.task?.status == TaskStatus.CANCELLED
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .then(if (isFinished) Modifier.alpha(0.6f) else Modifier),
+        colors = if (isFinished) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
+        } else {
+            CardDefaults.cardColors()
+        }
     ) {
         Row(
             modifier = Modifier
@@ -121,7 +133,11 @@ fun ConversationCard(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = if (isFinished) {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -130,15 +146,35 @@ fun ConversationCard(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (isFinished) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
                 )
-                Text(
-                    text = taskTitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = taskTitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isFinished) {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isFinished) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (conversation.task?.status == TaskStatus.COMPLETED) "Completed" else "Cancelled",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
                 if (conversation.lastMessage != null) {
                     Text(
                         text = conversation.lastMessage,

@@ -22,4 +22,4 @@ OkHttp: <-- 200 OK
 TaskDetailViewModel: Task loaded successfully
 ```
 
-**Automated Test:** `BrowseTasksE2ETest` (partially covers task detail navigation)
+**Automated Test:** `S04_BrowseTasksE2ETest` (partially covers task detail navigation)

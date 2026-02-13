@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Message
+import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.models.WebSocketState
 import com.viecz.vieczandroid.ui.viewmodels.ChatViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
@@ -57,17 +58,25 @@ fun ChatScreen(
                     Column {
                         Text("Chat")
                         Text(
-                            text = when (uiState.connectionState) {
-                                WebSocketState.CONNECTED -> "Connected"
-                                WebSocketState.CONNECTING -> "Connecting..."
-                                WebSocketState.DISCONNECTED -> "Disconnected"
-                                WebSocketState.ERROR -> "Connection Error"
+                            text = if (uiState.isTaskFinished) {
+                                "Task ${if (uiState.conversation?.task?.status == TaskStatus.CANCELLED) "cancelled" else "completed"}"
+                            } else {
+                                when (uiState.connectionState) {
+                                    WebSocketState.CONNECTED -> "Connected"
+                                    WebSocketState.CONNECTING -> "Connecting..."
+                                    WebSocketState.DISCONNECTED -> "Disconnected"
+                                    WebSocketState.ERROR -> "Connection Error"
+                                }
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = when (uiState.connectionState) {
-                                WebSocketState.CONNECTED -> Color.Green
-                                WebSocketState.ERROR -> Color.Red
-                                else -> Color.Gray
+                            color = if (uiState.isTaskFinished) {
+                                Color.Gray
+                            } else {
+                                when (uiState.connectionState) {
+                                    WebSocketState.CONNECTED -> Color.Green
+                                    WebSocketState.ERROR -> Color.Red
+                                    else -> Color.Gray
+                                }
                             }
                         )
                     }
@@ -80,56 +89,74 @@ fun ChatScreen(
             )
         },
         bottomBar = {
-            Surface(
-                shadowElevation = 8.dp,
-                tonalElevation = 0.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.Bottom
+            if (uiState.isTaskFinished) {
+                Surface(
+                    shadowElevation = 8.dp,
+                    tonalElevation = 0.dp,
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    OutlinedTextField(
-                        value = messageText,
-                        onValueChange = {
-                            messageText = it
-                            // Send typing indicator
-                            if (it.isNotEmpty()) {
-                                viewModel.sendTypingIndicator()
-                            }
-                        },
+                    Text(
+                        text = "This task is ${if (uiState.conversation?.task?.status == TaskStatus.CANCELLED) "cancelled" else "completed"}. Chat is closed.",
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        placeholder = { Text("Type a message...") },
-                        maxLines = 4,
-                        enabled = uiState.connectionState == WebSocketState.CONNECTED
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
-
-                    FloatingActionButton(
-                        onClick = {
-                            if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
-                                viewModel.sendMessage(messageText)
-                                messageText = ""
-                            }
-                        },
-                        modifier = Modifier.size(56.dp),
-                        containerColor = if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        }
+                }
+            } else {
+                Surface(
+                    shadowElevation = 8.dp,
+                    tonalElevation = 0.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.Bottom
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Send,
-                            "Send",
-                            tint = if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
+                        OutlinedTextField(
+                            value = messageText,
+                            onValueChange = {
+                                messageText = it
+                                // Send typing indicator
+                                if (it.isNotEmpty()) {
+                                    viewModel.sendTypingIndicator()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp),
+                            placeholder = { Text("Type a message...") },
+                            maxLines = 4,
+                            enabled = uiState.connectionState == WebSocketState.CONNECTED
                         )
+
+                        FloatingActionButton(
+                            onClick = {
+                                if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
+                                    viewModel.sendMessage(messageText)
+                                    messageText = ""
+                                }
+                            },
+                            modifier = Modifier.size(56.dp),
+                            containerColor = if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Send,
+                                "Send",
+                                tint = if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        }
                     }
                 }
             }

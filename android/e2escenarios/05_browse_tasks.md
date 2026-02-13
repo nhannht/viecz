@@ -19,4 +19,4 @@ OkHttp: <-- 200 OK
 TaskListViewModel: N tasks loaded
 ```
 
-**Automated Test:** `BrowseTasksE2ETest.homeScreenShowsTaskList()`
+**Automated Test:** `S04_BrowseTasksE2ETest.homeScreenShowsTaskList()`

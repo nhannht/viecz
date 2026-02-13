@@ -27,4 +27,4 @@ OkHttp: <-- 200 OK (with access_token and refresh_token)
 AuthViewModel: Registration successful, tokens saved
 ```
 
-**Automated Test:** `AuthFlowE2ETest.loginToRegisterToHome()`
+**Automated Test:** `S01_AuthFlowE2ETest.loginToRegisterToHome()`

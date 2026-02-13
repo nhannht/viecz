@@ -17,7 +17,7 @@ import org.junit.runner.RunWith
 @E2ETest
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class ProfileFlowE2ETest : BaseE2ETest() {
+class S08_ProfileFlowE2ETest : BaseE2ETest() {
 
     override val shouldStartLoggedIn = true
 

@@ -237,6 +237,7 @@ Build variants: `devDebug`, `devRelease`, `prodDebug`, `prodRelease`
 
 #### Dev Workflow (Local Development)
 
+**For Emulator:**
 ```bash
 # 1. Start test server on host machine
 cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
@@ -246,6 +247,21 @@ cd android && ./gradlew installDevDebug
 
 # App shows "Viecz Dev", talks to localhost:9999, mock PayOS auto-completes deposits
 # Both "Viecz Dev" and "Viecz" can coexist on the same device
+```
+
+**For Physical Device:**
+```bash
+# 1. Start test server on host machine
+cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+
+# 2. Set up port forwarding (CRITICAL for physical devices)
+adb reverse tcp:9999 tcp:9999
+
+# 3. Build and install dev APK on device
+cd android && ./gradlew installDevDebug
+
+# App connects to test server via forwarded port 9999
+# Verify forwarding: adb reverse --list
 ```
 
 #### Testing
@@ -272,13 +288,49 @@ android/E2E_TESTING_GUIDE.md
 **Key rules**:
 - E2E tests are **Gradle instrumented tests**, NOT manual ADB/claudtest — run them via `./gradlew connectedDevDebugAndroidTest`
 - All E2E test classes are in `android/app/src/androidTest/java/com/viecz/vieczandroid/e2e/`
-- All 12 E2E scenario definitions are in `android/e2escenarios/` (one file per scenario)
+- All 14 E2E scenario definitions are in `android/e2escenarios/` (one file per scenario)
 - Tests use `@E2ETest` annotation with Compose test rules (`waitUntil`, `performClick`, etc.)
 - `BaseE2ETest` tests use a mock server (no external dependencies)
-- `RealServerBaseE2ETest` tests (e.g., `FullJobLifecycleE2ETest`) require the Go test server running on port 9999
+- `RealServerBaseE2ETest` tests (e.g., `S13_FullJobLifecycleE2ETest`) require the Go test server running on port 9999
 - For LazyColumn scrolling in tests, use `performScrollToNode()` on the scrollable container — `performScrollTo()` does NOT work for off-screen LazyColumn items
 
 **Do NOT** use manual ADB claudtest for E2E scenarios that are already covered by instrumented tests.
+
+**E2E Test Naming Convention** (CRITICAL - ALWAYS FOLLOW):
+- All E2E test files MUST use the `S<number>_<Name>E2ETest.kt` format
+- `<number>` is the primary scenario number (01, 02, 04, 06, 08, 13, 14, 15)
+- Use two-digit zero-padded numbers (e.g., `S01_`, not `S1_`)
+- Class name MUST match the file name (e.g., `class S01_AuthFlowE2ETest`)
+- Examples:
+  - `S01_AuthFlowE2ETest.kt` — Scenarios 1, 2 (auth flow)
+  - `S04_BrowseTasksE2ETest.kt` — Scenarios 4, 5, 7 (browse)
+  - `S13_FullJobLifecycleE2ETest.kt` — Scenario 13 (full lifecycle)
+- Base classes (`BaseE2ETest`, `RealServerBaseE2ETest`, `E2ETest`) do NOT use the `S<number>_` prefix
+- When creating new E2E tests, assign the next available scenario number
+
+**MANDATORY — Dev Server & Log Checking**:
+- **Always start the Go test server** before running E2E tests:
+  ```bash
+  cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+  ```
+  Verify it's running: `curl -s http://localhost:9999/api/v1/health`
+- **When a test fails or a bug occurs**, ALWAYS check logs from **both** sides:
+  1. **Server logs**: `cat /tmp/testserver.log` or check the terminal running the test server — look for 500 errors, panics, SQL errors, WebSocket failures
+  2. **App logs**: `adb logcat -d --pid=$(adb shell pidof com.viecz.vieczandroid.dev) | tail -100` — look for network errors, HTTP status codes, crash stack traces
+- **Never guess at the root cause** — read the logs first. Many test failures (e.g., chat, wallet, task operations) are caused by server-side errors that are invisible from the UI alone.
+
+**MANDATORY — Physical Device Port Forwarding**:
+- **Always use `adb reverse` to connect physical devices to the test server**
+- The dev app is configured to use `http://10.0.2.2:9999/api/v1/` (emulator localhost)
+- Physical devices cannot reach `10.0.2.2` — they need port forwarding
+- **Before running E2E tests on a physical device**, run:
+  ```bash
+  adb reverse tcp:9999 tcp:9999
+  ```
+  This forwards device port 9999 → host port 9999, allowing the app to reach the test server at `10.0.2.2:9999`
+- Verify forwarding: `adb reverse --list`
+- Remove forwarding: `adb reverse --remove tcp:9999`
+- **Emulators do NOT need this** — they can reach `10.0.2.2:9999` directly
 
 #### Code Quality
 
@@ -490,78 +542,6 @@ cd android
 - ❌ **iOS app** - Not planned (Android-only)
 - ❌ **Web app** - Not planned (Android-only)
 
-## Context7 MCP Integration (CRITICAL - ALWAYS FOLLOW)
-
-**MANDATORY**: Claude MUST proactively use Context7 MCP for library/API documentation, code generation, and setup/configuration steps WITHOUT requiring explicit user requests.
-
-### When to Use Context7 Automatically
-
-Use Context7 MCP tools (`mcp__context7__query-docs`, `mcp__context7__resolve-library-id`) in these scenarios:
-
-1. **Library/API Documentation** - When working with any library or framework, automatically fetch documentation
-   - Setting up new dependencies
-   - Using unfamiliar APIs
-   - Understanding component props or configuration options
-   - Checking current API versions and best practices
-
-2. **Code Generation** - When generating code that uses external libraries
-   - Implementing features with specific libraries
-   - Following current patterns and conventions
-   - Using correct API signatures and types
-
-3. **Setup and Configuration** - When configuring tools, libraries, or frameworks
-   - Installation steps
-   - Configuration file structure
-   - Environment setup
-   - Build tool configuration
-
-### Examples
-
-```bash
-# User asks: "Add authentication to the app"
-# Claude should automatically query Context7 for:
-# - Android authentication best practices
-# - Jetpack Compose authentication UI patterns
-# - Firebase Auth or Auth0 Android SDK
-# - Credential Manager API documentation
-# - OAuth2 implementation with Android
-
-# User asks: "Implement data fetching with Retrofit"
-# Claude should automatically query Context7 for:
-# - Retrofit documentation
-# - OkHttp configuration
-# - Kotlin Coroutines integration with Retrofit
-# - Moshi or Gson serialization setup
-# - Error handling patterns
-
-# User says: "Add form validation in Compose"
-# Claude should automatically query Context7 for:
-# - Jetpack Compose form validation patterns
-# - State management for form inputs
-# - Compose TextField validation
-# - Error handling in Compose UI
-# - Input validation libraries for Android
-
-# User asks: "Set up Room database"
-# Claude should automatically query Context7 for:
-# - Room Persistence Library documentation
-# - Entity and DAO setup with Kotlin
-# - Database migration strategies
-# - Flow integration with Room
-# - Coroutines support in Room
-```
-
-### Important Notes
-
-- Always use Context7 BEFORE generating code with unfamiliar libraries
-- Query Context7 even if you think you know the API (to get current versions)
-- Use Context7 for Android libraries (Jetpack, AndroidX, third-party Kotlin libraries)
-- Query for Jetpack Compose best practices and Material Design 3 patterns
-- Check Kotlin Coroutines and Flow documentation for async patterns
-- Don't wait for explicit "check the docs" requests from the user
-
-This proactive approach ensures code accuracy, follows current best practices, and prevents outdated API usage.
-
 ## Claudtest - ADB-Based Device Interaction Testing (CRITICAL - ALWAYS FOLLOW)
 
 **Claudtest** is this project's custom definition for automated E2E-style testing performed by Claude Code on a real Android device connected via ADB. It combines raw ADB input commands with UI Automator inspection to mimic real human interaction — no extra framework (Maestro, Espresso, Appium) required.
@@ -659,85 +639,3 @@ adb shell screencap -p /sdcard/s2.png && adb pull /sdcard/s2.png /tmp/s2.png
 - **Report results** with screenshots so the user can see what happened
 - Claudtest is for **verification and debugging**, not a replacement for unit tests
 
-## Bug Fixing Protocol (CRITICAL - ALWAYS FOLLOW)
-
-**MANDATORY**: Claude MUST use Context7 MCP and Web Search when encountering ANY bug, error, or unexpected behavior. This is NOT optional.
-
-### Required Steps for Bug Fixing
-
-When encountering any bug, error message, compilation error, runtime exception, or unexpected behavior, follow these steps IN ORDER:
-
-1. **Search with Context7** - Query relevant library documentation
-   ```bash
-   # Use mcp__context7__resolve-library-id to find library documentation
-   # Use mcp__context7__query-docs to search for:
-   # - Error message or exception type
-   # - API methods involved
-   # - Configuration options
-   # - Known issues and solutions
-   ```
-
-2. **Web Search** - Search for real-world solutions
-   ```bash
-   # Search for:
-   # - Exact error message + library name + year (e.g., "Room database kotlin error 2026")
-   # - Stack Overflow discussions
-   # - GitHub issues in relevant repositories
-   # - Official documentation errata
-   ```
-
-3. **Analyze Findings** - Combine documentation and community solutions
-   - Compare official documentation with real-world implementations
-   - Identify common patterns in solutions
-   - Check for version-specific issues
-   - Verify compatibility with project dependencies
-
-4. **Apply Fix** - Use the most reliable solution
-   - Prefer official documentation solutions
-   - Use community solutions that are recent and well-tested
-   - Apply fixes that align with project architecture
-   - Test the fix thoroughly
-
-### Why This Is Mandatory
-
-- **Prevents outdated solutions**: Ensures fixes use current best practices, not deprecated APIs
-- **Catches version-specific issues**: Libraries change; documentation is authoritative
-- **Avoids assumptions**: Don't rely on memory; verify with current docs
-- **Ensures correctness**: Community solutions provide real-world validation
-
-### Examples
-
-```bash
-# Scenario: JSON parsing error in Retrofit
-# 1. Context7: Query "Retrofit JSON parsing errors" + "Moshi/Gson configuration"
-# 2. Web Search: "JsonDataException Retrofit Kotlin 2026"
-# 3. Analyze: Compare data class annotations vs API response structure
-# 4. Fix: Update data types or add @Json annotations
-
-# Scenario: Compose recomposition issues
-# 1. Context7: Query "Jetpack Compose recomposition" + "remember and mutableStateOf"
-# 2. Web Search: "Compose excessive recomposition 2026"
-# 3. Analyze: Check state hoisting patterns and remember usage
-# 4. Fix: Use derivedStateOf or refactor state management
-
-# Scenario: Hilt dependency injection error
-# 1. Context7: Query "Hilt Android dependency injection" + error message
-# 2. Web Search: "Hilt [specific error] Kotlin 2026"
-# 3. Analyze: Verify module setup, component hierarchy, and scope annotations
-# 4. Fix: Add missing @InstallIn or correct scope annotations
-
-# Scenario: Room database migration crash
-# 1. Context7: Query "Room database migrations" + "migration strategies"
-# 2. Web Search: "Room migration crash Kotlin 2026"
-# 3. Analyze: Check migration version numbers and SQL statements
-# 4. Fix: Add missing migration or use fallbackToDestructiveMigration
-```
-
-### Important Rules
-
-- **ALWAYS** use Context7 and web search for bugs - no exceptions
-- **NEVER** skip to applying a fix without research
-- **NEVER** rely solely on memory or assumptions
-- **ALWAYS** verify solutions against current documentation
-- If initial searches don't resolve the issue, search again with different keywords
-- Document the fix and root cause for future reference

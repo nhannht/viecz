@@ -21,4 +21,4 @@ OkHttp: <-- 200 OK
 AuthViewModel: Login successful, tokens saved
 ```
 
-**Automated Test:** `AuthFlowE2ETest.splashToLoginToHome()`
+**Automated Test:** `S01_AuthFlowE2ETest.splashToLoginToHome()`

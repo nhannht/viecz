@@ -2,6 +2,7 @@ package com.viecz.vieczandroid.ui.viewmodels
 
 import app.cash.turbine.test
 import com.viecz.vieczandroid.data.local.TokenManager
+import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.models.WebSocketMessage
 import com.viecz.vieczandroid.data.models.WebSocketState
 import com.viecz.vieczandroid.data.repository.MessageRepository
@@ -74,6 +75,8 @@ class ChatViewModelTest {
             TestData.createMessage(id = 1, content = "Hello"),
             TestData.createMessage(id = 2, content = "Hi there")
         )
+        val conversation = TestData.createConversation(id = 1, task = TestData.createTask(status = TaskStatus.IN_PROGRESS))
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(listOf(conversation))
         coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.success(messages)
         every { mockTokenManager.accessToken } returns flowOf("test_token")
 
@@ -89,6 +92,7 @@ class ChatViewModelTest {
 
     @Test
     fun `loadConversation should emit error on failure`() = runTest {
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(emptyList())
         coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.failure(
             Exception("Failed to load messages")
         )
@@ -106,6 +110,8 @@ class ChatViewModelTest {
     @Test
     fun `loadConversation should connect to WebSocket after loading messages`() = runTest {
         val messages = listOf(TestData.createMessage())
+        val conversation = TestData.createConversation(id = 1, task = TestData.createTask(status = TaskStatus.IN_PROGRESS))
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(listOf(conversation))
         coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.success(messages)
         every { mockTokenManager.accessToken } returns flowOf("test_token")
 
@@ -118,6 +124,8 @@ class ChatViewModelTest {
     @Test
     fun `loadConversation with no auth token should show error`() = runTest {
         val messages = listOf(TestData.createMessage())
+        val conversation = TestData.createConversation(id = 1, task = TestData.createTask(status = TaskStatus.IN_PROGRESS))
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(listOf(conversation))
         coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.success(messages)
         every { mockTokenManager.accessToken } returns flowOf(null)
 
@@ -127,6 +135,76 @@ class ChatViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertEquals("Not authenticated", state.error)
+        }
+    }
+
+    @Test
+    fun `loadConversation with completed task should set isTaskFinished true`() = runTest {
+        val conversation = TestData.createConversation(
+            id = 1,
+            task = TestData.createTask(status = TaskStatus.COMPLETED)
+        )
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(listOf(conversation))
+        coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.success(emptyList())
+
+        viewModel.loadConversation(1)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.isTaskFinished)
+        }
+    }
+
+    @Test
+    fun `loadConversation with cancelled task should set isTaskFinished true`() = runTest {
+        val conversation = TestData.createConversation(
+            id = 1,
+            task = TestData.createTask(status = TaskStatus.CANCELLED)
+        )
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(listOf(conversation))
+        coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.success(emptyList())
+
+        viewModel.loadConversation(1)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.isTaskFinished)
+        }
+    }
+
+    @Test
+    fun `loadConversation with finished task should NOT connect WebSocket`() = runTest {
+        val conversation = TestData.createConversation(
+            id = 1,
+            task = TestData.createTask(status = TaskStatus.COMPLETED)
+        )
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(listOf(conversation))
+        coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.success(emptyList())
+
+        viewModel.loadConversation(1)
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { mockWebSocketClient.connect(any()) }
+    }
+
+    @Test
+    fun `loadConversation with in-progress task should set isTaskFinished false`() = runTest {
+        val conversation = TestData.createConversation(
+            id = 1,
+            task = TestData.createTask(status = TaskStatus.IN_PROGRESS)
+        )
+        coEvery { mockMessageRepository.getConversations() } returns Result.success(listOf(conversation))
+        coEvery { mockMessageRepository.getMessages(1, any(), any()) } returns Result.success(emptyList())
+        every { mockTokenManager.accessToken } returns flowOf("test_token")
+
+        viewModel.loadConversation(1)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertFalse(state.isTaskFinished)
         }
     }
 

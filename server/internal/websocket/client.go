@@ -75,11 +75,12 @@ func (c *Client) readPump() {
 		var message models.WebSocketMessage
 		err := c.conn.ReadJSON(&message)
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[Client] WebSocket error: %v", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
+				log.Printf("[Client] WebSocket read error (UserID=%d): %v", c.UserID, err)
 			}
 			break
 		}
+		log.Printf("[Client] Received message from UserID=%d: type=%s convID=%d", c.UserID, message.Type, message.ConversationID)
 
 		// Handle the message
 		if c.messageHandler != nil {

@@ -26,4 +26,4 @@ OkHttp: <-- 200 OK
 ProfileViewModel: User is now a tasker
 ```
 
-**Automated Test:** `FullJobLifecycleE2ETest` (Step 6: Bob becomes a tasker)
+**Automated Test:** `S13_FullJobLifecycleE2ETest` (Step 6: Bob becomes a tasker)

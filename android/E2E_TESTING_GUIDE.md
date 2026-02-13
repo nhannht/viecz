@@ -34,7 +34,7 @@ android/app/src/androidTest/java/com/viecz/vieczandroid/e2e/
 cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
 
 # Terminal 2: Run full E2E
-cd android && ./gradlew connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.FullJobLifecycleE2ETest
+cd android && ./gradlew connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.S13_FullJobLifecycleE2ETest
 ```
 
 ---
@@ -45,19 +45,21 @@ Each scenario is documented in a separate file under [`e2escenarios/`](e2escenar
 
 | # | Scenario | File | Automated Test |
 |---|----------|------|----------------|
-| 1 | User Registration | [01_user_registration.md](e2escenarios/01_user_registration.md) | `AuthFlowE2ETest.loginToRegisterToHome()` |
-| 2 | User Login | [02_user_login.md](e2escenarios/02_user_login.md) | `AuthFlowE2ETest.splashToLoginToHome()` |
+| 1 | User Registration | [01_user_registration.md](e2escenarios/01_user_registration.md) | `S01_AuthFlowE2ETest.loginToRegisterToHome()` |
+| 2 | User Login | [02_user_login.md](e2escenarios/02_user_login.md) | `S01_AuthFlowE2ETest.splashToLoginToHome()` |
 | 3 | Token Persistence | [03_token_persistence.md](e2escenarios/03_token_persistence.md) | None (requires app restart) |
-| 4 | Browse Categories | [04_browse_categories.md](e2escenarios/04_browse_categories.md) | `BrowseTasksE2ETest` |
-| 5 | Browse Tasks | [05_browse_tasks.md](e2escenarios/05_browse_tasks.md) | `BrowseTasksE2ETest` |
-| 6 | Create Task | [06_create_task.md](e2escenarios/06_create_task.md) | `CreateTaskE2ETest` |
-| 7 | View Task Detail | [07_view_task_detail.md](e2escenarios/07_view_task_detail.md) | `BrowseTasksE2ETest` |
-| 8 | Become Tasker | [08_become_tasker.md](e2escenarios/08_become_tasker.md) | `FullJobLifecycleE2ETest` |
-| 9 | Apply for Task | [09_apply_for_task.md](e2escenarios/09_apply_for_task.md) | `FullJobLifecycleE2ETest` |
-| 10 | View Applications | [10_view_applications.md](e2escenarios/10_view_applications.md) | `FullJobLifecycleE2ETest` |
-| 11 | Accept Application | [11_accept_application.md](e2escenarios/11_accept_application.md) | `FullJobLifecycleE2ETest` |
-| 12 | Logout | [12_logout.md](e2escenarios/12_logout.md) | `ProfileFlowE2ETest.logoutNavigatesToLogin()` |
-| 13 | Full Job Lifecycle | [13_full_job_lifecycle.md](e2escenarios/13_full_job_lifecycle.md) | `FullJobLifecycleE2ETest` (requires real server) |
+| 4 | Browse Categories | [04_browse_categories.md](e2escenarios/04_browse_categories.md) | `S04_BrowseTasksE2ETest` |
+| 5 | Browse Tasks | [05_browse_tasks.md](e2escenarios/05_browse_tasks.md) | `S04_BrowseTasksE2ETest` |
+| 6 | Create Task | [06_create_task.md](e2escenarios/06_create_task.md) | `S06_CreateTaskE2ETest` |
+| 7 | View Task Detail | [07_view_task_detail.md](e2escenarios/07_view_task_detail.md) | `S04_BrowseTasksE2ETest` |
+| 8 | Become Tasker | [08_become_tasker.md](e2escenarios/08_become_tasker.md) | `S13_FullJobLifecycleE2ETest` |
+| 9 | Apply for Task | [09_apply_for_task.md](e2escenarios/09_apply_for_task.md) | `S13_FullJobLifecycleE2ETest` |
+| 10 | View Applications | [10_view_applications.md](e2escenarios/10_view_applications.md) | `S13_FullJobLifecycleE2ETest` |
+| 11 | Accept Application | [11_accept_application.md](e2escenarios/11_accept_application.md) | `S13_FullJobLifecycleE2ETest` |
+| 12 | Logout | [12_logout.md](e2escenarios/12_logout.md) | `S08_ProfileFlowE2ETest.logoutNavigatesToLogin()` |
+| 13 | Full Job Lifecycle | [13_full_job_lifecycle.md](e2escenarios/13_full_job_lifecycle.md) | `S13_FullJobLifecycleE2ETest` (requires real server) |
+| 14 | Chat Messaging | [14_chat_messaging.md](e2escenarios/14_chat_messaging.md) | `S14_ChatMessagingE2ETest` (requires real server + WebSocket) |
+| 15 | Wallet Flow | — | `S15_WalletFlowE2ETest` |
 
 ---
 
@@ -65,12 +67,13 @@ Each scenario is documented in a separate file under [`e2escenarios/`](e2escenar
 
 | Test Class | Base | Scenarios Covered |
 |------------|------|-------------------|
-| `AuthFlowE2ETest` | `BaseE2ETest` | 1, 2 |
-| `BrowseTasksE2ETest` | `BaseE2ETest` | 4, 5, 7 |
-| `CreateTaskE2ETest` | `BaseE2ETest` | 6 |
-| `ProfileFlowE2ETest` | `BaseE2ETest` | 8, 12 |
-| `WalletFlowE2ETest` | `BaseE2ETest` | Wallet balance & transactions |
-| `FullJobLifecycleE2ETest` | `RealServerBaseE2ETest` | 8, 9, 10, 11 (full lifecycle) |
+| `S01_AuthFlowE2ETest` | `BaseE2ETest` | 1, 2 |
+| `S04_BrowseTasksE2ETest` | `BaseE2ETest` | 4, 5, 7 |
+| `S06_CreateTaskE2ETest` | `BaseE2ETest` | 6 |
+| `S08_ProfileFlowE2ETest` | `BaseE2ETest` | 8, 12 |
+| `S13_FullJobLifecycleE2ETest` | `RealServerBaseE2ETest` | 8, 9, 10, 11, 13 (full lifecycle) |
+| `S14_ChatMessagingE2ETest` | `RealServerBaseE2ETest` | 14 (chat messaging) |
+| `S15_WalletFlowE2ETest` | `BaseE2ETest` | 15 (wallet balance & transactions) |
 
 ---
 

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.Conversation
 import com.viecz.vieczandroid.data.models.Message
+import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.models.WebSocketState
 import com.viecz.vieczandroid.data.repository.MessageRepository
 import com.viecz.vieczandroid.data.websocket.WebSocketClient
@@ -25,7 +26,8 @@ data class ChatUiState(
     val error: String? = null,
     val connectionState: WebSocketState = WebSocketState.DISCONNECTED,
     val isTyping: Boolean = false,
-    val currentUserId: Long = 0
+    val currentUserId: Long = 0,
+    val isTaskFinished: Boolean = false
 )
 
 @HiltViewModel
@@ -113,6 +115,19 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
 
         viewModelScope.launch {
+            // Load conversation metadata to check task status
+            messageRepository.getConversations().fold(
+                onSuccess = { conversations ->
+                    val conversation = conversations.find { it.id == conversationId }
+                    val taskFinished = conversation?.task?.status == TaskStatus.COMPLETED ||
+                            conversation?.task?.status == TaskStatus.CANCELLED
+                    _uiState.update { it.copy(conversation = conversation, isTaskFinished = taskFinished) }
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Error fetching conversation metadata: ${error.message}", error)
+                }
+            )
+
             // Load message history
             messageRepository.getMessages(conversationId).fold(
                 onSuccess = { messages ->
@@ -124,8 +139,10 @@ class ChatViewModel @Inject constructor(
                     }
                     Log.d(TAG, "Loaded ${messages.size} messages")
 
-                    // Connect to WebSocket
-                    connectWebSocket()
+                    // Only connect WebSocket if task is still active
+                    if (!_uiState.value.isTaskFinished) {
+                        connectWebSocket()
+                    }
                 },
                 onFailure = { error ->
                     _uiState.update { state ->

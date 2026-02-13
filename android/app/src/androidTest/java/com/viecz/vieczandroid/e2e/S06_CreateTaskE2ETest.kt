@@ -15,7 +15,7 @@ import org.junit.runner.RunWith
 @E2ETest
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class CreateTaskE2ETest : BaseE2ETest() {
+class S06_CreateTaskE2ETest : BaseE2ETest() {
 
     override val shouldStartLoggedIn = true
 

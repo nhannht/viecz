@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.viecz.vieczandroid.data.local.TokenManager
+import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.models.WebSocketState
 import com.viecz.vieczandroid.data.repository.MessageRepository
 import com.viecz.vieczandroid.data.websocket.WebSocketClient
@@ -51,8 +52,9 @@ class ChatScreenTest {
         // Set up token
         every { mockTokenManager.accessToken } returns flowOf("test-token")
 
-        // Set up message repo - return empty messages by default
+        // Set up message repo - return empty messages and conversations by default
         coEvery { mockMessageRepo.getMessages(any()) } returns Result.success(emptyList())
+        coEvery { mockMessageRepo.getConversations() } returns Result.success(emptyList())
 
         viewModel = ChatViewModel(mockMessageRepo, mockWebSocketClient, mockTokenManager)
     }
@@ -189,5 +191,70 @@ class ChatScreenTest {
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText("Connected").assertIsDisplayed()
+    }
+
+    @Test
+    fun `ChatScreen shows closed notice for completed task`() {
+        val conversation = TestData.createConversation(
+            id = 1,
+            task = TestData.createTask(status = TaskStatus.COMPLETED)
+        )
+        coEvery { mockMessageRepo.getConversations() } returns Result.success(listOf(conversation))
+
+        val vm = ChatViewModel(mockMessageRepo, mockWebSocketClient, mockTokenManager)
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                ChatScreen(conversationId = 1, onNavigateBack = {}, viewModel = vm)
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("This task is completed. Chat is closed.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Type a message...").assertDoesNotExist()
+    }
+
+    @Test
+    fun `ChatScreen shows closed notice for cancelled task`() {
+        val conversation = TestData.createConversation(
+            id = 1,
+            task = TestData.createTask(status = TaskStatus.CANCELLED)
+        )
+        coEvery { mockMessageRepo.getConversations() } returns Result.success(listOf(conversation))
+
+        val vm = ChatViewModel(mockMessageRepo, mockWebSocketClient, mockTokenManager)
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                ChatScreen(conversationId = 1, onNavigateBack = {}, viewModel = vm)
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("This task is cancelled. Chat is closed.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Type a message...").assertDoesNotExist()
+    }
+
+    @Test
+    fun `ChatScreen shows task completed status in top bar for finished task`() {
+        val conversation = TestData.createConversation(
+            id = 1,
+            task = TestData.createTask(status = TaskStatus.COMPLETED)
+        )
+        coEvery { mockMessageRepo.getConversations() } returns Result.success(listOf(conversation))
+
+        val vm = ChatViewModel(mockMessageRepo, mockWebSocketClient, mockTokenManager)
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                ChatScreen(conversationId = 1, onNavigateBack = {}, viewModel = vm)
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Task completed").assertIsDisplayed()
     }
 }

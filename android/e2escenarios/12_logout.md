@@ -21,6 +21,6 @@ AuthViewModel: Tokens cleared
 Navigation: Navigate to Login screen
 ```
 
-**Automated Test:** `ProfileFlowE2ETest.logoutNavigatesToLogin()`
+**Automated Test:** `S08_ProfileFlowE2ETest.logoutNavigatesToLogin()`
 
 **Testing Note:** The Logout button is inside a LazyColumn. In instrumented tests, use `performScrollToNode(hasText("Logout"))` on the scrollable container — `performScrollTo()` does NOT work for off-screen LazyColumn items.

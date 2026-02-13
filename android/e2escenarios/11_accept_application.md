@@ -23,4 +23,4 @@ OkHttp: <-- 200 OK
 TaskDetailViewModel: Application accepted, escrow created
 ```
 
-**Automated Test:** `FullJobLifecycleE2ETest` (Steps 10-11: Alice accepts, marks completed)
+**Automated Test:** `S13_FullJobLifecycleE2ETest` (Steps 10-11: Alice accepts, marks completed)

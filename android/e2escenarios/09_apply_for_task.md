@@ -31,4 +31,4 @@ OkHttp: <-- 201 Created
 ApplyTaskViewModel: Application submitted successfully
 ```
 
-**Automated Test:** `FullJobLifecycleE2ETest` (Step 7: Bob applies for the task)
+**Automated Test:** `S13_FullJobLifecycleE2ETest` (Step 7: Bob applies for the task)

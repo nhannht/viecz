@@ -31,4 +31,4 @@ OkHttp: <-- 200 OK
 CategoryViewModel: 11 categories loaded
 ```
 
-**Automated Test:** `BrowseTasksE2ETest` (partially covers category loading)
+**Automated Test:** `S04_BrowseTasksE2ETest` (partially covers category loading)

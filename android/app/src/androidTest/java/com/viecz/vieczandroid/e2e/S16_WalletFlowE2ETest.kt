@@ -12,7 +12,7 @@ import org.junit.runner.RunWith
 @E2ETest
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class WalletFlowE2ETest : BaseE2ETest() {
+class S16_WalletFlowE2ETest : BaseE2ETest() {
 
     override val shouldStartLoggedIn = true
 

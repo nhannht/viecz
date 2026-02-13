@@ -40,7 +40,7 @@ import org.junit.runner.RunWith
 @E2ETest
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
+class S13_FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
 
     override val shouldStartLoggedIn = false
 

@@ -16,12 +16,12 @@ End-to-end integration tests exercising both the Go server and Android client to
 
 | File | Description |
 |------|-------------|
-| `e2e/AuthFlowE2ETest.kt` | Login, register, splash navigation |
-| `e2e/BrowseTasksE2ETest.kt` | Home screen tasks, categories, task detail |
-| `e2e/CreateTaskE2ETest.kt` | Create task form and submission |
-| `e2e/WalletFlowE2ETest.kt` | Wallet balance and transactions |
-| `e2e/ProfileFlowE2ETest.kt` | Profile info, logout |
-| `e2e/FullJobLifecycleE2ETest.kt` | Full Alice/Bob job lifecycle (see Scenario 1) |
+| `e2e/S01_AuthFlowE2ETest.kt` | Login, register, splash navigation |
+| `e2e/S04_BrowseTasksE2ETest.kt` | Home screen tasks, categories, task detail |
+| `e2e/S06_CreateTaskE2ETest.kt` | Create task form and submission |
+| `e2e/S15_WalletFlowE2ETest.kt` | Wallet balance and transactions |
+| `e2e/S08_ProfileFlowE2ETest.kt` | Profile info, logout |
+| `e2e/S13_FullJobLifecycleE2ETest.kt` | Full Alice/Bob job lifecycle (see Scenario 1) |
 | `e2e/BaseE2ETest.kt` | Base class with MockWebServer |
 | `e2e/RealServerBaseE2ETest.kt` | Base class for real server tests |
 | `e2e/FakeApiDispatcher.kt` | Mock API responses |
@@ -35,7 +35,7 @@ End-to-end integration tests exercising both the Go server and Android client to
 
 ## Scenario 1: Full Job Lifecycle
 
-**Test**: `FullJobLifecycleE2ETest.fullJobLifecycle_AliceCreatesBobCompletes`
+**Test**: `S13_FullJobLifecycleE2ETest.fullJobLifecycle_AliceCreatesBobCompletes`
 
 ### Act 1: Alice sets up
 
@@ -90,7 +90,7 @@ End-to-end integration tests exercising both the Go server and Android client to
 
 ## Scenario 2: Auth Flow
 
-**Tests**: `AuthFlowE2ETest`
+**Tests**: `S01_AuthFlowE2ETest`
 
 ### 2a: Splash -> Login -> Home
 
@@ -119,7 +119,7 @@ End-to-end integration tests exercising both the Go server and Android client to
 
 ## Scenario 3: Browse Tasks
 
-**Tests**: `BrowseTasksE2ETest`
+**Tests**: `S04_BrowseTasksE2ETest`
 
 ### 3a: Home shows tasks
 
@@ -140,7 +140,7 @@ End-to-end integration tests exercising both the Go server and Android client to
 
 ## Scenario 4: Create Task
 
-**Test**: `CreateTaskE2ETest.homeToCreateTaskFillFormAndSubmit`
+**Test**: `S06_CreateTaskE2ETest.homeToCreateTaskFillFormAndSubmit`
 
 1. Tap FAB (create task button) on home screen
 2. Fill form: title, description, price, location
@@ -152,7 +152,7 @@ End-to-end integration tests exercising both the Go server and Android client to
 
 ## Scenario 5: Wallet
 
-**Test**: `WalletFlowE2ETest.homeToWalletShowsBalanceAndTransactions`
+**Test**: `S15_WalletFlowE2ETest.homeToWalletShowsBalanceAndTransactions`
 
 1. Navigate to wallet via bottom nav
 2. Verify "My Wallet" screen
@@ -162,7 +162,7 @@ End-to-end integration tests exercising both the Go server and Android client to
 
 ## Scenario 6: Profile & Logout
 
-**Tests**: `ProfileFlowE2ETest`
+**Tests**: `S08_ProfileFlowE2ETest`
 
 ### 6a: View profile
 
@@ -232,7 +232,7 @@ cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/
 cd android && ./gradlew connectedAndroidTest
 
 # Run specific E2E test class
-./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.FullJobLifecycleE2ETest
+./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.S13_FullJobLifecycleE2ETest
 
 # Run via script (starts server + runs tests)
 ./scripts/run-full-e2e.sh

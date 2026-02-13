@@ -235,7 +235,7 @@ TEST_RESULT=0
 ./gradlew connectedAndroidTest \
     -Pandroid.testInstrumentationRunnerArguments.testServerHost="$HOST_IP" \
     -Pandroid.testInstrumentationRunnerArguments.testServerPort="$SERVER_PORT" \
-    -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.FullJobLifecycleE2ETest \
+    -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.S13_FullJobLifecycleE2ETest \
     --info 2>&1 | tee /tmp/viecz-e2e-output.log || TEST_RESULT=$?
 
 # ============================================================

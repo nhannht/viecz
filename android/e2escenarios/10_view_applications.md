@@ -22,4 +22,4 @@ OkHttp: <-- 200 OK
 TaskDetailViewModel: N application(s) loaded
 ```
 
-**Automated Test:** `FullJobLifecycleE2ETest` (Step 10: Alice views and accepts)
+**Automated Test:** `S13_FullJobLifecycleE2ETest` (Step 10: Alice views and accepts)

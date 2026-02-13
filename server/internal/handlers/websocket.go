@@ -96,9 +96,13 @@ func NewMessageHandler(messageService *services.MessageService) *MessageHandler 
 // GetConversations returns all conversations for the authenticated user
 // GET /api/v1/conversations
 func (h *MessageHandler) GetConversations(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, ok := auth.GetUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
-	conversations, err := h.messageService.GetUserConversations(c.Request.Context(), userID.(uint))
+	conversations, err := h.messageService.GetUserConversations(c.Request.Context(), uint(userID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -110,7 +114,11 @@ func (h *MessageHandler) GetConversations(c *gin.Context) {
 // GetConversationMessages returns message history for a conversation
 // GET /api/v1/conversations/:id/messages?limit=50&offset=0
 func (h *MessageHandler) GetConversationMessages(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, ok := auth.GetUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
 	conversationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -135,7 +143,7 @@ func (h *MessageHandler) GetConversationMessages(c *gin.Context) {
 	messages, err := h.messageService.GetConversationHistory(
 		c.Request.Context(),
 		uint(conversationID),
-		userID.(uint),
+		uint(userID),
 		limit,
 		offset,
 	)
@@ -151,7 +159,11 @@ func (h *MessageHandler) GetConversationMessages(c *gin.Context) {
 // POST /api/v1/conversations
 // Body: {"task_id": 1, "tasker_id": 2}
 func (h *MessageHandler) CreateConversation(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, ok := auth.GetUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
 	var req struct {
 		TaskID   uint `json:"task_id" binding:"required"`
@@ -166,7 +178,7 @@ func (h *MessageHandler) CreateConversation(c *gin.Context) {
 	conversation, err := h.messageService.CreateConversation(
 		c.Request.Context(),
 		req.TaskID,
-		userID.(uint),
+		uint(userID),
 		req.TaskerID,
 	)
 	if err != nil {

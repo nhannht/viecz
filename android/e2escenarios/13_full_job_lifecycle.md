@@ -4,7 +4,7 @@ This is the most comprehensive E2E scenario. It tests the entire job lifecycle a
 
 **Requires:** Go test server running on port 9999 (mock PayOS auto-completes deposits)
 
-**Automated Test:** `FullJobLifecycleE2ETest.fullJobLifecycle_AliceCreatesBobCompletes()`
+**Automated Test:** `S13_FullJobLifecycleE2ETest.fullJobLifecycle_AliceCreatesBobCompletes()`
 
 ---
 
@@ -196,7 +196,7 @@ CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver
 # Terminal 2: Run the test
 cd android
 ./gradlew connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.FullJobLifecycleE2ETest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.S13_FullJobLifecycleE2ETest
 ```
 
 **Test server details:**
