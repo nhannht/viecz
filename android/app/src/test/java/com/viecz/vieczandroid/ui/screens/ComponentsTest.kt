@@ -279,7 +279,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                ApplicationCard(application = application, onAccept = {})
+                ApplicationCard(application = application, taskPrice = 100000L, onAccept = {})
             }
         }
 
@@ -293,7 +293,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                ApplicationCard(application = application, onAccept = {})
+                ApplicationCard(application = application, taskPrice = 100000L, onAccept = {})
             }
         }
 
@@ -306,7 +306,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                ApplicationCard(application = application, onAccept = {})
+                ApplicationCard(application = application, taskPrice = 100000L, onAccept = {})
             }
         }
 
@@ -320,7 +320,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                ApplicationCard(application = application, onAccept = {})
+                ApplicationCard(application = application, taskPrice = 100000L, onAccept = {})
             }
         }
 
@@ -333,7 +333,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                ApplicationCard(application = application, onAccept = {})
+                ApplicationCard(application = application, taskPrice = 100000L, onAccept = {})
             }
         }
 
@@ -347,7 +347,7 @@ class ComponentsTest {
 
         composeTestRule.setContent {
             MaterialTheme {
-                ApplicationCard(application = application, onAccept = { accepted = true })
+                ApplicationCard(application = application, taskPrice = 100000L, onAccept = { accepted = true })
             }
         }
 

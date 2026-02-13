@@ -145,12 +145,31 @@ fun TaskDetailScreen(
 
     // Accept application confirmation dialog
     showAcceptDialog?.let { application ->
+        val task = uiState.task
+        val escrowAmount = application.proposedPrice ?: task?.price ?: 0L
+        val isAboveTaskPrice = task != null && application.proposedPrice != null
+                && application.proposedPrice > task.price
+
         AlertDialog(
             onDismissRequest = { showAcceptDialog = null },
             title = { Text("Accept Application & Create Payment") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Are you sure you want to accept this application?")
+                    Text(
+                        text = "Escrow amount: ${formatPrice(escrowAmount)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (isAboveTaskPrice) {
+                        val diff = application.proposedPrice!! - task!!.price
+                        Text(
+                            text = "This is ${formatPrice(diff)} above your original task price (${formatPrice(task.price)})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         text = "• This will assign the tasker to your task\n• Escrow payment will be created\n• Funds will be held until task completion",
                         style = MaterialTheme.typography.bodySmall,
@@ -333,6 +352,7 @@ fun TaskDetailContent(
             items(applications, key = { it.id }) { application ->
                 ApplicationCard(
                     application = application,
+                    taskPrice = task.price,
                     onAccept = { onAcceptApplication(application) }
                 )
             }
@@ -377,6 +397,7 @@ fun TaskDetailContent(
 @Composable
 fun ApplicationCard(
     application: TaskApplication,
+    taskPrice: Long,
     onAccept: () -> Unit
 ) {
     Card(
@@ -436,8 +457,25 @@ fun ApplicationCard(
                     text = "Proposed price: ${formatPrice(application.proposedPrice)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = if (application.proposedPrice > taskPrice)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.primary
                 )
+                if (application.proposedPrice > taskPrice) {
+                    val diff = application.proposedPrice - taskPrice
+                    Text(
+                        text = "Above task price (${formatPrice(taskPrice)}) by ${formatPrice(diff)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else if (application.proposedPrice < taskPrice) {
+                    Text(
+                        text = "Below task price (${formatPrice(taskPrice)})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (application.status == ApplicationStatus.PENDING) {

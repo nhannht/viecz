@@ -14,6 +14,7 @@ import (
 type PaymentService struct {
 	transactionRepo repository.TransactionRepository
 	taskRepo        repository.TaskRepository
+	applicationRepo repository.TaskApplicationRepository
 	walletService   *WalletService
 	payosService    *PayOSService
 	mockMode        bool
@@ -21,23 +22,24 @@ type PaymentService struct {
 	serverURL       string
 }
 
-// NewPaymentService creates a new payment service
+// NewPaymentService creates a new payment service.
+// platformFeeRate is the fee as a fraction (e.g. 0.10 for 10%, 0 for beta).
 func NewPaymentService(
 	transactionRepo repository.TransactionRepository,
 	taskRepo repository.TaskRepository,
+	applicationRepo repository.TaskApplicationRepository,
 	walletService *WalletService,
 	payosService *PayOSService,
+	platformFeeRate float64,
 	serverURL string,
 ) *PaymentService {
 	// Check if mock mode is enabled via environment variable
 	mockMode := os.Getenv("PAYMENT_MOCK_MODE") == "true"
 
-	// Platform fee rate (default 10%)
-	platformFeeRate := 0.10
-
 	return &PaymentService{
 		transactionRepo: transactionRepo,
 		taskRepo:        taskRepo,
+		applicationRepo: applicationRepo,
 		walletService:   walletService,
 		payosService:    payosService,
 		mockMode:        mockMode,
@@ -64,16 +66,30 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 		return nil, "", fmt.Errorf("only requester can create escrow payment")
 	}
 
+	// Determine effective price: use accepted application's proposed price if available
+	effectivePrice := task.Price
+	if s.applicationRepo != nil {
+		apps, err := s.applicationRepo.GetByTaskID(ctx, taskID)
+		if err == nil {
+			for _, app := range apps {
+				if app.Status == models.ApplicationStatusAccepted && app.ProposedPrice != nil {
+					effectivePrice = *app.ProposedPrice
+					break
+				}
+			}
+		}
+	}
+
 	// Calculate platform fee
-	platformFee := int64(float64(task.Price) * s.platformFeeRate)
-	netAmount := task.Price - platformFee
+	platformFee := int64(float64(effectivePrice) * s.platformFeeRate)
+	netAmount := effectivePrice - platformFee
 
 	// Create transaction record
 	transaction := &models.Transaction{
 		TaskID:      &taskID,
 		PayerID:     payerID,
 		PayeeID:     task.TaskerID,
-		Amount:      task.Price,
+		Amount:      effectivePrice,
 		PlatformFee: platformFee,
 		NetAmount:   netAmount,
 		Type:        models.TransactionTypeEscrow,
@@ -83,7 +99,7 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 
 	if s.mockMode {
 		// Mock mode: Use wallet service
-		if err := s.walletService.HoldInEscrow(ctx, payerID, task.Price, taskID, nil); err != nil {
+		if err := s.walletService.HoldInEscrow(ctx, payerID, effectivePrice, taskID, nil); err != nil {
 			transaction.Status = models.TransactionStatusFailed
 			transaction.FailureReason = stringPtr(err.Error())
 			if createErr := s.transactionRepo.Create(ctx, transaction); createErr != nil {
@@ -120,7 +136,7 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 	result, err := s.payosService.CreatePaymentLink(
 		ctx,
 		orderCode,
-		int(task.Price),
+		int(effectivePrice),
 		transaction.Description,
 		returnURL,
 		cancelURL,

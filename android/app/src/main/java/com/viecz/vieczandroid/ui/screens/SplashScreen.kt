@@ -45,7 +45,7 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "MiniJob",
+                text = "Viecz",
                 style = MaterialTheme.typography.displayMedium,
                 color = MaterialTheme.colorScheme.primary
             )

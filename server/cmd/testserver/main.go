@@ -138,7 +138,7 @@ func main() {
 	mockPayOS := &mockPayOS{}
 
 	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, walletService, nil, serverURL,
+		transactionRepo, taskRepo, applicationRepo, walletService, nil, 0, serverURL,
 	)
 
 	// WebSocket Hub

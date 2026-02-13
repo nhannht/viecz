@@ -2,7 +2,6 @@ package com.viecz.vieczandroid.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -14,14 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
-import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.navigation.NavigationRoutes
 import com.viecz.vieczandroid.ui.viewmodels.*
 import kotlinx.coroutines.launch
@@ -35,6 +33,7 @@ fun MainScreen(
     var currentTab by remember { mutableIntStateOf(0) }
     var showDepositDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showSearchBar by remember { mutableStateOf(false) }
 
     // ViewModels scoped to MainScreen
     val notificationViewModel: NotificationViewModel = hiltViewModel()
@@ -54,7 +53,7 @@ fun MainScreen(
 
     // Auto-refresh wallet when on wallet tab and returning from browser
     LaunchedEffect(lifecycleOwner, currentTab) {
-        if (currentTab == 4) {
+        if (currentTab == 3) {
             lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 walletViewModel.loadWallet()
                 walletViewModel.loadTransactionHistory()
@@ -92,7 +91,8 @@ fun MainScreen(
                 onDeposit = { showDepositDialog = true },
                 onNotifications = {
                     navController.navigate(NavigationRoutes.NOTIFICATIONS)
-                }
+                },
+                onSearchToggle = { showSearchBar = !showSearchBar }
             )
         },
         bottomBar = {
@@ -108,7 +108,8 @@ fun MainScreen(
                     onNavigateToTaskDetail = { taskId ->
                         navController.navigate(NavigationRoutes.taskDetail(taskId))
                     },
-                    taskListViewModel = taskListViewModel
+                    taskListViewModel = taskListViewModel,
+                    showSearchBar = showSearchBar
                 )
                 1 -> {
                     val snackbarHostState = remember { SnackbarHostState() }
@@ -165,13 +166,12 @@ fun MainScreen(
                         )
                     }
                 }
-                2 -> MascotPlaceholder()
-                3 -> ConversationListContent(
+                2 -> ConversationListContent(
                     onNavigateToChat = { conversationId ->
                         navController.navigate(NavigationRoutes.chat(conversationId))
                     }
                 )
-                4 -> WalletContent(viewModel = walletViewModel)
+                3 -> WalletContent(viewModel = walletViewModel)
             }
         }
     }
@@ -227,7 +227,8 @@ fun VieczTopBar(
     unreadCount: Int,
     onAddJob: () -> Unit,
     onDeposit: () -> Unit,
-    onNotifications: () -> Unit
+    onNotifications: () -> Unit,
+    onSearchToggle: () -> Unit = {}
 ) {
     TopAppBar(
         title = {
@@ -240,11 +241,14 @@ fun VieczTopBar(
             // Contextual action based on current tab
             when (currentTab) {
                 0 -> {
+                    IconButton(onClick = onSearchToggle) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
                     IconButton(onClick = onAddJob) {
                         Icon(Icons.Default.Add, contentDescription = "Add Job")
                     }
                 }
-                4 -> {
+                3 -> {
                     IconButton(onClick = onDeposit) {
                         Icon(Icons.Default.Add, contentDescription = "Deposit")
                     }
@@ -288,55 +292,15 @@ fun VieczBottomBar(
         NavigationBarItem(
             selected = currentTab == 2,
             onClick = { onTabSelected(2) },
-            icon = {
-                Image(
-                    painter = painterResource(R.drawable.mascot),
-                    contentDescription = "Viecz",
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            label = { Text("Viecz") }
-        )
-        NavigationBarItem(
-            selected = currentTab == 3,
-            onClick = { onTabSelected(3) },
             icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Messages") },
             label = { Text("Messages") }
         )
         NavigationBarItem(
-            selected = currentTab == 4,
-            onClick = { onTabSelected(4) },
+            selected = currentTab == 3,
+            onClick = { onTabSelected(3) },
             icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Wallet") },
             label = { Text("Wallet") }
         )
     }
 }
 
-@Composable
-fun MascotPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.mascot),
-                contentDescription = "Viecz Mascot",
-                modifier = Modifier.size(120.dp)
-            )
-            Text(
-                text = "Coming Soon!",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Stay tuned for new features",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}

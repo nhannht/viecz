@@ -288,7 +288,7 @@ android/E2E_TESTING_GUIDE.md
 **Key rules**:
 - E2E tests are **Gradle instrumented tests**, NOT manual ADB/claudtest — run them via `./gradlew connectedDevDebugAndroidTest`
 - All E2E test classes are in `android/app/src/androidTest/java/com/viecz/vieczandroid/e2e/`
-- All 14 E2E scenario definitions are in `android/e2escenarios/` (one file per scenario)
+- All E2E scenario definitions are in `android/e2escenarios/` (one file per scenario)
 - Tests use `@E2ETest` annotation with Compose test rules (`waitUntil`, `performClick`, etc.)
 - `BaseE2ETest` tests use a mock server (no external dependencies)
 - `RealServerBaseE2ETest` tests (e.g., `S13_FullJobLifecycleE2ETest`) require the Go test server running on port 9999

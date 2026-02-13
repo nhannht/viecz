@@ -21,7 +21,7 @@ class S01_AuthFlowE2ETest : BaseE2ETest() {
     fun splashToLoginToHome() {
         // App starts at splash
         composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodes(hasText("MiniJob"))
+            composeRule.onAllNodes(hasText("Viecz"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
 

@@ -103,7 +103,8 @@ fun HomeContent(
     onNavigateToTaskDetail: (Long) -> Unit,
     taskListViewModel: TaskListViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showSearchBar: Boolean = false
 ) {
     val taskUiState by taskListViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
@@ -111,7 +112,6 @@ fun HomeContent(
     val pullToRefreshState = rememberPullToRefreshState()
 
     var searchQuery by remember { mutableStateOf("") }
-    var showSearchBar by remember { mutableStateOf(false) }
 
     // Load more when reaching end of list
     LaunchedEffect(listState.layoutInfo.visibleItemsInfo) {
@@ -130,18 +130,6 @@ fun HomeContent(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Search bar toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                IconButton(onClick = { showSearchBar = !showSearchBar }) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                }
-            }
-
             // Search bar
             if (showSearchBar) {
                 SearchBar(

@@ -85,8 +85,10 @@ func main() {
 	paymentService := services.NewPaymentService(
 		transactionRepo,
 		taskRepo,
+		applicationRepo,
 		walletService,
 		payosService,
+		cfg.PlatformFeeRate,
 		cfg.ServerURL,
 	)
 

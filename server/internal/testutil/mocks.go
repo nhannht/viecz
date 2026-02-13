@@ -321,6 +321,77 @@ func (m *MockTaskRepository) AssignTasker(ctx context.Context, taskID, taskerID 
 	return nil
 }
 
+// MockTaskApplicationRepository is a mock implementation of repository.TaskApplicationRepository
+type MockTaskApplicationRepository struct {
+	Applications map[int64]*models.TaskApplication
+}
+
+func NewMockTaskApplicationRepository() *MockTaskApplicationRepository {
+	return &MockTaskApplicationRepository{
+		Applications: make(map[int64]*models.TaskApplication),
+	}
+}
+
+func (m *MockTaskApplicationRepository) Create(ctx context.Context, app *models.TaskApplication) error {
+	app.ID = int64(len(m.Applications) + 1)
+	m.Applications[app.ID] = app
+	return nil
+}
+
+func (m *MockTaskApplicationRepository) GetByID(ctx context.Context, id int64) (*models.TaskApplication, error) {
+	app, exists := m.Applications[id]
+	if !exists {
+		return nil, errors.New("application not found")
+	}
+	return app, nil
+}
+
+func (m *MockTaskApplicationRepository) GetByTaskID(ctx context.Context, taskID int64) ([]*models.TaskApplication, error) {
+	var apps []*models.TaskApplication
+	for _, app := range m.Applications {
+		if app.TaskID == taskID {
+			apps = append(apps, app)
+		}
+	}
+	return apps, nil
+}
+
+func (m *MockTaskApplicationRepository) GetByTaskerID(ctx context.Context, taskerID int64) ([]*models.TaskApplication, error) {
+	var apps []*models.TaskApplication
+	for _, app := range m.Applications {
+		if app.TaskerID == taskerID {
+			apps = append(apps, app)
+		}
+	}
+	return apps, nil
+}
+
+func (m *MockTaskApplicationRepository) UpdateStatus(ctx context.Context, id int64, status models.ApplicationStatus) error {
+	app, exists := m.Applications[id]
+	if !exists {
+		return errors.New("application not found")
+	}
+	app.Status = status
+	return nil
+}
+
+func (m *MockTaskApplicationRepository) Delete(ctx context.Context, id int64) error {
+	if _, exists := m.Applications[id]; !exists {
+		return errors.New("application not found")
+	}
+	delete(m.Applications, id)
+	return nil
+}
+
+func (m *MockTaskApplicationRepository) ExistsByTaskAndTasker(ctx context.Context, taskID, taskerID int64) (bool, error) {
+	for _, app := range m.Applications {
+		if app.TaskID == taskID && app.TaskerID == taskerID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // MockWalletService is a mock implementation for testing payment service
 type MockWalletService struct {
 	HoldInEscrowCalls      []HoldInEscrowCall

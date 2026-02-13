@@ -42,8 +42,8 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 			wantErr: false,
 			checkTransaction: func(t *testing.T, tx *models.Transaction) {
 				testutil.AssertEqual(t, tx.Amount, int64(100000), "Amount")
-				testutil.AssertEqual(t, tx.PlatformFee, int64(10000), "Platform fee (10%)")
-				testutil.AssertEqual(t, tx.NetAmount, int64(90000), "Net amount")
+				testutil.AssertEqual(t, tx.PlatformFee, int64(0), "Platform fee (0% beta)")
+				testutil.AssertEqual(t, tx.NetAmount, int64(100000), "Net amount")
 				testutil.AssertEqual(t, tx.Status, models.TransactionStatusSuccess, "Status")
 				testutil.AssertEqual(t, tx.Type, models.TransactionTypeEscrow, "Type")
 			},
@@ -159,7 +159,7 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 			}
 
 			// Create payment service
-			service := NewPaymentService(txRepo, taskRepo, walletService, nil, "http://localhost:8080")
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
 			service.mockMode = true
 
 			ctx := context.Background()
@@ -188,6 +188,81 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
+	os.Setenv("PAYMENT_MOCK_MODE", "true")
+	defer os.Unsetenv("PAYMENT_MOCK_MODE")
+
+	taskRepo := testutil.NewMockTaskRepository()
+	txRepo := testutil.NewMockTransactionRepository()
+	appRepo := testutil.NewMockTaskApplicationRepository()
+	walletRepo := testutil.NewMockWalletRepository()
+	walletTxRepo := testutil.NewMockWalletTransactionRepository()
+
+	// Setup task with price 100000
+	task := testutil.NewTaskBuilder().
+		WithID(1).
+		WithRequesterID(1).
+		WithTaskerID(2).
+		WithPrice(100000).
+		WithStatus(models.TaskStatusOpen).
+		Build()
+	taskRepo.Tasks[1] = task
+
+	// Setup accepted application with proposed price 90000
+	proposedPrice := int64(90000)
+	app := &models.TaskApplication{
+		TaskID:        1,
+		TaskerID:      2,
+		ProposedPrice: &proposedPrice,
+		Status:        models.ApplicationStatusAccepted,
+	}
+	appRepo.Create(context.Background(), app)
+
+	// Setup wallet with sufficient balance
+	wallet := &models.Wallet{
+		ID:            1,
+		UserID:        1,
+		Balance:       200000,
+		EscrowBalance: 0,
+	}
+	walletRepo.Wallets[1] = wallet
+
+	mockDB, cleanup, err := testutil.NewMockGormDB()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer cleanup()
+
+	walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
+
+	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, nil, 0.10, "http://localhost:8080")
+	service.mockMode = true
+
+	transaction, checkoutURL, err := service.CreateEscrowPayment(context.Background(), 1, 1)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	testutil.AssertNotNil(t, transaction, "Transaction")
+	testutil.AssertEqual(t, checkoutURL, "", "Checkout URL should be empty in mock mode")
+
+	// Verify escrow uses proposed price (90000), not task price (100000)
+	testutil.AssertEqual(t, transaction.Amount, int64(90000), "Amount should use proposed price")
+	testutil.AssertEqual(t, transaction.PlatformFee, int64(9000), "Platform fee (10% of 90000)")
+	testutil.AssertEqual(t, transaction.NetAmount, int64(81000), "Net amount (90000 - 9000)")
+	testutil.AssertEqual(t, transaction.Status, models.TransactionStatusSuccess, "Status")
+
+	// Verify wallet hold used proposed price
+	foundEscrow := false
+	for _, wtx := range walletTxRepo.Transactions {
+		if wtx.Type == models.WalletTransactionTypeEscrowHold {
+			foundEscrow = true
+			testutil.AssertEqual(t, wtx.Amount, int64(-90000), "Wallet escrow amount should be proposed price")
+		}
+	}
+	testutil.AssertTrue(t, foundEscrow, "Wallet escrow transaction should exist")
 }
 
 func TestPaymentService_CreateEscrowPayment_RealMode(t *testing.T) {
@@ -464,7 +539,7 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
 
-			service := NewPaymentService(txRepo, taskRepo, walletService, nil, "http://localhost:8080")
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
 			service.mockMode = true
 
 			ctx := context.Background()
@@ -615,7 +690,7 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
 
-			service := NewPaymentService(txRepo, taskRepo, walletService, nil, "http://localhost:8080")
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
 			service.mockMode = true
 
 			ctx := context.Background()
@@ -673,7 +748,7 @@ func TestPaymentService_GetTransactionsByTask(t *testing.T) {
 				tt.setupRepos(txRepo)
 			}
 
-			service := NewPaymentService(txRepo, nil, nil, nil, "http://localhost:8080")
+			service := NewPaymentService(txRepo, nil, nil, nil, nil, 0, "http://localhost:8080")
 			ctx := context.Background()
 
 			transactions, err := service.GetTransactionsByTask(ctx, tt.taskID)

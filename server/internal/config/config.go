@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -25,6 +26,8 @@ type Config struct {
 	DBSSLMode  string
 	// JWT
 	JWTSecret string
+	// Platform
+	PlatformFeeRate float64 // e.g. 0.10 for 10%, 0 for beta
 }
 
 // Load reads configuration from environment variables
@@ -55,6 +58,13 @@ func Load() (*Config, error) {
 		// JWT
 		JWTSecret: getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 	}
+
+	// Parse platform fee rate (default 0 for beta)
+	platformFeeRate, err := strconv.ParseFloat(getEnv("PLATFORM_FEE_RATE", "0"), 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid PLATFORM_FEE_RATE: %w", err)
+	}
+	cfg.PlatformFeeRate = platformFeeRate
 
 	// Validate required fields (PayOS only required for payment features)
 	// Database and JWT are always required
