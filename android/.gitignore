@@ -19,3 +19,6 @@ keystore.properties
 keystore/
 *.jks
 *.keystore
+
+# Firebase
+google-services.json

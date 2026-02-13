@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.appdistribution)
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     id("jacoco")
 }
@@ -94,6 +96,10 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            firebaseAppDistribution {
+                artifactType = "APK"
+                groups = "internal-testers"
+            }
         }
     }
     kotlinOptions {
@@ -193,6 +199,10 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
 
     // Testing - Unit tests (JVM)
     testImplementation(libs.junit)
