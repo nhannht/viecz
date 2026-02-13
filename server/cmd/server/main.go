@@ -123,6 +123,12 @@ func main() {
 	// Apply CORS middleware
 	router.Use(middleware.CORS(cfg.ClientURL))
 
+	// Serve .well-known for Android App Links (deep link verification)
+	router.Static("/.well-known", "./static/.well-known")
+
+	// Serve privacy policy
+	router.StaticFile("/privacy-policy", "./static/privacy-policy.html")
+
 	// API routes
 	api := router.Group("/api/v1")
 	{

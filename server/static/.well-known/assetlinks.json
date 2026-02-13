@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.viecz.vieczandroid",
+      "sha256_cert_fingerprints": [
+        "87:81:41:50:AA:C4:9E:92:7B:B7:15:CD:B2:18:92:99:A6:A2:31:86:03:97:BF:6D:3A:2A:1F:67:46:F6:9E:E5"
+      ]
+    }
+  }
+]
