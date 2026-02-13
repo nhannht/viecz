@@ -221,8 +221,9 @@ class S13_FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
 
         composeRule.onNodeWithText("Yes, Register").performClick()
 
-        // Wait for snackbar or profile update
+        // Wait for snackbar, then dismiss it
         Thread.sleep(2000)
+        dismissSnackbarIfPresent()
 
         // =====================
         // Step 7: Bob applies for the task
@@ -274,6 +275,7 @@ class S13_FullJobLifecycleE2ETest : RealServerBaseE2ETest() {
 
         // Wait for escrow payment to complete
         waitForText("Payment processed successfully!", timeoutMillis = 20000)
+        dismissSnackbarIfPresent()
 
         // =====================
         // Step 11: Alice marks task as Completed while still on TaskDetail

@@ -113,10 +113,14 @@ fun MainScreen(
                 )
                 1 -> {
                     val snackbarHostState = remember { SnackbarHostState() }
+                    var showBecomeTaskerDialog by remember { mutableStateOf(false) }
 
                     LaunchedEffect(profileUiState.becomeTaskerSuccess) {
                         if (profileUiState.becomeTaskerSuccess) {
-                            snackbarHostState.showSnackbar("You are now registered as a tasker!")
+                            snackbarHostState.showSnackbar(
+                                message = "You are now registered as a tasker!",
+                                withDismissAction = true
+                            )
                             profileViewModel.clearBecomeTaskerSuccess()
                         }
                     }
@@ -146,7 +150,7 @@ fun MainScreen(
                             profileUiState.user != null -> {
                                 ProfileContent(
                                     user = profileUiState.user!!,
-                                    onBecomeTasker = { profileViewModel.becomeTasker() },
+                                    onBecomeTasker = { showBecomeTaskerDialog = true },
                                     onNavigateToMyPostedJobs = {
                                         navController.navigate(NavigationRoutes.myJobs("posted"))
                                     },
@@ -163,6 +167,31 @@ fun MainScreen(
                         SnackbarHost(
                             hostState = snackbarHostState,
                             modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
+
+                    if (showBecomeTaskerDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showBecomeTaskerDialog = false },
+                            title = { Text("Become a Tasker") },
+                            text = {
+                                Text("Do you want to register as a tasker? This will allow you to apply for tasks posted by other users.")
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        profileViewModel.becomeTasker()
+                                        showBecomeTaskerDialog = false
+                                    }
+                                ) {
+                                    Text("Yes, Register")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showBecomeTaskerDialog = false }) {
+                                    Text("Cancel")
+                                }
+                            }
                         )
                     }
                 }

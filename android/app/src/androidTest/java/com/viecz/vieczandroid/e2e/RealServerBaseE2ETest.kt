@@ -1,6 +1,8 @@
 package com.viecz.vieczandroid.e2e
 
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.performClick
 import androidx.test.platform.app.InstrumentationRegistry
 import com.viecz.vieczandroid.MainActivity
 import com.viecz.vieczandroid.data.local.TokenManager
@@ -65,5 +67,19 @@ abstract class RealServerBaseE2ETest {
     @Before
     fun baseSetup() {
         hiltRule.inject()
+    }
+
+    /** Dismiss any visible snackbar by tapping its dismiss (X) button. */
+    fun dismissSnackbarIfPresent() {
+        try {
+            val nodes = composeRule.onAllNodes(hasContentDescription("Dismiss"))
+                .fetchSemanticsNodes()
+            if (nodes.isNotEmpty()) {
+                composeRule.onAllNodes(hasContentDescription("Dismiss"))[0].performClick()
+                composeRule.waitForIdle()
+            }
+        } catch (_: Exception) {
+            // No snackbar visible — nothing to dismiss
+        }
     }
 }

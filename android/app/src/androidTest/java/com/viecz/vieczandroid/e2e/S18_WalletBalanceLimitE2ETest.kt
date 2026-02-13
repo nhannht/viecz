@@ -2,7 +2,9 @@ package com.viecz.vieczandroid.e2e
 
 import android.app.Instrumentation
 import android.content.Intent
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -13,43 +15,47 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import dagger.hilt.android.testing.HiltAndroidTest
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Escrow with Price Negotiation E2E test against a real Go test server.
+ * Wallet Balance Limit E2E test against a real Go test server.
  *
- * Scenario:
- *   Alice registers -> deposits 200k -> creates task (100k) ->
- *   Bob registers -> becomes tasker -> applies with proposed price 90k ->
- *   Alice accepts (escrow holds 90k, NOT 100k) ->
- *   Alice marks completed (releases 90k to Bob, 0% fee in beta) ->
- *   Verify: Alice=110k, Bob=90k
+ * Tests:
+ *   1. Deposit from 0 to >200k → rejected with error message
+ *   2. Deposit from 199k, adding 2k (→201k) → rejected
+ *   3. Earn money via task completion beyond 200k → allowed (earnings bypass limit)
  *
  * Requires: Go test server running on host at port 9999.
  */
 @E2ETest
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class S16_EscrowNegotiationE2ETest : RealServerBaseE2ETest() {
+class S18_WalletBalanceLimitE2ETest : RealServerBaseE2ETest() {
 
     override val shouldStartLoggedIn = false
 
     private val aliceEmail = "alice_${System.currentTimeMillis()}@test.com"
     private val alicePassword = "Password123"
-    private val aliceName = "Alice TestUser"
+    private val aliceName = "Alice LimitTest"
 
     private val bobEmail = "bob_${System.currentTimeMillis()}@test.com"
     private val bobPassword = "Password123"
-    private val bobName = "Bob TestUser"
+    private val bobName = "Bob LimitTest"
 
     @Before
     fun setup() {
@@ -82,11 +88,11 @@ class S16_EscrowNegotiationE2ETest : RealServerBaseE2ETest() {
         composeRule.onNodeWithText("Profile").performClick()
         waitForText("Statistics")
 
-        // Scroll to reveal Logout, then use semantic action to invoke click directly
         composeRule.onAllNodes(hasScrollToNodeAction()).onFirst()
             .performScrollToNode(hasText("Logout"))
-        Thread.sleep(500)
-        composeRule.onNodeWithText("Logout").performSemanticsAction(SemanticsActions.OnClick)
+        // Use semantic action to trigger onClick directly (avoids touch pass-through issues)
+        composeRule.onNode(hasText("Logout") and hasClickAction())
+            .performSemanticsAction(SemanticsActions.OnClick)
 
         waitForText("Are you sure you want to logout?")
         composeRule.onAllNodesWithText("Logout")[2].performClick()
@@ -105,7 +111,6 @@ class S16_EscrowNegotiationE2ETest : RealServerBaseE2ETest() {
         typeInField("Password", password)
 
         composeRule.onNodeWithText("Register").performClick()
-
         waitForText("Marketplace", timeoutMillis = 20000)
     }
 
@@ -116,45 +121,117 @@ class S16_EscrowNegotiationE2ETest : RealServerBaseE2ETest() {
         typeInField("Password", password)
 
         composeRule.onNodeWithText("Login").performClick()
-
         waitForText("Marketplace", timeoutMillis = 20000)
     }
 
-    // --- Main E2E test ---
-
-    @Test
-    fun escrowNegotiation_ProposedPriceUsedForEscrow() {
-        // =====================
-        // Step 1: Alice registers
-        // =====================
-        registerUser(aliceName, aliceEmail, alicePassword)
-
-        // =====================
-        // Step 2: Alice deposits 200k
-        // =====================
-        composeRule.onNodeWithText("Wallet").performClick()
-        waitForText("Available Balance")
-
+    private fun depositAmount(amount: String) {
         composeRule.onNodeWithContentDescription("Deposit").performClick()
         waitForText("Deposit Funds")
+        typeInField("Amount (VND)", amount)
+        // Use specific matcher to avoid ambiguity with "Deposit" text in transaction history
+        composeRule.onNode(hasText("Deposit") and hasClickAction()).performClick()
+    }
 
-        typeInField("Amount (VND)", "200000")
+    private fun navigateToWalletAndWaitForBalance() {
+        composeRule.onNodeWithText("Wallet").performClick()
+        waitForText("Available Balance")
+    }
 
-        composeRule.onNodeWithText("Deposit").performClick()
-
-        // Wait for mock PayOS auto-webhook
-        Thread.sleep(2000)
-
-        // Refresh wallet by switching tabs
+    private fun refreshWallet() {
         composeRule.onNodeWithText("Marketplace").performClick()
         waitForText("Viecz")
         composeRule.onNodeWithText("Wallet").performClick()
         waitForText("Available Balance")
+    }
 
+    // --- Test: Deposit from 0 to more than 200k → rejected ---
+
+    @Test
+    fun depositExceedingMaxBalanceFromZero_showsError() {
+        // Step 1: Alice registers
+        registerUser(aliceName, aliceEmail, alicePassword)
+
+        // Step 2: Navigate to wallet
+        navigateToWalletAndWaitForBalance()
+
+        // Step 3: Try to deposit 200,001 VND (exceeds 200k max)
+        depositAmount("200001")
+
+        // Step 4: Verify error message is shown
+        waitForText("exceed maximum wallet balance")
+    }
+
+    // --- Test: Deposit from 199k, adding 2k → rejected ---
+
+    @Test
+    fun depositExceedingMaxBalanceFromPartial_showsError() {
+        // Step 1: Alice registers
+        registerUser(aliceName, aliceEmail, alicePassword)
+
+        // Step 2: Navigate to wallet and deposit 199,000
+        navigateToWalletAndWaitForBalance()
+        depositAmount("199000")
+
+        // Wait for mock PayOS webhook
+        Thread.sleep(2000)
+        refreshWallet()
+        waitForText("199.000")
+
+        // Step 3: Try to deposit 2,000 more (199k + 2k = 201k > 200k max)
+        depositAmount("2000")
+
+        // Step 4: Verify error message is shown
+        waitForText("exceed maximum wallet balance")
+    }
+
+    // --- Test: Earn money beyond 200k via task completion ---
+
+    @Test
+    fun earningsBeyondMaxBalance_allowed() {
+        // =====================
+        // Step 1: Alice registers and becomes a tasker (before wallet activity)
+        // =====================
+        registerUser(aliceName, aliceEmail, alicePassword)
+
+        composeRule.onNodeWithText("Profile").performClick()
+        waitForText("Statistics")
+        composeRule.onAllNodes(hasScrollToNodeAction()).onFirst()
+            .performScrollToNode(hasText("Become a Tasker"))
+        // Use semantic action to trigger onClick directly (avoids touch pass-through issues)
+        composeRule.onNode(hasText("Become a Tasker") and hasClickAction())
+            .performSemanticsAction(SemanticsActions.OnClick)
+
+        waitForText("Become a Tasker") // Dialog title
+        composeRule.onNodeWithText("Yes, Register").performClick()
+        Thread.sleep(2000)
+        dismissSnackbarIfPresent()
+
+        // =====================
+        // Step 2: Alice deposits 200k
+        // =====================
+        navigateToWalletAndWaitForBalance()
+        depositAmount("200000")
+        Thread.sleep(2000)
+        refreshWallet()
         waitForText("200.000")
 
         // =====================
-        // Step 3: Alice creates a task at 100k
+        // Step 3: Alice logs out
+        // =====================
+        navigateToProfileAndLogout()
+
+        // =====================
+        // Step 4: Bob registers and deposits 200k
+        // =====================
+        registerUser(bobName, bobEmail, bobPassword)
+        navigateToWalletAndWaitForBalance()
+        depositAmount("200000")
+        Thread.sleep(2000)
+        refreshWallet()
+        waitForText("200.000")
+
+        // =====================
+        // Step 5: Bob creates a task (100k)
         // =====================
         composeRule.onNodeWithText("Marketplace").performClick()
         waitForText("Viecz")
@@ -162,8 +239,8 @@ class S16_EscrowNegotiationE2ETest : RealServerBaseE2ETest() {
         composeRule.onNodeWithContentDescription("Add Job").performClick()
         waitForText("Create New Task")
 
-        typeInField("Task Title *", "Help me move furniture")
-        typeInField("Description *", "Need help moving furniture to new apartment")
+        typeInField("Task Title *", "Balance limit test task")
+        typeInField("Description *", "Testing that earnings bypass the 200k wallet limit")
         typeInField("Price (VND) *", "100000")
         typeInField("Location *", "Ho Chi Minh City")
 
@@ -173,80 +250,45 @@ class S16_EscrowNegotiationE2ETest : RealServerBaseE2ETest() {
         composeRule.onAllNodes(hasText("Vận chuyển", substring = true))[0].performClick()
 
         composeRule.onNodeWithText("Create Task").performClick()
-
         waitForText("Task Details", timeoutMillis = 20000)
-        waitForText("Help me move furniture")
+        waitForText("Balance limit test task")
 
         // =====================
-        // Step 4: Alice logs out
+        // Step 6: Bob logs out
         // =====================
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Marketplace")
         navigateToProfileAndLogout()
 
         // =====================
-        // Step 5: Bob registers
+        // Step 7: Alice logs in and applies for Bob's task
         // =====================
-        registerUser(bobName, bobEmail, bobPassword)
+        loginUser(aliceEmail, alicePassword)
 
-        // =====================
-        // Step 6: Bob becomes a Tasker
-        // =====================
-        composeRule.onNodeWithText("Profile").performClick()
-        waitForText("Statistics")
-
-        // "Become a Tasker" may be off-screen in LazyColumn — scroll to make visible
-        composeRule.onAllNodes(hasScrollToNodeAction()).onFirst()
-            .performScrollToNode(hasText("Become a Tasker"))
-        Thread.sleep(500)
-        composeRule.onNode(hasText("Become a Tasker") and hasClickAction())
-            .performSemanticsAction(SemanticsActions.OnClick)
-        waitForText("Become a Tasker") // Dialog title
-        composeRule.onNodeWithText("Yes, Register").performClick()
-        Thread.sleep(2000)
-        dismissSnackbarIfPresent()
-
-        // =====================
-        // Step 7: Bob applies with proposed price 90k
-        // =====================
-        composeRule.onNodeWithText("Marketplace").performClick()
-        waitForText("Viecz")
-
-        waitForText("Help me move furniture")
-        composeRule.onNodeWithText("Help me move furniture").performClick()
+        waitForText("Balance limit test task")
+        composeRule.onNodeWithText("Balance limit test task").performClick()
         waitForText("Task Details")
 
         composeRule.onNodeWithText("Apply for this Task").performClick()
         waitForText("Apply for Task")
-
-        // Enter proposed price of 90000
-        typeInField("Proposed Price (Optional)", "90000")
-
         composeRule.onNodeWithText("Submit Application").performClick()
-
         waitForText("Application Pending", timeoutMillis = 20000)
 
         // =====================
-        // Step 8: Bob logs out
+        // Step 8: Alice logs out
         // =====================
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Marketplace")
         navigateToProfileAndLogout()
 
         // =====================
-        // Step 9: Alice logs in
+        // Step 9: Bob logs in and accepts Alice's application
         // =====================
-        loginUser(aliceEmail, alicePassword)
+        loginUser(bobEmail, bobPassword)
 
-        // =====================
-        // Step 10: Alice accepts application (escrow uses proposed price 90k)
-        // =====================
-        waitForText("Help me move furniture")
-        composeRule.onNodeWithText("Help me move furniture").performClick()
+        waitForText("Balance limit test task")
+        composeRule.onNodeWithText("Balance limit test task").performClick()
         waitForText("Task Details")
-
-        // Verify proposed price is shown in application card
-        waitForText("90.000", timeoutMillis = 10000)
 
         waitForText("Accept Application", timeoutMillis = 10000)
         composeRule.onNodeWithText("Accept Application").performClick()
@@ -258,47 +300,32 @@ class S16_EscrowNegotiationE2ETest : RealServerBaseE2ETest() {
         dismissSnackbarIfPresent()
 
         // =====================
-        // Step 11: Alice verifies wallet shows 110k (200k - 90k escrow)
+        // Step 10: Bob marks task as completed (releases 100k to Alice)
         // =====================
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Marketplace")
-        composeRule.onNodeWithText("Wallet").performClick()
-        waitForText("Available Balance")
-        waitForText("110.000")
-
-        // =====================
-        // Step 12: Alice completes task
-        // =====================
-        composeRule.onNodeWithText("Marketplace").performClick()
-        waitForText("Viecz")
-        waitForText("Help me move furniture")
-        composeRule.onNodeWithText("Help me move furniture").performClick()
-        waitForText("Task Details")
-
         waitForText("Mark as Completed", timeoutMillis = 15000)
         composeRule.onNodeWithText("Mark as Completed").performClick()
-
         waitForText("Completed", timeoutMillis = 20000)
 
         // =====================
-        // Step 13: Alice verifies final wallet = 110k
+        // Step 11: Bob logs out, Alice logs in
         // =====================
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Marketplace")
-        composeRule.onNodeWithText("Wallet").performClick()
-        waitForText("Available Balance")
-        waitForText("110.000")
-
-        // =====================
-        // Step 14: Bob verifies wallet = 90k (0% fee in beta)
-        // =====================
-        composeRule.onNodeWithText("Marketplace").performClick()
-        waitForText("Viecz")
         navigateToProfileAndLogout()
+        loginUser(aliceEmail, alicePassword)
 
-        loginUser(bobEmail, bobPassword)
-        composeRule.onNodeWithText("Wallet").performClick()
-        waitForText("Available Balance")
-        waitForText("90.000")
+        // =====================
+        // Step 12: Verify Alice's wallet = 300k (200k deposit + 100k earnings)
+        // Earnings bypass the 200k deposit limit
+        // =====================
+        navigateToWalletAndWaitForBalance()
+        waitForText("300.000")
+
+        // =====================
+        // Step 13: Alice tries to deposit again — still blocked
+        // (balance 300k, any deposit would exceed 200k max)
+        // =====================
+        depositAmount("2000")
+        waitForText("exceed maximum wallet balance")
     }
 }

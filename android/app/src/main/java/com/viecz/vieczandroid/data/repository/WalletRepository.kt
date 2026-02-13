@@ -6,6 +6,8 @@ import com.viecz.vieczandroid.data.models.DepositRequest
 import com.viecz.vieczandroid.data.models.DepositResponse
 import com.viecz.vieczandroid.data.models.Wallet
 import com.viecz.vieczandroid.data.models.WalletTransaction
+import com.viecz.vieczandroid.utils.parseErrorMessage
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +37,10 @@ class WalletRepository @Inject constructor(
             val response = api.deposit(DepositRequest(amount, description))
             Log.d(TAG, "Deposit created: checkoutUrl=${response.checkoutUrl}")
             Result.success(response)
+        } catch (e: HttpException) {
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error depositing: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create deposit", e)
             Result.failure(e)

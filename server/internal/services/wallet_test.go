@@ -281,6 +281,103 @@ func TestWalletService_Deposit(t *testing.T) {
 	}
 }
 
+func TestWalletService_ValidateDeposit(t *testing.T) {
+	tests := []struct {
+		name        string
+		userID      int64
+		amount      int64
+		setupRepo   func(*testutil.MockWalletRepository)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:   "valid deposit allowed",
+			userID: 1,
+			amount: 100000,
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(50000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr: false,
+		},
+		{
+			name:   "deposit from zero to over max rejected",
+			userID: 1,
+			amount: 200001,
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(0).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr:     true,
+			errContains: "exceed maximum wallet balance",
+		},
+		{
+			name:   "deposit from 199000 to 201000 rejected",
+			userID: 1,
+			amount: 2000,
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(199000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr:     true,
+			errContains: "exceed maximum wallet balance",
+		},
+		{
+			name:   "deposit to exact max allowed",
+			userID: 1,
+			amount: 1000,
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(199000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr: false,
+		},
+		{
+			name:        "negative amount rejected",
+			userID:      1,
+			amount:      -100,
+			setupRepo:   func(repo *testutil.MockWalletRepository) {},
+			wantErr:     true,
+			errContains: "must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			walletRepo := testutil.NewMockWalletRepository()
+			walletTxRepo := testutil.NewMockWalletTransactionRepository()
+			mockDB, cleanup, err := testutil.NewMockGormDB()
+			if err != nil {
+				t.Fatalf("Failed to create mock DB: %v", err)
+			}
+			defer cleanup()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(walletRepo)
+			}
+
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
+			ctx := context.Background()
+
+			err = service.ValidateDeposit(ctx, tt.userID, tt.amount)
+
+			testutil.AssertError(t, err, tt.wantErr, tt.errContains)
+		})
+	}
+}
+
 func TestWalletService_HoldInEscrow(t *testing.T) {
 	tests := []struct {
 		name        string

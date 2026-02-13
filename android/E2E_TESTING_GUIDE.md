@@ -62,6 +62,7 @@ Each scenario is documented in a separate file under [`e2escenarios/`](e2escenar
 | 15 | Multi-User Chat | — | `S15_MultiUserChatE2ETest` (requires real server + WebSocket) |
 | 16 | Escrow Negotiation | [16_escrow_negotiation.md](e2escenarios/16_escrow_negotiation.md) | `S16_EscrowNegotiationE2ETest` (requires real server) |
 | 17 | Wallet Flow | — | `S17_WalletFlowE2ETest` |
+| 18 | Wallet Balance Limit | [18_wallet_balance_limit.md](e2escenarios/18_wallet_balance_limit.md) | `S18_WalletBalanceLimitE2ETest` (requires real server) |
 
 ---
 
@@ -78,6 +79,7 @@ Each scenario is documented in a separate file under [`e2escenarios/`](e2escenar
 | `S15_MultiUserChatE2ETest` | `RealServerBaseE2ETest` | 15 (multi-user chat) |
 | `S16_EscrowNegotiationE2ETest` | `RealServerBaseE2ETest` | 16 (escrow with negotiated price) |
 | `S17_WalletFlowE2ETest` | `BaseE2ETest` | 17 (wallet balance & transactions) |
+| `S18_WalletBalanceLimitE2ETest` | `RealServerBaseE2ETest` | 18 (deposit limit + earnings bypass) |
 
 ---
 

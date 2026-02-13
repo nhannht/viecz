@@ -119,7 +119,10 @@ fun ProfileScreen(
 
     LaunchedEffect(uiState.becomeTaskerSuccess) {
         if (uiState.becomeTaskerSuccess) {
-            snackbarHostState.showSnackbar("You are now registered as a tasker!")
+            snackbarHostState.showSnackbar(
+                message = "You are now registered as a tasker!",
+                withDismissAction = true
+            )
             viewModel.clearBecomeTaskerSuccess()
         }
     }

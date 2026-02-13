@@ -62,7 +62,8 @@ fun TaskDetailScreen(
         if (uiState.paymentSuccess) {
             snackbarHostState.showSnackbar(
                 message = "Payment processed successfully!",
-                duration = SnackbarDuration.Short
+                duration = SnackbarDuration.Short,
+                withDismissAction = true
             )
             viewModel.clearPaymentSuccess()
         }
@@ -73,7 +74,8 @@ fun TaskDetailScreen(
         uiState.paymentError?.let { error ->
             snackbarHostState.showSnackbar(
                 message = "Payment failed: $error",
-                duration = SnackbarDuration.Long
+                duration = SnackbarDuration.Long,
+                withDismissAction = true
             )
             viewModel.clearPaymentError()
         }

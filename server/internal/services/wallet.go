@@ -50,6 +50,24 @@ func (s *WalletService) GetWalletByUserID(ctx context.Context, userID int64) (*m
 	return wallet, nil
 }
 
+// ValidateDeposit checks if a deposit would exceed the max wallet balance (without modifying anything)
+func (s *WalletService) ValidateDeposit(ctx context.Context, userID, amount int64) error {
+	if amount <= 0 {
+		return fmt.Errorf("deposit amount must be positive")
+	}
+
+	wallet, err := s.walletRepo.GetOrCreate(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get wallet: %w", err)
+	}
+
+	if s.maxWalletBalance > 0 && wallet.Balance+amount > s.maxWalletBalance {
+		return fmt.Errorf("deposit would exceed maximum wallet balance of %d VND (current: %d, deposit: %d)", s.maxWalletBalance, wallet.Balance, amount)
+	}
+
+	return nil
+}
+
 // Deposit adds funds to a wallet (for testing/dev mode)
 func (s *WalletService) Deposit(ctx context.Context, userID, amount int64, description string) error {
 	if amount <= 0 {

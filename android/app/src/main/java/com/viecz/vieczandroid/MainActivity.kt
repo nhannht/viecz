@@ -130,7 +130,8 @@ fun VieczApp(
                     }
                     snackbarHostState.showSnackbar(
                         message = "Session expired. Please log in again.",
-                        duration = SnackbarDuration.Short
+                        duration = SnackbarDuration.Short,
+                        withDismissAction = true
                     )
                 }
             }
@@ -148,7 +149,8 @@ fun VieczApp(
                 }
                 snackbarHostState.showSnackbar(
                     message = message,
-                    duration = SnackbarDuration.Long
+                    duration = SnackbarDuration.Long,
+                    withDismissAction = true
                 )
             }
         }

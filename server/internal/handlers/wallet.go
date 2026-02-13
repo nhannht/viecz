@@ -118,6 +118,15 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 		req.Description = "Wallet deposit"
 	}
 
+	// Validate deposit against max wallet balance before creating payment link
+	if err := h.walletService.ValidateDeposit(c.Request.Context(), userID.(int64), req.Amount); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   err.Error(),
+			Message: err.Error(),
+		})
+		return
+	}
+
 	// Generate unique order code
 	orderCode := time.Now().UnixNano() / int64(time.Millisecond)
 

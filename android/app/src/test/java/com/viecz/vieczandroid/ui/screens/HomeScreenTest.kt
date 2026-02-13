@@ -108,7 +108,7 @@ class HomeScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("Search").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Notifications").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Wallet").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Profile").assertIsDisplayed()
     }
@@ -297,7 +297,7 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `HomeScreen search bar toggles on search icon click`() {
+    fun `HomeScreen displays notification icon in action bar`() {
         composeTestRule.setContent {
             MaterialTheme {
                 HomeScreen(
@@ -312,13 +312,7 @@ class HomeScreenTest {
             }
         }
 
-        // Search bar should not be visible initially
-        composeTestRule.onNodeWithText("Search tasks...").assertDoesNotExist()
-
-        // Click search icon to show search bar
-        composeTestRule.onNodeWithContentDescription("Search").performClick()
-
-        composeTestRule.onNodeWithText("Search tasks...").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Notifications").assertIsDisplayed()
     }
 
     @Test

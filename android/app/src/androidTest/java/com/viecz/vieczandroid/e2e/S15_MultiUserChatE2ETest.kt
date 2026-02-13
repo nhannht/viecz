@@ -2,6 +2,7 @@ package com.viecz.vieczandroid.e2e
 
 import android.app.Instrumentation
 import android.content.Intent
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -148,8 +149,12 @@ class S15_MultiUserChatE2ETest : RealServerBaseE2ETest() {
         composeRule.onAllNodes(hasScrollToNodeAction()).onFirst()
             .performScrollToNode(hasText("Become a Tasker"))
         Thread.sleep(500)
-        composeRule.onNodeWithText("Become a Tasker").performClick()
-        waitForText("You are now registered as a tasker!", timeoutMillis = 10000)
+        composeRule.onNode(hasText("Become a Tasker") and hasClickAction())
+            .performSemanticsAction(SemanticsActions.OnClick)
+        waitForText("Become a Tasker") // Dialog title
+        composeRule.onNodeWithText("Yes, Register").performClick()
+        Thread.sleep(2000)
+        dismissSnackbarIfPresent()
     }
 
     private fun openChatViaMessageButton() {
@@ -299,6 +304,7 @@ class S15_MultiUserChatE2ETest : RealServerBaseE2ETest() {
         waitForText("Accept Application & Create Payment")
         composeRule.onNodeWithText("Accept").performClick()
         waitForText("Payment processed successfully!", timeoutMillis = 20000)
+        dismissSnackbarIfPresent()
 
         openChatViaMessageButton()
 
@@ -324,6 +330,7 @@ class S15_MultiUserChatE2ETest : RealServerBaseE2ETest() {
         waitForText("Accept Application & Create Payment")
         composeRule.onNodeWithText("Accept").performClick()
         waitForText("Payment processed successfully!", timeoutMillis = 20000)
+        dismissSnackbarIfPresent()
 
         openChatViaMessageButton()
 
