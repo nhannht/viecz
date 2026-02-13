@@ -55,26 +55,41 @@ Read in this order:
 
 ## Document Relationships
 
-```mermaid
-graph TD
-    SD["SYSTEM_DESIGN.md<br/>(High-level architecture)"]
-    DS["DATA_STRUCTURE.md<br/>(Data models)"]
-    UF["USER_FLOW.md<br/>(User journeys)"]
-    API["API_REFERENCE.md<br/>(Endpoints)"]
-    ALG["ALGORITHM.md<br/>(Business logic)"]
-    SEC["SECURITY.md<br/>(Security model)"]
-    ARCH["ARCHITECTURE.md<br/>(Detailed package structure)"]
-    DEP["DEPLOYMENT.md<br/>(Infrastructure & operations)"]
+```plantuml
+@startuml Document Relationships
 
-    SD --> DS
-    SD --> UF
-    DS --> API
-    UF --> ALG
-    API --> SEC
-    ALG --> SEC
+skinparam rectangle {
+    BackgroundColor #F7F7F7
+    BorderColor #333333
+    FontSize 12
+    RoundCorner 10
+}
+skinparam arrow {
+    Color #333333
+    FontSize 10
+}
+skinparam defaultTextAlignment center
 
-    ARCH -.- SD
-    DEP -.- SD
+rectangle "SYSTEM_DESIGN.md\n(High-level architecture)" as SD
+rectangle "DATA_STRUCTURE.md\n(Data models)" as DS
+rectangle "USER_FLOW.md\n(User journeys)" as UF
+rectangle "API_REFERENCE.md\n(Endpoints)" as API
+rectangle "ALGORITHM.md\n(Business logic)" as ALG
+rectangle "SECURITY.md\n(Security model)" as SEC
+rectangle "ARCHITECTURE.md\n(Detailed package structure)" as ARCH
+rectangle "DEPLOYMENT.md\n(Infrastructure & operations)" as DEP
+
+SD --> DS
+SD --> UF
+DS --> API
+UF --> ALG
+API --> SEC
+ALG --> SEC
+
+ARCH ..> SD
+DEP ..> SD
+
+@enduml
 ```
 
 ---

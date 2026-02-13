@@ -55,107 +55,120 @@ db.AutoMigrate(
 
 ## Entity Relationship Diagram
 
-```mermaid
-erDiagram
-    User ||--o| Wallet : "has one"
-    User ||--o{ Task : "posts (requester)"
-    User ||--o{ Task : "works (tasker)"
-    User ||--o{ TaskApplication : "applies"
-    User ||--o{ Transaction : "pays (payer)"
-    User ||--o{ Transaction : "receives (payee)"
-    User ||--o{ Conversation : "as poster"
-    User ||--o{ Conversation : "as tasker"
-    User ||--o{ Message : "sends"
-    User ||--o{ WalletTransaction : "referenced in"
+```plantuml
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam defaultFontSize 11
+hide circle
 
-    Category ||--o{ Task : "classifies"
+entity "User" as User {
+    * id : int64 <<PK>>
+    --
+    * email : string <<UK>>
+    password_hash : string
+    name : string
+    university : string
+    rating : float64
+    is_tasker : bool
+}
 
-    Task ||--o{ TaskApplication : "has"
-    Task ||--o{ Transaction : "has"
-    Task ||--o{ WalletTransaction : "referenced in"
-    Task ||--o| Conversation : "has"
+entity "Category" as Category {
+    * id : int <<PK>>
+    --
+    name : string
+    name_vi : string
+    is_active : bool
+}
 
-    Wallet ||--o{ WalletTransaction : "has"
+entity "Task" as Task {
+    * id : int64 <<PK>>
+    --
+    * requester_id : int64 <<FK>>
+    tasker_id : int64 <<FK>>
+    * category_id : int64 <<FK>>
+    title : string
+    price : int64
+    status : TaskStatus
+}
 
-    Transaction ||--o{ WalletTransaction : "linked to"
+entity "TaskApplication" as TaskApplication {
+    * id : int64 <<PK>>
+    --
+    * task_id : int64 <<FK>>
+    * tasker_id : int64 <<FK>>
+    status : ApplicationStatus
+}
 
-    Conversation ||--o{ Message : "contains"
+entity "Transaction" as Transaction {
+    * id : int64 <<PK>>
+    --
+    payer_id : int64 <<FK>>
+    task_id : int64 <<FK>>
+    payee_id : int64 <<FK>>
+    type : TransactionType
+    status : TransactionStatus
+    amount : int64
+}
 
-    User {
-        int64 ID PK
-        string Email UK
-        string PasswordHash
-        string Name
-        string University
-        float64 Rating
-        bool IsTasker
-    }
+entity "Wallet" as Wallet {
+    * id : int64 <<PK>>
+    --
+    * user_id : int64 <<FK>> <<UK>>
+    balance : int64
+    escrow_balance : int64
+}
 
-    Category {
-        int ID PK
-        string Name
-        string NameVi
-        bool IsActive
-    }
+entity "WalletTransaction" as WalletTransaction {
+    * id : int64 <<PK>>
+    --
+    * wallet_id : int64 <<FK>>
+    transaction_id : int64 <<FK>>
+    task_id : int64 <<FK>>
+    type : WalletTransactionType
+    amount : int64
+}
 
-    Task {
-        int64 ID PK
-        int64 RequesterID FK
-        int64 TaskerID FK
-        int64 CategoryID FK
-        string Title
-        int64 Price
-        TaskStatus Status
-    }
+entity "Conversation" as Conversation {
+    * id : uint <<PK>>
+    --
+    * task_id : uint <<FK>>
+    * poster_id : uint <<FK>>
+    * tasker_id : uint <<FK>>
+    last_message : string
+}
 
-    TaskApplication {
-        int64 ID PK
-        int64 TaskID FK
-        int64 TaskerID FK
-        ApplicationStatus Status
-    }
+entity "Message" as Message {
+    * id : uint <<PK>>
+    --
+    * conversation_id : uint <<FK>>
+    * sender_id : uint <<FK>>
+    content : string
+    is_read : bool
+}
 
-    Transaction {
-        int64 ID PK
-        int64 PayerID FK
-        int64 TaskID FK
-        int64 PayeeID FK
-        TransactionType Type
-        TransactionStatus Status
-        int64 Amount
-    }
+User ||--|| Wallet : "has one"
+User ||--o{ Task : "posts (requester)"
+User ||--o{ Task : "works (tasker)"
+User ||--o{ TaskApplication : "applies"
+User ||--o{ Transaction : "pays (payer)"
+User ||--o{ Transaction : "receives (payee)"
+User ||--o{ Conversation : "as poster"
+User ||--o{ Conversation : "as tasker"
+User ||--o{ Message : "sends"
 
-    Wallet {
-        int64 ID PK
-        int64 UserID FK_UK
-        int64 Balance
-        int64 EscrowBalance
-    }
+Category ||--o{ Task : "classifies"
 
-    WalletTransaction {
-        int64 ID PK
-        int64 WalletID FK
-        int64 TransactionID FK
-        int64 TaskID FK
-        WalletTransactionType Type
-        int64 Amount
-    }
+Task ||--o{ TaskApplication : "has"
+Task ||--o{ Transaction : "has"
+Task ||--o| Conversation : "has"
 
-    Conversation {
-        uint ID PK
-        uint TaskID FK
-        uint PosterID FK
-        uint TaskerID FK
-        string LastMessage
-    }
+Wallet ||--o{ WalletTransaction : "has"
 
-    Message {
-        uint ID PK
-        uint ConversationID FK
-        uint SenderID FK
-        string Content
-        bool IsRead
-    }
+Transaction ||--o{ WalletTransaction : "linked to"
+
+Conversation ||--o{ Message : "contains"
+@enduml
 ```
 
 ---

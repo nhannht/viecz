@@ -34,45 +34,78 @@ Viecz is a P2P marketplace connecting university students for small services. Th
 
 ## 2. System Architecture
 
-```mermaid
-flowchart TD
-    subgraph ANDROID_CLIENT["ANDROID CLIENT"]
-        ComposeUI["Compose UI"] --> ViewModels["ViewModels\n(State)"]
-        ViewModels --> Repositories["Repositories\n(Data)"]
-        Repositories --> Retrofit["Retrofit\n+ OkHttp"]
-        WebSocketClient["WebSocket Client"] --> Retrofit
-    end
+```plantuml
+@startuml System Architecture
+skinparam componentStyle rectangle
+skinparam defaultFontSize 12
+skinparam packageStyle frame
 
-    Retrofit -->|"HTTPS / WSS"| NGINX
-    WebSocketClient -->|"WSS"| NGINX
+package "ANDROID CLIENT" #LightBlue {
+    component "Compose UI" as ComposeUI
+    component "ViewModels\n(State)" as ViewModels
+    component "Repositories\n(Data)" as Repositories
+    component "Retrofit\n+ OkHttp" as Retrofit
+    component "WebSocket Client" as WebSocketClient
 
-    NGINX["NGINX\n(SSL + Reverse Proxy)"]
+    ComposeUI --> ViewModels
+    ViewModels --> Repositories
+    Repositories --> Retrofit
+    WebSocketClient --> Retrofit
+}
 
-    NGINX --> GO_BACKEND
+node "NGINX\n(SSL + Reverse Proxy)" as NGINX #LightYellow
 
-    subgraph GO_BACKEND["GO BACKEND (Gin)"]
-        Handlers["Handlers\n(HTTP/WS)"] --> Services["Services\n(Business)"]
-        Services --> Repository["Repository\n(GORM impl)"]
-        AuthMW["Auth Middleware\n(JWT)"] --> Handlers
-        WebSocketHub["WebSocket Hub\n(goroutine)"]
-    end
+Retrofit -down-> NGINX : "HTTPS / WSS"
+WebSocketClient -down-> NGINX : "WSS"
 
-    Repository --> PostgreSQL["PostgreSQL (Production)\nSQLite (Test)"]
-    Repository --> PayOS["PayOS\n(Payments)"]
+package "GO BACKEND (Gin)" #LightGreen {
+    component "Auth Middleware\n(JWT)" as AuthMW
+    component "Handlers\n(HTTP/WS)" as Handlers
+    component "Services\n(Business)" as Services
+    component "Repository\n(GORM impl)" as Repository
+    component "WebSocket Hub\n(goroutine)" as WebSocketHub
+
+    AuthMW --> Handlers
+    Handlers --> Services
+    Services --> Repository
+}
+
+NGINX -down-> Handlers
+
+database "PostgreSQL (Production)\nSQLite (Test)" as DB
+cloud "PayOS\n(Payments)" as PayOS
+
+Repository -down-> DB
+Repository -down-> PayOS
+@enduml
 ```
 
 ### Request Flow
 
-```mermaid
-graph TD
-    A["Android App"] -->|"POST /api/v1/tasks\nAuthorization: Bearer JWT"| B["Nginx\n(SSL termination, rate limiting)"]
-    B -->|"proxy_pass localhost:8080"| C["Gin Router"]
-    C --> D["CORS Middleware"]
-    D --> E["Auth Middleware\n(JWT validation → sets user_id in context)"]
-    E --> F["Handler\n(parse request, call service)"]
-    F --> G["Service\n(business logic, validation)"]
-    G --> H["Repository\n(GORM queries → database)"]
-    H --> I["Response\n(JSON → Android)"]
+```plantuml
+@startuml Request Flow
+skinparam componentStyle rectangle
+skinparam defaultFontSize 12
+
+component "Android App" as A #LightBlue
+component "Nginx\n(SSL termination,\nrate limiting)" as B #LightYellow
+component "Gin Router" as C #LightGreen
+component "CORS Middleware" as D #LightGreen
+component "Auth Middleware\n(JWT validation -> sets\nuser_id in context)" as E #LightGreen
+component "Handler\n(parse request, call service)" as F #LightGreen
+component "Service\n(business logic, validation)" as G #LightGreen
+component "Repository\n(GORM queries -> database)" as H #LightGreen
+component "Response\n(JSON -> Android)" as I #LightGreen
+
+A -down-> B : "POST /api/v1/tasks\nAuthorization: Bearer JWT"
+B -down-> C : "proxy_pass localhost:8080"
+C -down-> D
+D -down-> E
+E -down-> F
+F -down-> G
+G -down-> H
+H -down-> I
+@enduml
 ```
 
 ---
@@ -359,14 +392,25 @@ android/app/src/main/java/com/viecz/vieczandroid/
 
 ### MVVM Data Flow
 
-```mermaid
-flowchart LR
-    ComposeScreen["Compose Screen"] -->|"event (onClick)"| ViewModel["ViewModel\n(StateFlow)"]
-    ViewModel -->|"state"| ComposeScreen
-    ViewModel -->|"call (function)"| Repository["Repository\n(API + Room)"]
-    Repository -->|"data"| ViewModel
-    Repository --> RetrofitAPI["Retrofit API\n(Network)"]
-    Repository --> RoomDAO["Room DAO\n(Local DB)"]
+```plantuml
+@startuml MVVM Data Flow
+skinparam componentStyle rectangle
+skinparam defaultFontSize 12
+left to right direction
+
+component "Compose Screen" as ComposeScreen #LightBlue
+component "ViewModel\n(StateFlow)" as ViewModel #LightYellow
+component "Repository\n(API + Room)" as Repository #LightGreen
+component "Retrofit API\n(Network)" as RetrofitAPI #Wheat
+component "Room DAO\n(Local DB)" as RoomDAO #Wheat
+
+ComposeScreen -right-> ViewModel : "event (onClick)"
+ViewModel -left-> ComposeScreen : "state"
+ViewModel -right-> Repository : "call (function)"
+Repository -left-> ViewModel : "data"
+Repository -right-> RetrofitAPI
+Repository -right-> RoomDAO
+@enduml
 ```
 
 ### Hilt Dependency Graph
@@ -424,74 +468,139 @@ Wallet, WalletTransaction, Conversation, Message
 
 ### Entity Relationship Diagram
 
-```
-┌───────────────┐       ┌───────────────┐       ┌──────────────────┐
-│     User      │       │   Category    │       │  TaskApplication │
-├───────────────┤       ├───────────────┤       ├──────────────────┤
-│ id (PK)       │       │ id (PK)       │       │ id (PK)          │
-│ email (UNIQUE)│       │ name          │       │ task_id (FK)     │
-│ password_hash │       │ name_vi       │       │ tasker_id (FK)   │
-│ name          │       │ icon          │       │ proposed_price   │
-│ avatar_url    │       │ is_active     │       │ message          │
-│ phone         │       └──────┬────────┘       │ status           │
-│ university    │              │ 1:N            └─────────┬────────┘
-│ student_id    │              │                          │
-│ is_verified   │       ┌──────▼────────┐                │ N:1
-│ rating        │       │     Task      │◄───────────────┘
-│ is_tasker     │       ├───────────────┤
-│ tasker_bio    │  1:N  │ id (PK)       │
-│ tasker_skills │◄──────│ requester_id  │
-│ total_*       │       │ tasker_id     │
-│ created_at    │       │ category_id   │
-│ updated_at    │       │ title         │
-└──────┬────────┘       │ description   │
-       │                │ price         │
-       │                │ location      │
-       │ 1:1            │ lat/lng       │
-       │                │ status        │
-┌──────▼────────┐       │ scheduled_for │
-│    Wallet     │       │ completed_at  │
-├───────────────┤       │ image_urls    │
-│ id (PK)       │       └──────┬────────┘
-│ user_id (FK)  │              │
-│ balance       │              │ 1:N
-│ escrow_balance│       ┌──────▼────────┐
-│ total_*       │       │ Conversation  │
-└──────┬────────┘       ├───────────────┤
-       │                │ id (PK)       │
-       │ 1:N            │ task_id (FK)  │
-┌──────▼────────────┐   │ poster_id     │
-│ WalletTransaction │   │ tasker_id     │
-├───────────────────┤   │ last_message  │
-│ id (PK)           │   └──────┬────────┘
-│ wallet_id (FK)    │          │
-│ transaction_id    │          │ 1:N
-│ task_id           │   ┌──────▼────────┐
-│ type              │   │    Message    │
-│ amount            │   ├───────────────┤
-│ balance_before    │   │ id (PK)       │
-│ balance_after     │   │ conversation_id│
-│ escrow_before     │   │ sender_id     │
-│ escrow_after      │   │ content       │
-│ description       │   │ is_read       │
-│ reference_user_id │   └───────────────┘
-└───────────────────┘
+```plantuml
+@startuml Entity Relationship Diagram
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam defaultFontSize 11
+hide circle
 
-┌───────────────────┐
-│   Transaction     │
-├───────────────────┤
-│ id (PK)           │
-│ task_id (FK)      │
-│ payer_id (FK)     │
-│ payee_id (FK)     │
-│ amount            │
-│ platform_fee      │
-│ net_amount        │
-│ type              │  (escrow | release | refund | deposit | withdrawal | platform_fee)
-│ status            │  (pending | success | failed | cancelled)
-│ payos_order_code  │
-│ description       │
-└───────────────────┘
+entity "User" as User {
+    * id : PK
+    --
+    * email : UNIQUE
+    password_hash
+    name
+    avatar_url
+    phone
+    university
+    student_id
+    is_verified
+    rating
+    is_tasker
+    tasker_bio
+    tasker_skills
+    total_*
+    created_at
+    updated_at
+}
+
+entity "Category" as Category {
+    * id : PK
+    --
+    name
+    name_vi
+    icon
+    is_active
+}
+
+entity "Task" as Task {
+    * id : PK
+    --
+    * requester_id : FK -> User
+    tasker_id : FK -> User
+    * category_id : FK -> Category
+    title
+    description
+    price
+    location
+    lat/lng
+    status
+    scheduled_for
+    completed_at
+    image_urls
+}
+
+entity "TaskApplication" as TaskApplication {
+    * id : PK
+    --
+    * task_id : FK -> Task
+    * tasker_id : FK -> User
+    proposed_price
+    message
+    status
+}
+
+entity "Wallet" as Wallet {
+    * id : PK
+    --
+    * user_id : FK -> User
+    balance
+    escrow_balance
+    total_*
+}
+
+entity "WalletTransaction" as WalletTransaction {
+    * id : PK
+    --
+    * wallet_id : FK -> Wallet
+    transaction_id
+    task_id
+    type
+    amount
+    balance_before
+    balance_after
+    escrow_before
+    escrow_after
+    description
+    reference_user_id
+}
+
+entity "Conversation" as Conversation {
+    * id : PK
+    --
+    * task_id : FK -> Task
+    poster_id
+    tasker_id
+    last_message
+}
+
+entity "Message" as Message {
+    * id : PK
+    --
+    * conversation_id : FK -> Conversation
+    sender_id
+    content
+    is_read
+}
+
+entity "Transaction" as Transaction {
+    * id : PK
+    --
+    task_id : FK -> Task
+    payer_id : FK -> User
+    payee_id : FK -> User
+    amount
+    platform_fee
+    net_amount
+    type : "escrow | release | refund | deposit | withdrawal | platform_fee"
+    status : "pending | success | failed | cancelled"
+    payos_order_code
+    description
+}
+
+User ||--o{ Task : "1:N (requester)"
+Category ||--o{ Task : "1:N"
+Task ||--o{ TaskApplication : "1:N"
+User ||--o{ TaskApplication : "1:N (tasker)"
+User ||--|| Wallet : "1:1"
+Wallet ||--o{ WalletTransaction : "1:N"
+Task ||--o{ Conversation : "1:N"
+Conversation ||--o{ Message : "1:N"
+User ||--o{ Transaction : "1:N (payer)"
+User ||--o{ Transaction : "1:N (payee)"
+Task ||--o{ Transaction : "1:N"
+@enduml
 ```
 
 ### Production vs Test Server Database
@@ -522,64 +631,77 @@ Room is used for offline caching on the Android side:
 
 ### Server-Side (Gorilla WebSocket)
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    WebSocket Hub (goroutine)                   │
-│                                                              │
-│  clients: map[userID] → *Client                              │
-│  conversations: map[conversationID] → map[*Client]bool       │
-│                                                              │
-│  Channels:                                                   │
-│    Register   ◄── new client connections                     │
-│    Unregister ◄── client disconnections                      │
-│    Broadcast  ◄── messages to broadcast to conversations     │
-│                                                              │
-│  Methods:                                                    │
-│    JoinConversation(client, conversationID)                   │
-│    LeaveConversation(client, conversationID)                  │
-│    SendToUser(userID, message)                               │
-│    IsUserOnline(userID) bool                                 │
-└──────────────────────────────────────────────────────────────┘
-         │                              │
-    ┌────▼────┐                    ┌────▼────┐
-    │ Client  │                    │ Client  │
-    │ UserID=1│                    │ UserID=2│
-    │         │                    │         │
-    │readPump │ (reads from conn)  │readPump │
-    │writePump│ (writes to conn)   │writePump│
-    │send chan│                    │send chan│
-    └─────────┘                    └─────────┘
+```plantuml
+@startuml WebSocket Hub Architecture
+skinparam componentStyle rectangle
+skinparam defaultFontSize 11
+
+package "WebSocket Hub (goroutine)" as Hub #LightGreen {
+    note as HubState
+        **State:**
+        clients: map[userID] -> *Client
+        conversations: map[conversationID] -> map[*Client]bool
+
+        **Channels:**
+        Register   <-- new client connections
+        Unregister <-- client disconnections
+        Broadcast  <-- messages to broadcast to conversations
+
+        **Methods:**
+        JoinConversation(client, conversationID)
+        LeaveConversation(client, conversationID)
+        SendToUser(userID, message)
+        IsUserOnline(userID) bool
+    end note
+}
+
+rectangle "Client\nUserID=1" as Client1 #LightBlue {
+    component "readPump\n(reads from conn)" as rp1
+    component "writePump\n(writes to conn)" as wp1
+    component "send chan" as sc1
+}
+
+rectangle "Client\nUserID=2" as Client2 #LightBlue {
+    component "readPump\n(reads from conn)" as rp2
+    component "writePump\n(writes to conn)" as wp2
+    component "send chan" as sc2
+}
+
+Hub -down-> Client1
+Hub -down-> Client2
+@enduml
 ```
 
 ### Connection Flow
 
-```
-Android                        Server
-  │                              │
-  │  GET /api/v1/ws?token=JWT    │
-  │─────────────────────────────►│
-  │                              │  Validate JWT
-  │                              │  Upgrade to WebSocket
-  │  101 Switching Protocols     │
-  │◄─────────────────────────────│
-  │                              │  Create Client, Register with Hub
-  │                              │
-  │  {"type":"join",             │
-  │   "conversation_id":5}       │
-  │─────────────────────────────►│  Hub.JoinConversation(client, 5)
-  │                              │
-  │  {"type":"message",          │
-  │   "conversation_id":5,       │
-  │   "content":"Hello"}         │
-  │─────────────────────────────►│  MessageService.HandleMessage
-  │                              │    → Save to DB
-  │                              │    → Hub.Broadcast to conv 5
-  │                              │
-  │  {"type":"message",          │
-  │   "sender_id":2,             │
-  │   "content":"Hi back"}       │
-  │◄─────────────────────────────│  Broadcast from other user
-  │                              │
+```plantuml
+@startuml WebSocket Connection Flow
+skinparam defaultFontSize 11
+
+participant "Android" as Android #LightBlue
+participant "Server" as Server #LightGreen
+
+Android -> Server : GET /api/v1/ws?token=JWT
+note right of Server
+    Validate JWT
+    Upgrade to WebSocket
+end note
+Server --> Android : 101 Switching Protocols
+note right of Server : Create Client, Register with Hub
+
+Android -> Server : {"type":"join",\n "conversation_id":5}
+note right of Server : Hub.JoinConversation(client, 5)
+
+Android -> Server : {"type":"message",\n "conversation_id":5,\n "content":"Hello"}
+note right of Server
+    MessageService.HandleMessage
+    -> Save to DB
+    -> Hub.Broadcast to conv 5
+end note
+
+Server --> Android : {"type":"message",\n "sender_id":2,\n "content":"Hi back"}
+note right of Server : Broadcast from other user
+@enduml
 ```
 
 ### WebSocket Message Types
@@ -607,52 +729,54 @@ The Android `WebSocketClient` is a `@Singleton` injected via Hilt. It:
 
 ### Wallet-Based Escrow Flow
 
-```
-Phase 1: Deposit (PayOS → Wallet)
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│  User    │     │  Server  │     │  PayOS   │
-└────┬─────┘     └────┬─────┘     └────┬─────┘
-     │ POST /wallet/deposit            │
-     │──────────────►│                 │
-     │               │ CreatePaymentLink
-     │               │────────────────►│
-     │               │ checkout_url    │
-     │ ◄─────────────│◄────────────────│
-     │               │                 │
-     │  User pays    │                 │
-     │──────────────────────────────►│
-     │               │  Webhook: paid  │
-     │               │◄────────────────│
-     │               │                 │
-     │               │ WalletService.Deposit(userID, amount)
-     │               │ → wallet.Credit(amount)
-     │               │ → create WalletTransaction
-     │               │                 │
+```plantuml
+@startuml Payment Escrow Flow
+skinparam defaultFontSize 11
 
-Phase 2: Escrow Hold (Accept Task Application)
-┌──────────┐     ┌──────────┐
-│ Requester│     │  Server  │
-└────┬─────┘     └────┬─────┘
-     │ POST /payments/escrow
-     │──────────────►│
-     │               │ WalletService.HoldInEscrow(requesterID, amount, taskID)
-     │               │ → wallet.Balance -= amount
-     │               │ → wallet.EscrowBalance += amount
-     │               │ → create Transaction (type=escrow)
-     │               │ → create WalletTransaction (type=escrow_hold)
-     │ ◄─────────────│
+participant "User /\nRequester" as User #LightBlue
+participant "Server" as Server #LightGreen
+participant "PayOS" as PayOS #Wheat
+participant "Tasker" as Tasker #LightCoral
 
-Phase 3: Release (Task Completed)
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│ Requester│     │  Server  │     │  Tasker  │
-└────┬─────┘     └────┬─────┘     └────┬─────┘
-     │ POST /payments/release          │
-     │──────────────►│                 │
-     │               │ WalletService.ReleaseFromEscrow
-     │               │ → requester.EscrowBalance -= amount
-     │               │ → tasker.Balance += amount
-     │               │ → create WalletTransactions for both
-     │ ◄─────────────│                 │
+== Phase 1: Deposit (PayOS -> Wallet) ==
+
+User -> Server : POST /wallet/deposit
+Server -> PayOS : CreatePaymentLink
+PayOS --> Server : checkout_url
+Server --> User : checkout_url
+
+User -> PayOS : User pays via PayOS
+PayOS -> Server : Webhook: paid
+note right of Server
+    WalletService.Deposit(userID, amount)
+    -> wallet.Credit(amount)
+    -> create WalletTransaction
+end note
+
+== Phase 2: Escrow Hold (Accept Task Application) ==
+
+User -> Server : POST /payments/escrow
+note right of Server
+    WalletService.HoldInEscrow(requesterID, amount, taskID)
+    -> wallet.Balance -= amount
+    -> wallet.EscrowBalance += amount
+    -> create Transaction (type=escrow)
+    -> create WalletTransaction (type=escrow_hold)
+end note
+Server --> User : OK
+
+== Phase 3: Release (Task Completed) ==
+
+User -> Server : POST /payments/release
+note right of Server
+    WalletService.ReleaseFromEscrow
+    -> requester.EscrowBalance -= amount
+    -> tasker.Balance += amount
+    -> create WalletTransactions for both
+end note
+Server --> User : OK
+Server --> Tasker : Funds credited
+@enduml
 ```
 
 ### Wallet Transaction Types
@@ -677,27 +801,37 @@ Configurable via `MAX_WALLET_BALANCE` env var (default: 200,000 VND). Deposits t
 
 ### Flow
 
-```
-Android App                       Go Server
-    │                                │
-    │  POST /api/v1/auth/register    │
-    │  { email, password, name }     │
-    │───────────────────────────────►│
-    │                                │  bcrypt.Hash(password)
-    │                                │  userRepo.Create(user)
-    │                                │  jwt.GenerateToken(user)
-    │  { token, user }               │
-    │◄───────────────────────────────│
-    │                                │
-    │  Store token in                │
-    │  EncryptedSharedPreferences    │
-    │                                │
-    │  Subsequent requests:          │
-    │  Authorization: Bearer <token> │
-    │───────────────────────────────►│
-    │                                │  auth.AuthRequired middleware
-    │                                │  → ValidateToken(token, secret)
-    │                                │  → Set user_id in gin.Context
+```plantuml
+@startuml Authentication Flow
+skinparam defaultFontSize 11
+
+participant "Android App" as Android #LightBlue
+participant "Go Server" as Server #LightGreen
+
+== Registration ==
+
+Android -> Server : POST /api/v1/auth/register\n{ email, password, name }
+note right of Server
+    bcrypt.Hash(password)
+    userRepo.Create(user)
+    jwt.GenerateToken(user)
+end note
+Server --> Android : { token, user }
+
+note over Android
+    Store token in
+    EncryptedSharedPreferences
+end note
+
+== Subsequent Requests ==
+
+Android -> Server : Authorization: Bearer <token>
+note right of Server
+    auth.AuthRequired middleware
+    -> ValidateToken(token, secret)
+    -> Set user_id in gin.Context
+end note
+@enduml
 ```
 
 ### JWT Claims
@@ -785,18 +919,40 @@ All routes are prefixed with `/api/v1/`.
 
 ### Production Stack
 
-```
-Internet → Nginx (SSL/443) → Go Binary (:8080) → PostgreSQL (:5432)
-                                    ↕
-                               PayOS API
+```plantuml
+@startuml Production Deployment
+skinparam defaultFontSize 12
+skinparam componentStyle rectangle
+
+cloud "Internet" as Internet #LightGray
+node "Nginx\n(SSL/443)" as Nginx #LightYellow
+node "Go Binary\n(:8080)" as GoBinary #LightGreen
+database "PostgreSQL\n(:5432)" as PostgreSQL #LightBlue
+cloud "PayOS API" as PayOS #Wheat
+
+Internet -right-> Nginx
+Nginx -right-> GoBinary
+GoBinary -right-> PostgreSQL
+GoBinary -down-> PayOS
+@enduml
 ```
 
 ### Test Server Stack
 
-```
-Emulator/Device → Go Binary (:9999) → SQLite (in-memory)
-                        ↕
-                   Mock PayOS (auto-webhook)
+```plantuml
+@startuml Test Deployment
+skinparam defaultFontSize 12
+skinparam componentStyle rectangle
+
+node "Emulator / Device" as Device #LightBlue
+node "Go Binary\n(:9999)" as GoBinary #LightGreen
+database "SQLite\n(in-memory)" as SQLite #LightYellow
+component "Mock PayOS\n(auto-webhook)" as MockPayOS #Wheat
+
+Device -right-> GoBinary
+GoBinary -right-> SQLite
+GoBinary -down-> MockPayOS
+@enduml
 ```
 
 ---
