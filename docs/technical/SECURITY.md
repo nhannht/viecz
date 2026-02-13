@@ -25,43 +25,26 @@
 
 ### 1.1 Security Architecture
 
-```plantuml
-@startuml Security Architecture
+```mermaid
+flowchart TD
+    APP["<b>Android App</b><br/>(Jetpack Compose)"]
 
-skinparam backgroundColor #FEFEFE
-skinparam defaultFontName "Segoe UI"
-skinparam defaultFontSize 12
-skinparam rectangleBorderColor #555555
-skinparam rectangleFontStyle bold
-skinparam packageBorderColor #333333
-skinparam packageFontSize 14
-skinparam arrowColor #333333
-skinparam arrowThickness 2
+    subgraph BACKEND ["Go Backend (Gin)"]
+        L1["<b>1. CORS Middleware</b><br/>- Origin validation<br/>- Preflight handling"]
+        L2["<b>2. Auth Middleware (JWT HS256)</b><br/>- Bearer token extraction<br/>- Token validation + signing method check<br/>- User context injection"]
+        L3["<b>3. Gin Binding Validation</b><br/>- Struct tag validation (required, email, min)<br/>- JSON schema enforcement"]
+        L4["<b>4. Business Logic Layer</b><br/>- Resource ownership checks<br/>- Escrow payment logic<br/>- Conversation participant verification"]
+        L5["<b>5. Data Access Layer (GORM)</b><br/>- Parameterized queries<br/>- Model validation hooks<br/>(BeforeCreate / BeforeUpdate)"]
+    end
 
-rectangle "**Android App**\n(Jetpack Compose)" as APP #LightSkyBlue
+    DB[("<b>PostgreSQL</b> (prod)<br/><b>SQLite</b> (test)")]
 
-package "**Go Backend (Gin)**" as BACKEND #WhiteSmoke {
-    rectangle "**1. CORS Middleware**\n- Origin validation\n- Preflight handling" as L1 #LightGoldenRodYellow
-
-    rectangle "**2. Auth Middleware (JWT HS256)**\n- Bearer token extraction\n- Token validation + signing method check\n- User context injection" as L2 #LightCoral
-
-    rectangle "**3. Gin Binding Validation**\n- Struct tag validation (required, email, min)\n- JSON schema enforcement" as L3 #LightGreen
-
-    rectangle "**4. Business Logic Layer**\n- Resource ownership checks\n- Escrow payment logic\n- Conversation participant verification" as L4 #LightSteelBlue
-
-    rectangle "**5. Data Access Layer (GORM)**\n- Parameterized queries\n- Model validation hooks\n  (BeforeCreate / BeforeUpdate)" as L5 #Thistle
-}
-
-database "**PostgreSQL** (prod)\n**SQLite** (test)" as DB #Wheat
-
-APP -down-> L1 : HTTPS / Bearer JWT
-L1 -down-> L2
-L2 -down-> L3
-L3 -down-> L4
-L4 -down-> L5
-L5 -down-> DB
-
-@enduml
+    APP -- "HTTPS / Bearer JWT" --> L1
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L5 --> DB
 ```
 
 ### 1.2 Technology Stack

@@ -21,48 +21,43 @@ The system is a monolithic client-server architecture:
 
 ## 2. High-Level Architecture
 
-```plantuml
-@startuml
-skinparam componentStyle rectangle
-skinparam packageStyle rectangle
-skinparam defaultFontSize 12
+```mermaid
+graph TD
+    subgraph AndroidApp["Android App (Kotlin/Compose)"]
+        Retrofit["Retrofit - HTTP"]
+        OkHttp["OkHttp - WebSocket"]
+    end
 
-package "Android App (Kotlin/Compose)" #LightBlue {
-    [Retrofit - HTTP] as Retrofit
-    [OkHttp - WebSocket] as OkHttp
-}
+    subgraph Nginx["Nginx (reverse proxy)"]
+        NginxProxy["HTTPS / WSS"]
+    end
 
-package "Nginx (reverse proxy)" #LightGray {
-    [HTTPS / WSS] as NginxProxy
-}
+    subgraph GoServer["Go Server (Gin)"]
+        Handlers
+        Services
+        Repos["Repository"]
+        WebSocketHub["WebSocket Hub"]
+        GORM["GORM (ORM)"]
 
-package "Go Server (Gin)" #LightGreen {
-    [Handlers] as Handlers
-    [Services] as Services
-    [Repository] as Repos
-    [WebSocket Hub] as WebSocketHub
-    [GORM (ORM)] as GORM
+        Handlers --> Services
+        Services --> Repos
+        Repos --> GORM
+    end
 
-    Handlers --> Services
-    Services --> Repos
-    Repos --> GORM
-}
+    subgraph Database
+        PostgreSQL["PostgreSQL (prod)"]
+        SQLite["SQLite (test)"]
+    end
 
-package "Database" #Wheat {
-    database "PostgreSQL (prod)" as PostgreSQL
-    database "SQLite (test)" as SQLite
-}
+    PayOS["PayOS (payment gateway)"]
 
-cloud "PayOS\n(payment gateway)" as PayOS #Pink
-
-Retrofit --> NginxProxy : HTTPS
-OkHttp --> NginxProxy : WSS
-NginxProxy --> Handlers
-NginxProxy --> WebSocketHub
-GORM --> PostgreSQL
-GORM --> SQLite
-GORM ..> PayOS : external
-@enduml
+    Retrofit -->|HTTPS| NginxProxy
+    OkHttp -->|WSS| NginxProxy
+    NginxProxy --> Handlers
+    NginxProxy --> WebSocketHub
+    GORM --> PostgreSQL
+    GORM --> SQLite
+    GORM -.->|external| PayOS
 ```
 
 ---
@@ -108,23 +103,12 @@ server/
 
 ### 4.2 Layered Architecture
 
-```plantuml
-@startuml
-skinparam componentStyle rectangle
-skinparam rectangleBorderColor #333
-skinparam rectangleBackgroundColor #FAFAFA
-
-rectangle "**HTTP Request**" as A #LightBlue
-rectangle "**Handler**\nParse request, validate input,\ncall service, return JSON" as B #LightGreen
-rectangle "**Service**\nBusiness logic, orchestration,\ntransactions" as C #LightYellow
-rectangle "**Repository**\nGORM queries, interface-based\n(testable)" as D #Wheat
-rectangle "**GORM**\nORM -> PostgreSQL / SQLite" as E #LightGray
-
-A --> B
-B --> C
-C --> D
-D --> E
-@enduml
+```mermaid
+graph TD
+    A["HTTP Request"] --> B["Handler<br/>Parse request, validate input,<br/>call service, return JSON"]
+    B --> C["Service<br/>Business logic, orchestration,<br/>transactions"]
+    C --> D["Repository<br/>GORM queries, interface-based<br/>(testable)"]
+    D --> E["GORM<br/>ORM -> PostgreSQL / SQLite"]
 ```
 
 Each repository is defined as a Go interface (e.g. `UserRepository`, `TaskRepository`)
@@ -177,39 +161,26 @@ All routes are under `/api/v1`.
 
 ### 4.4 Authentication Flow
 
-```plantuml
-@startuml
-participant Client
-participant Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
 
-Client -> Server : POST /auth/register
-note right of Server
-  Hash password (bcrypt), create user
-  Generate JWT access (short-lived)
-  + refresh token (long-lived)
-end note
-Server --> Client : { access_token, refresh_token }
+    Client->>Server: POST /auth/register
+    Note right of Server: Hash password (bcrypt), create user<br/>Generate JWT access (short-lived)<br/>+ refresh token (long-lived)
+    Server-->>Client: { access_token, refresh_token }
 
-Client -> Server : POST /auth/login
-note right of Server : Verify credentials, return tokens
-Server --> Client : { access_token, refresh_token }
+    Client->>Server: POST /auth/login
+    Note right of Server: Verify credentials, return tokens
+    Server-->>Client: { access_token, refresh_token }
 
-Client -> Server : GET /tasks\nAuthorization: Bearer <at>
-note right of Server
-  AuthRequired middleware:
-  Extract "Bearer" token
-  ValidateToken(token, secret)
-  Set user_id in Gin context
-end note
-Server --> Client : 200 [...tasks]
+    Client->>Server: GET /tasks<br/>Authorization: Bearer <at>
+    Note right of Server: AuthRequired middleware:<br/>Extract "Bearer" token<br/>ValidateToken(token, secret)<br/>Set user_id in Gin context
+    Server-->>Client: 200 [...tasks]
 
-Client -> Server : POST /auth/refresh\n{ refresh_token }
-note right of Server
-  Validate refresh token
-  Generate new access token
-end note
-Server --> Client : { access_token }
-@enduml
+    Client->>Server: POST /auth/refresh<br/>{ refresh_token }
+    Note right of Server: Validate refresh token<br/>Generate new access token
+    Server-->>Client: { access_token }
 ```
 
 JWT claims contain: `sub` (user ID), `email`, `name`, `is_tasker`, standard
@@ -221,109 +192,92 @@ registered claims (exp, iat, nbf). Signed with HS256.
 
 ### 5.1 Entity Relationship Diagram
 
-```plantuml
-@startuml
-skinparam linetype ortho
+```mermaid
+erDiagram
+    User {
+        uint id PK
+        string email
+        string name
+        bool is_tasker
+        float rating
+    }
 
-entity "User" as User {
-    * id : uint <<PK>>
-    --
-    * email : string
-    * name : string
-    * is_tasker : bool
-    rating : float
-}
+    Task {
+        uint id PK
+        uint requester_id FK
+        uint tasker_id FK
+        uint category_id FK
+        string title
+        int price
+        string status
+        string location
+    }
 
-entity "Task" as Task {
-    * id : uint <<PK>>
-    --
-    * requester_id : uint <<FK>>
-    tasker_id : uint <<FK>>
-    * category_id : uint <<FK>>
-    * title : string
-    * price : int
-    * status : string
-    location : string
-}
+    TaskApplication {
+        uint id PK
+        uint task_id FK
+        uint tasker_id FK
+        int proposed_price
+        string message
+        string status
+    }
 
-entity "TaskApplication" as TaskApplication {
-    * id : uint <<PK>>
-    --
-    * task_id : uint <<FK>>
-    * tasker_id : uint <<FK>>
-    proposed_price : int
-    message : string
-    * status : string
-}
+    Wallet {
+        uint id PK
+        uint user_id FK
+        int balance
+        int escrow_balance
+    }
 
-entity "Wallet" as Wallet {
-    * id : uint <<PK>>
-    --
-    * user_id : uint <<FK>>
-    * balance : int
-    * escrow_balance : int
-}
+    WalletTransaction {
+        uint id PK
+        uint wallet_id FK
+        string type "deposit, escrow_hold, escrow_release, payment_received"
+        int amount
+        int balance_before
+        int balance_after
+    }
 
-entity "WalletTransaction" as WalletTransaction {
-    * id : uint <<PK>>
-    --
-    * wallet_id : uint <<FK>>
-    * type : string
-    * amount : int
-    * balance_before : int
-    * balance_after : int
-}
+    Category {
+        uint id PK
+        string name
+        string name_vi
+    }
 
-note right of WalletTransaction::type
-  deposit, escrow_hold,
-  escrow_release, payment_received
-end note
+    Transaction {
+        uint id PK
+        string type
+        string status
+        int amount
+        string payos_order_code
+    }
 
-entity "Category" as Category {
-    * id : uint <<PK>>
-    --
-    * name : string
-    * name_vi : string
-}
+    Conversation {
+        uint id PK
+        uint task_id FK
+        uint poster_id FK
+        uint tasker_id FK
+        string last_message
+    }
 
-entity "Transaction" as Transaction {
-    * id : uint <<PK>>
-    --
-    * type : string
-    * status : string
-    * amount : int
-    payos_order_code : string
-}
+    Message {
+        uint id PK
+        uint conversation_id FK
+        uint sender_id FK
+        string content
+        bool is_read
+    }
 
-entity "Conversation" as Conversation {
-    * id : uint <<PK>>
-    --
-    * task_id : uint <<FK>>
-    * poster_id : uint <<FK>>
-    * tasker_id : uint <<FK>>
-    last_message : string
-}
-
-entity "Message" as Message {
-    * id : uint <<PK>>
-    --
-    * conversation_id : uint <<FK>>
-    * sender_id : uint <<FK>>
-    * content : string
-    * is_read : bool
-}
-
-User ||--o{ Task : "creates (requester)"
-User ||--o{ Wallet : "has"
-Task ||--o{ TaskApplication : "receives"
-User ||--o{ TaskApplication : "submits (tasker)"
-Wallet ||--o{ WalletTransaction : "records"
-Category ||--o{ Task : "categorizes"
-Task ||--o{ Transaction : "has"
-Conversation ||--o{ Message : "contains"
-Task ||--o| Conversation : "has"
-User ||--o{ Conversation : "participates"
-@enduml
+    User ||--o{ Task : "creates (requester)"
+    User ||--o{ Wallet : "has"
+    Task ||--o{ TaskApplication : "receives"
+    User ||--o{ TaskApplication : "submits (tasker)"
+    Wallet ||--o{ WalletTransaction : "records"
+    Category ||--o{ Task : "categorizes"
+    Task ||--o{ Transaction : "has"
+    Conversation ||--o{ Message : "contains"
+    Task ||--o| Conversation : "has"
+    User ||--o{ Conversation : "participates"
 ```
 
 ### 5.2 Key Models
@@ -357,45 +311,27 @@ linked to a specific task.
 
 **Task lifecycle:**
 
-```plantuml
-@startuml
-skinparam stateBackgroundColor #FAFAFA
-skinparam stateBorderColor #333
-
-[*] --> open
-open --> in_progress : application accepted\n+ escrow created
-open --> removed : deleted
-in_progress --> completed : completed
-in_progress --> cancelled : refunded
-completed --> [*]
-cancelled --> [*]
-removed --> [*]
-
-state open #LightBlue
-state in_progress #LightYellow
-state completed #LightGreen
-state cancelled #Pink
-state removed #LightGray
-@enduml
+```mermaid
+stateDiagram-v2
+    [*] --> open
+    open --> in_progress : application accepted + escrow created
+    open --> removed : deleted
+    in_progress --> completed : completed
+    in_progress --> cancelled : refunded
+    completed --> [*]
+    cancelled --> [*]
+    removed --> [*]
 ```
 
 **Application lifecycle:**
 
-```plantuml
-@startuml
-skinparam stateBackgroundColor #FAFAFA
-skinparam stateBorderColor #333
-
-[*] --> pending
-pending --> accepted : accepted by requester
-pending --> rejected : rejected
-accepted --> [*]
-rejected --> [*]
-
-state pending #LightBlue
-state accepted #LightGreen
-state rejected #Pink
-@enduml
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> accepted : accepted by requester
+    pending --> rejected : rejected
+    accepted --> [*]
+    rejected --> [*]
 ```
 
 ---
@@ -404,74 +340,56 @@ state rejected #Pink
 
 ### 6.1 Wallet Deposit (via PayOS)
 
-```plantuml
-@startuml
-participant Client
-participant Server
-participant PayOS
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant PayOS
 
-Client -> Server : POST /wallet/deposit { amount: 50000 }
-Server -> PayOS : CreatePaymentLink()
-PayOS --> Server : { checkoutUrl }
-Server --> Client : { checkoutUrl }
+    Client->>Server: POST /wallet/deposit { amount: 50000 }
+    Server->>PayOS: CreatePaymentLink()
+    PayOS-->>Server: { checkoutUrl }
+    Server-->>Client: { checkoutUrl }
 
-note over Client, PayOS : User pays via PayOS
+    Note over Client, PayOS: User pays via PayOS
 
-PayOS -> Server : POST /payment/webhook { orderCode, amount }
-note over Server
-  Verify webhook
-  Credit wallet
-  Record WalletTransaction
-end note
-Server --> Client : (wallet updated)
-@enduml
+    PayOS->>Server: POST /payment/webhook { orderCode, amount }
+    Note over Server: Verify webhook<br/>Credit wallet<br/>Record WalletTransaction
+    Server-->>Client: (wallet updated)
 ```
 
 ### 6.2 Task Escrow Flow
 
-```plantuml
-@startuml
-participant Requester
-participant Server
-participant Tasker
+```mermaid
+sequenceDiagram
+    participant Requester
+    participant Server
+    participant Tasker
 
-== Phase 1: Task Creation & Application ==
+    rect rgb(240, 248, 255)
+        Note over Requester, Tasker: Phase 1: Task Creation & Application
+        Requester->>Server: POST /tasks (create task, status: open)
+        Tasker->>Server: POST /tasks/:id/applications (apply, status: pending)
+        Requester->>Server: POST /applications/:id/accept
+    end
 
-Requester -> Server : POST /tasks (create task, status: open)
-Tasker -> Server : POST /tasks/:id/applications (apply, status: pending)
-Requester -> Server : POST /applications/:id/accept
+    rect rgb(240, 255, 240)
+        Note over Requester, Tasker: Phase 2: Escrow Hold
+        Requester->>Server: POST /payments/escrow { task_id }
+        Note over Server: Debit requester wallet<br/>Hold in escrow<br/>Create Transaction (type: escrow)<br/>Task status -> in_progress
+    end
 
-== Phase 2: Escrow Hold ==
-
-Requester -> Server : POST /payments/escrow { task_id }
-note over Server
-  Debit requester wallet
-  Hold in escrow
-  Create Transaction (type: escrow)
-  Task status -> in_progress
-end note
-
-alt Task completed successfully
-    note over Requester, Tasker : Phase 3a: Release
-    Requester -> Server : POST /payments/release { task_id }
-    note over Server
-      Release escrow from requester wallet
-      Credit tasker wallet (net after fee)
-      Create Transaction (type: release)
-      Task status -> completed
-    end note
-    Server --> Tasker : Wallet credited
-else Task cancelled
-    note over Requester, Tasker : Phase 3b: Refund
-    Requester -> Server : POST /payments/refund { task_id, reason }
-    note over Server
-      Refund escrow to requester wallet
-      Create Transaction (type: refund)
-      Task status -> cancelled
-    end note
-    Server --> Requester : Wallet refunded
-end
-@enduml
+    alt Task completed successfully
+        Note over Requester, Tasker: Phase 3a: Release
+        Requester->>Server: POST /payments/release { task_id }
+        Note over Server: Release escrow from requester wallet<br/>Credit tasker wallet (net after fee)<br/>Create Transaction (type: release)<br/>Task status -> completed
+        Server-->>Tasker: Wallet credited
+    else Task cancelled
+        Note over Requester, Tasker: Phase 3b: Refund
+        Requester->>Server: POST /payments/refund { task_id, reason }
+        Note over Server: Refund escrow to requester wallet<br/>Create Transaction (type: refund)<br/>Task status -> cancelled
+        Server-->>Requester: Wallet refunded
+    end
 ```
 
 ### 6.3 Mock vs Production Payment Mode
@@ -487,17 +405,10 @@ end
 
 ### 7.1 Architecture
 
-```plantuml
-@startuml
-skinparam componentStyle rectangle
-
-node "Client A\n(OkHttp WS)" as A #LightBlue
-rectangle "Hub\nclients / convos / broadcast" as Hub #LightGreen
-node "Client B\n(OkHttp WS)" as B #LightBlue
-
-A <--> Hub : WebSocket
-Hub <--> B : WebSocket
-@enduml
+```mermaid
+graph LR
+    A["Client A<br/>(OkHttp WS)"] <-->|WebSocket| Hub["Hub<br/>clients / convos / broadcast"]
+    Hub <-->|WebSocket| B["Client B<br/>(OkHttp WS)"]
 ```
 
 The **Hub** is a central goroutine that:
@@ -529,26 +440,21 @@ Each **Client** has two goroutines:
 
 ### 7.3 Message Flow
 
-```plantuml
-@startuml
-participant "Client A" as A
-participant "Server" as S
-participant "Client B" as B
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant S as Server
+    participant B as Client B
 
-A -> S : WS: {type:"join", conv_id:1}
-note over S : hub.JoinConversation()
-S --> A : {type:"joined"}
+    A->>S: WS: {type:"join", conv_id:1}
+    Note over S: hub.JoinConversation()
+    S-->>A: {type:"joined"}
 
-A -> S : WS: {type:"message", conv_id:1, content:"Hi"}
-note over S
-  1. Validate participant
-  2. Save to DB (Message)
-  3. Update Conversation last_message
-end note
-S --> A : {type:"message_sent"}
-note over S : 4. Broadcast to conv room
-S -> B : {type:"message"}
-@enduml
+    A->>S: WS: {type:"message", conv_id:1, content:"Hi"}
+    Note over S: 1. Validate participant<br/>2. Save to DB (Message)<br/>3. Update Conversation last_message
+    S-->>A: {type:"message_sent"}
+    Note over S: 4. Broadcast to conv room
+    S->>B: {type:"message"}
 ```
 
 ---
@@ -614,25 +520,12 @@ android/app/src/main/java/com/viecz/vieczandroid/
 
 ### 8.2 MVVM Data Flow
 
-```plantuml
-@startuml
-skinparam componentStyle rectangle
-skinparam rectangleBorderColor #333
-
-rectangle "Composable\nScreen" as Screen #LightBlue
-rectangle "ViewModel\n(StateFlow)" as ViewModel #LightGreen
-rectangle "Repository" as Repository #LightYellow
-rectangle "Retrofit\nAPI" as Retrofit #Wheat
-database "Room\n(optional local cache)" as Room #LightGray
-
-Screen --> ViewModel
-ViewModel --> Screen
-ViewModel --> Repository
-Repository --> ViewModel
-Repository --> Retrofit
-Retrofit --> Repository
-Repository --> Room
-@enduml
+```mermaid
+graph TD
+    Screen["Composable<br/>Screen"] <--> ViewModel["ViewModel<br/>(StateFlow)"]
+    ViewModel <--> Repository
+    Repository <--> Retrofit["Retrofit<br/>API"]
+    Repository --> Room["Room<br/>(optional local cache)"]
 ```
 
 - **Screen** observes ViewModel `StateFlow` via `collectAsState()`
