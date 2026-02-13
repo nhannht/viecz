@@ -21,43 +21,37 @@ The system is a monolithic client-server architecture:
 
 ## 2. High-Level Architecture
 
-```
-┌──────────────────────┐
-│   Android App        │
-│   (Kotlin/Compose)   │
-│                      │
-│  Retrofit ─── HTTP ──┼───┐
-│  OkHttp  ─── WS ────┼───┤
-└──────────────────────┘   │
-                           │ HTTPS / WSS
-                           │
-                    ┌──────▼──────┐
-                    │   Nginx     │
-                    │  (reverse   │
-                    │   proxy)    │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────────────────────────────────┐
-                    │          Go Server (Gin)                 │
-                    │                                          │
-                    │  ┌─────────┐  ┌──────────┐  ┌────────┐ │
-                    │  │Handlers │→ │ Services │→ │  Repos │ │
-                    │  └─────────┘  └──────────┘  └───┬────┘ │
-                    │                                  │      │
-                    │  ┌──────────────┐   ┌───────────▼────┐ │
-                    │  │ WebSocket Hub│   │ GORM (ORM)     │ │
-                    │  └──────────────┘   └───────┬────────┘ │
-                    │                             │          │
-                    └─────────────────────────────┼──────────┘
-                                                  │
-                                           ┌──────▼──────┐
-                                           │ PostgreSQL  │
-                                           │ (prod)      │
-                                           │ SQLite      │
-                                           │ (test)      │
-                                           └─────────────┘
+```mermaid
+graph TD
+    subgraph AndroidApp["Android App (Kotlin/Compose)"]
+        Retrofit["Retrofit - HTTP"]
+        OkHttp["OkHttp - WebSocket"]
+    end
 
-External:  PayOS (payment gateway)
+    subgraph Nginx["Nginx (reverse proxy)"]
+        NginxProxy["HTTPS / WSS"]
+    end
+
+    subgraph GoServer["Go Server (Gin)"]
+        Handlers --> Services --> Repos
+        WebSocketHub["WebSocket Hub"]
+        Repos --> GORM["GORM (ORM)"]
+    end
+
+    subgraph Database["Database"]
+        PostgreSQL["PostgreSQL (prod)"]
+        SQLite["SQLite (test)"]
+    end
+
+    PayOS["PayOS (payment gateway)"]
+
+    Retrofit -->|HTTPS| NginxProxy
+    OkHttp -->|WSS| NginxProxy
+    NginxProxy --> Handlers
+    NginxProxy --> WebSocketHub
+    GORM --> PostgreSQL
+    GORM --> SQLite
+    GoServer -.->|external| PayOS
 ```
 
 ---
@@ -103,24 +97,12 @@ server/
 
 ### 4.2 Layered Architecture
 
-```
-  HTTP Request
-       │
-  ┌────▼────┐
-  │ Handler  │  Parse request, validate input, call service, return JSON
-  └────┬─────┘
-       │
-  ┌────▼────┐
-  │ Service  │  Business logic, orchestration, transactions
-  └────┬─────┘
-       │
-  ┌────▼──────┐
-  │ Repository │  GORM queries, interface-based (testable)
-  └────┬───────┘
-       │
-  ┌────▼──┐
-  │  GORM  │  ORM → PostgreSQL / SQLite
-  └────────┘
+```mermaid
+graph TD
+    A["HTTP Request"] --> B["Handler<br/>Parse request, validate input, call service, return JSON"]
+    B --> C["Service<br/>Business logic, orchestration, transactions"]
+    C --> D["Repository<br/>GORM queries, interface-based (testable)"]
+    D --> E["GORM<br/>ORM → PostgreSQL / SQLite"]
 ```
 
 Each repository is defined as a Go interface (e.g. `UserRepository`, `TaskRepository`)
@@ -203,64 +185,84 @@ registered claims (exp, iat, nbf). Signed with HS256.
 
 ### 5.1 Entity Relationship Diagram
 
-```
-┌─────────┐       ┌──────────┐       ┌────────────────┐
-│  User   │1─────*│   Task   │1─────*│TaskApplication │
-│         │       │          │       │                │
-│ id (PK) │       │ id (PK)  │       │ id (PK)        │
-│ email   │       │ req_id   │──┐    │ task_id (FK)   │
-│ name    │       │ tasker_id│  │    │ tasker_id (FK) │
-│ is_tasker│      │ cat_id   │  │    │ proposed_price │
-│ rating  │       │ title    │  │    │ message        │
-│ ...     │       │ price    │  │    │ status         │
-└─────┬───┘       │ status   │  │    └────────────────┘
-      │           │ location │  │
-      │           └──────────┘  │
-      │                         │
-      │1  ┌────────┐            │
-      └──*│ Wallet │            │
-          │        │            │
-          │ id     │            │
-          │ user_id│            │
-          │ balance│            │
-          │ escrow │            │
-          └───┬────┘            │
-              │1                │
-              │    ┌────────────┴────────┐
-              └───*│ WalletTransaction   │
-                   │                     │
-                   │ type (deposit,      │
-                   │   escrow_hold,      │
-                   │   escrow_release,   │
-                   │   payment_received) │
-                   │ amount              │
-                   │ balance_before/after│
-                   └─────────────────────┘
+```mermaid
+erDiagram
+    User {
+        uint id PK
+        string email
+        string name
+        bool is_tasker
+        float rating
+    }
+    Task {
+        uint id PK
+        uint requester_id FK
+        uint tasker_id FK
+        uint category_id FK
+        string title
+        int price
+        string status
+        string location
+    }
+    TaskApplication {
+        uint id PK
+        uint task_id FK
+        uint tasker_id FK
+        int proposed_price
+        string message
+        string status
+    }
+    Wallet {
+        uint id PK
+        uint user_id FK
+        int balance
+        int escrow_balance
+    }
+    WalletTransaction {
+        uint id PK
+        uint wallet_id FK
+        string type "deposit, escrow_hold, escrow_release, payment_received"
+        int amount
+        int balance_before
+        int balance_after
+    }
+    Category {
+        uint id PK
+        string name
+        string name_vi
+    }
+    Transaction {
+        uint id PK
+        string type
+        string status
+        int amount
+        string payos_order_code
+    }
+    Conversation {
+        uint id PK
+        uint task_id FK
+        uint poster_id FK
+        uint tasker_id FK
+        string last_message
+    }
+    Message {
+        uint id PK
+        uint conversation_id FK
+        uint sender_id FK
+        string content
+        bool is_read
+    }
 
-┌──────────┐       ┌────────────────┐       ┌──────────┐
-│ Category │1─────*│     Task       │       │Transaction│
-│          │       │ (via cat_id)   │1─────*│           │
-│ id       │       └────────────────┘       │ type      │
-│ name     │                                │ status    │
-│ name_vi  │       ┌────────────────┐       │ amount    │
-└──────────┘       │ Conversation   │       │ payos_*   │
-                   │                │       └───────────┘
-                   │ task_id        │
-                   │ poster_id      │
-                   │ tasker_id      │
-                   │ last_message   │
-                   └───────┬────────┘
-                           │1
-                           │
-                          *│
-                   ┌───────▼────────┐
-                   │    Message     │
-                   │                │
-                   │ conversation_id│
-                   │ sender_id      │
-                   │ content        │
-                   │ is_read        │
-                   └────────────────┘
+    User ||--o{ Task : "creates (requester)"
+    User ||--o{ Wallet : "has"
+    Task ||--o{ TaskApplication : "receives"
+    User ||--o{ TaskApplication : "submits (tasker)"
+    Wallet ||--o{ WalletTransaction : "records"
+    Category ||--o{ Task : "categorizes"
+    Task ||--o{ Transaction : "has"
+    Conversation ||--o{ Message : "contains"
+    Task ||--o| Conversation : "has"
+    User ||--o{ Conversation : "participates"
 ```
 
 ### 5.2 Key Models
@@ -294,23 +296,27 @@ linked to a specific task.
 
 **Task lifecycle:**
 
-```
-  open ──(application accepted + escrow created)──► in_progress
-    │                                                  │
-    │                                          ┌───────┴───────┐
-    │                                          │               │
-    │                                     (completed)    (refunded)
-    │                                          │               │
-    │                                          ▼               ▼
-    └──(deleted)──► [removed]            completed        cancelled
+```mermaid
+stateDiagram-v2
+    [*] --> open
+    open --> in_progress : application accepted + escrow created
+    open --> removed : deleted
+    in_progress --> completed : completed
+    in_progress --> cancelled : refunded
+    completed --> [*]
+    cancelled --> [*]
+    removed --> [*]
 ```
 
 **Application lifecycle:**
 
-```
-  pending ──(accepted by requester)──► accepted
-     │
-     └──(rejected)──► rejected
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> accepted : accepted by requester
+    pending --> rejected : rejected
+    accepted --> [*]
+    rejected --> [*]
 ```
 
 ---
@@ -319,49 +325,52 @@ linked to a specific task.
 
 ### 6.1 Wallet Deposit (via PayOS)
 
-```
-Client                  Server                    PayOS
-  │                       │                         │
-  ├─ POST /wallet/deposit─►│                         │
-  │  { amount: 50000 }    │                         │
-  │                       ├─ CreatePaymentLink() ───►│
-  │                       │◄── { checkoutUrl }       │
-  │◄── { checkoutUrl } ───┤                         │
-  │                       │                         │
-  │ (user pays via PayOS) │                         │
-  │                       │◄── POST /payment/webhook─┤
-  │                       │    { orderCode, amount } │
-  │                       │                         │
-  │                       │  Verify webhook          │
-  │                       │  Credit wallet           │
-  │                       │  Record WalletTransaction│
-  │                       │                         │
-  │◄── (wallet updated) ──┤                         │
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant PayOS
+
+    Client->>Server: POST /wallet/deposit { amount: 50000 }
+    Server->>PayOS: CreatePaymentLink()
+    PayOS-->>Server: { checkoutUrl }
+    Server-->>Client: { checkoutUrl }
+
+    Note over Client,PayOS: User pays via PayOS
+
+    PayOS->>Server: POST /payment/webhook { orderCode, amount }
+    Note over Server: Verify webhook<br/>Credit wallet<br/>Record WalletTransaction
+    Server-->>Client: (wallet updated)
 ```
 
 ### 6.2 Task Escrow Flow
 
-```
-1. Requester creates task (status: open)
-2. Tasker applies (TaskApplication created, status: pending)
-3. Requester accepts application
-4. Client calls POST /payments/escrow { task_id }
-   → Server debits requester wallet → holds in escrow
-   → Creates Transaction (type: escrow, status: success)
-   → Task status → in_progress
+```mermaid
+sequenceDiagram
+    participant Requester
+    participant Server
+    participant Tasker
 
-5a. Task completed successfully:
-   → Client calls POST /payments/release { task_id }
-   → Server releases escrow from requester wallet
-   → Credits tasker wallet (net amount after platform fee)
-   → Creates Transaction (type: release)
-   → Task status → completed
+    Note over Requester,Server: Phase 1: Task Creation & Application
+    Requester->>Server: POST /tasks (create task, status: open)
+    Tasker->>Server: POST /tasks/:id/applications (apply, status: pending)
+    Requester->>Server: POST /applications/:id/accept
 
-5b. Task cancelled:
-   → Client calls POST /payments/refund { task_id, reason }
-   → Server refunds escrow back to requester wallet
-   → Creates Transaction (type: refund)
-   → Task status → cancelled
+    Note over Requester,Server: Phase 2: Escrow Hold
+    Requester->>Server: POST /payments/escrow { task_id }
+    Note over Server: Debit requester wallet<br/>Hold in escrow<br/>Create Transaction (type: escrow)<br/>Task status -> in_progress
+
+    alt Task completed successfully
+        Note over Requester,Tasker: Phase 3a: Release
+        Requester->>Server: POST /payments/release { task_id }
+        Note over Server: Release escrow from requester wallet<br/>Credit tasker wallet (net after fee)<br/>Create Transaction (type: release)<br/>Task status -> completed
+        Server-->>Tasker: Wallet credited
+    else Task cancelled
+        Note over Requester,Tasker: Phase 3b: Refund
+        Requester->>Server: POST /payments/refund { task_id, reason }
+        Note over Server: Refund escrow to requester wallet<br/>Create Transaction (type: refund)<br/>Task status -> cancelled
+        Server-->>Requester: Wallet refunded
+    end
 ```
 
 ### 6.3 Mock vs Production Payment Mode
@@ -377,14 +386,10 @@ Client                  Server                    PayOS
 
 ### 7.1 Architecture
 
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│ Client A │     │   Hub    │     │ Client B │
-│ (OkHttp  │────►│          │────►│ (OkHttp  │
-│  WS)     │◄────│ clients  │◄────│  WS)     │
-└──────────┘     │ convos   │     └──────────┘
-                 │ broadcast│
-                 └──────────┘
+```mermaid
+graph LR
+    A["Client A<br/>(OkHttp WS)"] <-->|WebSocket| Hub["Hub<br/>clients / convos / broadcast"]
+    Hub <-->|WebSocket| B["Client B<br/>(OkHttp WS)"]
 ```
 
 The **Hub** is a central goroutine that:
@@ -416,22 +421,21 @@ Each **Client** has two goroutines:
 
 ### 7.3 Message Flow
 
-```
-Client A                    Server                     Client B
-   │                          │                           │
-   ├─ WS: {type:"join",      │                           │
-   │        conv_id:1} ──────►│ hub.JoinConversation()    │
-   │◄── {type:"joined"} ──────┤                           │
-   │                          │                           │
-   ├─ WS: {type:"message",   │                           │
-   │   conv_id:1,             │                           │
-   │   content:"Hi"} ────────►│                           │
-   │                          │ 1. Validate participant   │
-   │                          │ 2. Save to DB (Message)   │
-   │                          │ 3. Update Conversation    │
-   │◄── {type:"message_sent"} │    last_message           │
-   │                          │ 4. Broadcast to conv room │
-   │                          ├── {type:"message"} ──────►│
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant S as Server
+    participant B as Client B
+
+    A->>S: WS: {type:"join", conv_id:1}
+    Note over S: hub.JoinConversation()
+    S-->>A: {type:"joined"}
+
+    A->>S: WS: {type:"message", conv_id:1, content:"Hi"}
+    Note over S: 1. Validate participant<br/>2. Save to DB (Message)<br/>3. Update Conversation last_message
+    S-->>A: {type:"message_sent"}
+    Note over S: 4. Broadcast to conv room
+    S->>B: {type:"message"}
 ```
 
 ---

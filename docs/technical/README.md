@@ -55,31 +55,26 @@ Read in this order:
 
 ## Document Relationships
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     SYSTEM_DESIGN.md                        │
-│                  (High-level architecture)                   │
-└────────────┬───────────────────────────────┬────────────────┘
-             │                               │
-     ┌───────▼──────────┐           ┌───────▼──────────┐
-     │ DATA_STRUCTURE.md│           │  USER_FLOW.md    │
-     │  (Data models)   │           │ (User journeys)  │
-     └───────┬──────────┘           └───────┬──────────┘
-             │                               │
-     ┌───────▼──────────┐           ┌───────▼──────────┐
-     │ API_REFERENCE.md │           │  ALGORITHM.md    │
-     │  (Endpoints)     │           │ (Business logic) │
-     └───────┬──────────┘           └───────┬──────────┘
-             │                               │
-             └───────────┬───────────────────┘
-                         │
-                 ┌───────▼──────────┐
-                 │   SECURITY.md    │
-                 │ (Security model) │
-                 └──────────────────┘
+```mermaid
+graph TD
+    SD["SYSTEM_DESIGN.md<br/>(High-level architecture)"]
+    DS["DATA_STRUCTURE.md<br/>(Data models)"]
+    UF["USER_FLOW.md<br/>(User journeys)"]
+    API["API_REFERENCE.md<br/>(Endpoints)"]
+    ALG["ALGORITHM.md<br/>(Business logic)"]
+    SEC["SECURITY.md<br/>(Security model)"]
+    ARCH["ARCHITECTURE.md<br/>(Detailed package structure)"]
+    DEP["DEPLOYMENT.md<br/>(Infrastructure & operations)"]
 
-  ARCHITECTURE.md ──── Detailed package structure
-  DEPLOYMENT.md ────── Infrastructure & operations
+    SD --> DS
+    SD --> UF
+    DS --> API
+    UF --> ALG
+    API --> SEC
+    ALG --> SEC
+
+    ARCH -.- SD
+    DEP -.- SD
 ```
 
 ---

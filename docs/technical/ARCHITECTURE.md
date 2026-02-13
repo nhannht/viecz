@@ -34,79 +34,45 @@ Viecz is a P2P marketplace connecting university students for small services. Th
 
 ## 2. System Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    ANDROID CLIENT                             │
-│                                                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ Compose  │  │ ViewModels│  │Repositories│  │ Retrofit  │  │
-│  │   UI     │──│ (State)  │──│ (Data)    │──│ + OkHttp  │  │
-│  └──────────┘  └──────────┘  └──────────┘  └─────┬──────┘  │
-│                                                    │         │
-│                             ┌───────────┐          │         │
-│                             │ WebSocket │──────────┤         │
-│                             │  Client   │          │         │
-│                             └───────────┘          │         │
-└────────────────────────────────────────────────────┼─────────┘
-                                                     │
-                                          HTTPS / WSS│
-                                                     │
-┌────────────────────────────────────────────────────┼─────────┐
-│                         NGINX                      │         │
-│                  (SSL + Reverse Proxy)              │         │
-└────────────────────────────────────────────────────┼─────────┘
-                                                     │
-┌────────────────────────────────────────────────────┼─────────┐
-│                      GO BACKEND (Gin)              │         │
-│                                                    │         │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────┐ │         │
-│  │  Handlers   │──│   Services   │──│Repository  │ │         │
-│  │ (HTTP/WS)   │  │ (Business)   │  │(GORM impl)│ │         │
-│  └──────┬──────┘  └──────────────┘  └─────┬─────┘ │         │
-│         │                                  │       │         │
-│  ┌──────┴──────┐  ┌──────────────┐         │       │         │
-│  │  Auth MW    │  │ WebSocket Hub│         │       │         │
-│  │  (JWT)      │  │ (goroutine)  │         │       │         │
-│  └─────────────┘  └──────────────┘         │       │         │
-│                                            │       │         │
-└────────────────────────────────────────────┼───────┘         │
-                                             │                 │
-                              ┌──────────────┴──────────────┐  │
-                              │                             │  │
-                    ┌─────────▼─────────┐       ┌───────────▼┐ │
-                    │    PostgreSQL     │       │   PayOS    │ │
-                    │   (Production)   │       │  (Payments)│ │
-                    │   SQLite (Test)   │       └────────────┘ │
-                    └──────────────────┘                       │
+```mermaid
+flowchart TD
+    subgraph ANDROID_CLIENT["ANDROID CLIENT"]
+        ComposeUI["Compose UI"] --> ViewModels["ViewModels\n(State)"]
+        ViewModels --> Repositories["Repositories\n(Data)"]
+        Repositories --> Retrofit["Retrofit\n+ OkHttp"]
+        WebSocketClient["WebSocket Client"] --> Retrofit
+    end
+
+    Retrofit -->|"HTTPS / WSS"| NGINX
+    WebSocketClient -->|"WSS"| NGINX
+
+    NGINX["NGINX\n(SSL + Reverse Proxy)"]
+
+    NGINX --> GO_BACKEND
+
+    subgraph GO_BACKEND["GO BACKEND (Gin)"]
+        Handlers["Handlers\n(HTTP/WS)"] --> Services["Services\n(Business)"]
+        Services --> Repository["Repository\n(GORM impl)"]
+        AuthMW["Auth Middleware\n(JWT)"] --> Handlers
+        WebSocketHub["WebSocket Hub\n(goroutine)"]
+    end
+
+    Repository --> PostgreSQL["PostgreSQL (Production)\nSQLite (Test)"]
+    Repository --> PayOS["PayOS\n(Payments)"]
 ```
 
 ### Request Flow
 
-```
-Android App
-    │
-    │  POST /api/v1/tasks  (Authorization: Bearer <JWT>)
-    ▼
-  Nginx (SSL termination, rate limiting)
-    │
-    │  proxy_pass localhost:8080
-    ▼
-  Gin Router
-    │
-    ├── CORS Middleware
-    ├── Auth Middleware (JWT validation → sets user_id in context)
-    │
-    ▼
-  Handler (parse request, call service)
-    │
-    ▼
-  Service (business logic, validation)
-    │
-    ▼
-  Repository (GORM queries → database)
-    │
-    ▼
-  Response (JSON → Android)
+```mermaid
+graph TD
+    A["Android App"] -->|"POST /api/v1/tasks\nAuthorization: Bearer JWT"| B["Nginx\n(SSL termination, rate limiting)"]
+    B -->|"proxy_pass localhost:8080"| C["Gin Router"]
+    C --> D["CORS Middleware"]
+    D --> E["Auth Middleware\n(JWT validation → sets user_id in context)"]
+    E --> F["Handler\n(parse request, call service)"]
+    F --> G["Service\n(business logic, validation)"]
+    G --> H["Repository\n(GORM queries → database)"]
+    H --> I["Response\n(JSON → Android)"]
 ```
 
 ---
@@ -393,21 +359,14 @@ android/app/src/main/java/com/viecz/vieczandroid/
 
 ### MVVM Data Flow
 
-```
-┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-│   Compose    │        │  ViewModel   │        │  Repository  │
-│   Screen     │◄──────│  (StateFlow) │◄──────│ (API + Room) │
-│              │  state │              │  data  │              │
-│  onClick ────┼──────►│  function()  │──────►│  suspend fn  │
-│              │  event │              │  call  │              │
-└──────────────┘        └──────────────┘        └──────┬───────┘
-                                                       │
-                                            ┌──────────┴──────────┐
-                                            │                     │
-                                    ┌───────▼───────┐    ┌───────▼───────┐
-                                    │  Retrofit API │    │   Room DAO   │
-                                    │  (Network)    │    │  (Local DB)  │
-                                    └───────────────┘    └──────────────┘
+```mermaid
+flowchart LR
+    ComposeScreen["Compose Screen"] -->|"event (onClick)"| ViewModel["ViewModel\n(StateFlow)"]
+    ViewModel -->|"state"| ComposeScreen
+    ViewModel -->|"call (function)"| Repository["Repository\n(API + Room)"]
+    Repository -->|"data"| ViewModel
+    Repository --> RetrofitAPI["Retrofit API\n(Network)"]
+    Repository --> RoomDAO["Room DAO\n(Local DB)"]
 ```
 
 ### Hilt Dependency Graph

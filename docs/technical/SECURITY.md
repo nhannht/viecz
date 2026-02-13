@@ -25,54 +25,24 @@
 
 ### 1.1 Security Architecture
 
-```
-                    +---------------------+
-                    |  Android App        |
-                    |  (Jetpack Compose)  |
-                    +---------+-----------+
-                              |
-                              | HTTPS / Bearer JWT
-                              |
-+-----------------------------v-----------------------------------+
-|                    Go Backend (Gin)                              |
-|                                                                  |
-|  +----------------------------------------------------------+   |
-|  |  1. CORS Middleware                                       |   |
-|  |     - Origin validation                                   |   |
-|  |     - Preflight handling                                  |   |
-|  +----------------------------------------------------------+   |
-|                              |                                   |
-|  +----------------------------------------------------------+   |
-|  |  2. Auth Middleware (JWT HS256)                            |   |
-|  |     - Bearer token extraction                             |   |
-|  |     - Token validation + signing method check             |   |
-|  |     - User context injection                              |   |
-|  +----------------------------------------------------------+   |
-|                              |                                   |
-|  +----------------------------------------------------------+   |
-|  |  3. Gin Binding Validation                                |   |
-|  |     - Struct tag validation (required, email, min)        |   |
-|  |     - JSON schema enforcement                             |   |
-|  +----------------------------------------------------------+   |
-|                              |                                   |
-|  +----------------------------------------------------------+   |
-|  |  4. Business Logic Layer                                  |   |
-|  |     - Resource ownership checks                           |   |
-|  |     - Escrow payment logic                                |   |
-|  |     - Conversation participant verification               |   |
-|  +----------------------------------------------------------+   |
-|                              |                                   |
-|  +----------------------------------------------------------+   |
-|  |  5. Data Access Layer (GORM)                              |   |
-|  |     - Parameterized queries                               |   |
-|  |     - Model validation hooks (BeforeCreate/BeforeUpdate)  |   |
-|  +----------------------------------------------------------+   |
-+------------------------------------------------------------------+
-                              |
-                    +---------v-----------+
-                    |  PostgreSQL (prod)  |
-                    |  SQLite (test)      |
-                    +---------------------+
+```mermaid
+flowchart TD
+    APP["<b>Android App</b><br/>(Jetpack Compose)"]
+
+    APP -->|"HTTPS / Bearer JWT"| BACKEND
+
+    subgraph BACKEND["Go Backend (Gin)"]
+        direction TB
+        L1["<b>1. CORS Middleware</b><br/>- Origin validation<br/>- Preflight handling"]
+        L2["<b>2. Auth Middleware (JWT HS256)</b><br/>- Bearer token extraction<br/>- Token validation + signing method check<br/>- User context injection"]
+        L3["<b>3. Gin Binding Validation</b><br/>- Struct tag validation (required, email, min)<br/>- JSON schema enforcement"]
+        L4["<b>4. Business Logic Layer</b><br/>- Resource ownership checks<br/>- Escrow payment logic<br/>- Conversation participant verification"]
+        L5["<b>5. Data Access Layer (GORM)</b><br/>- Parameterized queries<br/>- Model validation hooks (BeforeCreate/BeforeUpdate)"]
+
+        L1 --> L2 --> L3 --> L4 --> L5
+    end
+
+    L5 --> DB["<b>PostgreSQL</b> (prod)<br/><b>SQLite</b> (test)"]
 ```
 
 ### 1.2 Technology Stack
