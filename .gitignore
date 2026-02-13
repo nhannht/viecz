@@ -57,6 +57,7 @@ packages/android/captures/
 
 # Temporary files
 /tmp/
+**/tmp/
 *.tmp
 *.bak
 
