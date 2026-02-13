@@ -75,7 +75,7 @@ func TestWalletHandler_GetWallet(t *testing.T) {
 			}
 			defer cleanup()
 
-			walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB)
+			walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB, 200000)
 			handler := newTestWalletHandler(walletService)
 
 			// Create test request
@@ -340,7 +340,7 @@ func TestWalletHandler_GetTransactionHistory(t *testing.T) {
 			}
 			defer cleanup()
 
-			walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB)
+			walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB, 200000)
 			handler := newTestWalletHandler(walletService)
 
 			// Create test request with query params

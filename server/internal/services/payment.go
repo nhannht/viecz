@@ -239,22 +239,24 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 			return fmt.Errorf("failed to create release transaction: %w", err)
 		}
 
-		// Create platform fee transaction
-		feeTx := &models.Transaction{
-			TaskID:      &taskID,
-			PayerID:     requesterID,
-			PayeeID:     nil, // Platform
-			Amount:      escrowTx.PlatformFee,
-			PlatformFee: 0,
-			NetAmount:   escrowTx.PlatformFee,
-			Type:        models.TransactionTypePlatformFee,
-			Status:      models.TransactionStatusSuccess,
-			Description: fmt.Sprintf("Platform fee for task: %s", task.Title),
-			CompletedAt: &now,
-		}
+		// Create platform fee transaction (only if fee > 0)
+		if escrowTx.PlatformFee > 0 {
+			feeTx := &models.Transaction{
+				TaskID:      &taskID,
+				PayerID:     requesterID,
+				PayeeID:     nil, // Platform
+				Amount:      escrowTx.PlatformFee,
+				PlatformFee: 0,
+				NetAmount:   escrowTx.PlatformFee,
+				Type:        models.TransactionTypePlatformFee,
+				Status:      models.TransactionStatusSuccess,
+				Description: fmt.Sprintf("Platform fee for task: %s", task.Title),
+				CompletedAt: &now,
+			}
 
-		if err := s.transactionRepo.Create(ctx, feeTx); err != nil {
-			return fmt.Errorf("failed to create platform fee transaction: %w", err)
+			if err := s.transactionRepo.Create(ctx, feeTx); err != nil {
+				return fmt.Errorf("failed to create platform fee transaction: %w", err)
+			}
 		}
 	} else {
 		// Real mode: Platform fee is already deducted in escrow

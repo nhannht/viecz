@@ -92,7 +92,7 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	authService := auth.NewAuthService(userRepo)
 	userService := services.NewUserService(userRepo)
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo)
-	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db)
+	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
 
 	// 6. MockPayOS
 	mockPayOS := &e2eMockPayOS{}
@@ -528,7 +528,7 @@ func TestE2E_FullJobLifecycle(t *testing.T) {
 	t.Logf("Alice wallet after release: balance=%d", aliceWallet.Balance)
 
 	// =====================
-	// Step 15: Bob checks wallet balance = 90000 (net after 10% platform fee)
+	// Step 15: Bob checks wallet balance = 100000 (0% platform fee in beta)
 	// =====================
 	w = doRequest(t, router, "GET", "/api/v1/wallet", bobToken, nil)
 	if w.Code != http.StatusOK {
@@ -539,8 +539,8 @@ func TestE2E_FullJobLifecycle(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &bobWallet); err != nil {
 		t.Fatalf("Failed to parse Bob wallet: %v", err)
 	}
-	if bobWallet.Balance != 90000 {
-		t.Fatalf("Bob balance: expected 90000, got %d", bobWallet.Balance)
+	if bobWallet.Balance != 100000 {
+		t.Fatalf("Bob balance: expected 100000, got %d", bobWallet.Balance)
 	}
 	t.Logf("Bob wallet: balance=%d", bobWallet.Balance)
 

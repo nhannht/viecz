@@ -140,7 +140,7 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 			}
 			defer cleanup()
 
-			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
 			// Setup wallet behavior through repository
 			if tt.setupWallet != nil {
@@ -235,7 +235,7 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 	}
 	defer cleanup()
 
-	walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
+	walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
 	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, nil, 0.10, "http://localhost:8080")
 	service.mockMode = true
@@ -537,7 +537,7 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 			}
 			defer cleanup()
 
-			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
 			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
 			service.mockMode = true
@@ -688,7 +688,7 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 			}
 			defer cleanup()
 
-			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
 			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
 			service.mockMode = true

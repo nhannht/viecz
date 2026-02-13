@@ -347,7 +347,7 @@ fun DepositDialog(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("Amount (VND)") },
-                    supportingText = { Text("Minimum: 2,000 VND") },
+                    supportingText = { Text("Min: 2,000 VND | Max balance: 200,000 VND") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     isError = amountLong != null && amountLong < 2000,

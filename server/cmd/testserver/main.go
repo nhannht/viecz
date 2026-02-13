@@ -133,7 +133,7 @@ func main() {
 	authService := auth.NewAuthService(userRepo)
 	userService := services.NewUserService(userRepo)
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo)
-	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db)
+	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
 
 	mockPayOS := &mockPayOS{}
 

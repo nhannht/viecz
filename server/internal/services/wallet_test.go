@@ -61,7 +61,7 @@ func TestWalletService_GetOrCreateWallet(t *testing.T) {
 				tt.setupRepo(walletRepo)
 			}
 
-			service := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
 			wallet, err := service.GetOrCreateWallet(ctx, tt.userID)
@@ -117,7 +117,7 @@ func TestWalletService_GetWalletByUserID(t *testing.T) {
 				tt.setupRepo(walletRepo)
 			}
 
-			service := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
 			wallet, err := service.GetWalletByUserID(ctx, tt.userID)
@@ -212,6 +212,46 @@ func TestWalletService_Deposit(t *testing.T) {
 			wantErr:     true,
 			errContains: "must be positive",
 		},
+		{
+			name:        "deposit exceeding max wallet balance rejected",
+			userID:      1,
+			amount:      150001,
+			description: "Over limit deposit",
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(50000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr:     true,
+			errContains: "exceed maximum wallet balance",
+		},
+		{
+			name:        "deposit up to exact max wallet balance succeeds",
+			userID:      1,
+			amount:      150000,
+			description: "Exact limit deposit",
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(50000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr: false,
+			checkFunc: func(t *testing.T, walletRepo *testutil.MockWalletRepository, txRepo *testutil.MockWalletTransactionRepository) {
+				var wallet *models.Wallet
+				for _, w := range walletRepo.Wallets {
+					if w.UserID == 1 {
+						wallet = w
+						break
+					}
+				}
+				testutil.AssertNotNil(t, wallet, "Wallet should exist")
+				testutil.AssertEqual(t, wallet.Balance, int64(200000), "Balance should be at max")
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -228,7 +268,7 @@ func TestWalletService_Deposit(t *testing.T) {
 				tt.setupRepo(walletRepo)
 			}
 
-			service := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
 			err = service.Deposit(ctx, tt.userID, tt.amount, tt.description)
@@ -327,7 +367,7 @@ func TestWalletService_HoldInEscrow(t *testing.T) {
 				tt.setupRepo(walletRepo)
 			}
 
-			service := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
 			err = service.HoldInEscrow(ctx, tt.userID, tt.amount, tt.taskID, nil)
@@ -445,7 +485,7 @@ func TestWalletService_ReleaseFromEscrow(t *testing.T) {
 				tt.setupRepo(walletRepo)
 			}
 
-			service := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
 			err = service.ReleaseFromEscrow(ctx, tt.payerID, tt.payeeID, tt.amount, tt.taskID, nil)
@@ -537,7 +577,7 @@ func TestWalletService_RefundFromEscrow(t *testing.T) {
 				tt.setupRepo(walletRepo)
 			}
 
-			service := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
 			err = service.RefundFromEscrow(ctx, tt.userID, tt.amount, tt.taskID, nil)
@@ -632,7 +672,7 @@ func TestWalletService_GetTransactionHistory(t *testing.T) {
 				tt.setupRepo(walletRepo, walletTxRepo)
 			}
 
-			service := NewWalletService(walletRepo, walletTxRepo, mockDB)
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
 			transactions, err := service.GetTransactionHistory(ctx, tt.userID, tt.limit, tt.offset)

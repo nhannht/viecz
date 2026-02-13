@@ -27,7 +27,8 @@ type Config struct {
 	// JWT
 	JWTSecret string
 	// Platform
-	PlatformFeeRate float64 // e.g. 0.10 for 10%, 0 for beta
+	PlatformFeeRate  float64 // e.g. 0.10 for 10%, 0 for beta
+	MaxWalletBalance int64   // max balance per wallet in VND (e.g. 200000)
 }
 
 // Load reads configuration from environment variables
@@ -65,6 +66,13 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid PLATFORM_FEE_RATE: %w", err)
 	}
 	cfg.PlatformFeeRate = platformFeeRate
+
+	// Parse max wallet balance (default 200000 VND)
+	maxWalletBalance, err := strconv.ParseInt(getEnv("MAX_WALLET_BALANCE", "200000"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MAX_WALLET_BALANCE: %w", err)
+	}
+	cfg.MaxWalletBalance = maxWalletBalance
 
 	// Validate required fields (PayOS only required for payment features)
 	// Database and JWT are always required

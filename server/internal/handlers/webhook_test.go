@@ -136,7 +136,7 @@ func TestWebhookHandler_handlePaymentSuccess_Deposit(t *testing.T) {
 	}
 	defer cleanup()
 
-	walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB)
+	walletService := services.NewWalletService(mockWalletRepo, mockWalletTxRepo, mockDB, 200000)
 
 	// Pre-create a wallet for user 1
 	mockWalletRepo.Wallets[1] = testutil.NewWalletBuilder().WithID(1).WithUserID(1).WithBalance(0).Build()

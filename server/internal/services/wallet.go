@@ -11,9 +11,10 @@ import (
 
 // WalletService handles wallet operations for mock payment mode
 type WalletService struct {
-	walletRepo           repository.WalletRepository
+	walletRepo            repository.WalletRepository
 	walletTransactionRepo repository.WalletTransactionRepository
-	db                   *gorm.DB
+	db                    *gorm.DB
+	maxWalletBalance      int64
 }
 
 // NewWalletService creates a new wallet service
@@ -21,11 +22,13 @@ func NewWalletService(
 	walletRepo repository.WalletRepository,
 	walletTransactionRepo repository.WalletTransactionRepository,
 	db *gorm.DB,
+	maxWalletBalance int64,
 ) *WalletService {
 	return &WalletService{
-		walletRepo:           walletRepo,
+		walletRepo:            walletRepo,
 		walletTransactionRepo: walletTransactionRepo,
-		db:                   db,
+		db:                    db,
+		maxWalletBalance:      maxWalletBalance,
 	}
 }
 
@@ -58,6 +61,11 @@ func (s *WalletService) Deposit(ctx context.Context, userID, amount int64, descr
 		wallet, err := s.walletRepo.GetOrCreate(ctx, userID)
 		if err != nil {
 			return fmt.Errorf("failed to get wallet: %w", err)
+		}
+
+		// Check max wallet balance limit
+		if s.maxWalletBalance > 0 && wallet.Balance+amount > s.maxWalletBalance {
+			return fmt.Errorf("deposit would exceed maximum wallet balance of %d VND (current: %d, deposit: %d)", s.maxWalletBalance, wallet.Balance, amount)
 		}
 
 		// Record balances before
