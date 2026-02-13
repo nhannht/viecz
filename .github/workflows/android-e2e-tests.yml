@@ -46,7 +46,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Compile test APK
-        run: ./gradlew assembleDebugAndroidTest
+        run: ./gradlew assembleDevDebugAndroidTest
 
       - name: Enable KVM
         run: |
@@ -85,7 +85,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
           working-directory: android
-          script: ./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.annotation=com.viecz.vieczandroid.e2e.E2ETest
+          script: ./gradlew connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.annotation=com.viecz.vieczandroid.e2e.E2ETest
 
       - name: Upload test reports
         if: always()
