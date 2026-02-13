@@ -1,10 +1,9 @@
 # API Reference
 
-**Project:** Dịch Vụ Nhỏ Cho Sinh Viên (Mini Services for Students)
-**Version:** 1.0.0
-**Base URL:** `http://localhost:8000/api/v1`
-**WebSocket URL:** `ws://localhost:8000`
-**Last Updated:** 2026-02-04
+**Project:** Viecz - Mini Services for Students
+**Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
+**WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
+**Last Updated:** 2026-02-14
 
 ---
 
@@ -12,624 +11,202 @@
 
 1. [Authentication](#1-authentication)
 2. [Users](#2-users)
-3. [Tasks](#3-tasks)
-4. [Payments](#4-payments)
-5. [Wallet](#5-wallet)
-6. [Messages](#6-messages)
-7. [Notifications](#7-notifications)
-8. [Categories](#8-categories)
-9. [WebSocket](#9-websocket)
-10. [Error Responses](#10-error-responses)
+3. [Categories](#3-categories)
+4. [Tasks](#4-tasks)
+5. [Applications](#5-applications)
+6. [Wallet](#6-wallet)
+7. [Payments (Escrow)](#7-payments-escrow)
+8. [Payment Link (PayOS)](#8-payment-link-payos)
+9. [Webhooks](#9-webhooks)
+10. [Conversations & Messages](#10-conversations--messages)
+11. [WebSocket](#11-websocket)
+12. [Error Responses](#12-error-responses)
+13. [Appendices](#13-appendices)
+
+---
+
+## Authentication
+
+All protected endpoints require `Authorization: Bearer <access_token>` header.
+
+Access tokens expire after 30 minutes. Refresh tokens expire after 7 days.
 
 ---
 
 ## 1. Authentication
 
-### 1.1. Zalo Login
+### 1.1. Register
 
-Login with Zalo OAuth access token.
+Create a new user account.
 
-**Endpoint:** `POST /api/v1/auth/zalo`
-**Authentication:** None
-**Content-Type:** `application/json`
-
-#### Request Body
-
-```json
-{
-  "access_token": "string"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `access_token` | string | Yes | Zalo access token from Mini App SDK |
-
-#### Response: 200 OK
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer",
-  "expires_in": 1800
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/zalo \
-  -H "Content-Type: application/json" \
-  -d '{
-    "access_token": "zalo_access_token_here"
-  }'
-```
-
-#### Error Responses
-
-- `401 Unauthorized` - Invalid Zalo access token
-- `503 Service Unavailable` - Unable to connect to Zalo API
-
----
-
-### 1.2. Refresh Token
-
-Refresh JWT access token using refresh token.
-
-**Endpoint:** `POST /api/v1/auth/refresh`
-**Authentication:** None
-**Content-Type:** `application/json`
+**Endpoint:** `POST /api/v1/auth/register`
+**Auth:** None
 
 #### Request Body
 
 ```json
 {
-  "refresh_token": "string"
-}
-```
-
-#### Response: 200 OK
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer",
-  "expires_in": 1800
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{
-    "refresh_token": "your_refresh_token_here"
-  }'
-```
-
-#### Error Responses
-
-- `401 Unauthorized` - Invalid or expired refresh token
-
----
-
-### 1.3. Logout
-
-Logout user (client should delete tokens locally).
-
-**Endpoint:** `POST /api/v1/auth/logout`
-**Authentication:** None
-
-#### Response: 200 OK
-
-```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/logout
-```
-
----
-
-### 1.4. Dev Login
-
-**⚠️ DEBUG MODE ONLY** - Create test user without Zalo OAuth.
-
-**Endpoint:** `POST /api/v1/auth/dev-login`
-**Authentication:** None
-**Query Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `name` | string | No | "Test User" | Name for test user |
-
-#### Response: 200 OK
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer",
-  "expires_in": 1800
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/dev-login?name=TestUser"
-```
-
-#### Error Responses
-
-- `404 Not Found` - DEBUG mode is disabled
-
----
-
-## 2. Users
-
-All user endpoints require authentication via Bearer token.
-
-### 2.1. Get Current User Profile
-
-Get current authenticated user's full profile including wallet balance.
-
-**Endpoint:** `GET /api/v1/users/me`
-**Authentication:** Required (Bearer token)
-
-#### Response: 200 OK
-
-```json
-{
-  "id": 1,
-  "zalo_id": "1234567890",
-  "name": "Nguyễn Văn A",
-  "avatar_url": "https://example.com/avatar.jpg",
-  "phone": "0901234567",
   "email": "user@example.com",
-  "university": "ĐHQG-HCM",
-  "student_id": "20120001",
-  "is_verified": true,
-  "rating": 4.5,
-  "total_tasks_completed": 10,
-  "total_tasks_posted": 5,
-  "balance": 1000000,
-  "is_tasker": true,
-  "tasker_bio": "Experienced in delivery and tutoring",
-  "tasker_skills": ["Giao hàng", "Dạy học"],
-  "created_at": "2024-01-01T00:00:00",
-  "updated_at": "2024-01-01T00:00:00"
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/users/me \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 2.2. Update Current User Profile
-
-Update current user's profile information.
-
-**Endpoint:** `PUT /api/v1/users/me`
-**Authentication:** Required (Bearer token)
-**Content-Type:** `application/json`
-
-#### Request Body
-
-```json
-{
-  "name": "Nguyễn Văn B",
-  "email": "newmail@example.com",
-  "phone": "0987654321",
-  "student_id": "20120002",
-  "avatar_url": "https://example.com/new-avatar.jpg"
-}
-```
-
-All fields are optional.
-
-#### Response: 200 OK
-
-Returns updated user profile (same format as 2.1).
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:8000/api/v1/users/me \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Updated Name",
-    "phone": "0987654321"
-  }'
-```
-
----
-
-### 2.3. Get User Public Profile
-
-Get public profile of any user by ID.
-
-**Endpoint:** `GET /api/v1/users/{user_id}`
-**Authentication:** Required (Bearer token)
-
-#### Response: 200 OK
-
-```json
-{
-  "id": 2,
-  "name": "Trần Thị B",
-  "avatar_url": "https://example.com/avatar2.jpg",
-  "university": "ĐHQG-HCM",
-  "is_verified": true,
-  "rating": 4.8,
-  "total_tasks_completed": 25,
-  "is_tasker": true,
-  "tasker_bio": "Fast and reliable delivery service",
-  "tasker_skills": ["Giao hàng", "Mua hộ"]
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/users/2 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - User not found
-
----
-
-### 2.4. Become Tasker
-
-Register as a Tasker (service provider).
-
-**Endpoint:** `POST /api/v1/users/become-tasker`
-**Authentication:** Required (Bearer token)
-**Content-Type:** `application/json`
-
-#### Request Body
-
-```json
-{
-  "tasker_bio": "I'm a reliable student looking to help with deliveries and tutoring.",
-  "tasker_skills": ["Giao hàng", "Dạy học", "Mua hộ"]
+  "password": "Password123",
+  "name": "Nguyen Van A"
 }
 ```
 
 | Field | Type | Required | Constraints | Description |
 |-------|------|----------|-------------|-------------|
-| `tasker_bio` | string | Yes | 10-500 chars | Bio/description |
-| `tasker_skills` | array[string] | Yes | 1-10 items | List of skills |
-
-#### Response: 200 OK
-
-Returns full user profile with `is_tasker: true`.
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:8000/api/v1/users/become-tasker \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tasker_bio": "I am good at delivery and tutoring",
-    "tasker_skills": ["Giao hàng", "Dạy học"]
-  }'
-```
-
-#### Error Responses
-
-- `400 Bad Request` - Already a Tasker
-- `422 Unprocessable Entity` - Validation error
-
----
-
-### 2.5. Update Tasker Profile
-
-Update Tasker bio and skills.
-
-**Endpoint:** `PUT /api/v1/users/tasker-profile`
-**Authentication:** Required (Bearer token, must be Tasker)
-**Content-Type:** `application/json`
-
-#### Request Body
-
-Same format as 2.4 (both fields required).
-
-#### Response: 200 OK
-
-Returns updated user profile.
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:8000/api/v1/users/tasker-profile \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tasker_bio": "Updated bio",
-    "tasker_skills": ["Giao hàng", "Mua hộ", "Dạy học"]
-  }'
-```
-
-#### Error Responses
-
-- `400 Bad Request` - Not a Tasker
-
----
-
-## 3. Tasks
-
-### 3.1. List Tasks
-
-Get paginated list of tasks with filtering and sorting.
-
-**Endpoint:** `GET /api/v1/tasks`
-**Authentication:** Required (Bearer token)
-
-#### Query Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `status` | string | No | "open" | Filter by status (open, accepted, in_progress, completed, cancelled) |
-| `category_id` | integer | No | - | Filter by single category |
-| `category_ids` | array[integer] | No | - | Filter by multiple categories |
-| `search` | string | No | - | Search in task title |
-| `min_price` | integer | No | - | Minimum price (VND) |
-| `max_price` | integer | No | - | Maximum price (VND, max 10M) |
-| `sort` | string | No | "created_at" | Sort field (created_at, price, deadline) |
-| `order` | string | No | "desc" | Sort order (asc, desc) |
-| `page` | integer | No | 1 | Page number (min 1) |
-| `limit` | integer | No | 20 | Items per page (1-100) |
-
-#### Response: 200 OK
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "title": "Giao đồ ăn từ quán cơm đến KTX A",
-      "price": 20000,
-      "price_negotiable": false,
-      "status": "open",
-      "location_from": "Quán cơm gần cổng chính",
-      "deadline": "2024-01-02T12:00:00",
-      "created_at": "2024-01-01T10:00:00",
-      "requester": {
-        "id": 1,
-        "name": "Nguyễn Văn A",
-        "avatar_url": "https://example.com/avatar.jpg",
-        "rating": 4.5
-      },
-      "category": {
-        "id": 1,
-        "name": "delivery",
-        "name_vi": "Giao hàng",
-        "icon": "🚚"
-      },
-      "application_count": 3
-    }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 45,
-    "total_pages": 3
-  }
-}
-```
-
-#### cURL Example
-
-```bash
-# Basic list
-curl -X GET "http://localhost:8000/api/v1/tasks" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-
-# With filters
-curl -X GET "http://localhost:8000/api/v1/tasks?category_id=1&min_price=10000&max_price=50000&page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-
-# Search
-curl -X GET "http://localhost:8000/api/v1/tasks?search=giao%20hàng" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 3.2. Get My Posted Tasks
-
-Get tasks posted by current user.
-
-**Endpoint:** `GET /api/v1/tasks/my-posted`
-**Authentication:** Required (Bearer token)
-
-#### Query Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `status` | string | No | - | Filter by status |
-| `page` | integer | No | 1 | Page number |
-| `limit` | integer | No | 20 | Items per page (1-100) |
-
-#### Response: 200 OK
-
-Same format as 3.1.
-
-#### cURL Example
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/tasks/my-posted?status=open" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 3.3. Get My Assigned Tasks
-
-Get tasks assigned to current user (as Tasker).
-
-**Endpoint:** `GET /api/v1/tasks/my-assigned`
-**Authentication:** Required (Bearer token)
-
-#### Query Parameters
-
-Same as 3.2.
-
-#### Response: 200 OK
-
-Same format as 3.1.
-
-#### cURL Example
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/tasks/my-assigned?status=in_progress" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 3.4. Create Task
-
-Create a new task posting.
-
-**Endpoint:** `POST /api/v1/tasks`
-**Authentication:** Required (Bearer token)
-**Content-Type:** `application/json`
-
-#### Request Body
-
-```json
-{
-  "title": "Giao đồ ăn từ quán cơm đến KTX A",
-  "description": "Cần người giao cơm trưa, số lượng 2 phần. Đồ ăn đã đặt trước.",
-  "price": 20000,
-  "price_negotiable": false,
-  "category_id": 1,
-  "location_from": "Quán cơm gần cổng chính",
-  "location_to": "KTX Khu A, phòng 302",
-  "deadline": "2024-01-02T12:00:00"
-}
-```
-
-| Field | Type | Required | Constraints | Description |
-|-------|------|----------|-------------|-------------|
-| `title` | string | Yes | 5-200 chars | Task title |
-| `description` | string | No | Max 2000 chars | Task description |
-| `price` | integer | Yes | 1-10,000,000 | Price in VND |
-| `price_negotiable` | boolean | No | - | Default: false |
-| `category_id` | integer | Yes | Valid category | Category ID |
-| `location_from` | string | No | Max 200 chars | Starting location |
-| `location_to` | string | No | Max 200 chars | Destination |
-| `deadline` | datetime | No | ISO 8601 | Task deadline |
+| `email` | string | Yes | Valid email | User email |
+| `password` | string | Yes | Min 8 chars, 1 uppercase, 1 lowercase, 1 digit | Password |
+| `name` | string | Yes | Max 100 chars | Display name |
 
 #### Response: 201 Created
 
 ```json
 {
-  "id": 1,
-  "title": "Giao đồ ăn từ quán cơm đến KTX A",
-  "description": "Cần người giao cơm trưa...",
-  "price": 20000,
-  "price_negotiable": false,
-  "status": "open",
-  "location_from": "Quán cơm gần cổng chính",
-  "location_to": "KTX Khu A, phòng 302",
-  "deadline": "2024-01-02T12:00:00",
-  "completed_at": null,
-  "created_at": "2024-01-01T10:00:00",
-  "updated_at": "2024-01-01T10:00:00",
-  "requester": {
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "eyJhbGciOi...",
+  "user": {
     "id": 1,
-    "name": "Nguyễn Văn A",
-    "avatar_url": "https://example.com/avatar.jpg",
-    "rating": 4.5
-  },
-  "tasker": null,
-  "category": {
-    "id": 1,
-    "name": "delivery",
-    "name_vi": "Giao hàng",
-    "icon": "🚚"
-  },
-  "application_count": 0
+    "email": "user@example.com",
+    "name": "Nguyen Van A",
+    "university": "DHQG-HCM",
+    "is_verified": false,
+    "rating": 0,
+    "total_tasks_completed": 0,
+    "total_tasks_posted": 0,
+    "total_earnings": 0,
+    "is_tasker": false,
+    "created_at": "2026-02-14T10:00:00Z",
+    "updated_at": "2026-02-14T10:00:00Z"
+  }
 }
 ```
 
-#### cURL Example
+#### Errors
 
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Giao đồ ăn từ quán cơm đến KTX A",
-    "description": "Cần người giao cơm trưa",
-    "price": 20000,
-    "category_id": 1,
-    "location_from": "Quán cơm",
-    "location_to": "KTX A"
-  }'
-```
-
-#### Error Responses
-
-- `400 Bad Request` - Invalid category ID
-- `422 Unprocessable Entity` - Validation error
+- `400` - Invalid email format / Weak password
+- `409` - Email already exists
 
 ---
 
-### 3.5. Get Task Details
+### 1.2. Login
 
-Get full details of a specific task.
+Authenticate with email and password.
 
-**Endpoint:** `GET /api/v1/tasks/{task_id}`
-**Authentication:** Required (Bearer token)
+**Endpoint:** `POST /api/v1/auth/login`
+**Auth:** None
+
+#### Request Body
+
+```json
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
 
 #### Response: 200 OK
 
-Same format as 3.4 Create Task response.
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/tasks/1 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```json
+{
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "eyJhbGciOi...",
+  "user": { ... }
+}
 ```
 
-#### Error Responses
+#### Errors
 
-- `404 Not Found` - Task not found
+- `401` - Invalid email or password
 
 ---
 
-### 3.6. Update Task
+### 1.3. Refresh Token
 
-Update task details. Only requester can update, only open tasks.
+Get a new access token using a refresh token.
 
-**Endpoint:** `PUT /api/v1/tasks/{task_id}`
-**Authentication:** Required (Bearer token, must be requester)
-**Content-Type:** `application/json`
+**Endpoint:** `POST /api/v1/auth/refresh`
+**Auth:** None
+
+#### Request Body
+
+```json
+{
+  "refresh_token": "eyJhbGciOi..."
+}
+```
+
+#### Response: 200 OK
+
+```json
+{
+  "access_token": "eyJhbGciOi..."
+}
+```
+
+#### Errors
+
+- `401` - Invalid refresh token
+
+---
+
+## 2. Users
+
+### 2.1. Get User Profile (Public)
+
+Get any user's profile by ID.
+
+**Endpoint:** `GET /api/v1/users/:id`
+**Auth:** None
+
+#### Response: 200 OK
+
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "Nguyen Van A",
+  "avatar_url": "https://example.com/avatar.jpg",
+  "phone": "0901234567",
+  "university": "DHQG-HCM",
+  "student_id": "20120001",
+  "is_verified": true,
+  "rating": 4.5,
+  "total_tasks_completed": 10,
+  "total_tasks_posted": 5,
+  "total_earnings": 500000,
+  "is_tasker": true,
+  "tasker_bio": "Experienced in delivery",
+  "tasker_skills": ["Giao hang", "Day hoc"],
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:00Z"
+}
+```
+
+#### Errors
+
+- `404` - User not found
+
+---
+
+### 2.2. Get My Profile
+
+Get authenticated user's profile.
+
+**Endpoint:** `GET /api/v1/users/me`
+**Auth:** Required
+
+#### Response: 200 OK
+
+Same format as 2.1.
+
+---
+
+### 2.3. Update My Profile
+
+Update authenticated user's profile.
+
+**Endpoint:** `PUT /api/v1/users/me`
+**Auth:** Required
 
 #### Request Body
 
@@ -637,144 +214,359 @@ All fields optional:
 
 ```json
 {
-  "title": "Updated title",
-  "description": "Updated description",
-  "price": 25000,
-  "price_negotiable": true,
-  "location_from": "New location",
-  "location_to": "New destination",
-  "deadline": "2024-01-03T12:00:00"
+  "name": "Updated Name",
+  "avatar_url": "https://example.com/new-avatar.jpg",
+  "phone": "0987654321"
 }
 ```
 
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | No | Display name |
+| `avatar_url` | string | No | Avatar URL |
+| `phone` | string | No | Phone number |
+
 #### Response: 200 OK
 
-Returns updated task (same format as 3.4).
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:8000/api/v1/tasks/1 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "price": 25000,
-    "price_negotiable": true
-  }'
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task not found
-- `403 Forbidden` - Not authorized (not requester)
-- `400 Bad Request` - Can only update open tasks
+Returns updated user profile.
 
 ---
 
-### 3.7. Cancel Task
+### 2.4. Become Tasker
 
-Cancel a task. Only requester can cancel open or accepted tasks.
+Register current user as a tasker (service provider). No request body required.
 
-**Endpoint:** `DELETE /api/v1/tasks/{task_id}`
-**Authentication:** Required (Bearer token, must be requester)
+**Endpoint:** `POST /api/v1/users/become-tasker`
+**Auth:** Required
 
-#### Query Parameters
+#### Response: 200 OK
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `reason` | string | No | Cancellation reason |
+Returns updated user profile with `is_tasker: true`.
+
+#### Errors
+
+- `400` - Already a tasker or other error
+
+---
+
+## 3. Categories
+
+### 3.1. List Categories
+
+Get all task categories. Seeded on server startup.
+
+**Endpoint:** `GET /api/v1/categories`
+**Auth:** None
 
 #### Response: 200 OK
 
 ```json
-{
-  "success": true,
-  "message": "Task cancelled"
-}
+[
+  {
+    "id": 1,
+    "name": "Moving & Transport",
+    "name_vi": "Van chuyen & Di chuyen",
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "name": "Delivery",
+    "name_vi": "Giao hang",
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "name": "Assembly & Installation",
+    "name_vi": "Lap rap & Cai dat",
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "name": "Cleaning",
+    "name_vi": "Don dep",
+    "is_active": true
+  },
+  {
+    "id": 5,
+    "name": "Tutoring & Teaching",
+    "name_vi": "Gia su & Giang day",
+    "is_active": true
+  },
+  {
+    "id": 6,
+    "name": "Tech Support",
+    "name_vi": "Ho tro ky thuat",
+    "is_active": true
+  },
+  {
+    "id": 7,
+    "name": "Event Help",
+    "name_vi": "Ho tro su kien",
+    "is_active": true
+  },
+  {
+    "id": 8,
+    "name": "Shopping & Errands",
+    "name_vi": "Mua sam & Viec vat",
+    "is_active": true
+  },
+  {
+    "id": 9,
+    "name": "Pet Care",
+    "name_vi": "Cham soc thu cung",
+    "is_active": true
+  },
+  {
+    "id": 10,
+    "name": "Photography",
+    "name_vi": "Chup anh",
+    "is_active": true
+  },
+  {
+    "id": 11,
+    "name": "Other",
+    "name_vi": "Khac",
+    "is_active": true
+  }
+]
 ```
-
-#### cURL Example
-
-```bash
-curl -X DELETE "http://localhost:8000/api/v1/tasks/1?reason=No%20longer%20needed" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task not found
-- `403 Forbidden` - Not authorized
-- `400 Bad Request` - Cannot cancel task in current status
 
 ---
 
-### 3.8. Apply for Task
+## 4. Tasks
 
-Apply for a task as a Tasker.
+All task endpoints require authentication.
 
-**Endpoint:** `POST /api/v1/tasks/{task_id}/apply`
-**Authentication:** Required (Bearer token, must be Tasker)
-**Content-Type:** `application/json`
+### 4.1. Create Task
+
+**Endpoint:** `POST /api/v1/tasks`
+**Auth:** Required
 
 #### Request Body
 
 ```json
 {
-  "proposed_price": 18000,
-  "message": "I can complete this within 30 minutes. I'm near the area."
+  "category_id": 2,
+  "title": "Deliver lunch from cafeteria to dorm A",
+  "description": "Need someone to pick up 2 lunch boxes. Already ordered.",
+  "price": 20000,
+  "location": "Cafeteria near main gate",
+  "latitude": 10.762622,
+  "longitude": 106.660172,
+  "scheduled_for": "2026-02-15T12:00:00Z",
+  "image_urls": ["https://example.com/photo1.jpg"]
 }
 ```
 
 | Field | Type | Required | Constraints | Description |
 |-------|------|----------|-------------|-------------|
-| `proposed_price` | integer | No | 1-10,000,000 | Counter-offer price |
-| `message` | string | No | Max 500 chars | Application message |
+| `category_id` | int64 | Yes | Valid category ID | Task category |
+| `title` | string | Yes | Max 200 chars | Task title |
+| `description` | string | Yes | Max 2000 chars | Task description |
+| `price` | int64 | Yes | > 0 | Price in VND |
+| `location` | string | Yes | Max 255 chars | Location |
+| `latitude` | float64 | No | - | GPS latitude |
+| `longitude` | float64 | No | - | GPS longitude |
+| `scheduled_for` | string | No | ISO 8601 | Scheduled time |
+| `image_urls` | []string | No | Max 5 items | Image URLs |
+
+#### Response: 201 Created
+
+```json
+{
+  "id": 1,
+  "requester_id": 1,
+  "category_id": 2,
+  "title": "Deliver lunch from cafeteria to dorm A",
+  "description": "Need someone to pick up 2 lunch boxes.",
+  "price": 20000,
+  "location": "Cafeteria near main gate",
+  "latitude": 10.762622,
+  "longitude": 106.660172,
+  "status": "open",
+  "scheduled_for": "2026-02-15T12:00:00Z",
+  "image_urls": ["https://example.com/photo1.jpg"],
+  "created_at": "2026-02-14T10:00:00Z",
+  "updated_at": "2026-02-14T10:00:00Z"
+}
+```
+
+---
+
+### 4.2. List Tasks
+
+Get paginated, filterable list of tasks.
+
+**Endpoint:** `GET /api/v1/tasks`
+**Auth:** Required
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `category_id` | int64 | - | Filter by category |
+| `requester_id` | int64 | - | Filter by requester |
+| `tasker_id` | int64 | - | Filter by assigned tasker |
+| `status` | string | - | Filter by status (open, in_progress, completed, cancelled) |
+| `min_price` | int64 | - | Minimum price filter |
+| `max_price` | int64 | - | Maximum price filter |
+| `location` | string | - | Filter by location (substring match) |
+| `search` | string | - | Search in title/description |
+| `page` | int | 1 | Page number |
+| `limit` | int | 20 | Items per page (max 100) |
+
+#### Response: 200 OK
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "requester_id": 1,
+      "category_id": 2,
+      "title": "Deliver lunch",
+      "description": "...",
+      "price": 20000,
+      "location": "Cafeteria",
+      "status": "open",
+      "created_at": "2026-02-14T10:00:00Z",
+      "updated_at": "2026-02-14T10:00:00Z"
+    }
+  ],
+  "total": 45,
+  "page": 1,
+  "limit": 20
+}
+```
+
+---
+
+### 4.3. Get Task
+
+Get single task details. Includes `user_has_applied` field for the authenticated user.
+
+**Endpoint:** `GET /api/v1/tasks/:id`
+**Auth:** Required
 
 #### Response: 200 OK
 
 ```json
 {
   "id": 1,
-  "task_id": 1,
-  "tasker": {
-    "id": 2,
-    "name": "Trần Thị B",
-    "avatar_url": "https://example.com/avatar2.jpg",
-    "rating": 4.8
-  },
-  "proposed_price": 18000,
-  "message": "I can complete this within 30 minutes...",
-  "status": "pending",
-  "created_at": "2024-01-01T10:30:00"
+  "requester_id": 1,
+  "tasker_id": 2,
+  "category_id": 2,
+  "title": "Deliver lunch from cafeteria to dorm A",
+  "description": "Need someone to pick up 2 lunch boxes.",
+  "price": 20000,
+  "location": "Cafeteria near main gate",
+  "latitude": 10.762622,
+  "longitude": 106.660172,
+  "status": "open",
+  "scheduled_for": "2026-02-15T12:00:00Z",
+  "image_urls": ["https://example.com/photo1.jpg"],
+  "created_at": "2026-02-14T10:00:00Z",
+  "updated_at": "2026-02-14T10:00:00Z",
+  "user_has_applied": false
 }
 ```
 
-#### cURL Example
+#### Errors
 
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks/1/apply \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "proposed_price": 18000,
-    "message": "I can help with this!"
-  }'
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task not found
-- `400 Bad Request` - Task not open / Cannot apply to own task
-- `409 Conflict` - Already applied
+- `404` - Task not found
 
 ---
 
-### 3.9. Get Task Applications
+### 4.4. Update Task
 
-Get all applications for a task. Only requester can view.
+Update a task. Only the requester can update their own task.
 
-**Endpoint:** `GET /api/v1/tasks/{task_id}/applications`
-**Authentication:** Required (Bearer token, must be requester)
+**Endpoint:** `PUT /api/v1/tasks/:id`
+**Auth:** Required (must be requester)
+
+#### Request Body
+
+Same format as Create Task (section 4.1).
+
+#### Response: 200 OK
+
+Returns updated task.
+
+#### Errors
+
+- `400` - Not authorized or task not updatable
+
+---
+
+### 4.5. Delete Task
+
+Delete/cancel a task. Only the requester can delete.
+
+**Endpoint:** `DELETE /api/v1/tasks/:id`
+**Auth:** Required (must be requester)
+
+#### Response: 200 OK
+
+```json
+{
+  "message": "task deleted successfully"
+}
+```
+
+#### Errors
+
+- `400` - Not authorized or task not deletable
+
+---
+
+### 4.6. Apply for Task
+
+Submit an application to work on a task. Must be a tasker.
+
+**Endpoint:** `POST /api/v1/tasks/:id/applications`
+**Auth:** Required (must be tasker)
+
+#### Request Body
+
+```json
+{
+  "proposed_price": 18000,
+  "message": "I can complete this within 30 minutes."
+}
+```
+
+| Field | Type | Required | Constraints | Description |
+|-------|------|----------|-------------|-------------|
+| `proposed_price` | int64 | No | > 0 | Counter-offer price |
+| `message` | string | No | Max 500 chars | Application message |
+
+#### Response: 201 Created
+
+```json
+{
+  "id": 1,
+  "task_id": 1,
+  "tasker_id": 2,
+  "proposed_price": 18000,
+  "message": "I can complete this within 30 minutes.",
+  "status": "pending",
+  "created_at": "2026-02-14T10:30:00Z",
+  "updated_at": "2026-02-14T10:30:00Z"
+}
+```
+
+#### Errors
+
+- `400` - Task not open / Cannot apply to own task / Already applied / Not a tasker
+
+---
+
+### 4.7. Get Task Applications
+
+Get all applications for a task. Only the task requester can view.
+
+**Endpoint:** `GET /api/v1/tasks/:id/applications`
+**Auth:** Required (must be task requester)
 
 #### Response: 200 OK
 
@@ -783,133 +575,225 @@ Get all applications for a task. Only requester can view.
   {
     "id": 1,
     "task_id": 1,
-    "tasker": {
-      "id": 2,
-      "name": "Trần Thị B",
-      "avatar_url": "https://example.com/avatar2.jpg",
-      "rating": 4.8
-    },
+    "tasker_id": 2,
     "proposed_price": 18000,
     "message": "I can complete this quickly",
     "status": "pending",
-    "created_at": "2024-01-01T10:30:00"
-  },
-  {
-    "id": 2,
-    "task_id": 1,
-    "tasker": {
-      "id": 3,
-      "name": "Lê Văn C",
-      "avatar_url": null,
-      "rating": 4.2
-    },
-    "proposed_price": null,
-    "message": "I'm available now",
-    "status": "pending",
-    "created_at": "2024-01-01T10:45:00"
+    "created_at": "2026-02-14T10:30:00Z",
+    "updated_at": "2026-02-14T10:30:00Z"
   }
 ]
 ```
 
-#### cURL Example
+#### Errors
 
-```bash
-curl -X GET http://localhost:8000/api/v1/tasks/1/applications \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task not found
-- `403 Forbidden` - Not authorized (not requester)
+- `403` - Not authorized (not the requester)
 
 ---
 
-### 3.10. Accept Application
+### 4.8. Complete Task
 
-Accept a Tasker's application. Only requester can accept.
+Mark a task as completed. Only the task requester can complete.
 
-**Endpoint:** `POST /api/v1/tasks/{task_id}/accept/{application_id}`
-**Authentication:** Required (Bearer token, must be requester)
+**Endpoint:** `POST /api/v1/tasks/:id/complete`
+**Auth:** Required (must be task requester)
 
 #### Response: 200 OK
 
 ```json
 {
-  "success": true,
-  "message": "Application accepted"
+  "message": "task completed successfully"
 }
 ```
 
-#### Side Effects
+#### Errors
 
-- Task status → `accepted`
-- Accepted application status → `accepted`
-- Other applications → `rejected`
-- Task price updated to proposed_price (if provided)
-- Tasker assigned to task
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks/1/accept/1 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task or application not found
-- `403 Forbidden` - Not authorized
-- `400 Bad Request` - Task is not open
+- `400` - Task not in correct state for completion
 
 ---
 
-### 3.11. Complete Task
+## 5. Applications
 
-Mark task as completed. Only requester can complete.
+### 5.1. Accept Application
 
-**Endpoint:** `POST /api/v1/tasks/{task_id}/complete`
-**Authentication:** Required (Bearer token, must be requester)
+Accept a tasker's application. Only the task requester can accept. Assigns the tasker to the task and changes task status.
+
+**Endpoint:** `POST /api/v1/applications/:id/accept`
+**Auth:** Required (must be task requester)
 
 #### Response: 200 OK
 
 ```json
 {
-  "success": true,
-  "message": "Task marked as completed"
+  "message": "application accepted successfully"
 }
 ```
 
 #### Side Effects
 
-- Task status → `completed`
-- Tasker's `total_tasks_completed` incremented
-- Ready for payment release
+- Application status changes to `accepted`
+- Other applications for the same task change to `rejected`
+- Task gets the tasker assigned
+- Task status may change depending on business logic
 
-#### cURL Example
+#### Errors
 
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks/1/complete \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task not found
-- `403 Forbidden` - Not authorized
-- `400 Bad Request` - Task must be in progress
+- `400` - Application not found / Not authorized / Task not open
 
 ---
 
-## 4. Payments
+## 6. Wallet
 
-### 4.1. Create Payment
+All wallet endpoints require authentication. Wallets are auto-created on first access.
 
-Create escrow payment for a task. Uses mock payment if `MOCK_PAYMENT_ENABLED=true`.
+### 6.1. Get Wallet
 
-**Endpoint:** `POST /api/v1/payments/create`
-**Authentication:** Required (Bearer token, must be requester)
-**Content-Type:** `application/json`
+Get current user's wallet information.
+
+**Endpoint:** `GET /api/v1/wallet`
+**Auth:** Required
+
+#### Response: 200 OK
+
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "balance": 150000,
+  "escrow_balance": 20000,
+  "total_deposited": 200000,
+  "total_withdrawn": 0,
+  "total_earned": 0,
+  "total_spent": 50000,
+  "created_at": "2026-02-14T10:00:00Z",
+  "updated_at": "2026-02-14T10:00:00Z"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `balance` | Available balance (VND) |
+| `escrow_balance` | Amount held in escrow for active tasks |
+| `total_deposited` | Lifetime total deposited |
+| `total_withdrawn` | Lifetime total withdrawn |
+| `total_earned` | Lifetime earnings from completed tasks |
+| `total_spent` | Lifetime spending on tasks |
+
+---
+
+### 6.2. Deposit
+
+Create a PayOS payment link for wallet deposit. The deposit is credited automatically via webhook when payment completes.
+
+**Endpoint:** `POST /api/v1/wallet/deposit`
+**Auth:** Required
+
+#### Request Body
+
+```json
+{
+  "amount": 50000,
+  "description": "Wallet deposit"
+}
+```
+
+| Field | Type | Required | Constraints | Description |
+|-------|------|----------|-------------|-------------|
+| `amount` | int64 | Yes | Min 2000 | Amount in VND |
+| `description` | string | No | - | Defaults to "Wallet deposit" |
+
+**Note:** Deposit is validated against the max wallet balance (default 200,000 VND). If `current_balance + amount > max_balance`, the request is rejected.
+
+#### Response: 200 OK
+
+```json
+{
+  "checkout_url": "https://pay.payos.vn/web/...",
+  "order_code": 1707900000000
+}
+```
+
+On the **test server**, the mock PayOS auto-fires a webhook after 100ms to credit the wallet. No manual checkout is needed.
+
+#### Errors
+
+- `400` - Invalid amount / Deposit would exceed max balance
+
+---
+
+### 6.3. Get Transaction History
+
+Get wallet transaction history.
+
+**Endpoint:** `GET /api/v1/wallet/transactions`
+**Auth:** Required
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | int | 20 | Number of transactions |
+| `offset` | int | 0 | Offset for pagination |
+
+#### Response: 200 OK
+
+```json
+[
+  {
+    "id": 1,
+    "wallet_id": 1,
+    "transaction_id": 5,
+    "task_id": null,
+    "type": "deposit",
+    "amount": 50000,
+    "balance_before": 0,
+    "balance_after": 50000,
+    "escrow_before": 0,
+    "escrow_after": 0,
+    "description": "Wallet deposit",
+    "created_at": "2026-02-14T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "wallet_id": 1,
+    "task_id": 1,
+    "type": "escrow_hold",
+    "amount": 20000,
+    "balance_before": 50000,
+    "balance_after": 30000,
+    "escrow_before": 0,
+    "escrow_after": 20000,
+    "description": "Escrow for task #1",
+    "reference_user_id": 2,
+    "created_at": "2026-02-14T11:00:00Z"
+  }
+]
+```
+
+#### Wallet Transaction Types
+
+| Type | Description |
+|------|-------------|
+| `deposit` | Funds deposited to wallet |
+| `withdrawal` | Funds withdrawn from wallet |
+| `escrow_hold` | Funds moved to escrow for a task |
+| `escrow_release` | Funds released from escrow (to tasker) |
+| `escrow_refund` | Funds refunded from escrow back to requester |
+| `payment_received` | Payment received for completing a task |
+| `platform_fee` | Platform fee deducted |
+
+---
+
+## 7. Payments (Escrow)
+
+These endpoints manage escrow payments for task lifecycle. All require authentication.
+
+### 7.1. Create Escrow Payment
+
+Create an escrow payment for a task. Holds funds from requester's wallet.
+
+**Endpoint:** `POST /api/v1/payments/escrow`
+**Auth:** Required (must be task requester)
 
 #### Request Body
 
@@ -919,838 +803,234 @@ Create escrow payment for a task. Uses mock payment if `MOCK_PAYMENT_ENABLED=tru
 }
 ```
 
-#### Response: 200 OK (Mock Mode)
-
-```json
-{
-  "success": true,
-  "transaction_id": 1,
-  "app_trans_id": "240101_MOCK_abc123",
-  "order_url": null,
-  "zp_trans_token": null
-}
-```
-
-#### Response: 200 OK (ZaloPay Mode)
-
-```json
-{
-  "success": true,
-  "transaction_id": 1,
-  "app_trans_id": "240101_1",
-  "order_url": "https://sbgateway.zalopay.vn/openinapp?order_token=xyz",
-  "zp_trans_token": "xyz123"
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:8000/api/v1/payments/create \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "task_id": 1
-  }'
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task not found
-- `403 Forbidden` - Only requester can create payment
-- `400 Bad Request` - Task must be accepted / Insufficient balance (mock mode)
-- `409 Conflict` - Payment already exists
-
----
-
-### 4.2. Get Payment Status
-
-Get status of a payment transaction.
-
-**Endpoint:** `GET /api/v1/payments/status/{transaction_id}`
-**Authentication:** Required (Bearer token, must be payer or payee)
-
 #### Response: 200 OK
 
 ```json
 {
-  "transaction_id": 1,
-  "status": "success",
-  "amount": 20000,
-  "type": "escrow",
-  "created_at": "2024-01-01T11:00:00",
-  "completed_at": "2024-01-01T11:00:05"
-}
-```
-
-#### Status Values
-
-- `pending` - Payment initiated but not completed
-- `success` - Payment successful, funds in escrow
-- `released` - Funds released to Tasker
-- `refunded` - Refunded to requester
-- `failed` - Payment failed
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/payments/status/1 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Transaction not found
-- `403 Forbidden` - Not authorized
-
----
-
-### 4.3. ZaloPay Callback
-
-**Internal endpoint** - ZaloPay callback for payment confirmation.
-
-**Endpoint:** `POST /api/v1/payments/callback`
-**Authentication:** None (verified via MAC)
-
-Not for direct client use.
-
----
-
-### 4.4. Release Payment
-
-Release escrow payment to Tasker after task completion.
-
-**Endpoint:** `POST /api/v1/payments/release/{task_id}`
-**Authentication:** Required (Bearer token, must be requester)
-
-#### Response: 200 OK (Mock Mode)
-
-```json
-{
-  "success": true,
-  "message": "Payment released to tasker",
-  "total_amount": 20000,
-  "platform_fee": 2000,
-  "tasker_amount": 18000
+  "transaction": {
+    "id": 1,
+    "task_id": 1,
+    "payer_id": 1,
+    "payee_id": 2,
+    "amount": 20000,
+    "platform_fee": 0,
+    "net_amount": 20000,
+    "type": "escrow",
+    "status": "success",
+    "description": "Escrow payment for task #1",
+    "created_at": "2026-02-14T11:00:00Z",
+    "updated_at": "2026-02-14T11:00:00Z"
+  },
+  "checkout_url": ""
 }
 ```
 
 #### Side Effects
 
-- Escrow transaction status → `released`
-- Creates new `release` transaction
-- Platform fee deducted (10%)
-- Tasker receives funds (90%)
-- Tasker's `total_earnings` incremented
+- Deducts amount from requester's wallet balance
+- Adds amount to requester's escrow balance
+- Task status changes to `in_progress`
 
-#### cURL Example
+#### Errors
 
-```bash
-curl -X POST http://localhost:8000/api/v1/payments/release/1 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task or escrow payment not found
-- `403 Forbidden` - Only requester can release
-- `400 Bad Request` - Task must be completed
+- `400` - Invalid request
+- `500` - Insufficient balance / Task not in correct state
 
 ---
 
-### 4.5. Refund Payment
+### 7.2. Release Payment
 
-Refund escrow payment to requester (when task cancelled).
+Release escrowed funds to tasker after task completion.
 
-**Endpoint:** `POST /api/v1/payments/refund/{task_id}`
-**Authentication:** Required (Bearer token, must be requester)
-
-#### Query Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `reason` | string | No | Refund reason |
-
-#### Response: 200 OK (Mock Mode)
-
-```json
-{
-  "success": true,
-  "message": "Payment refunded",
-  "amount": 20000
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/payments/refund/1?reason=Task%20cancelled" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task or escrow payment not found
-- `403 Forbidden` - Only requester can request refund
-- `501 Not Implemented` - ZaloPay refund not implemented
-
----
-
-### 4.6. Get Payment History
-
-Get payment transaction history for current user.
-
-**Endpoint:** `GET /api/v1/payments/history`
-**Authentication:** Required (Bearer token)
-
-#### Response: 200 OK
-
-```json
-{
-  "success": true,
-  "mock_mode": true,
-  "data": [
-    {
-      "id": 1,
-      "task_id": 1,
-      "amount": 20000,
-      "type": "escrow",
-      "status": "success",
-      "is_payer": true,
-      "created_at": "2024-01-01T11:00:00"
-    },
-    {
-      "id": 2,
-      "task_id": 1,
-      "amount": 18000,
-      "type": "release",
-      "status": "success",
-      "is_payer": false,
-      "created_at": "2024-01-01T15:00:00"
-    }
-  ]
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/payments/history \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 4.7. Get Payment Mode
-
-Check if using mock or real ZaloPay.
-
-**Endpoint:** `GET /api/v1/payments/mode`
-**Authentication:** None
-
-#### Response: 200 OK
-
-```json
-{
-  "mock_enabled": true,
-  "message": "Đang sử dụng thanh toán giả lập"
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/payments/mode
-```
-
----
-
-## 5. Wallet
-
-**Note:** Wallet endpoints only available when `MOCK_PAYMENT_ENABLED=true`.
-
-### 5.1. Get Wallet Balance
-
-Get current user's wallet balance.
-
-**Endpoint:** `GET /api/v1/wallet/balance`
-**Authentication:** Required (Bearer token)
-
-#### Response: 200 OK
-
-```json
-{
-  "balance": 1000000,
-  "frozen_balance": 20000,
-  "available_balance": 980000,
-  "currency": "VND",
-  "mock_mode": true
-}
-```
-
-#### Field Descriptions
-
-- `balance` - Total balance
-- `frozen_balance` - Amount held in escrow
-- `available_balance` - Available for spending
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/wallet/balance \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `400 Bad Request` - Wallet only available in mock mode
-
----
-
-### 5.2. Get Wallet Transaction History
-
-Get wallet transaction history.
-
-**Endpoint:** `GET /api/v1/wallet/history`
-**Authentication:** Required (Bearer token)
-
-#### Query Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `limit` | integer | No | 20 | Number of transactions (1-100) |
-
-#### Response: 200 OK
-
-```json
-[
-  {
-    "id": 1,
-    "type": "deposit",
-    "amount": 1000000,
-    "direction": "credit",
-    "balance_after": 1000000,
-    "description": "Initial balance",
-    "created_at": "2024-01-01T00:00:00"
-  },
-  {
-    "id": 2,
-    "type": "escrow_hold",
-    "amount": 20000,
-    "direction": "debit",
-    "balance_after": 980000,
-    "description": "Escrow for task #1",
-    "created_at": "2024-01-01T11:00:00"
-  }
-]
-```
-
-#### Transaction Types
-
-- `deposit` - Funds added to wallet
-- `escrow_hold` - Funds held in escrow
-- `escrow_release` - Funds released from escrow (received)
-- `escrow_refund` - Refund from cancelled task
-- `platform_fee` - Platform commission
-
-#### cURL Example
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/wallet/history?limit=50" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 5.3. Add Funds to Wallet
-
-**Test endpoint** - Add funds to wallet (development only).
-
-**Endpoint:** `POST /api/v1/wallet/add-funds`
-**Authentication:** Required (Bearer token)
-**Content-Type:** `application/json`
+**Endpoint:** `POST /api/v1/payments/release`
+**Auth:** Required (must be task requester)
 
 #### Request Body
 
 ```json
 {
-  "amount": 500000
+  "task_id": 1
 }
 ```
-
-| Field | Type | Required | Constraints | Description |
-|-------|------|----------|-------------|-------------|
-| `amount` | integer | Yes | 1-100,000,000 | Amount to add (VND) |
 
 #### Response: 200 OK
 
 ```json
 {
-  "success": true,
-  "new_balance": 1500000,
-  "message": "Added 500,000 VND to wallet"
+  "message": "Payment released successfully"
 }
 ```
 
-#### cURL Example
+#### Side Effects
 
-```bash
-curl -X POST http://localhost:8000/api/v1/wallet/add-funds \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "amount": 500000
-  }'
-```
-
-#### Error Responses
-
-- `400 Bad Request` - Only available in mock mode
+- Releases funds from requester's escrow
+- Credits tasker's wallet (minus platform fee)
+- Creates `release` and `platform_fee` transaction records
 
 ---
 
-### 5.4. Get Wallet Statistics
+### 7.3. Refund Payment
 
-Get detailed wallet statistics.
+Refund escrowed funds to requester.
 
-**Endpoint:** `GET /api/v1/wallet/stats`
-**Authentication:** Required (Bearer token)
+**Endpoint:** `POST /api/v1/payments/refund`
+**Auth:** Required (must be task requester)
 
-#### Response: 200 OK
-
-```json
-{
-  "wallet_id": 1,
-  "current_balance": 1000000,
-  "frozen_balance": 20000,
-  "available_balance": 980000,
-  "total_deposits": 1000000,
-  "total_payments": 20000,
-  "total_received": 0,
-  "total_refunds": 0,
-  "transaction_breakdown": {
-    "deposit": {
-      "count": 1,
-      "total": 1000000
-    },
-    "escrow_hold": {
-      "count": 1,
-      "total": 20000
-    }
-  }
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/wallet/stats \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-## 6. Messages
-
-### 6.1. List Conversations
-
-Get all conversations (grouped by task) for current user.
-
-**Endpoint:** `GET /api/v1/messages/conversations`
-**Authentication:** Required (Bearer token)
-
-#### Response: 200 OK
-
-```json
-[
-  {
-    "task_id": 1,
-    "task_title": "Giao đồ ăn từ quán cơm đến KTX A",
-    "other_user_id": 2,
-    "other_user_name": "Trần Thị B",
-    "other_user_avatar": "https://example.com/avatar2.jpg",
-    "last_message": "Tôi đã giao xong rồi nhé!",
-    "last_message_time": "2024-01-01T14:30:00",
-    "unread_count": 2
-  }
-]
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/messages/conversations \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 6.2. Get Conversation Messages
-
-Get messages for a specific task conversation.
-
-**Endpoint:** `GET /api/v1/messages/task/{task_id}`
-**Authentication:** Required (Bearer token, must be requester or tasker)
-
-#### Query Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `page` | integer | No | 1 | Page number |
-| `limit` | integer | No | 50 | Messages per page (1-100) |
-
-#### Response: 200 OK
+#### Request Body
 
 ```json
 {
   "task_id": 1,
-  "task_title": "Giao đồ ăn từ quán cơm đến KTX A",
-  "other_user_id": 2,
-  "other_user_name": "Trần Thị B",
-  "other_user_avatar": "https://example.com/avatar2.jpg",
-  "messages": [
-    {
-      "id": 1,
-      "task_id": 1,
-      "sender_id": 1,
-      "receiver_id": 2,
-      "content": "Bạn có thể giao trong 30 phút không?",
-      "is_read": true,
-      "read_at": "2024-01-01T14:05:00",
-      "created_at": "2024-01-01T14:00:00",
-      "sender": {
-        "id": 1,
-        "name": "Nguyễn Văn A",
-        "avatar_url": "https://example.com/avatar.jpg",
-        "rating": 4.5
-      }
-    },
-    {
-      "id": 2,
-      "task_id": 1,
-      "sender_id": 2,
-      "receiver_id": 1,
-      "content": "Được ạ, tôi sẽ đến ngay!",
-      "is_read": true,
-      "read_at": "2024-01-01T14:10:00",
-      "created_at": "2024-01-01T14:06:00",
-      "sender": {
-        "id": 2,
-        "name": "Trần Thị B",
-        "avatar_url": "https://example.com/avatar2.jpg",
-        "rating": 4.8
-      }
-    }
-  ],
-  "total": 2,
-  "page": 1,
-  "limit": 50
-}
-```
-
-#### Side Effects
-
-- Marks messages as read for current user
-
-#### cURL Example
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/messages/task/1?page=1&limit=50" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Task not found
-- `403 Forbidden` - Not authorized (not requester or tasker)
-
----
-
-### 6.3. Send Message
-
-Send a message in a task conversation.
-
-**Endpoint:** `POST /api/v1/messages/task/{task_id}`
-**Authentication:** Required (Bearer token, must be requester or tasker)
-**Content-Type:** `application/json`
-
-#### Request Body
-
-```json
-{
-  "content": "Tôi đã nhận được đồ ăn. Cảm ơn bạn!"
+  "reason": "Task cancelled by requester"
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `content` | string | Yes | Message content |
+| `task_id` | int64 | Yes | Task ID |
+| `reason` | string | Yes | Refund reason |
 
-#### Response: 201 Created
+#### Response: 200 OK
 
 ```json
 {
-  "id": 3,
-  "task_id": 1,
-  "sender_id": 1,
-  "receiver_id": 2,
-  "content": "Tôi đã nhận được đồ ăn. Cảm ơn bạn!",
-  "is_read": false,
-  "read_at": null,
-  "created_at": "2024-01-01T14:35:00",
-  "sender": {
-    "id": 1,
-    "name": "Nguyễn Văn A",
-    "avatar_url": "https://example.com/avatar.jpg",
-    "rating": 4.5
+  "message": "Payment refunded successfully"
+}
+```
+
+#### Side Effects
+
+- Returns funds from escrow to requester's available balance
+- Creates `refund` transaction record
+
+---
+
+## 8. Payment Link (PayOS)
+
+Legacy/utility payment endpoints for direct PayOS integration.
+
+### 8.1. Create Payment Link
+
+Create a direct PayOS payment link (not escrow).
+
+**Endpoint:** `POST /api/v1/payment/create`
+**Auth:** None
+
+#### Request Body
+
+```json
+{
+  "amount": 50000,
+  "description": "Payment for service"
+}
+```
+
+#### Response: 200 OK
+
+```json
+{
+  "orderCode": 1707900000000,
+  "checkoutUrl": "https://pay.payos.vn/web/...",
+  "qrCode": "..."
+}
+```
+
+---
+
+### 8.2. Payment Return
+
+Handles redirect after PayOS checkout. Redirects to `viecz://` deep link.
+
+**Endpoint:** `GET /api/v1/payment/return`
+**Auth:** None
+
+This is a redirect endpoint used by PayOS. Users are redirected to:
+- `viecz://payment/success?orderCode=...&amount=...&status=...` on success
+- `viecz://payment/cancelled?orderCode=...` on cancellation
+- `viecz://payment/error?code=...&orderCode=...` on error
+
+---
+
+## 9. Webhooks
+
+### 9.1. PayOS Webhook
+
+Receives payment notifications from PayOS. Processes deposit completions and escrow status changes.
+
+**Endpoint:** `POST /api/v1/payment/webhook`
+**Auth:** None (verified via PayOS signature)
+
+#### Request Body (from PayOS)
+
+```json
+{
+  "code": "00",
+  "desc": "success",
+  "success": true,
+  "data": {
+    "orderCode": 1707900000000,
+    "code": "00",
+    "amount": 50000
   }
 }
 ```
 
-#### cURL Example
+#### Response: 200 OK
 
-```bash
-curl -X POST http://localhost:8000/api/v1/messages/task/1 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Cảm ơn bạn!"
-  }'
+```json
+{
+  "code": "00",
+  "desc": "success"
+}
 ```
 
-#### Error Responses
+#### Side Effects
 
-- `404 Not Found` - Task not found
-- `403 Forbidden` - Not authorized
-- `400 Bad Request` - No tasker assigned yet
+On success (`code: "00"`):
+- For `deposit` transactions: credits user's wallet
+- For `escrow` transactions: updates task status to `in_progress`
+
+On cancellation (`code: "01"`):
+- Marks transaction as `cancelled`
 
 ---
 
-### 6.4. Mark Message Read
+### 9.2. Confirm Webhook URL
 
-Mark a specific message as read.
+Register a webhook URL with PayOS.
 
-**Endpoint:** `PUT /api/v1/messages/{message_id}/read`
-**Authentication:** Required (Bearer token, must be receiver)
+**Endpoint:** `POST /api/v1/payment/confirm-webhook`
+**Auth:** None
+
+#### Request Body
+
+```json
+{
+  "webhook_url": "https://your-server.com/api/v1/payment/webhook"
+}
+```
 
 #### Response: 200 OK
 
 ```json
 {
-  "success": true,
-  "message": "Message marked as read"
+  "message": "Webhook URL confirmed",
+  "webhook_url": "https://your-server.com/api/v1/payment/webhook"
 }
-```
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:8000/api/v1/messages/3/read \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Message not found
-- `403 Forbidden` - Not authorized (not receiver)
-
----
-
-## 7. Notifications
-
-### 7.1. List Notifications
-
-Get paginated list of notifications for current user.
-
-**Endpoint:** `GET /api/v1/notifications`
-**Authentication:** Required (Bearer token)
-
-#### Query Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `page` | integer | No | 1 | Page number |
-| `limit` | integer | No | 20 | Items per page (1-100) |
-| `unread_only` | boolean | No | false | Show only unread notifications |
-
-#### Response: 200 OK
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "type": "task_application",
-      "title": "Có người ứng tuyển công việc",
-      "message": "Trần Thị B đã ứng tuyển công việc 'Giao đồ ăn từ quán cơm đến KTX A'",
-      "task_id": 1,
-      "is_read": false,
-      "created_at": "2024-01-01T10:30:00"
-    },
-    {
-      "id": 2,
-      "type": "application_accepted",
-      "title": "Ứng tuyển được chấp nhận",
-      "message": "Nguyễn Văn A đã chấp nhận ứng tuyển của bạn",
-      "task_id": 1,
-      "is_read": true,
-      "created_at": "2024-01-01T10:45:00"
-    }
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 2,
-    "total_pages": 1
-  }
-}
-```
-
-#### Notification Types
-
-- `user_login` - User logged in
-- `task_created` - Task created
-- `task_application` - New application received
-- `application_accepted` - Application accepted
-- `application_rejected` - Application rejected
-- `task_cancelled` - Task cancelled
-- `task_completed` - Task completed
-- `payment_sent` - Payment sent
-- `payment_received` - Payment received
-- `new_message` - New message received
-- `became_tasker` - User became Tasker
-- `wallet_deposit` - Wallet deposit
-
-#### cURL Example
-
-```bash
-# All notifications
-curl -X GET "http://localhost:8000/api/v1/notifications?page=1&limit=20" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-
-# Unread only
-curl -X GET "http://localhost:8000/api/v1/notifications?unread_only=true" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 ---
 
-### 7.2. Get Unread Count
+## 10. Conversations & Messages
 
-Get count of unread notifications.
+All conversation endpoints require authentication.
 
-**Endpoint:** `GET /api/v1/notifications/unread-count`
-**Authentication:** Required (Bearer token)
+### 10.1. List Conversations
 
-#### Response: 200 OK
+Get all conversations for the authenticated user.
 
-```json
-{
-  "count": 5
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/notifications/unread-count \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 7.3. Mark Notification Read
-
-Mark a single notification as read.
-
-**Endpoint:** `PUT /api/v1/notifications/{notification_id}/read`
-**Authentication:** Required (Bearer token, must be notification owner)
-
-#### Response: 200 OK
-
-```json
-{
-  "success": true,
-  "message": "Notification marked as read"
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:8000/api/v1/notifications/1/read \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Notification not found
-
----
-
-### 7.4. Mark All Notifications Read
-
-Mark all notifications as read for current user.
-
-**Endpoint:** `PUT /api/v1/notifications/read-all`
-**Authentication:** Required (Bearer token)
-
-#### Response: 200 OK
-
-```json
-{
-  "success": true,
-  "message": "All notifications marked as read"
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:8000/api/v1/notifications/read-all \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
----
-
-### 7.5. Delete Notification
-
-Delete a notification.
-
-**Endpoint:** `DELETE /api/v1/notifications/{notification_id}`
-**Authentication:** Required (Bearer token, must be notification owner)
-
-#### Response: 200 OK
-
-```json
-{
-  "success": true,
-  "message": "Notification deleted"
-}
-```
-
-#### cURL Example
-
-```bash
-curl -X DELETE http://localhost:8000/api/v1/notifications/1 \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-#### Error Responses
-
-- `404 Not Found` - Notification not found
-
----
-
-## 8. Categories
-
-### 8.1. List Categories
-
-Get all active categories.
-
-**Endpoint:** `GET /api/v1/categories`
-**Authentication:** None (public endpoint)
+**Endpoint:** `GET /api/v1/conversations`
+**Auth:** Required
 
 #### Response: 200 OK
 
@@ -1758,385 +1038,389 @@ Get all active categories.
 [
   {
     "id": 1,
-    "name": "delivery",
-    "name_vi": "Giao hàng",
-    "description": "Giao đồ ăn, tài liệu, hàng hóa",
-    "icon": "🚚",
-    "is_active": true
-  },
-  {
-    "id": 2,
-    "name": "tutoring",
-    "name_vi": "Dạy học",
-    "description": "Dạy kèm, gia sư",
-    "icon": "📚",
-    "is_active": true
-  },
-  {
-    "id": 3,
-    "name": "shopping",
-    "name_vi": "Mua hộ",
-    "description": "Mua đồ ăn, hàng hóa",
-    "icon": "🛒",
-    "is_active": true
+    "task_id": 1,
+    "poster_id": 1,
+    "tasker_id": 2,
+    "last_message_at": "2026-02-14T14:30:00Z",
+    "last_message": "I delivered the items.",
+    "created_at": "2026-02-14T10:00:00Z",
+    "updated_at": "2026-02-14T14:30:00Z"
   }
 ]
 ```
 
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:8000/api/v1/categories
-```
-
 ---
 
-### 8.2. Get Category
+### 10.2. Create Conversation
 
-Get a single category by ID.
+Create a conversation for a task between poster and tasker.
 
-**Endpoint:** `GET /api/v1/categories/{category_id}`
-**Authentication:** None (public endpoint)
+**Endpoint:** `POST /api/v1/conversations`
+**Auth:** Required
 
-#### Response: 200 OK
+#### Request Body
+
+```json
+{
+  "task_id": 1,
+  "tasker_id": 2
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `task_id` | uint | Yes | Task ID |
+| `tasker_id` | uint | Yes | Tasker's user ID |
+
+If a conversation already exists for the task, the existing one is returned.
+
+#### Response: 201 Created
 
 ```json
 {
   "id": 1,
-  "name": "delivery",
-  "name_vi": "Giao hàng",
-  "description": "Giao đồ ăn, tài liệu, hàng hóa",
-  "icon": "🚚",
-  "is_active": true
+  "task_id": 1,
+  "poster_id": 1,
+  "tasker_id": 2,
+  "last_message": "",
+  "created_at": "2026-02-14T10:00:00Z",
+  "updated_at": "2026-02-14T10:00:00Z"
 }
 ```
 
-#### cURL Example
+---
 
-```bash
-curl -X GET http://localhost:8000/api/v1/categories/1
+### 10.3. Get Conversation Messages
+
+Get message history for a conversation.
+
+**Endpoint:** `GET /api/v1/conversations/:id/messages`
+**Auth:** Required (must be poster or tasker in the conversation)
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | int | 50 | Number of messages |
+| `offset` | int | 0 | Offset for pagination |
+
+#### Response: 200 OK
+
+```json
+[
+  {
+    "id": 1,
+    "conversation_id": 1,
+    "sender_id": 1,
+    "content": "Can you deliver within 30 minutes?",
+    "is_read": true,
+    "read_at": "2026-02-14T14:05:00Z",
+    "created_at": "2026-02-14T14:00:00Z",
+    "updated_at": "2026-02-14T14:05:00Z"
+  },
+  {
+    "id": 2,
+    "conversation_id": 1,
+    "sender_id": 2,
+    "content": "Yes, I will come right away!",
+    "is_read": false,
+    "created_at": "2026-02-14T14:06:00Z",
+    "updated_at": "2026-02-14T14:06:00Z"
+  }
+]
 ```
 
-#### Error Responses
+#### Errors
 
-- `404 Not Found` - Category not found
+- `403` - User not authorized to view this conversation
 
 ---
 
-## 9. WebSocket
+## 11. WebSocket
 
-### 9.1. Task Chat WebSocket
+### 11.1. Connect
 
-Real-time bidirectional chat for task conversations.
+Establish a WebSocket connection for real-time messaging.
 
-**Endpoint:** `ws://localhost:8000/ws/chat/{task_id}?token={jwt_token}`
-**Authentication:** Required (JWT token in query parameter)
-
-#### Connection
+**Endpoint:** `GET /api/v1/ws?token=<jwt_token>`
+**Auth:** JWT token in query parameter or `Authorization` header
 
 ```javascript
-const token = "YOUR_JWT_TOKEN";
-const taskId = 1;
-const ws = new WebSocket(`ws://localhost:8000/ws/chat/${taskId}?token=${token}`);
+const ws = new WebSocket("ws://localhost:9999/api/v1/ws?token=YOUR_JWT_TOKEN");
+```
 
-ws.onopen = () => {
-  console.log("Connected to task chat");
-};
+### 11.2. Message Types (Client to Server)
 
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log("Received:", data);
-};
+#### Join Conversation
 
-ws.onerror = (error) => {
-  console.error("WebSocket error:", error);
-};
+Must join a conversation before sending/receiving messages in it.
 
-ws.onclose = (event) => {
-  console.log("Disconnected:", event.code, event.reason);
-};
+```json
+{
+  "type": "join",
+  "conversation_id": 1
+}
+```
+
+**Server response:**
+
+```json
+{
+  "type": "joined",
+  "conversation_id": 1,
+  "created_at": "2026-02-14T14:00:00Z"
+}
 ```
 
 #### Send Message
 
-```javascript
-ws.send(JSON.stringify({
-  type: "message",
-  content: "Hello, how are you?"
-}));
-```
-
-**Message format (client → server):**
-
 ```json
 {
   "type": "message",
+  "conversation_id": 1,
   "content": "Hello!"
 }
 ```
 
-#### Receive Message
+**Server response to sender:**
 
-**Message format (server → client):**
+```json
+{
+  "type": "message_sent",
+  "conversation_id": 1,
+  "message_id": 123,
+  "sender_id": 1,
+  "content": "Hello!",
+  "created_at": "2026-02-14T14:30:00Z"
+}
+```
+
+**Broadcast to other participants:**
 
 ```json
 {
   "type": "message",
-  "id": 123,
-  "sender_id": 2,
-  "sender_name": "Trần Thị B",
-  "sender_avatar": "https://example.com/avatar2.jpg",
+  "conversation_id": 1,
+  "message_id": 123,
+  "sender_id": 1,
   "content": "Hello!",
-  "timestamp": "2024-01-01T14:30:00"
+  "created_at": "2026-02-14T14:30:00Z"
 }
 ```
 
 #### Typing Indicator
 
-**Send typing notification:**
-
-```javascript
-ws.send(JSON.stringify({
-  type: "typing"
-}));
+```json
+{
+  "type": "typing",
+  "conversation_id": 1
+}
 ```
 
-**Receive typing notification:**
+**Broadcast to other participants:**
 
 ```json
 {
   "type": "typing",
-  "user_id": 2,
-  "user_name": "Trần Thị B"
+  "conversation_id": 1,
+  "sender_id": 1
 }
 ```
 
 #### Mark Messages Read
 
-**Send read receipt:**
-
-```javascript
-ws.send(JSON.stringify({
-  type: "read",
-  message_ids: [123, 124, 125]
-}));
-```
-
-**Receive read confirmation:**
-
 ```json
 {
-  "type": "messages_read",
-  "reader_id": 1,
-  "message_ids": [123, 124, 125]
+  "type": "read",
+  "conversation_id": 1
 }
 ```
 
-#### User Join/Leave Events
-
-**User joined:**
+**Server response:**
 
 ```json
 {
-  "type": "user_joined",
-  "user_id": 2,
-  "user_name": "Trần Thị B",
-  "timestamp": "2024-01-01T14:00:00"
+  "type": "read_confirmed",
+  "conversation_id": 1,
+  "created_at": "2026-02-14T14:35:00Z"
 }
 ```
 
-**User left:**
-
-```json
-{
-  "type": "user_left",
-  "user_id": 2,
-  "user_name": "Trần Thị B",
-  "timestamp": "2024-01-01T15:00:00"
-}
-```
-
-#### Error Messages
+### 11.3. Error Messages
 
 ```json
 {
   "type": "error",
-  "message": "No recipient available"
+  "error": "conversation not found"
 }
 ```
 
-#### Close Codes
+### 11.4. Connection Parameters
 
-- `4001` - Unauthorized (invalid token)
-- `4003` - Forbidden (not task participant)
-- `4004` - Task not found
-
-#### Python Example (websockets library)
-
-```python
-import asyncio
-import websockets
-import json
-
-async def chat():
-    token = "YOUR_JWT_TOKEN"
-    task_id = 1
-    uri = f"ws://localhost:8000/ws/chat/{task_id}?token={token}"
-
-    async with websockets.connect(uri) as websocket:
-        # Send message
-        await websocket.send(json.dumps({
-            "type": "message",
-            "content": "Hello from Python!"
-        }))
-
-        # Receive messages
-        while True:
-            message = await websocket.recv()
-            data = json.loads(message)
-            print(f"Received: {data}")
-
-asyncio.run(chat())
-```
+| Parameter | Value |
+|-----------|-------|
+| Max message size | 512 KB |
+| Ping interval | 54 seconds |
+| Pong timeout | 60 seconds |
+| Write timeout | 10 seconds |
+| Send buffer | 256 messages |
 
 ---
 
-## 10. Error Responses
+## 12. Error Responses
 
 ### Standard Error Format
 
-All error responses follow this format:
+```json
+{
+  "error": "error_code_or_message"
+}
+```
+
+Or with message detail:
 
 ```json
 {
-  "detail": "Error message description"
+  "error": "error_code",
+  "message": "Human-readable description"
 }
 ```
 
 ### HTTP Status Codes
 
-| Code | Name | Description |
-|------|------|-------------|
-| 200 | OK | Request successful |
-| 201 | Created | Resource created successfully |
-| 400 | Bad Request | Invalid request data or business logic violation |
-| 401 | Unauthorized | Missing or invalid authentication token |
-| 403 | Forbidden | Authenticated but not authorized for this action |
-| 404 | Not Found | Resource not found |
-| 409 | Conflict | Resource conflict (e.g., duplicate entry) |
-| 422 | Unprocessable Entity | Validation error |
-| 500 | Internal Server Error | Server-side error |
-| 503 | Service Unavailable | External service unavailable |
-
-### Common Error Examples
-
-#### 401 Unauthorized
-
-```json
-{
-  "detail": "Could not validate credentials"
-}
-```
-
-#### 403 Forbidden
-
-```json
-{
-  "detail": "Not authorized to update this task"
-}
-```
-
-#### 404 Not Found
-
-```json
-{
-  "detail": "Task not found"
-}
-```
-
-#### 422 Validation Error
-
-```json
-{
-  "detail": [
-    {
-      "loc": ["body", "title"],
-      "msg": "ensure this value has at least 5 characters",
-      "type": "value_error.any_str.min_length"
-    },
-    {
-      "loc": ["body", "price"],
-      "msg": "ensure this value is greater than 0",
-      "type": "value_error.number.not_gt"
-    }
-  ]
-}
-```
+| Code | Description |
+|------|-------------|
+| 200 | Success |
+| 201 | Resource created |
+| 302 | Redirect (payment return) |
+| 400 | Bad request / Validation error |
+| 401 | Missing or invalid authentication |
+| 403 | Authenticated but not authorized |
+| 404 | Resource not found |
+| 409 | Conflict (e.g., duplicate email) |
+| 500 | Internal server error |
 
 ---
 
-## Appendices
+## 13. Appendices
 
-### A. Authentication Flow
+### A. Health Check
 
-```
-1. User opens Zalo Mini App
-2. App requests Zalo access_token via SDK
-3. POST /api/v1/auth/zalo with access_token
-4. Backend verifies with Zalo API
-5. Backend returns JWT tokens
-6. Client stores tokens
-7. Client includes "Authorization: Bearer {access_token}" in all requests
-8. When access_token expires, use refresh_token via POST /api/v1/auth/refresh
+**Endpoint:** `GET /api/v1/health`
+**Auth:** None
+
+```json
+{
+  "status": "ok"
+}
 ```
 
-### B. Task Lifecycle
+### B. Task Status Lifecycle
 
 ```
-open → accepted → in_progress → completed
-  ↓
-cancelled (at any stage)
+open --> in_progress --> completed
+  |
+  +--> cancelled
 ```
 
-**State Transitions:**
+| Transition | Trigger |
+|------------|---------|
+| `open` -> `in_progress` | Escrow payment created (via webhook confirmation) |
+| `in_progress` -> `completed` | Requester calls `POST /tasks/:id/complete` |
+| `open` -> `cancelled` | Requester deletes task |
 
-1. **open** - Requester creates task
-2. **accepted** - Requester accepts a Tasker's application
-3. **in_progress** - Requester creates escrow payment
-4. **completed** - Requester marks task complete
-5. **cancelled** - Requester cancels task (from open/accepted states)
-
-### C. Payment Flow (Mock Mode)
+### C. Payment Flow
 
 ```
-1. Task accepted by Requester
-2. POST /payments/create → Deducts from wallet, holds in escrow
-3. Task status → in_progress
-4. Tasker completes task
-5. POST /tasks/{id}/complete → status: completed
-6. POST /payments/release/{task_id} → Releases funds to Tasker (minus 10% fee)
-7. Payment complete
+1. Requester creates task (status: open)
+2. Tasker applies for task
+3. Requester accepts application (tasker assigned)
+4. Requester creates escrow: POST /payments/escrow
+   -> Wallet debited, escrow balance increases
+   -> Task status: in_progress
+5. Tasker completes work
+6. Requester marks complete: POST /tasks/:id/complete
+   -> Task status: completed
+7. Requester releases payment: POST /payments/release
+   -> Escrow released to tasker's wallet (minus platform fee)
 ```
 
-### D. Rate Limiting
+### D. Wallet Deposit Flow (PayOS)
 
-Currently not implemented. May be added in production.
+```
+1. User requests deposit: POST /wallet/deposit
+   -> Creates pending transaction
+   -> Returns PayOS checkout URL
+2. User completes payment on PayOS
+3. PayOS sends webhook: POST /payment/webhook
+   -> Transaction marked as success
+   -> Wallet balance credited
+```
+
+On the test server, step 2-3 happen automatically (mock PayOS fires webhook after 100ms).
 
 ### E. Data Types
 
-**Currency:** All prices/amounts in VND (Vietnamese Dong), integer type, no decimals.
+| Type | Format |
+|------|--------|
+| Currency | VND, int64, no decimals |
+| DateTime | ISO 8601 / RFC 3339: `2026-02-14T10:00:00Z` |
+| IDs | int64 (users, tasks, transactions) or uint (conversations, messages) |
 
-**Datetime:** ISO 8601 format with UTC timezone: `"2024-01-01T12:00:00"`
+### F. Configuration Defaults
 
-**Boolean:** JSON boolean: `true` or `false`
+| Config | Default | Description |
+|--------|---------|-------------|
+| `MAX_WALLET_BALANCE` | 200,000 VND | Maximum wallet balance per user |
+| `PLATFORM_FEE_RATE` | 0 (beta) | Platform fee as decimal (0.10 = 10%) |
+| `PORT` | 8080 (prod) / 9999 (test) | Server port |
 
----
+### G. Test Server
 
-## Support
+The test server (`cmd/testserver/main.go`) provides an identical API with:
+- SQLite in-memory database (fresh on each restart)
+- Mock PayOS (auto-completes deposits via internal webhook)
+- JWT secret: `e2e-test-secret-key`
+- Max wallet balance: 200,000 VND
+- Seeded test user: `nhannht.alpha@gmail.com` / `Password123` (tasker)
+- Port: 9999
 
-- **API Docs (Swagger):** http://localhost:8000/docs
-- **Health Check:** http://localhost:8000/health
-- **Repository:** https://github.com/nhannht/viecz
+### H. Route Summary
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/v1/health` | No | Health check |
+| POST | `/api/v1/auth/register` | No | Register |
+| POST | `/api/v1/auth/login` | No | Login |
+| POST | `/api/v1/auth/refresh` | No | Refresh token |
+| GET | `/api/v1/categories` | No | List categories |
+| GET | `/api/v1/users/:id` | No | Get user profile |
+| GET | `/api/v1/users/me` | Yes | Get my profile |
+| PUT | `/api/v1/users/me` | Yes | Update my profile |
+| POST | `/api/v1/users/become-tasker` | Yes | Become tasker |
+| POST | `/api/v1/tasks` | Yes | Create task |
+| GET | `/api/v1/tasks` | Yes | List tasks |
+| GET | `/api/v1/tasks/:id` | Yes | Get task |
+| PUT | `/api/v1/tasks/:id` | Yes | Update task |
+| DELETE | `/api/v1/tasks/:id` | Yes | Delete task |
+| POST | `/api/v1/tasks/:id/applications` | Yes | Apply for task |
+| GET | `/api/v1/tasks/:id/applications` | Yes | Get task applications |
+| POST | `/api/v1/tasks/:id/complete` | Yes | Complete task |
+| POST | `/api/v1/applications/:id/accept` | Yes | Accept application |
+| GET | `/api/v1/wallet` | Yes | Get wallet |
+| POST | `/api/v1/wallet/deposit` | Yes | Deposit funds |
+| GET | `/api/v1/wallet/transactions` | Yes | Transaction history |
+| POST | `/api/v1/payments/escrow` | Yes | Create escrow |
+| POST | `/api/v1/payments/release` | Yes | Release payment |
+| POST | `/api/v1/payments/refund` | Yes | Refund payment |
+| POST | `/api/v1/payment/create` | No | Create payment link |
+| GET | `/api/v1/payment/return` | No | Payment return redirect |
+| POST | `/api/v1/payment/webhook` | No | PayOS webhook |
+| POST | `/api/v1/payment/confirm-webhook` | No | Confirm webhook URL |
+| GET | `/api/v1/conversations` | Yes | List conversations |
+| POST | `/api/v1/conversations` | Yes | Create conversation |
+| GET | `/api/v1/conversations/:id/messages` | Yes | Get messages |
+| GET | `/api/v1/ws` | Yes* | WebSocket (token via query param) |
 
 ---
 

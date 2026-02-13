@@ -1,1063 +1,839 @@
 # DATA_STRUCTURE.md
 
-**Project:** Viecz - Dịch Vụ Nhỏ Cho Sinh Viên
-**Last Updated:** 2026-02-04
+**Project:** Viecz - Go Backend Data Models
+**Last Updated:** 2026-02-14
 
-This document provides a comprehensive overview of all data structures used in the Viecz platform, including database models, API schemas, and frontend types.
+This document describes all data models in the Go backend (`server/internal/models/`), their GORM mappings, relationships, hooks, and constants.
 
 ---
 
 ## Table of Contents
 
-1. [Database Models (SQLAlchemy)](#database-models-sqlalchemy)
+1. [Database Overview](#database-overview)
 2. [Entity Relationship Diagram](#entity-relationship-diagram)
-3. [API Schemas (Pydantic)](#api-schemas-pydantic)
-4. [Frontend Types (TypeScript)](#frontend-types-typescript)
+3. [Models](#models)
+   - [User](#1-user)
+   - [Category](#2-category)
+   - [Task](#3-task)
+   - [TaskApplication](#4-taskapplication)
+   - [Transaction](#5-transaction)
+   - [Wallet](#6-wallet)
+   - [WalletTransaction](#7-wallettransaction)
+   - [Conversation](#8-conversation)
+   - [Message](#9-message)
+4. [Request/Response DTOs](#requestresponse-dtos)
 5. [Enums and Constants](#enums-and-constants)
-6. [Indexes and Constraints](#indexes-and-constraints)
+6. [GORM Hooks](#gorm-hooks)
+7. [Indexes and Constraints](#indexes-and-constraints)
+8. [Helper Functions](#helper-functions)
 
 ---
 
-## Database Models (SQLAlchemy)
-
-The backend uses SQLAlchemy 2.x ORM with SQLite. All models inherit from `app.database.Base`.
-
-### 1. User Model
-
-**Location:** `backend/app/models/user.py:12-103`
-
-Represents both Requesters (who post tasks) and Taskers (who perform tasks).
-
-```python
-class User(Base):
-    __tablename__ = "users"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Identity
-    zalo_id: String(50) (unique, indexed, NOT NULL)  # Zalo user ID
-    name: String(100) (NOT NULL)
-    avatar_url: String(500) (nullable)
-    phone: String(20) (nullable)
-    email: String(100) (nullable)
-
-    # Student Information
-    university: String(100) (default: "ĐHQG-HCM")
-    student_id: String(20) (nullable)
-    is_verified: Boolean (default: False)
-
-    # Statistics
-    rating: Float (default: 5.0)  # Average rating (1-5)
-    total_tasks_completed: Integer (default: 0)
-    total_tasks_posted: Integer (default: 0)
-    total_earnings: Integer (default: 0)  # Display only, actual in Wallet
-
-    # Tasker Profile
-    is_tasker: Boolean (default: False)  # Has registered as Tasker
-    tasker_bio: String(500) (nullable)
-    tasker_skills: JSON (default: [])  # Array of skill strings
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
-    updated_at: DateTime (onupdate: utcnow)
-
-    # Relationships
-    posted_tasks → Task[] (FK: Task.requester_id)
-    accepted_tasks → Task[] (FK: Task.tasker_id)
-    applications → TaskApplication[]
-    sent_messages → Message[] (FK: Message.sender_id)
-    received_messages → Message[] (FK: Message.receiver_id)
-    reviews_given → Review[] (FK: Review.reviewer_id)
-    reviews_received → Review[] (FK: Review.reviewee_id)
-    notifications → Notification[]
-    wallet → Wallet (one-to-one)
-```
-
-**Key Design Decisions:**
-- Single user table for both roles (not separate Requester/Tasker tables)
-- `is_tasker` flag determines if user can accept tasks
-- Balance stored in separate Wallet model (not in User)
-- `tasker_skills` stored as JSON array for flexibility
-
----
-
-### 2. Task Model
-
-**Location:** `backend/app/models/task.py:23-104`
-
-Represents a service request posted by a Requester.
-
-```python
-class Task(Base):
-    __tablename__ = "tasks"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    requester_id: Integer (FK: users.id, ON DELETE CASCADE, indexed)
-    tasker_id: Integer (FK: users.id, ON DELETE SET NULL, indexed, nullable)
-    category_id: Integer (FK: categories.id, indexed)
-
-    # Task Details
-    title: String(200) (NOT NULL)
-    description: Text (nullable)
-    price: Integer (NOT NULL)  # Amount in VND
-    price_negotiable: Boolean (default: False)
-
-    # Status
-    status: String(20) (default: "open", indexed)
-        # Values: open, accepted, in_progress, completed, cancelled, disputed
-
-    # Location
-    location_from: String(200) (nullable)
-    location_to: String(200) (nullable)
-
-    # Timing
-    deadline: DateTime (nullable)
-    completed_at: DateTime (nullable)
-    cancelled_at: DateTime (nullable)
-    cancellation_reason: String(500) (nullable)
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
-    updated_at: DateTime (onupdate: utcnow)
-
-    # Relationships
-    requester → User
-    tasker → User (nullable)
-    category → Category
-    applications → TaskApplication[]
-    messages → Message[]
-    reviews → Review[]
-    transactions → Transaction[]
-```
-
-**State Transitions:**
-```
-open → accepted → in_progress → completed
-  ↓                   ↓
-cancelled         cancelled
-```
-
----
-
-### 3. TaskApplication Model
-
-**Location:** `backend/app/models/task_application.py:20-60`
-
-Represents a Tasker's application to perform a task.
-
-```python
-class TaskApplication(Base):
-    __tablename__ = "task_applications"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    task_id: Integer (FK: tasks.id, ON DELETE CASCADE, indexed)
-    tasker_id: Integer (FK: users.id, ON DELETE CASCADE, indexed)
-
-    # Application Details
-    proposed_price: Integer (nullable)  # Counter-offer price
-    message: String(500) (nullable)     # Application message
-    status: String(20) (default: "pending")
-        # Values: pending, accepted, rejected
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
-
-    # Relationships
-    task → Task
-    tasker → User
-
-    # Constraints
-    UNIQUE(task_id, tasker_id)  # One application per tasker per task
-```
-
----
-
-### 4. Category Model
-
-**Location:** `backend/app/models/category.py:11-27`
-
-Task categories for classification.
-
-```python
-class Category(Base):
-    __tablename__ = "categories"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Category Info
-    name: String(50) (NOT NULL)        # English name
-    name_vi: String(50) (NOT NULL)     # Vietnamese name
-    icon: String(50) (nullable)        # Icon identifier
-    is_active: Boolean (default: True)
-
-    # Relationships
-    tasks → Task[]
-```
-
-**Example Categories:**
-- `delivery` / `Giao hàng`
-- `tutoring` / `Gia sư`
-- `cleaning` / `Dọn dẹp`
-- `tech_support` / `Hỗ trợ kỹ thuật`
-
----
-
-### 5. Transaction Model
-
-**Location:** `backend/app/models/transaction.py:31-74`
-
-Tracks payment transactions through ZaloPay (or mock system).
-
-```python
-class Transaction(Base):
-    __tablename__ = "transactions"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    task_id: Integer (FK: tasks.id, ON DELETE SET NULL, nullable)
-    payer_id: Integer (FK: users.id, ON DELETE SET NULL, nullable)
-    payee_id: Integer (FK: users.id, ON DELETE SET NULL, nullable)
-
-    # Transaction Details
-    amount: Integer (NOT NULL)  # Amount in VND
-    platform_fee: Integer (default: 0)  # Platform commission
-    type: String(20) (NOT NULL)
-        # Values: escrow, release, refund, withdrawal
-    status: String(20) (default: "pending")
-        # Values: pending, processing, success, failed, released, refunded
-
-    # ZaloPay Integration
-    zalopay_trans_id: String(100) (indexed, nullable)      # Our transaction ID
-    zalopay_zp_trans_id: String(100) (nullable)            # ZaloPay's transaction ID
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
-    updated_at: DateTime (onupdate: utcnow)
-
-    # Relationships
-    task → Task
-```
-
----
-
-### 6. Wallet Model
-
-**Location:** `backend/app/models/wallet.py:31-67`
-
-Virtual wallet for mock payment system (dev mode).
-
-```python
-class Wallet(Base):
-    __tablename__ = "wallets"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Owner
-    user_id: Integer (FK: users.id, unique, nullable)  # Null for platform wallets
-
-    # Wallet Type
-    type: String(20) (default: "user")
-        # Values: user, escrow, platform
-
-    # Balance
-    balance: BigInteger (default: 0)         # Total balance in VND
-    frozen_balance: BigInteger (default: 0)  # Amount locked in escrow
-
-    # Timestamps
-    created_at: DateTime (server_default: now())
-    updated_at: DateTime (onupdate: now())
-
-    # Relationships
-    user → User (one-to-one)
-    transactions → WalletTransaction[]
-
-    # Computed Properties
-    @property
-    available_balance() -> int:
-        return balance - frozen_balance
-```
-
-**Wallet Types:**
-- **user**: Individual user wallet
-- **escrow**: Platform escrow holding payments
-- **platform**: Platform revenue wallet (fees)
-
----
-
-### 7. WalletTransaction Model
-
-**Location:** `backend/app/models/wallet.py:69-114`
-
-Transaction history for wallet operations.
-
-```python
-class WalletTransaction(Base):
-    __tablename__ = "wallet_transactions"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    wallet_id: Integer (FK: wallets.id, NOT NULL)
-    task_id: Integer (FK: tasks.id, nullable)
-    related_transaction_id: Integer (FK: transactions.id, nullable)
-
-    # Transaction Details
-    type: String(30) (NOT NULL)
-        # Values: deposit, withdraw, escrow_hold, escrow_release,
-        #         escrow_refund, platform_fee
-    amount: BigInteger (NOT NULL)        # Absolute value
-    direction: String(10) (NOT NULL)     # 'credit' or 'debit'
-    balance_after: BigInteger (NOT NULL) # Balance snapshot after transaction
-    description: String(500) (nullable)
-    reference_id: String(100) (nullable) # External reference
-
-    # Timestamps
-    created_at: DateTime (server_default: now())
-
-    # Relationships
-    wallet → Wallet
-    task → Task
-```
-
----
-
-### 8. Message Model
-
-**Location:** `backend/app/models/message.py:12-52`
-
-Chat messages between Requester and Tasker for a specific task.
-
-```python
-class Message(Base):
-    __tablename__ = "messages"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    task_id: Integer (FK: tasks.id, ON DELETE CASCADE, indexed)
-    sender_id: Integer (FK: users.id, ON DELETE CASCADE)
-    receiver_id: Integer (FK: users.id, ON DELETE CASCADE)
-
-    # Message Content
-    content: Text (NOT NULL)
-    is_read: Boolean (default: False)
-    read_at: DateTime (nullable)
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
-
-    # Relationships
-    task → Task
-    sender → User
-    receiver → User
-```
-
-**Design Note:** Messages are task-scoped (not user-to-user DMs). Each task has its own conversation thread.
-
----
-
-### 9. Review Model
-
-**Location:** `backend/app/models/review.py:12-64`
-
-Ratings and reviews after task completion.
-
-```python
-class Review(Base):
-    __tablename__ = "reviews"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    task_id: Integer (FK: tasks.id, ON DELETE CASCADE)
-    reviewer_id: Integer (FK: users.id, ON DELETE CASCADE)
-    reviewee_id: Integer (FK: users.id, ON DELETE CASCADE)
-
-    # Review Content
-    rating: Integer (NOT NULL)  # 1-5 stars
-    comment: String(500) (nullable)
-    is_for_tasker: Boolean (NOT NULL)  # True if reviewing Tasker, False if Requester
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
-
-    # Relationships
-    task → Task
-    reviewer → User
-    reviewee → User
-
-    # Constraints
-    UNIQUE(task_id, reviewer_id)  # One review per user per task
-```
-
-**Review Flow:**
-- Requester reviews Tasker (is_for_tasker=True)
-- Tasker reviews Requester (is_for_tasker=False)
-
----
-
-### 10. Notification Model
-
-**Location:** `backend/app/models/notification.py:49-80`
-
-User notifications for various events.
-
-```python
-class Notification(Base):
-    __tablename__ = "notifications"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    user_id: Integer (FK: users.id, ON DELETE CASCADE, indexed)
-    task_id: Integer (FK: tasks.id, ON DELETE SET NULL, nullable)
-
-    # Notification Content
-    title: String(100) (NOT NULL)
-    message: String(500) (nullable)
-    type: String(20) (NOT NULL)
-        # Values: task_created, task_update, task_completed, task_cancelled,
-        #         new_application, application_accepted, application_rejected,
-        #         payment, payment_received, wallet_deposit, wallet_withdraw,
-        #         message, new_message, review, new_review,
-        #         user_login, user_logout, became_tasker, system
-    is_read: Boolean (default: False, indexed)
-    read_at: DateTime (nullable)
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
-
-    # Relationships
-    user → User
-```
-
----
-
-### 11. Report Model
-
-**Location:** `backend/app/models/report.py:20-54`
-
-User reports for misconduct or disputes.
-
-```python
-class Report(Base):
-    __tablename__ = "reports"
-
-    # Primary Key
-    id: Integer (PK, indexed)
-
-    # Foreign Keys
-    reporter_id: Integer (FK: users.id, ON DELETE CASCADE)
-    reported_user_id: Integer (FK: users.id, ON DELETE CASCADE)
-    task_id: Integer (FK: tasks.id, ON DELETE SET NULL, nullable)
-
-    # Report Content
-    reason: Text (NOT NULL)
-    status: String(20) (default: "pending")
-        # Values: pending, investigating, resolved, dismissed
-    admin_notes: Text (nullable)
-
-    # Timestamps
-    created_at: DateTime (default: utcnow)
+## Database Overview
+
+- **ORM**: GORM v2
+- **Production DB**: PostgreSQL (via `gorm.io/driver/postgres`)
+- **Test DB**: SQLite in-memory (via `gorm.io/driver/sqlite`, CGO required)
+- **Migration**: GORM AutoMigrate + golang-migrate for production
+
+**AutoMigrate order** (`server/internal/database/gorm.go`):
+```go
+db.AutoMigrate(
+    &models.User{},
+    &models.Category{},
+    &models.Task{},
+    &models.TaskApplication{},
+    &models.Transaction{},
+    &models.Wallet{},
+    &models.WalletTransaction{},
+    &models.Conversation{},
+    &models.Message{},
+)
 ```
 
 ---
 
 ## Entity Relationship Diagram
 
-```
-┌─────────────────┐
-│     User        │
-│─────────────────│
-│ id (PK)         │◄──────┐
-│ zalo_id (UQ)    │       │
-│ name            │       │
-│ is_tasker       │       │
-│ rating          │       │
-│ ...             │       │
-└─────────────────┘       │
-     │ │ │ │             │
-     │ │ │ │ 1:1        │
-     │ │ │ └──────────┐  │
-     │ │ │            │  │
-     │ │ │            ▼  │
-     │ │ │      ┌─────────────┐
-     │ │ │      │   Wallet    │
-     │ │ │      │─────────────│
-     │ │ │      │ id (PK)     │
-     │ │ │      │ user_id(FK) │
-     │ │ │      │ balance     │
-     │ │ │      │ frozen_bal  │
-     │ │ │      └─────────────┘
-     │ │ │                │
-     │ │ │                │ 1:N
-     │ │ │                ▼
-     │ │ │      ┌────────────────────┐
-     │ │ │      │ WalletTransaction  │
-     │ │ │      │────────────────────│
-     │ │ │      │ id (PK)            │
-     │ │ │      │ wallet_id (FK)     │
-     │ │ │      │ type               │
-     │ │ │      │ amount             │
-     │ │ │      └────────────────────┘
-     │ │ │
-     │ │ │ 1:N (as requester)
-     │ │ └────────────────┐
-     │ │                  │
-     │ │ 1:N (as tasker)  │
-     │ └──────────┐       │
-     │            │       │
-     │ 1:N        ▼       ▼
-     │      ┌──────────────────────┐
-     │      │  TaskApplication     │       ┌─────────────┐
-     │      │──────────────────────│       │  Category   │
-     │      │ id (PK)              │       │─────────────│
-     │      │ task_id (FK) ────────┼──┐    │ id (PK)     │
-     │      │ tasker_id (FK) ◄─────┼──┼───►│ name        │
-     │      │ status               │  │    │ name_vi     │
-     │      └──────────────────────┘  │    └─────────────┘
-     │                                 │          │
-     │                                 │          │ 1:N
-     │                                 │          │
-     │                                 ▼          ▼
-     │                           ┌──────────────────────┐
-     │                           │       Task           │
-     │                           │──────────────────────│
-     │                           │ id (PK)              │
-     └───────────────────────────┤ requester_id (FK)    │
-                                 │ tasker_id (FK)       │
-                                 │ category_id (FK)     │
-                                 │ title                │
-                                 │ price                │
-                                 │ status               │
-                                 └──────────────────────┘
-                                    │ │ │ │
-                      ┌─────────────┘ │ │ └─────────┐
-                      │ 1:N           │ │           │ 1:N
-                      ▼               │ │           ▼
-            ┌──────────────┐          │ │     ┌──────────────┐
-            │   Message    │          │ │     │ Transaction  │
-            │──────────────│          │ │     │──────────────│
-            │ id (PK)      │          │ │     │ id (PK)      │
-            │ task_id (FK) │          │ │     │ task_id (FK) │
-            │ sender_id    │          │ │     │ payer_id     │
-            │ receiver_id  │          │ │     │ amount       │
-            │ content      │          │ │     │ type         │
-            └──────────────┘          │ │     └──────────────┘
-                                      │ │
-                         1:N          │ │      1:N
-                      ┌───────────────┘ └────────────┐
-                      ▼                              ▼
-              ┌──────────────┐              ┌──────────────┐
-              │    Review    │              │ Notification │
-              │──────────────│              │──────────────│
-              │ id (PK)      │              │ id (PK)      │
-              │ task_id (FK) │              │ user_id (FK) │
-              │ reviewer_id  │              │ task_id (FK) │
-              │ reviewee_id  │              │ title        │
-              │ rating (1-5) │              │ is_read      │
-              └──────────────┘              └──────────────┘
-```
+```mermaid
+erDiagram
+    User ||--o| Wallet : "has one"
+    User ||--o{ Task : "posts (requester)"
+    User ||--o{ Task : "works (tasker)"
+    User ||--o{ TaskApplication : "applies"
+    User ||--o{ Transaction : "pays (payer)"
+    User ||--o{ Transaction : "receives (payee)"
+    User ||--o{ Conversation : "as poster"
+    User ||--o{ Conversation : "as tasker"
+    User ||--o{ Message : "sends"
+    User ||--o{ WalletTransaction : "referenced in"
 
-**Legend:**
-- `(PK)`: Primary Key
-- `(FK)`: Foreign Key
-- `(UQ)`: Unique constraint
-- `1:N`: One-to-many relationship
-- `1:1`: One-to-one relationship
+    Category ||--o{ Task : "classifies"
 
----
+    Task ||--o{ TaskApplication : "has"
+    Task ||--o{ Transaction : "has"
+    Task ||--o{ WalletTransaction : "referenced in"
+    Task ||--o| Conversation : "has"
 
-## API Schemas (Pydantic)
+    Wallet ||--o{ WalletTransaction : "has"
 
-Pydantic schemas define request/response validation for the FastAPI backend.
+    Transaction ||--o{ WalletTransaction : "linked to"
 
-### User Schemas
+    Conversation ||--o{ Message : "contains"
 
-**Location:** `backend/app/schemas/user.py`
+    User {
+        int64 ID PK
+        string Email UK
+        string PasswordHash
+        string Name
+        string University
+        float64 Rating
+        bool IsTasker
+    }
 
-```python
-# Request Schemas
-UserBase(name, email?, phone?, university, student_id?)
-UserCreate(UserBase + zalo_id)
-UserUpdate(name?, email?, phone?, student_id?, avatar_url?)
-BecomeTaskerRequest(tasker_bio, tasker_skills[])
+    Category {
+        int ID PK
+        string Name
+        string NameVi
+        bool IsActive
+    }
 
-# Response Schemas
-UserResponse(
-    id, zalo_id, name, avatar_url?, phone?, email?,
-    university, student_id?, is_verified, rating,
-    total_tasks_completed, total_tasks_posted, balance,
-    is_tasker, tasker_bio?, tasker_skills[],
-    created_at, updated_at
-)
+    Task {
+        int64 ID PK
+        int64 RequesterID FK
+        int64 TaskerID FK
+        int64 CategoryID FK
+        string Title
+        int64 Price
+        TaskStatus Status
+    }
 
-UserPublicResponse(
-    id, name, avatar_url?, university, is_verified,
-    rating, total_tasks_completed, is_tasker,
-    tasker_bio?, tasker_skills[]
-)
+    TaskApplication {
+        int64 ID PK
+        int64 TaskID FK
+        int64 TaskerID FK
+        ApplicationStatus Status
+    }
 
-UserMinimalResponse(id, name, avatar_url?, rating)
-```
+    Transaction {
+        int64 ID PK
+        int64 PayerID FK
+        int64 TaskID FK
+        int64 PayeeID FK
+        TransactionType Type
+        TransactionStatus Status
+        int64 Amount
+    }
 
-**Validation Rules:**
-- `name`: 1-100 characters
-- `email`: max 100 characters
-- `phone`: max 20 characters
-- `student_id`: max 20 characters
-- `tasker_bio`: 10-500 characters (required for Tasker)
-- `tasker_skills`: 1-10 skills array
+    Wallet {
+        int64 ID PK
+        int64 UserID FK_UK
+        int64 Balance
+        int64 EscrowBalance
+    }
 
----
+    WalletTransaction {
+        int64 ID PK
+        int64 WalletID FK
+        int64 TransactionID FK
+        int64 TaskID FK
+        WalletTransactionType Type
+        int64 Amount
+    }
 
-### Task Schemas
+    Conversation {
+        uint ID PK
+        uint TaskID FK
+        uint PosterID FK
+        uint TaskerID FK
+        string LastMessage
+    }
 
-**Location:** `backend/app/schemas/task.py`
-
-```python
-# Request Schemas
-TaskBase(
-    title, description?, price, price_negotiable,
-    category_id, location_from?, location_to?, deadline?
-)
-TaskCreate(TaskBase)  # Inherits all fields
-TaskUpdate(
-    title?, description?, price?, price_negotiable?,
-    location_from?, location_to?, deadline?
-)  # All fields optional
-
-# Response Schemas
-TaskResponse(
-    id, title, description?, price, price_negotiable,
-    status, location_from?, location_to?, deadline?,
-    completed_at?, created_at, updated_at,
-    requester: UserMinimalResponse,
-    tasker?: UserMinimalResponse,
-    category: CategoryInTask,
-    application_count: int
-)
-
-TaskListResponse(
-    id, title, price, price_negotiable, status,
-    location_from?, deadline?, created_at,
-    requester: UserMinimalResponse,
-    category: CategoryInTask,
-    application_count: int
-)  # Lighter version for list views
-
-# Task Application
-TaskApplicationCreate(proposed_price?, message?)
-TaskApplicationResponse(
-    id, task_id, tasker: UserMinimalResponse,
-    proposed_price?, message?, status, created_at
-)
-
-# Query Parameters
-TaskQueryParams(
-    status?, category_id?, search?,
-    min_price?, max_price?,
-    sort="created_at", order="desc",
-    page=1, limit=20
-)
-```
-
-**Validation Rules:**
-- `title`: 5-200 characters
-- `description`: max 2000 characters
-- `price`: 1-10,000,000 VND (gt=0, le=10000000)
-- `location_from/to`: max 200 characters
-- `message`: max 500 characters
-
----
-
-### Other Schemas
-
-**Payment Schemas** (`backend/app/schemas/payment.py`):
-```python
-PaymentCreateRequest(task_id, amount)
-PaymentReleaseRequest(task_id)
-TransactionResponse(
-    id, task_id?, payer_id?, payee_id?,
-    amount, platform_fee, type, status,
-    created_at, updated_at
-)
-```
-
-**Message Schemas** (`backend/app/schemas/message.py`):
-```python
-MessageCreate(content, receiver_id)
-MessageResponse(
-    id, task_id, sender_id, receiver_id,
-    content, is_read, created_at
-)
-ConversationResponse(
-    task_id, task_title,
-    other_user: UserMinimalResponse,
-    last_message?, last_message_time?,
-    unread_count
-)
-```
-
-**Auth Schemas** (`backend/app/schemas/auth.py`):
-```python
-ZaloLoginRequest(code, code_verifier, app_id)
-DevLoginRequest(name)
-TokenResponse(
-    access_token, refresh_token,
-    token_type="bearer", expires_in
-)
-RefreshTokenRequest(refresh_token)
+    Message {
+        uint ID PK
+        uint ConversationID FK
+        uint SenderID FK
+        string Content
+        bool IsRead
+    }
 ```
 
 ---
 
-## Frontend Types (TypeScript)
+## Models
 
-**Location:** `vieczzalo/src/types/index.ts`
+### 1. User
 
-### Core Types
+**File:** `server/internal/models/user.go`
+**Table:** `users`
 
-```typescript
-// User Types
-interface User {
-  id: number;
-  zalo_id: string;
-  name: string;
-  avatar_url: string | null;
-  phone: string | null;
-  email: string | null;
-  university: string;
-  student_id: string | null;
-  is_verified: boolean;
-  rating: number;
-  total_tasks_completed: number;
-  total_tasks_posted: number;
-  balance: number;
-  is_tasker: boolean;
-  tasker_bio: string | null;
-  tasker_skills: string[];
-  created_at: string;  // ISO 8601
-  updated_at: string;
-}
-
-interface UserMinimal {
-  id: number;
-  name: string;
-  avatar_url: string | null;
-  rating: number;
-}
-
-interface UserPublic {
-  id: number;
-  name: string;
-  avatar_url: string | null;
-  university: string;
-  is_verified: boolean;
-  rating: number;
-  total_tasks_completed: number;
-  is_tasker: boolean;
-  tasker_bio: string | null;
-  tasker_skills: string[];
-}
-
-// Task Types
-type TaskStatus = 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
-
-interface Task {
-  id: number;
-  title: string;
-  description: string | null;
-  price: number;
-  price_negotiable: boolean;
-  status: TaskStatus;
-  location_from: string | null;
-  location_to: string | null;
-  deadline: string | null;
-  completed_at: string | null;
-  created_at: string;
-  updated_at: string;
-  requester: UserMinimal;
-  tasker: UserMinimal | null;
-  category: Category;
-  application_count: number;
-}
-
-interface TaskListItem {
-  id: number;
-  title: string;
-  price: number;
-  price_negotiable: boolean;
-  status: TaskStatus;
-  location_from: string | null;
-  deadline: string | null;
-  created_at: string;
-  requester: UserMinimal;
-  category: Category;
-  application_count: number;
-}
-
-interface TaskCreateInput {
-  title: string;
-  description?: string;
-  price: number;
-  price_negotiable?: boolean;
-  category_id: number;
-  location_from?: string;
-  location_to?: string;
-  deadline?: string;  // ISO 8601
-}
-
-// Application Types
-type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
-
-interface TaskApplication {
-  id: number;
-  task_id: number;
-  tasker: UserMinimal;
-  proposed_price: number | null;
-  message: string | null;
-  status: ApplicationStatus;
-  created_at: string;
-}
-
-// Message Types
-interface Message {
-  id: number;
-  task_id: number;
-  sender_id: number;
-  receiver_id: number;
-  content: string;
-  is_read: boolean;
-  created_at: string;
-}
-
-interface Conversation {
-  task_id: number;
-  task_title: string;
-  other_user: UserMinimal;
-  last_message: string | null;
-  last_message_time: string | null;
-  unread_count: number;
-}
-
-// Notification Types
-type NotificationType =
-  | 'task_application'
-  | 'application_accepted'
-  | 'application_rejected'
-  | 'task_completed'
-  | 'payment_received'
-  | 'new_message'
-  | 'system';
-
-interface Notification {
-  id: number;
-  type: NotificationType;
-  title: string;
-  message: string;
-  task_id: number | null;
-  is_read: boolean;
-  created_at: string;
-}
-
-// Wallet Types
-interface Wallet {
-  id: number;
-  balance: number;
-  type: string;
-}
-
-interface WalletTransaction {
-  id: number;
-  amount: number;
-  type: string;
-  description: string | null;
-  created_at: string;
-}
-
-// Category Type
-interface Category {
-  id: number;
-  name: string;
-  name_vi: string;
-  icon: string | null;
+```go
+type User struct {
+    ID                  int64          `gorm:"primaryKey;autoIncrement" json:"id"`
+    Email               string         `gorm:"unique;size:255;not null" json:"email"`
+    PasswordHash        string         `gorm:"size:255;not null" json:"-"`
+    Name                string         `gorm:"size:100;not null" json:"name"`
+    AvatarURL           *string        `gorm:"type:text" json:"avatar_url,omitempty"`
+    Phone               *string        `gorm:"size:20" json:"phone,omitempty"`
+    University          string         `gorm:"size:255;not null;default:'ĐHQG-HCM'" json:"university"`
+    StudentID           *string        `gorm:"size:50" json:"student_id,omitempty"`
+    IsVerified          bool           `gorm:"default:false" json:"is_verified"`
+    Rating              float64        `gorm:"type:decimal(3,2);default:0" json:"rating"`
+    TotalTasksCompleted int            `gorm:"default:0" json:"total_tasks_completed"`
+    TotalTasksPosted    int            `gorm:"default:0" json:"total_tasks_posted"`
+    TotalEarnings       int64          `gorm:"default:0" json:"total_earnings"`
+    IsTasker            bool           `gorm:"default:false" json:"is_tasker"`
+    TaskerBio           *string        `gorm:"size:500" json:"tasker_bio,omitempty"`
+    TaskerSkills        pq.StringArray `gorm:"type:text[]" json:"tasker_skills,omitempty"`
+    CreatedAt           time.Time      `gorm:"autoCreateTime" json:"created_at"`
+    UpdatedAt           time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 }
 ```
 
-### API Response Types
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Auto-incrementing primary key |
+| Email | string | unique, size:255, not null | User login email (unique) |
+| PasswordHash | string | size:255, not null | bcrypt hash, never exposed in JSON (`json:"-"`) |
+| Name | string | size:100, not null | Display name |
+| AvatarURL | *string | type:text | Profile image URL (nullable) |
+| Phone | *string | size:20 | Phone number (nullable) |
+| University | string | size:255, not null, default:'ĐHQG-HCM' | University affiliation |
+| StudentID | *string | size:50 | Student ID (nullable) |
+| IsVerified | bool | default:false | Student verification status |
+| Rating | float64 | type:decimal(3,2), default:0 | Average rating 0-5 |
+| TotalTasksCompleted | int | default:0 | Denormalized completed task count |
+| TotalTasksPosted | int | default:0 | Denormalized posted task count |
+| TotalEarnings | int64 | default:0 | Denormalized lifetime earnings (VND) |
+| IsTasker | bool | default:false | Whether user can accept tasks |
+| TaskerBio | *string | size:500 | Tasker biography (nullable) |
+| TaskerSkills | pq.StringArray | type:text[] | PostgreSQL text array of skills |
+| CreatedAt | time.Time | autoCreateTime | Record creation timestamp |
+| UpdatedAt | time.Time | autoUpdateTime | Last update timestamp |
 
-```typescript
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  meta?: {
-    page: number;
-    limit: number;
-    total: number;
-    total_pages: number;
-  };
-}
+**Validation rules** (`Validate()`):
+- Email: required, must match regex `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
+- Name: required, max 100 chars
+- PasswordHash: required
+- Rating: 0-5
+- TotalTasksCompleted, TotalTasksPosted: >= 0
+- TotalEarnings: >= 0
+- If IsTasker: TaskerBio max 500 chars, TaskerSkills max 10 items
 
-interface PaginatedResponse<T> {
-  success: boolean;
-  data: T[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    total_pages: number;
-  };
-}
+**GORM Hooks:** `BeforeCreate`, `BeforeUpdate` -- both call `Validate()`
 
-interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
+---
+
+### 2. Category
+
+**File:** `server/internal/models/category.go`
+**Table:** `categories`
+
+```go
+type Category struct {
+    ID       int     `gorm:"primaryKey;autoIncrement" json:"id"`
+    Name     string  `gorm:"size:50;not null" json:"name"`
+    NameVi   string  `gorm:"size:50;not null" json:"name_vi"`
+    Icon     *string `gorm:"size:50" json:"icon,omitempty"`
+    IsActive bool    `gorm:"default:true" json:"is_active"`
 }
 ```
 
-### Query Parameters
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int | primaryKey, autoIncrement | Primary key |
+| Name | string | size:50, not null | English category name |
+| NameVi | string | size:50, not null | Vietnamese category name |
+| Icon | *string | size:50 | Icon identifier (nullable) |
+| IsActive | bool | default:true | Soft-disable flag |
 
-```typescript
-interface TaskQueryParams {
-  status?: TaskStatus;
-  category_ids?: number[];  // Support multiple categories
-  search?: string;
-  min_price?: number;
-  max_price?: number;
-  sort?: string;
-  order?: 'asc' | 'desc';
-  page?: number;
-  limit?: number;
+**Validation rules:** Name required (max 50), NameVi required (max 50).
+
+**GORM Hooks:** `BeforeCreate`, `BeforeUpdate` -- both call `Validate()`
+
+**Seed data** (from `server/internal/database/seed.go`):
+- Moving & Transport / Van chuyen & Di chuyen
+- Delivery / Giao hang
+- Assembly & Installation / Lap rap & Cai dat
+- Cleaning / Don dep
+- Tutoring & Teaching / Gia su & Giang day
+- Tech Support / Ho tro ky thuat
+- Event Help / Ho tro su kien
+- Shopping & Errands / Mua sam & Viec vat
+- Pet Care / Cham soc thu cung
+- Photography / Chup anh
+- Other / Khac
+
+---
+
+### 3. Task
+
+**File:** `server/internal/models/task.go`
+**Table:** `tasks`
+
+```go
+type Task struct {
+    ID                int64      `gorm:"primaryKey;autoIncrement" json:"id"`
+    RequesterID       int64      `gorm:"not null;index" json:"requester_id"`
+    TaskerID          *int64     `gorm:"index" json:"tasker_id,omitempty"`
+    CategoryID        int64      `gorm:"not null;index" json:"category_id"`
+    Title             string     `gorm:"size:200;not null" json:"title"`
+    Description       string     `gorm:"type:text;not null" json:"description"`
+    Price             int64      `gorm:"not null" json:"price"`
+    Location          string     `gorm:"size:255;not null" json:"location"`
+    Latitude          *float64   `gorm:"type:decimal(10,8)" json:"latitude,omitempty"`
+    Longitude         *float64   `gorm:"type:decimal(11,8)" json:"longitude,omitempty"`
+    Status            TaskStatus `gorm:"type:varchar(20);default:'open';index" json:"status"`
+    ScheduledFor      *time.Time `json:"scheduled_for,omitempty"`
+    CompletedAt       *time.Time `json:"completed_at,omitempty"`
+    ImageURLs         []string   `gorm:"type:text[]" json:"image_urls,omitempty"`
+    RequesterRatingID *int64     `json:"requester_rating_id,omitempty"`
+    TaskerRatingID    *int64     `json:"tasker_rating_id,omitempty"`
+    CreatedAt         time.Time  `gorm:"autoCreateTime" json:"created_at"`
+    UpdatedAt         time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
+
+    // Associations (not serialized to JSON)
+    Requester User     `gorm:"foreignKey:RequesterID" json:"-"`
+    Tasker    *User    `gorm:"foreignKey:TaskerID" json:"-"`
+    Category  Category `gorm:"foreignKey:CategoryID" json:"-"`
 }
 ```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Primary key |
+| RequesterID | int64 | not null, index | FK to users.id (task poster) |
+| TaskerID | *int64 | index | FK to users.id (assigned worker, nullable) |
+| CategoryID | int64 | not null, index | FK to categories.id |
+| Title | string | size:200, not null | Task title |
+| Description | string | type:text, not null | Full description |
+| Price | int64 | not null | Price in VND (must be > 0) |
+| Location | string | size:255, not null | Location text |
+| Latitude | *float64 | type:decimal(10,8) | GPS latitude (nullable) |
+| Longitude | *float64 | type:decimal(11,8) | GPS longitude (nullable) |
+| Status | TaskStatus | type:varchar(20), default:'open', index | Current status |
+| ScheduledFor | *time.Time | -- | When the task should be done (nullable) |
+| CompletedAt | *time.Time | -- | Completion timestamp (nullable) |
+| ImageURLs | []string | type:text[] | Up to 5 image URLs |
+| RequesterRatingID | *int64 | -- | Rating given by requester (nullable) |
+| TaskerRatingID | *int64 | -- | Rating given by tasker (nullable) |
+| CreatedAt | time.Time | autoCreateTime | Record creation |
+| UpdatedAt | time.Time | autoUpdateTime | Last update |
+
+**Associations:**
+- `Requester` -> User (foreignKey: RequesterID)
+- `Tasker` -> *User (foreignKey: TaskerID)
+- `Category` -> Category (foreignKey: CategoryID)
+
+**Validation rules:**
+- RequesterID, CategoryID: required (non-zero)
+- Title: required, max 200 chars
+- Description: required, max 2000 chars
+- Price: > 0
+- Location: required, max 255 chars
+- Status: must be one of the valid TaskStatus values
+- ImageURLs: max 5 items
+
+**GORM Hooks:** `BeforeCreate`, `BeforeUpdate` -- both call `Validate()`
+
+**State transitions:**
+```
+open --> in_progress --> completed
+  |                        |
+  +--> cancelled    cancelled
+```
+
+---
+
+### 4. TaskApplication
+
+**File:** `server/internal/models/task_application.go`
+**Table:** `task_applications`
+
+```go
+type TaskApplication struct {
+    ID            int64             `gorm:"primaryKey;autoIncrement" json:"id"`
+    TaskID        int64             `gorm:"not null;index" json:"task_id"`
+    TaskerID      int64             `gorm:"not null;index" json:"tasker_id"`
+    ProposedPrice *int64            `json:"proposed_price,omitempty"`
+    Message       *string           `gorm:"size:500" json:"message,omitempty"`
+    Status        ApplicationStatus `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+    CreatedAt     time.Time         `gorm:"autoCreateTime" json:"created_at"`
+    UpdatedAt     time.Time         `gorm:"autoUpdateTime" json:"updated_at"`
+
+    // Associations
+    Task   Task `gorm:"foreignKey:TaskID" json:"-"`
+    Tasker User `gorm:"foreignKey:TaskerID" json:"-"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Primary key |
+| TaskID | int64 | not null, index | FK to tasks.id |
+| TaskerID | int64 | not null, index | FK to users.id (applicant) |
+| ProposedPrice | *int64 | -- | Counter-offer price (nullable) |
+| Message | *string | size:500 | Application message (nullable) |
+| Status | ApplicationStatus | type:varchar(20), default:'pending', index | Application status |
+| CreatedAt | time.Time | autoCreateTime | Record creation |
+| UpdatedAt | time.Time | autoUpdateTime | Last update |
+
+**Validation rules:**
+- TaskID, TaskerID: required (non-zero)
+- ProposedPrice: if set, must be > 0
+- Message: max 500 chars
+- Status: must be valid ApplicationStatus
+
+**GORM Hooks:** `BeforeCreate`, `BeforeUpdate` -- both call `Validate()`
+
+**Uniqueness:** Enforced at application level via `ExistsByTaskAndTasker()` repository method (one application per tasker per task).
+
+---
+
+### 5. Transaction
+
+**File:** `server/internal/models/transaction.go`
+**Table:** `transactions`
+
+```go
+type Transaction struct {
+    ID              int64             `gorm:"primaryKey;autoIncrement" json:"id"`
+    TaskID          *int64            `gorm:"index" json:"task_id,omitempty"`
+    PayerID         int64             `gorm:"not null;index" json:"payer_id"`
+    PayeeID         *int64            `gorm:"index" json:"payee_id,omitempty"`
+    Amount          int64             `gorm:"not null" json:"amount"`
+    PlatformFee     int64             `gorm:"not null;default:0" json:"platform_fee"`
+    NetAmount       int64             `gorm:"not null" json:"net_amount"`
+    Type            TransactionType   `gorm:"type:varchar(20);not null;index" json:"type"`
+    Status          TransactionStatus `gorm:"type:varchar(20);not null;default:'pending';index" json:"status"`
+    PayOSOrderCode  *int64            `gorm:"unique" json:"payos_order_code,omitempty"`
+    PayOSPaymentID  *string           `gorm:"type:text" json:"payos_payment_id,omitempty"`
+    Description     string            `gorm:"type:text" json:"description"`
+    FailureReason   *string           `gorm:"type:text" json:"failure_reason,omitempty"`
+    CompletedAt     *time.Time        `json:"completed_at,omitempty"`
+    CreatedAt       time.Time         `gorm:"autoCreateTime" json:"created_at"`
+    UpdatedAt       time.Time         `gorm:"autoUpdateTime" json:"updated_at"`
+
+    // Associations
+    Task  *Task `gorm:"foreignKey:TaskID" json:"-"`
+    Payer User  `gorm:"foreignKey:PayerID" json:"-"`
+    Payee *User `gorm:"foreignKey:PayeeID" json:"-"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Primary key |
+| TaskID | *int64 | index | FK to tasks.id (nullable for deposits) |
+| PayerID | int64 | not null, index | FK to users.id (who pays) |
+| PayeeID | *int64 | index | FK to users.id (who receives, nullable) |
+| Amount | int64 | not null | Gross amount in VND (> 0) |
+| PlatformFee | int64 | not null, default:0 | Platform commission (>= 0) |
+| NetAmount | int64 | not null | Amount - PlatformFee (auto-calculated) |
+| Type | TransactionType | type:varchar(20), not null, index | Transaction type |
+| Status | TransactionStatus | type:varchar(20), not null, default:'pending', index | Transaction status |
+| PayOSOrderCode | *int64 | unique | PayOS order code (nullable, unique) |
+| PayOSPaymentID | *string | type:text | PayOS payment ID (nullable) |
+| Description | string | type:text | Human-readable description |
+| FailureReason | *string | type:text | Reason for failure (nullable) |
+| CompletedAt | *time.Time | -- | Completion timestamp (nullable) |
+| CreatedAt | time.Time | autoCreateTime | Record creation |
+| UpdatedAt | time.Time | autoUpdateTime | Last update |
+
+**Method:** `CalculateNetAmount()` sets `NetAmount = Amount - PlatformFee`
+
+**Validation rules:**
+- PayerID: required (non-zero)
+- Amount: > 0
+- PlatformFee: >= 0
+- NetAmount: >= 0
+- Type: must be valid TransactionType
+- Status: must be valid TransactionStatus
+
+**GORM Hooks:**
+- `BeforeCreate`: calls `CalculateNetAmount()` then `Validate()`
+- `BeforeUpdate`: calls `CalculateNetAmount()` then `Validate()`
+
+---
+
+### 6. Wallet
+
+**File:** `server/internal/models/wallet.go`
+**Table:** `wallets`
+
+```go
+type Wallet struct {
+    ID              int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+    UserID          int64     `gorm:"unique;not null;index" json:"user_id"`
+    Balance         int64     `gorm:"not null;default:0" json:"balance"`
+    EscrowBalance   int64     `gorm:"not null;default:0" json:"escrow_balance"`
+    TotalDeposited  int64     `gorm:"not null;default:0" json:"total_deposited"`
+    TotalWithdrawn  int64     `gorm:"not null;default:0" json:"total_withdrawn"`
+    TotalEarned     int64     `gorm:"not null;default:0" json:"total_earned"`
+    TotalSpent      int64     `gorm:"not null;default:0" json:"total_spent"`
+    CreatedAt       time.Time `gorm:"autoCreateTime" json:"created_at"`
+    UpdatedAt       time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+
+    // Associations
+    User User `gorm:"foreignKey:UserID" json:"-"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Primary key |
+| UserID | int64 | unique, not null, index | FK to users.id (one wallet per user) |
+| Balance | int64 | not null, default:0 | Available balance in VND |
+| EscrowBalance | int64 | not null, default:0 | Amount held in escrow |
+| TotalDeposited | int64 | not null, default:0 | Lifetime deposits |
+| TotalWithdrawn | int64 | not null, default:0 | Lifetime withdrawals |
+| TotalEarned | int64 | not null, default:0 | Lifetime earnings from tasks |
+| TotalSpent | int64 | not null, default:0 | Lifetime spending on tasks |
+| CreatedAt | time.Time | autoCreateTime | Record creation |
+| UpdatedAt | time.Time | autoUpdateTime | Last update |
+
+**Methods:**
+- `HasSufficientBalance(amount int64) bool` -- checks Balance >= amount
+- `Deduct(amount int64) error` -- subtracts from Balance
+- `Credit(amount int64)` -- adds to Balance
+- `HoldInEscrow(amount int64) error` -- deducts from Balance, adds to EscrowBalance and TotalSpent
+- `ReleaseFromEscrow(amount int64) error` -- subtracts from EscrowBalance (funds go to payee)
+- `RefundFromEscrow(amount int64) error` -- moves from EscrowBalance back to Balance, reverses TotalSpent
+
+**Validation rules:** UserID required, all balance fields >= 0.
+
+**GORM Hooks:** `BeforeCreate`, `BeforeUpdate` -- both call `Validate()`
+
+---
+
+### 7. WalletTransaction
+
+**File:** `server/internal/models/wallet_transaction.go`
+**Table:** `wallet_transactions`
+
+```go
+type WalletTransaction struct {
+    ID              int64                 `gorm:"primaryKey;autoIncrement" json:"id"`
+    WalletID        int64                 `gorm:"not null;index" json:"wallet_id"`
+    TransactionID   *int64                `gorm:"index" json:"transaction_id,omitempty"`
+    TaskID          *int64                `gorm:"index" json:"task_id,omitempty"`
+    Type            WalletTransactionType `gorm:"type:varchar(30);not null;index" json:"type"`
+    Amount          int64                 `gorm:"not null" json:"amount"`
+    BalanceBefore   int64                 `gorm:"not null" json:"balance_before"`
+    BalanceAfter    int64                 `gorm:"not null" json:"balance_after"`
+    EscrowBefore    int64                 `gorm:"not null" json:"escrow_before"`
+    EscrowAfter     int64                 `gorm:"not null" json:"escrow_after"`
+    Description     string                `gorm:"type:text" json:"description"`
+    ReferenceUserID *int64                `gorm:"index" json:"reference_user_id,omitempty"`
+    CreatedAt       time.Time             `gorm:"autoCreateTime;index" json:"created_at"`
+
+    // Associations
+    Wallet        Wallet       `gorm:"foreignKey:WalletID" json:"-"`
+    Transaction   *Transaction `gorm:"foreignKey:TransactionID" json:"-"`
+    Task          *Task        `gorm:"foreignKey:TaskID" json:"-"`
+    ReferenceUser *User        `gorm:"foreignKey:ReferenceUserID" json:"-"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Primary key |
+| WalletID | int64 | not null, index | FK to wallets.id |
+| TransactionID | *int64 | index | FK to transactions.id (nullable) |
+| TaskID | *int64 | index | FK to tasks.id (nullable) |
+| Type | WalletTransactionType | type:varchar(30), not null, index | Entry type |
+| Amount | int64 | not null | Transaction amount (non-zero) |
+| BalanceBefore | int64 | not null | Wallet balance snapshot before |
+| BalanceAfter | int64 | not null | Wallet balance snapshot after |
+| EscrowBefore | int64 | not null | Escrow balance snapshot before |
+| EscrowAfter | int64 | not null | Escrow balance snapshot after |
+| Description | string | type:text | Human-readable description |
+| ReferenceUserID | *int64 | index | FK to users.id (other party, nullable) |
+| CreatedAt | time.Time | autoCreateTime, index | Record creation (indexed for sorting) |
+
+**Validation rules:**
+- WalletID: required (non-zero)
+- Amount: != 0
+- Type: must be valid WalletTransactionType
+- BalanceBefore, BalanceAfter, EscrowBefore, EscrowAfter: >= 0
+
+**GORM Hooks:** `BeforeCreate` -- calls `Validate()` (no BeforeUpdate -- wallet transactions are immutable ledger entries)
+
+---
+
+### 8. Conversation
+
+**File:** `server/internal/models/conversation.go`
+**Table:** `conversations`
+
+```go
+type Conversation struct {
+    ID        uint           `gorm:"primarykey" json:"id"`
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+    TaskID uint  `gorm:"not null;index" json:"task_id"`
+    Task   *Task `gorm:"constraint:OnDelete:CASCADE" json:"task,omitempty"`
+
+    PosterID uint  `gorm:"not null;index" json:"poster_id"`
+    Poster   *User `gorm:"foreignKey:PosterID" json:"poster,omitempty"`
+
+    TaskerID uint  `gorm:"not null;index" json:"tasker_id"`
+    Tasker   *User `gorm:"foreignKey:TaskerID" json:"tasker,omitempty"`
+
+    LastMessageAt *time.Time `json:"last_message_at"`
+    LastMessage   string     `gorm:"type:text" json:"last_message"`
+
+    Messages []Message `gorm:"foreignKey:ConversationID" json:"messages,omitempty"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | uint | primarykey | Primary key |
+| CreatedAt | time.Time | -- | Record creation |
+| UpdatedAt | time.Time | -- | Last update |
+| DeletedAt | gorm.DeletedAt | index | Soft-delete timestamp (GORM soft delete) |
+| TaskID | uint | not null, index | FK to tasks.id |
+| PosterID | uint | not null, index | FK to users.id (task poster) |
+| TaskerID | uint | not null, index | FK to users.id (task worker) |
+| LastMessageAt | *time.Time | -- | Timestamp of last message (nullable) |
+| LastMessage | string | type:text | Preview of last message |
+
+**Associations:**
+- `Task` -> *Task (constraint: OnDelete:CASCADE)
+- `Poster` -> *User (foreignKey: PosterID)
+- `Tasker` -> *User (foreignKey: TaskerID)
+- `Messages` -> []Message (foreignKey: ConversationID)
+
+**Soft Delete:** This model uses GORM soft delete via `gorm.DeletedAt`. Deleted records are retained in the database with a non-null `deleted_at` timestamp.
+
+**Custom TableName:** `func (Conversation) TableName() string { return "conversations" }`
+
+**GORM Hooks:** None.
+
+---
+
+### 9. Message
+
+**File:** `server/internal/models/message.go`
+**Table:** `messages`
+
+```go
+type Message struct {
+    ID        uint           `gorm:"primarykey" json:"id"`
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+    ConversationID uint          `gorm:"not null;index" json:"conversation_id"`
+    Conversation   *Conversation `gorm:"constraint:OnDelete:CASCADE" json:"conversation,omitempty"`
+
+    SenderID uint  `gorm:"not null;index" json:"sender_id"`
+    Sender   *User `gorm:"foreignKey:SenderID" json:"sender,omitempty"`
+
+    Content string     `gorm:"type:text;not null" json:"content"`
+    IsRead  bool       `gorm:"default:false" json:"is_read"`
+    ReadAt  *time.Time `json:"read_at,omitempty"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | uint | primarykey | Primary key |
+| CreatedAt | time.Time | -- | Record creation |
+| UpdatedAt | time.Time | -- | Last update |
+| DeletedAt | gorm.DeletedAt | index | Soft-delete timestamp |
+| ConversationID | uint | not null, index | FK to conversations.id |
+| SenderID | uint | not null, index | FK to users.id |
+| Content | string | type:text, not null | Message body |
+| IsRead | bool | default:false | Read status |
+| ReadAt | *time.Time | -- | When message was read (nullable) |
+
+**Associations:**
+- `Conversation` -> *Conversation (constraint: OnDelete:CASCADE)
+- `Sender` -> *User (foreignKey: SenderID)
+
+**Soft Delete:** Uses GORM soft delete via `gorm.DeletedAt`.
+
+**Custom TableName:** `func (Message) TableName() string { return "messages" }`
+
+**GORM Hooks:** None.
+
+---
+
+## Request/Response DTOs
+
+**File:** `server/internal/models/payment.go`
+
+These are not database models -- they are used for API request/response serialization only.
+
+```go
+// POST /api/v1/payments/deposit request body
+type CreatePaymentRequest struct {
+    Amount      int    `json:"amount" binding:"required,min=1"`
+    Description string `json:"description" binding:"required"`
+}
+
+// POST /api/v1/payments/deposit response
+type CreatePaymentResponse struct {
+    OrderCode   int    `json:"orderCode"`
+    CheckoutURL string `json:"checkoutUrl"`
+    QRCode      string `json:"qrCode"`
+}
+
+// Generic error response
+type ErrorResponse struct {
+    Error   string `json:"error"`
+    Message string `json:"message,omitempty"`
+}
+
+// GET /api/v1/health response
+type HealthResponse struct {
+    Status string `json:"status"`
+}
+
+// Webhook confirmation response
+type WebhookResponse struct {
+    Success bool   `json:"success"`
+    Message string `json:"message"`
+}
+```
+
+**WebSocket types** (also in `message.go`):
+
+```go
+// WebSocketMessage -- sent/received over WebSocket connections
+type WebSocketMessage struct {
+    Type           string   `json:"type"`            // "message", "typing", "read", "error"
+    ConversationID uint     `json:"conversation_id"`
+    MessageID      uint     `json:"message_id,omitempty"`
+    SenderID       uint     `json:"sender_id"`
+    Content        string   `json:"content"`
+    CreatedAt      FlexTime `json:"created_at"`
+    Error          string   `json:"error,omitempty"`
+}
+
+// FlexTime -- time.Time wrapper that gracefully handles empty strings from clients
+type FlexTime struct { time.Time }
+```
+
+`FlexTime` handles `""`, `null`, and unparseable time values from WebSocket clients by defaulting to zero time.
 
 ---
 
 ## Enums and Constants
 
-### Backend Enums
+### TaskStatus
 
-**TaskStatus** (`backend/app/models/task.py:13-21`):
-```python
-class TaskStatus(str, enum.Enum):
-    OPEN = "open"
-    ACCEPTED = "accepted"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    DISPUTED = "disputed"
+**File:** `server/internal/models/task.go`
+
+```go
+type TaskStatus string
+
+const (
+    TaskStatusOpen       TaskStatus = "open"
+    TaskStatusInProgress TaskStatus = "in_progress"
+    TaskStatusCompleted  TaskStatus = "completed"
+    TaskStatusCancelled  TaskStatus = "cancelled"
+)
 ```
 
-**ApplicationStatus** (`backend/app/models/task_application.py:13-18`):
-```python
-class ApplicationStatus(str, enum.Enum):
-    PENDING = "pending"
-    ACCEPTED = "accepted"
-    REJECTED = "rejected"
+### ApplicationStatus
+
+**File:** `server/internal/models/task_application.go`
+
+```go
+type ApplicationStatus string
+
+const (
+    ApplicationStatusPending  ApplicationStatus = "pending"
+    ApplicationStatusAccepted ApplicationStatus = "accepted"
+    ApplicationStatusRejected ApplicationStatus = "rejected"
+)
 ```
 
-**TransactionType** (`backend/app/models/transaction.py:13-19`):
-```python
-class TransactionType(str, enum.Enum):
-    ESCROW = "escrow"         # Payment held in escrow
-    RELEASE = "release"       # Released to tasker
-    REFUND = "refund"         # Refunded to requester
-    WITHDRAWAL = "withdrawal" # Tasker withdraws balance
+### TransactionType
+
+**File:** `server/internal/models/transaction.go`
+
+```go
+type TransactionType string
+
+const (
+    TransactionTypeEscrow      TransactionType = "escrow"
+    TransactionTypeRelease     TransactionType = "release"
+    TransactionTypeRefund      TransactionType = "refund"
+    TransactionTypePlatformFee TransactionType = "platform_fee"
+    TransactionTypeDeposit     TransactionType = "deposit"
+    TransactionTypeWithdrawal  TransactionType = "withdrawal"
+)
 ```
 
-**TransactionStatus** (`backend/app/models/transaction.py:21-29`):
-```python
-class TransactionStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    SUCCESS = "success"
-    FAILED = "failed"
-    RELEASED = "released"
-    REFUNDED = "refunded"
+### TransactionStatus
+
+**File:** `server/internal/models/transaction.go`
+
+```go
+type TransactionStatus string
+
+const (
+    TransactionStatusPending   TransactionStatus = "pending"
+    TransactionStatusSuccess   TransactionStatus = "success"
+    TransactionStatusFailed    TransactionStatus = "failed"
+    TransactionStatusCancelled TransactionStatus = "cancelled"
+)
 ```
 
-**WalletType** (`backend/app/models/wallet.py:14-19`):
-```python
-class WalletType(str, Enum):
-    USER = "user"           # Regular user wallet
-    ESCROW = "escrow"       # Platform escrow for holding payments
-    PLATFORM = "platform"   # Platform revenue wallet
+### WalletTransactionType
+
+**File:** `server/internal/models/wallet_transaction.go`
+
+```go
+type WalletTransactionType string
+
+const (
+    WalletTransactionTypeDeposit         WalletTransactionType = "deposit"
+    WalletTransactionTypeWithdrawal      WalletTransactionType = "withdrawal"
+    WalletTransactionTypeEscrowHold      WalletTransactionType = "escrow_hold"
+    WalletTransactionTypeEscrowRelease   WalletTransactionType = "escrow_release"
+    WalletTransactionTypeEscrowRefund    WalletTransactionType = "escrow_refund"
+    WalletTransactionTypePaymentReceived WalletTransactionType = "payment_received"
+    WalletTransactionTypePlatformFee     WalletTransactionType = "platform_fee"
+)
 ```
 
-**WalletTransactionType** (`backend/app/models/wallet.py:21-29`):
-```python
-class WalletTransactionType(str, Enum):
-    DEPOSIT = "deposit"
-    WITHDRAW = "withdraw"
-    ESCROW_HOLD = "escrow_hold"       # Move to escrow
-    ESCROW_RELEASE = "escrow_release" # Release to tasker
-    ESCROW_REFUND = "escrow_refund"   # Refund to requester
-    PLATFORM_FEE = "platform_fee"     # Platform commission
+### PaymentStatus
+
+**File:** `server/internal/models/payment.go`
+
+```go
+type PaymentStatus string
+
+const (
+    PaymentStatusPending   PaymentStatus = "PENDING"
+    PaymentStatusPaid      PaymentStatus = "PAID"
+    PaymentStatusCancelled PaymentStatus = "CANCELLED"
+    PaymentStatusExpired   PaymentStatus = "EXPIRED"
+)
 ```
 
-**NotificationType** (`backend/app/models/notification.py:13-47`):
-```python
-class NotificationType(str, enum.Enum):
-    # Task related
-    TASK_CREATED = "task_created"
-    TASK_UPDATE = "task_update"
-    TASK_COMPLETED = "task_completed"
-    TASK_CANCELLED = "task_cancelled"
+---
 
-    # Application related
-    NEW_APPLICATION = "new_application"
-    APPLICATION_ACCEPTED = "application_accepted"
-    APPLICATION_REJECTED = "application_rejected"
+## GORM Hooks
 
-    # Payment related
-    PAYMENT = "payment"
-    PAYMENT_RECEIVED = "payment_received"
-    WALLET_DEPOSIT = "wallet_deposit"
-    WALLET_WITHDRAW = "wallet_withdraw"
-
-    # Message related
-    MESSAGE = "message"
-    NEW_MESSAGE = "new_message"
-
-    # Review related
-    REVIEW = "review"
-    NEW_REVIEW = "new_review"
-
-    # User related
-    USER_LOGIN = "user_login"
-    USER_LOGOUT = "user_logout"
-    BECAME_TASKER = "became_tasker"
-
-    # System
-    SYSTEM = "system"
-```
-
-**ReportStatus** (`backend/app/models/report.py:12-18`):
-```python
-class ReportStatus(str, enum.Enum):
-    PENDING = "pending"
-    INVESTIGATING = "investigating"
-    RESOLVED = "resolved"
-    DISMISSED = "dismissed"
-```
+| Model | BeforeCreate | BeforeUpdate | Notes |
+|-------|:---:|:---:|-------|
+| User | Validate() | Validate() | Validates email format, name, password hash, rating range, tasker fields |
+| Category | Validate() | Validate() | Validates name and name_vi |
+| Task | Validate() | Validate() | Validates all required fields, status, image count |
+| TaskApplication | Validate() | Validate() | Validates IDs, proposed_price, message length, status |
+| Transaction | CalculateNetAmount() + Validate() | CalculateNetAmount() + Validate() | Auto-calculates NetAmount before validation |
+| Wallet | Validate() | Validate() | Validates all balance fields >= 0 |
+| WalletTransaction | Validate() | -- | Immutable ledger entries (no update hook) |
+| Conversation | -- | -- | No hooks |
+| Message | -- | -- | No hooks |
 
 ---
 
@@ -1065,145 +841,131 @@ class ReportStatus(str, enum.Enum):
 
 ### Primary Keys
 
-All models use auto-incrementing integer primary keys (`id`).
-
-### Foreign Key Constraints
-
-| Child Table | Foreign Key | Parent Table | On Delete |
-|-------------|-------------|--------------|-----------|
-| tasks | requester_id | users.id | CASCADE |
-| tasks | tasker_id | users.id | SET NULL |
-| tasks | category_id | categories.id | - |
-| task_applications | task_id | tasks.id | CASCADE |
-| task_applications | tasker_id | users.id | CASCADE |
-| messages | task_id | tasks.id | CASCADE |
-| messages | sender_id | users.id | CASCADE |
-| messages | receiver_id | users.id | CASCADE |
-| reviews | task_id | tasks.id | CASCADE |
-| reviews | reviewer_id | users.id | CASCADE |
-| reviews | reviewee_id | users.id | CASCADE |
-| transactions | task_id | tasks.id | SET NULL |
-| transactions | payer_id | users.id | SET NULL |
-| transactions | payee_id | users.id | SET NULL |
-| notifications | user_id | users.id | CASCADE |
-| notifications | task_id | tasks.id | SET NULL |
-| reports | reporter_id | users.id | CASCADE |
-| reports | reported_user_id | users.id | CASCADE |
-| reports | task_id | tasks.id | SET NULL |
-| wallets | user_id | users.id | - |
-| wallet_transactions | wallet_id | wallets.id | - |
-| wallet_transactions | task_id | tasks.id | - |
-
-**On Delete Behaviors:**
-- **CASCADE**: Delete child records when parent is deleted
-- **SET NULL**: Set foreign key to NULL when parent is deleted
-- **-**: Default behavior (prevent deletion if referenced)
+All models use auto-incrementing primary keys. Most use `int64`; Conversation and Message use `uint`.
 
 ### Unique Constraints
 
-| Table | Columns | Name | Purpose |
-|-------|---------|------|---------|
-| users | zalo_id | - | One account per Zalo user |
-| wallets | user_id | - | One wallet per user |
-| task_applications | (task_id, tasker_id) | unique_task_tasker | One application per tasker per task |
-| reviews | (task_id, reviewer_id) | unique_task_reviewer | One review per user per task |
+| Table | Column(s) | Purpose |
+|-------|-----------|---------|
+| users | email | One account per email |
+| wallets | user_id | One wallet per user |
+| transactions | payos_order_code | Unique PayOS order codes |
 
 ### Indexes
 
 | Table | Column | Type | Purpose |
 |-------|--------|------|---------|
-| users | id | PRIMARY | Fast user lookups |
-| users | zalo_id | UNIQUE | Fast Zalo authentication |
-| tasks | id | PRIMARY | Fast task lookups |
-| tasks | requester_id | INDEX | Fast requester task queries |
-| tasks | tasker_id | INDEX | Fast tasker task queries |
-| tasks | category_id | INDEX | Fast category filtering |
-| tasks | status | INDEX | Fast status filtering |
-| task_applications | task_id | INDEX | Fast application lookups by task |
-| task_applications | tasker_id | INDEX | Fast application lookups by tasker |
-| messages | task_id | INDEX | Fast message retrieval for tasks |
-| notifications | user_id | INDEX | Fast user notification queries |
-| notifications | is_read | INDEX | Fast unread notification filtering |
-| transactions | zalopay_trans_id | INDEX | Fast ZaloPay transaction lookups |
+| users | email | UNIQUE | Auth lookups |
+| tasks | requester_id | INDEX | Filter tasks by poster |
+| tasks | tasker_id | INDEX | Filter tasks by worker |
+| tasks | category_id | INDEX | Filter tasks by category |
+| tasks | status | INDEX | Filter tasks by status |
+| task_applications | task_id | INDEX | Get applications for a task |
+| task_applications | tasker_id | INDEX | Get applications by a tasker |
+| task_applications | status | INDEX | Filter by application status |
+| transactions | task_id | INDEX | Get transactions for a task |
+| transactions | payer_id | INDEX | Get transactions by payer |
+| transactions | payee_id | INDEX | Get transactions by payee |
+| transactions | type | INDEX | Filter by transaction type |
+| transactions | status | INDEX | Filter by transaction status |
+| transactions | payos_order_code | UNIQUE | PayOS lookup |
+| wallets | user_id | UNIQUE + INDEX | Wallet lookup by user |
+| wallet_transactions | wallet_id | INDEX | Get entries for a wallet |
+| wallet_transactions | transaction_id | INDEX | Link to parent transaction |
+| wallet_transactions | task_id | INDEX | Get entries for a task |
+| wallet_transactions | type | INDEX | Filter by type |
+| wallet_transactions | reference_user_id | INDEX | Filter by other party |
+| wallet_transactions | created_at | INDEX | Sort by date |
+| conversations | task_id | INDEX | Find conversation for a task |
+| conversations | poster_id | INDEX | Find conversations by poster |
+| conversations | tasker_id | INDEX | Find conversations by tasker |
+| conversations | deleted_at | INDEX | GORM soft-delete filter |
+| messages | conversation_id | INDEX | Get messages in conversation |
+| messages | sender_id | INDEX | Get messages by sender |
+| messages | deleted_at | INDEX | GORM soft-delete filter |
 
-### Database-Level Constraints
+### Foreign Key Constraints
 
-**Check Constraints** (implicit in Pydantic validation):
-- `price`: Must be > 0 and <= 10,000,000 VND
-- `rating`: Must be 1-5 (integer or float)
-- `proposed_price`: Must be > 0 and <= 10,000,000 VND
+| Child Table | Column | References | On Delete |
+|-------------|--------|------------|-----------|
+| tasks | requester_id | users.id | -- (default) |
+| tasks | tasker_id | users.id | -- |
+| tasks | category_id | categories.id | -- |
+| task_applications | task_id | tasks.id | -- |
+| task_applications | tasker_id | users.id | -- |
+| transactions | task_id | tasks.id | -- |
+| transactions | payer_id | users.id | -- |
+| transactions | payee_id | users.id | -- |
+| wallets | user_id | users.id | -- |
+| wallet_transactions | wallet_id | wallets.id | -- |
+| wallet_transactions | transaction_id | transactions.id | -- |
+| wallet_transactions | task_id | tasks.id | -- |
+| wallet_transactions | reference_user_id | users.id | -- |
+| conversations | task_id | tasks.id | CASCADE |
+| conversations | poster_id | users.id | -- |
+| conversations | tasker_id | users.id | -- |
+| messages | conversation_id | conversations.id | CASCADE |
+| messages | sender_id | users.id | -- |
 
-**Not Null Constraints:**
-- All primary keys
-- User: `zalo_id`, `name`
-- Task: `requester_id`, `category_id`, `title`, `price`
-- TaskApplication: `task_id`, `tasker_id`
-- Message: `task_id`, `sender_id`, `receiver_id`, `content`
-- Review: `task_id`, `reviewer_id`, `reviewee_id`, `rating`, `is_for_tasker`
-- Transaction: `amount`, `platform_fee`, `type`
-- Notification: `user_id`, `title`, `type`
-- Report: `reporter_id`, `reported_user_id`, `reason`
+---
+
+## Helper Functions
+
+**File:** `server/internal/models/user.go`
+
+```go
+// IsValidEmail checks email format against regex
+func IsValidEmail(email string) bool
+
+// IsStrongPassword checks: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit
+func IsStrongPassword(password string) bool
+```
 
 ---
 
 ## Data Relationships Summary
 
 ### One-to-One
-- User ↔ Wallet (one user has one wallet)
+- User <-> Wallet (UserID unique in wallets)
 
 ### One-to-Many
-- User → Tasks (as requester)
-- User → Tasks (as tasker)
-- User → TaskApplications
-- User → Messages (as sender)
-- User → Messages (as receiver)
-- User → Reviews (as reviewer)
-- User → Reviews (as reviewee)
-- User → Notifications
-- Category → Tasks
-- Task → TaskApplications
-- Task → Messages
-- Task → Reviews
-- Task → Transactions
-- Wallet → WalletTransactions
+- User -> Task (as RequesterID)
+- User -> Task (as TaskerID)
+- User -> TaskApplication (as TaskerID)
+- User -> Transaction (as PayerID)
+- User -> Transaction (as PayeeID)
+- User -> Conversation (as PosterID)
+- User -> Conversation (as TaskerID)
+- User -> Message (as SenderID)
+- User -> WalletTransaction (as ReferenceUserID)
+- Category -> Task
+- Task -> TaskApplication
+- Task -> Transaction
+- Task -> WalletTransaction
+- Task -> Conversation
+- Wallet -> WalletTransaction
+- Transaction -> WalletTransaction
+- Conversation -> Message
 
-### Many-to-Many
-None (applications are explicit TaskApplication entities, not junction tables)
+### Soft-Deleted Models
+- Conversation (gorm.DeletedAt)
+- Message (gorm.DeletedAt)
 
 ---
 
 ## Key Design Patterns
 
-1. **Soft Delete**: Not implemented - relies on `ON DELETE` constraints
-2. **Audit Trail**: `created_at` and `updated_at` timestamps on most models
-3. **Computed Properties**: `Wallet.available_balance` = `balance - frozen_balance`
-4. **Denormalization**: User statistics cached in User model (`total_tasks_completed`, `rating`)
-5. **Type Safety**: Enums for status fields prevent invalid states
-6. **Normalization**: Categories, users, and tasks are properly normalized (3NF)
-7. **JSON Storage**: `tasker_skills` stored as JSON array for flexibility
-
----
-
-## Data Size Estimates
-
-**Field Limits:**
-- Short text (name, title): 50-200 characters
-- Medium text (bio, message): 500 characters
-- Long text (description, reason): 2000 characters (Text type)
-- Numeric (price): 1-10,000,000 VND (integer)
-- Numeric (balance): BigInteger (up to 2^63-1)
-
-**Storage Considerations:**
-- SQLite database file: `backend/data/viecz.db`
-- Estimated row sizes: 100-500 bytes per entity
-- Indexes add ~10-20% overhead
-- Expected dataset: 10,000 users, 50,000 tasks, 100,000 messages
+1. **Email-based auth**: Users authenticate with email + bcrypt password (no Zalo/OAuth)
+2. **Single user table**: Both requesters and taskers share the same User model; `is_tasker` flag controls task acceptance
+3. **GORM hooks for validation**: All domain validation runs in BeforeCreate/BeforeUpdate hooks
+4. **Immutable ledger**: WalletTransaction has no BeforeUpdate hook -- entries are append-only
+5. **Balance snapshots**: WalletTransaction stores BalanceBefore/After and EscrowBefore/After for auditability
+6. **Auto-calculated fields**: Transaction.NetAmount is computed from Amount - PlatformFee in hooks
+7. **Soft delete**: Conversation and Message use GORM soft delete; all other models use hard delete
+8. **PayOS integration**: Transaction stores PayOSOrderCode (unique) and PayOSPaymentID for payment gateway tracking
+9. **PostgreSQL arrays**: User.TaskerSkills and Task.ImageURLs use `text[]` PostgreSQL array type via `pq.StringArray`/`[]string`
+10. **Denormalized counters**: User stores TotalTasksCompleted, TotalTasksPosted, TotalEarnings for fast reads
 
 ---
 
 **End of Document**
-
-> For related documentation, see:
-> - [API_REFERENCE.md](./API_REFERENCE.md) - API endpoint documentation
-> - [SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md) - Architecture overview
-> - [ALGORITHM.md](./ALGORITHM.md) - Core algorithms and business logic

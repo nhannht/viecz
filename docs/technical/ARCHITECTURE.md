@@ -1,1841 +1,844 @@
-# Technical Architecture - Dịch Vụ Nhỏ Cho Sinh Viên
+# Technical Architecture - Viecz
 
-**Author:** Tech Lead
-**Version:** 1.1
-**Created:** 2026-01-14
-**Last Updated:** 2026-01-14
+**Version:** 2.0
+**Last Updated:** 2026-02-14
 
 ---
 
 ## Table of Contents
 
-1. [Executive Summary](#1-executive-summary)
-2. [System Overview](#2-system-overview)
-3. [Architecture Principles](#3-architecture-principles)
-4. [Technology Stack](#4-technology-stack)
-5. [System Architecture](#5-system-architecture)
-6. [Database Design](#6-database-design)
-7. [API Design](#7-api-design)
-8. [Authentication & Authorization](#8-authentication--authorization)
-9. [Real-time Communication](#9-real-time-communication)
-10. [Payment Integration](#10-payment-integration)
-11. [Security Architecture](#11-security-architecture)
-12. [Infrastructure & Deployment](#12-infrastructure--deployment)
-13. [Monitoring & Observability](#13-monitoring--observability)
-14. [Scalability Strategy](#14-scalability-strategy)
-15. [Development Workflow](#15-development-workflow)
-16. [Technical Roadmap](#16-technical-roadmap)
-17. [Risk Assessment](#17-risk-assessment)
-18. [Appendix](#18-appendix)
+1. [Overview](#1-overview)
+2. [System Architecture](#2-system-architecture)
+3. [Technology Stack](#3-technology-stack)
+4. [Go Backend Architecture](#4-go-backend-architecture)
+5. [Android App Architecture](#5-android-app-architecture)
+6. [Database Layer](#6-database-layer)
+7. [WebSocket Architecture](#7-websocket-architecture)
+8. [Payment & Wallet System](#8-payment--wallet-system)
+9. [Authentication](#9-authentication)
+10. [API Routes](#10-api-routes)
+11. [Deployment](#11-deployment)
 
 ---
 
-## 1. Executive Summary
+## 1. Overview
 
-### 1.1 Purpose
+Viecz is a P2P marketplace connecting university students for small services. The system consists of:
 
-This document defines the technical architecture for "Dịch Vụ Nhỏ Cho Sinh Viên" - a P2P marketplace platform connecting university students for small services. The system must handle real-time task matching, secure payments, and instant messaging while maintaining high availability for 100,000+ potential users.
-
-### 1.2 Key Technical Goals
-
-| Goal | Target | Priority |
-|------|--------|----------|
-| **Time to MVP** | 7 weeks (by Feb 28, 2026) | P0 |
-| **Availability** | 99% uptime | P1 |
-| **Response Time** | < 200ms API response | P1 |
-| **Concurrent Users** | 1,000 (Year 1) | P2 |
-| **Data Consistency** | Strong consistency for payments | P0 |
-| **Security** | OWASP Top 10 compliant | P0 |
-
-### 1.3 Constraints
-
-- **Budget:** 10M VND (hosting cost = 0 due to bare metal server)
-- **Team:** 2 developers (1 senior, 1 junior)
-- **Timeline:** MVP in 7 weeks
-- **Platform:** Must run as Zalo Mini App
+- **Go backend** (Gin + GORM) serving REST and WebSocket APIs
+- **Native Android app** (Kotlin + Jetpack Compose) with MVVM architecture
+- **PostgreSQL** (production) / **SQLite** (test server) for persistence
+- **PayOS** for payment processing (deposit via payment links, escrow via wallet)
 
 ---
 
-## 2. System Overview
-
-### 2.1 High-Level Architecture
+## 2. System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT LAYER                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│    ┌──────────────┐         ┌──────────────┐         ┌──────────────┐       │
-│    │   Zalo App   │         │   Zalo App   │         │   Zalo App   │       │
-│    │  (Android)   │         │    (iOS)     │         │    (Web)     │       │
-│    └──────┬───────┘         └──────┬───────┘         └──────┬───────┘       │
-│           │                        │                        │               │
-│           └────────────────────────┼────────────────────────┘               │
-│                                    │                                        │
-│                         ┌──────────▼──────────┐                             │
-│                         │  Zalo Mini App      │                             │
-│                         │  (React + MUI)      │                             │
-│                         └──────────┬──────────┘                             │
-│                                    │                                        │
-└────────────────────────────────────┼────────────────────────────────────────┘
-                                     │ HTTPS
-┌────────────────────────────────────┼────────────────────────────────────────┐
-│                           GATEWAY LAYER                                      │
-├────────────────────────────────────┼────────────────────────────────────────┤
-│                         ┌──────────▼──────────┐                             │
-│                         │       Nginx         │                             │
-│                         │  (Reverse Proxy)    │                             │
-│                         │  - SSL Termination  │                             │
-│                         │  - Rate Limiting    │                             │
-│                         │  - Load Balancing   │                             │
-│                         └──────────┬──────────┘                             │
-│                                    │                                        │
-└────────────────────────────────────┼────────────────────────────────────────┘
-                                     │
-┌────────────────────────────────────┼────────────────────────────────────────┐
-│                          APPLICATION LAYER                                   │
-├────────────────────────────────────┼────────────────────────────────────────┤
-│                                    │                                        │
-│                         ┌──────────▼──────────┐                             │
-│                         │   FastAPI Server    │                             │
-│                         │   (Uvicorn)         │                             │
-│                         │                     │                             │
-│                         │  - REST API         │                             │
-│                         │  - WebSocket        │                             │
-│                         │  - Authentication   │                             │
-│                         │  - Task CRUD        │                             │
-│                         │  - User Management  │                             │
-│                         │  - Payment Processing│                            │
-│                         └──────────┬──────────┘                             │
-│                                    │                                        │
-└────────────────────────────────────┼────────────────────────────────────────┘
-                                     │
-┌────────────────────────────────────┼────────────────────────────────────────┐
-│                            DATA LAYER                                        │
-├────────────────────────────────────┼────────────────────────────────────────┤
-│                    ┌───────────────┴───────────────┐                        │
-│                    │                               │                        │
-│         ┌──────────▼──────────┐         ┌─────────▼─────────┐              │
-│         │      SQLite         │         │   File Storage    │              │
-│         │                     │         │                   │              │
-│         │  - Users            │         │  - User Avatars   │              │
-│         │  - Tasks            │         │  - Task Images    │              │
-│         │  - Messages         │         │                   │              │
-│         │  - Transactions     │         │                   │              │
-│         └─────────────────────┘         └───────────────────┘              │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         EXTERNAL SERVICES                                     │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐            │
-│  │   Zalo OAuth    │   │    ZaloPay      │   │    Zalo ZNS     │            │
-│  │                 │   │                 │   │                 │            │
-│  │  Authentication │   │    Payments     │   │  Push Notifs    │            │
-│  └─────────────────┘   └─────────────────┘   └─────────────────┘            │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    ANDROID CLIENT                             │
+│                                                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
+│  │ Compose  │  │ ViewModels│  │Repositories│  │ Retrofit  │  │
+│  │   UI     │──│ (State)  │──│ (Data)    │──│ + OkHttp  │  │
+│  └──────────┘  └──────────┘  └──────────┘  └─────┬──────┘  │
+│                                                    │         │
+│                             ┌───────────┐          │         │
+│                             │ WebSocket │──────────┤         │
+│                             │  Client   │          │         │
+│                             └───────────┘          │         │
+└────────────────────────────────────────────────────┼─────────┘
+                                                     │
+                                          HTTPS / WSS│
+                                                     │
+┌────────────────────────────────────────────────────┼─────────┐
+│                         NGINX                      │         │
+│                  (SSL + Reverse Proxy)              │         │
+└────────────────────────────────────────────────────┼─────────┘
+                                                     │
+┌────────────────────────────────────────────────────┼─────────┐
+│                      GO BACKEND (Gin)              │         │
+│                                                    │         │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────┐ │         │
+│  │  Handlers   │──│   Services   │──│Repository  │ │         │
+│  │ (HTTP/WS)   │  │ (Business)   │  │(GORM impl)│ │         │
+│  └──────┬──────┘  └──────────────┘  └─────┬─────┘ │         │
+│         │                                  │       │         │
+│  ┌──────┴──────┐  ┌──────────────┐         │       │         │
+│  │  Auth MW    │  │ WebSocket Hub│         │       │         │
+│  │  (JWT)      │  │ (goroutine)  │         │       │         │
+│  └─────────────┘  └──────────────┘         │       │         │
+│                                            │       │         │
+└────────────────────────────────────────────┼───────┘         │
+                                             │                 │
+                              ┌──────────────┴──────────────┐  │
+                              │                             │  │
+                    ┌─────────▼─────────┐       ┌───────────▼┐ │
+                    │    PostgreSQL     │       │   PayOS    │ │
+                    │   (Production)   │       │  (Payments)│ │
+                    │   SQLite (Test)   │       └────────────┘ │
+                    └──────────────────┘                       │
 ```
 
-### 2.2 Component Responsibilities
+### Request Flow
 
-| Component | Responsibility | Technology |
-|-----------|---------------|------------|
-| **Zalo Mini App** | User interface, client-side routing | React 19, MUI, HashRouter |
-| **Nginx** | SSL, reverse proxy, rate limiting | Nginx 1.24+ |
-| **REST API** | Business logic, CRUD operations | Python 3.11, FastAPI |
-| **WebSocket** | Real-time communication | FastAPI WebSocket |
-| **SQLite** | Primary data store | SQLite 3.x |
-| **Zalo OAuth** | User authentication | Zalo API |
-| **ZaloPay** | Payment processing | ZaloPay API |
+```
+Android App
+    │
+    │  POST /api/v1/tasks  (Authorization: Bearer <JWT>)
+    ▼
+  Nginx (SSL termination, rate limiting)
+    │
+    │  proxy_pass localhost:8080
+    ▼
+  Gin Router
+    │
+    ├── CORS Middleware
+    ├── Auth Middleware (JWT validation → sets user_id in context)
+    │
+    ▼
+  Handler (parse request, call service)
+    │
+    ▼
+  Service (business logic, validation)
+    │
+    ▼
+  Repository (GORM queries → database)
+    │
+    ▼
+  Response (JSON → Android)
+```
 
 ---
 
-## 3. Architecture Principles
+## 3. Technology Stack
 
-### 3.1 Design Principles
+### Backend
 
-| Principle | Description | Application |
-|-----------|-------------|-------------|
-| **Simplicity First** | Avoid over-engineering; build what's needed for MVP | Monolithic architecture for now |
-| **Security by Design** | Security is not an afterthought | JWT, HTTPS, input validation |
-| **Fail Gracefully** | Handle errors without crashing | Try-catch, error middleware |
-| **Stateless Services** | API servers should be stateless | Sessions in Redis, not memory |
-| **Single Source of Truth** | PostgreSQL is authoritative | Cache invalidation strategy |
+| Component        | Technology              | Version |
+|------------------|-------------------------|---------|
+| Language         | Go                      | 1.25    |
+| HTTP Framework   | Gin                     | 1.11    |
+| ORM              | GORM                    | 1.31    |
+| Database (prod)  | PostgreSQL (via pgx)    | -       |
+| Database (test)  | SQLite in-memory        | -       |
+| Auth             | golang-jwt/jwt          | v5.3    |
+| WebSocket        | Gorilla WebSocket       | 1.5     |
+| Payments         | PayOS SDK               | v2.0    |
+| Config           | godotenv                | 1.5     |
+| Logging          | zerolog                 | 1.34    |
+| Crypto           | golang.org/x/crypto     | -       |
 
-### 3.2 Architectural Decisions
+### Android
 
-#### ADR-001: Monolithic vs Microservices
-
-**Decision:** Monolithic architecture for MVP
-
-**Context:**
-- Team size: 2 developers
-- Timeline: 7 weeks
-- Expected users: 1,000 in Year 1
-
-**Rationale:**
-- Faster development and deployment
-- Simpler debugging and testing
-- Lower operational complexity
-- Can be split later if needed
-
-**Trade-offs:**
-- ✅ Fast development
-- ✅ Easy deployment
-- ❌ Harder to scale individual components
-- ❌ Single point of failure
-
-#### ADR-002: HashRouter vs BrowserRouter
-
-**Decision:** HashRouter for Zalo Mini App
-
-**Context:**
-- Zalo Mini App runs in webview
-- Webview doesn't control URL routing
-
-**Rationale:**
-- BrowserRouter causes blank screen in Zalo
-- HashRouter works entirely client-side
-- No server configuration needed
-
-#### ADR-003: SQLite vs PostgreSQL
-
-**Decision:** SQLite for MVP
-
-**Context:**
-- MVP phase with limited users (< 1,000)
-- Relational data (users, tasks, applications)
-- Need for simplicity and zero-config deployment
-- Budget constraint (10M VND)
-
-**Rationale:**
-- Zero configuration, serverless
-- Single file database, easy backup
-- ACID compliant (sufficient for MVP transactions)
-- No separate database server to maintain
-- Fast read performance for small datasets
-- Easy to migrate to PostgreSQL later if needed
-
-**Trade-offs:**
-- ✅ Simple deployment
-- ✅ No database server management
-- ✅ Fast development
-- ❌ Limited concurrent write performance
-- ❌ May need migration at scale (>10K users)
+| Component        | Technology              | Version   |
+|------------------|-------------------------|-----------|
+| Language         | Kotlin                  | 2.0       |
+| UI Framework     | Jetpack Compose (M3)    | BOM 2024.12 |
+| Navigation       | Navigation Compose      | 2.8       |
+| DI               | Hilt                    | 2.52      |
+| HTTP Client      | Retrofit + OkHttp       | 2.11 / 4.12 |
+| JSON             | Moshi                   | 1.15      |
+| Local DB         | Room                    | 2.6       |
+| State            | ViewModel + StateFlow   | 2.8       |
+| WebSocket        | OkHttp WebSocket        | 4.12      |
+| Token Storage    | EncryptedSharedPrefs    | 1.0       |
 
 ---
 
-## 4. Technology Stack
+## 4. Go Backend Architecture
 
-### 4.1 Frontend Stack
-
-| Layer | Technology | Version | Justification |
-|-------|------------|---------|---------------|
-| **Platform** | Zalo Mini App | Latest | 75M users, no app download needed |
-| **Framework** | React | 19.x | Modern features, team expertise |
-| **UI Library** | Material UI | 7.x | Rich components, theming support |
-| **Routing** | React Router | 7.x | HashRouter for webview |
-| **State Management** | Jotai | 2.x | Simple atomic state (if needed) |
-| **HTTP Client** | Fetch API | Native | Built-in, no extra dependency |
-| **Build Tool** | Vite | 5.x | Fast HMR, modern bundling |
-
-### 4.2 Backend Stack
-
-| Layer | Technology | Version | Justification |
-|-------|------------|---------|---------------|
-| **Runtime** | Python | 3.11+ | Modern async, type hints, rich ecosystem |
-| **Framework** | FastAPI | 0.109+ | High performance, automatic OpenAPI docs, async |
-| **Validation** | Pydantic | 2.x | Built into FastAPI, type-safe |
-| **ORM** | SQLAlchemy | 2.x | Mature, flexible, async support |
-| **Authentication** | JWT (python-jose) | - | Stateless, scalable |
-| **Real-time** | WebSocket (Starlette) | - | Built into FastAPI |
-
-### 4.3 Data Stack
-
-| Layer | Technology | Version | Justification |
-|-------|------------|---------|---------------|
-| **Primary DB** | SQLite | 3.x | Zero-config, serverless, sufficient for MVP |
-| **Cache** | In-memory (optional) | - | Simple caching if needed |
-| **File Storage** | Local FS → S3 | - | Simple now, migrate later |
-
-### 4.4 Infrastructure Stack
-
-| Layer | Technology | Justification |
-|-------|------------|---------------|
-| **Server** | Bare metal (owned) | Zero hosting cost |
-| **OS** | Ubuntu 22.04 LTS | Stable, long-term support |
-| **Web Server** | Nginx | Reverse proxy, SSL, rate limiting |
-| **SSL** | Let's Encrypt | Free, automated renewal |
-| **ASGI Server** | Uvicorn + Gunicorn | Production-ready async server |
-| **Process Manager** | Systemd | Native Linux service management |
-
----
-
-## 5. System Architecture
-
-### 5.1 Request Flow
+### Package Structure
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           REQUEST FLOW DIAGRAM                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-User Action (Create Task)
-         │
-         ▼
-┌─────────────────┐
-│  Zalo Mini App  │  1. User fills task form, clicks submit
-└────────┬────────┘
-         │
-         │  HTTP POST /api/tasks
-         │  Headers: Authorization: Bearer <JWT>
-         │  Body: { title, description, price, category_id }
-         ▼
-┌─────────────────┐
-│     Nginx       │  2. SSL termination, rate limit check
-└────────┬────────┘
-         │
-         │  Proxy pass to localhost:3000
-         ▼
-┌─────────────────┐
-│  FastAPI        │  3. Middleware/Dependencies:
-│                 │     - CORS check
-│                 │     - Pydantic validation
-│                 │     - JWT verification (Depends)
-│                 │     - Request validation
-└────────┬────────┘
-         │
-         │  4. Business logic in TaskService
-         ▼
-┌─────────────────┐
-│  TaskService    │  5. Create task:
-│                 │     - Validate business rules
-│                 │     - Check user balance
-│                 │     - Insert into database
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│     SQLite      │
-│                 │
-│  INSERT task    │
-│                 │
-└────────┬────────┘
-         │
-         │  6. Return task object
-         ▼
-┌─────────────────┐
-│  WebSocket      │  7. Broadcast to relevant users:
-│  (FastAPI)      │     - Taskers in same category
-│                 │     - Nearby users
-└────────┬────────┘
-         │
-         │  8. JSON response
-         ▼
-┌─────────────────┐
-│  Zalo Mini App  │  9. Update UI, show success
-└─────────────────┘
-```
-
-### 5.2 Directory Structure
-
-```
-/backend/
-├── app/
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI app entry point
-│   ├── config.py               # Settings & environment variables
-│   ├── database.py             # SQLAlchemy engine & session
-│   │
-│   ├── models/                 # SQLAlchemy ORM models
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── task.py
-│   │   ├── message.py
-│   │   ├── transaction.py
-│   │   └── notification.py
-│   │
-│   ├── schemas/                # Pydantic schemas (request/response)
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── task.py
-│   │   ├── message.py
-│   │   └── common.py
-│   │
-│   ├── routers/                # API route handlers
-│   │   ├── __init__.py
-│   │   ├── auth.py
-│   │   ├── users.py
-│   │   ├── tasks.py
-│   │   ├── messages.py
-│   │   ├── categories.py
-│   │   └── notifications.py
-│   │
-│   ├── services/               # Business logic
-│   │   ├── __init__.py
-│   │   ├── auth.py
-│   │   ├── user.py
-│   │   ├── task.py
-│   │   ├── message.py
-│   │   └── zalopay.py
-│   │
-│   ├── core/                   # Core utilities
-│   │   ├── __init__.py
-│   │   ├── security.py         # JWT, password hashing
-│   │   ├── dependencies.py     # FastAPI dependencies
-│   │   └── exceptions.py       # Custom exceptions
-│   │
-│   └── websocket/              # WebSocket handlers
-│       ├── __init__.py
-│       └── chat.py
+server/
+├── cmd/
+│   ├── server/main.go           # Production entrypoint (PostgreSQL)
+│   └── testserver/main.go       # Test server entrypoint (SQLite in-memory, mock PayOS)
 │
-├── alembic/                    # Database migrations
-│   ├── versions/
-│   └── env.py
+├── internal/
+│   ├── auth/
+│   │   ├── auth.go              # AuthService (register, login, bcrypt)
+│   │   ├── jwt.go               # JWT token generation & validation
+│   │   └── middleware.go         # AuthRequired, OptionalAuth gin middlewares
+│   │
+│   ├── config/
+│   │   └── config.go            # Env-based config (DB, JWT, PayOS, fees)
+│   │
+│   ├── database/
+│   │   ├── database.go          # Option pattern for DB config
+│   │   ├── gorm.go              # NewGORM (PostgreSQL), AutoMigrate
+│   │   ├── migrate.go           # golang-migrate (file-based migrations)
+│   │   └── seed.go              # Seed categories + test users
+│   │
+│   ├── handlers/                # HTTP handlers (parse request → call service → respond)
+│   │   ├── auth.go              # Register, Login, RefreshToken
+│   │   ├── users.go             # GetProfile, GetMyProfile, UpdateProfile, BecomeTasker
+│   │   ├── tasks.go             # CRUD + Apply, Accept, Complete
+│   │   ├── categories.go        # GetCategories
+│   │   ├── payment.go           # CreateEscrowPayment, ReleasePayment, RefundPayment
+│   │   ├── wallet.go            # GetWallet, Deposit, GetTransactionHistory
+│   │   ├── webhook.go           # PayOS webhook handler
+│   │   ├── return.go            # PayOS return URL handler
+│   │   ├── websocket.go         # WebSocket upgrade + message handler
+│   │   └── *_test.go            # Handler tests
+│   │
+│   ├── services/                # Business logic
+│   │   ├── user.go              # UserService
+│   │   ├── task.go              # TaskService (create, list, apply, accept, complete)
+│   │   ├── wallet.go            # WalletService (deposit, escrow, release, refund)
+│   │   ├── payment.go           # PaymentService (orchestrates transactions + wallet)
+│   │   ├── payos.go             # PayOSService (PayOSServicer interface + SDK wrapper)
+│   │   ├── message.go           # MessageService (conversations + messages + WS broadcast)
+│   │   └── *_test.go            # Service tests
+│   │
+│   ├── repository/              # Data access (interface + GORM implementation)
+│   │   ├── user.go              # UserRepository interface
+│   │   ├── user_gorm.go         # UserGormRepository (GORM implementation)
+│   │   ├── task.go              # TaskRepository interface
+│   │   ├── task_gorm.go         # TaskGormRepository
+│   │   ├── task_application.go  # TaskApplicationRepository interface
+│   │   ├── task_application_gorm.go
+│   │   ├── category.go          # CategoryRepository interface
+│   │   ├── category_gorm.go
+│   │   ├── transaction.go       # TransactionRepository interface
+│   │   ├── transaction_gorm.go
+│   │   ├── wallet.go            # WalletRepository interface
+│   │   ├── wallet_gorm.go
+│   │   ├── wallet_transaction.go
+│   │   ├── wallet_transaction_gorm.go
+│   │   ├── conversation.go      # ConversationRepository interface
+│   │   ├── conversation_gorm.go
+│   │   ├── message.go           # MessageRepository interface
+│   │   ├── message_gorm.go
+│   │   └── *_gorm_test.go       # Repository tests (SQLite in-memory)
+│   │
+│   ├── models/                  # GORM models (struct + Validate + BeforeCreate hooks)
+│   │   ├── user.go
+│   │   ├── task.go
+│   │   ├── task_application.go
+│   │   ├── category.go
+│   │   ├── transaction.go
+│   │   ├── wallet.go
+│   │   ├── wallet_transaction.go
+│   │   ├── conversation.go
+│   │   ├── message.go           # Also defines WebSocketMessage and FlexTime
+│   │   └── payment.go
+│   │
+│   ├── middleware/
+│   │   └── cors.go              # CORS middleware for Gin
+│   │
+│   ├── websocket/
+│   │   ├── hub.go               # Hub (register/unregister clients, broadcast to conversations)
+│   │   └── client.go            # Client (readPump/writePump, Gorilla WebSocket)
+│   │
+│   ├── logger/
+│   │   └── logger.go            # Zerolog setup
+│   │
+│   └── testutil/                # Test helpers
+│       ├── assertions.go
+│       ├── fixtures.go
+│       ├── gorm_mock.go
+│       └── mocks.go
 │
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py
-│   ├── test_auth.py
-│   ├── test_tasks.py
-│   └── test_users.py
+├── migrations/                  # SQL migration files (golang-migrate)
+├── static/                      # .well-known, privacy-policy.html
+├── go.mod
+└── go.sum
+```
+
+### Key Patterns
+
+**Repository Interface Pattern**: Every data access concern is defined as an interface in `repository/<entity>.go`, with its GORM implementation in `repository/<entity>_gorm.go`. This enables testing with mock implementations.
+
+```go
+// repository/user.go — Interface
+type UserRepository interface {
+    Create(ctx context.Context, user *models.User) error
+    GetByID(ctx context.Context, id int64) (*models.User, error)
+    GetByEmail(ctx context.Context, email string) (*models.User, error)
+    // ...
+}
+
+// repository/user_gorm.go — GORM Implementation
+type userGormRepository struct { db *gorm.DB }
+func NewUserGormRepository(db *gorm.DB) UserRepository { ... }
+```
+
+**Service Layer**: Services encapsulate business logic and depend on repository interfaces, not concrete implementations. Services are injected into handlers.
+
+**Model Validation Hooks**: GORM models implement `BeforeCreate` and `BeforeUpdate` hooks that call `Validate()`, enforcing data integrity at the ORM level.
+
+**Dependency Wiring** (in `cmd/server/main.go`):
+```
+Config → Database → Repositories → Services → Handlers → Gin Router
+```
+
+---
+
+## 5. Android App Architecture
+
+### Package Structure
+
+```
+android/app/src/main/java/com/viecz/vieczandroid/
+├── VieczApplication.kt              # @HiltAndroidApp entry point
+├── MainActivity.kt                  # Single Activity (Compose host)
 │
 ├── data/
-│   └── viecz.db              # SQLite database file
+│   ├── api/                         # Retrofit API interfaces
+│   │   ├── AuthApi.kt               # POST /auth/register, /auth/login, /auth/refresh
+│   │   ├── TaskApi.kt               # CRUD + apply/accept/complete
+│   │   ├── CategoryApi.kt           # GET /categories
+│   │   ├── UserApi.kt               # GET/PUT /users/me, /become-tasker
+│   │   ├── WalletApi.kt             # GET /wallet, POST /wallet/deposit
+│   │   ├── PaymentApi.kt            # Escrow/release/refund
+│   │   ├── MessageApi.kt            # Conversations + messages
+│   │   ├── AuthInterceptor.kt       # OkHttp interceptor (injects Bearer token)
+│   │   └── ErrorResponse.kt         # Error parsing
+│   │
+│   ├── auth/
+│   │   └── AuthEventManager.kt      # Emits auth events (token expired → force logout)
+│   │
+│   ├── local/
+│   │   ├── TokenManager.kt          # EncryptedSharedPreferences for JWT storage
+│   │   ├── database/
+│   │   │   ├── AppDatabase.kt       # Room database (tasks, categories, notifications)
+│   │   │   └── Converters.kt        # Room type converters
+│   │   ├── dao/
+│   │   │   ├── TaskDao.kt
+│   │   │   ├── CategoryDao.kt
+│   │   │   └── NotificationDao.kt
+│   │   └── entities/
+│   │       ├── TaskEntity.kt
+│   │       ├── CategoryEntity.kt
+│   │       └── NotificationEntity.kt
+│   │
+│   ├── models/                      # Data classes (API response/request DTOs)
+│   │   ├── AuthModels.kt
+│   │   ├── Task.kt
+│   │   ├── TaskApplication.kt
+│   │   ├── Category.kt
+│   │   ├── User.kt
+│   │   ├── Wallet.kt
+│   │   ├── Transaction.kt
+│   │   ├── Conversation.kt
+│   │   ├── Message.kt
+│   │   ├── PaymentRequest.kt
+│   │   └── PaymentResponse.kt
+│   │
+│   ├── repository/                  # Repository classes (API + local cache)
+│   │   ├── AuthRepository.kt       # AuthApi + TokenManager
+│   │   ├── TaskRepository.kt       # TaskApi + TaskDao (offline cache)
+│   │   ├── CategoryRepository.kt   # CategoryApi + CategoryDao
+│   │   ├── UserRepository.kt       # UserApi
+│   │   ├── WalletRepository.kt     # WalletApi
+│   │   ├── PaymentRepository.kt    # PaymentApi
+│   │   ├── MessageRepository.kt    # MessageApi
+│   │   └── NotificationRepository.kt # NotificationDao (local-only)
+│   │
+│   └── websocket/
+│       └── WebSocketClient.kt      # OkHttp WebSocket (connect, join, send, typing, read)
 │
-├── .env.example
-├── requirements.txt
-├── alembic.ini
-└── README.md
+├── di/                              # Hilt DI modules
+│   ├── NetworkModule.kt             # OkHttp, Retrofit, Moshi, API interfaces
+│   └── DataModule.kt               # TokenManager, Room DB, DAOs, Repositories
+│
+├── ui/
+│   ├── navigation/
+│   │   └── Navigation.kt           # NavHost + all route definitions
+│   │
+│   ├── screens/                     # Composable screens
+│   │   ├── SplashScreen.kt
+│   │   ├── LoginScreen.kt
+│   │   ├── RegisterScreen.kt
+│   │   ├── MainScreen.kt           # Bottom navigation shell (Home, Chat, Profile tabs)
+│   │   ├── HomeScreen.kt           # Task list feed
+│   │   ├── TaskDetailScreen.kt     # Task details + apply/accept/complete actions
+│   │   ├── CreateTaskScreen.kt
+│   │   ├── ApplyTaskScreen.kt
+│   │   ├── MyJobsScreen.kt         # Posted / Applied / Completed jobs
+│   │   ├── ProfileScreen.kt
+│   │   ├── WalletScreen.kt         # Balance, deposit, transaction history
+│   │   ├── ChatScreen.kt           # Real-time chat (WebSocket)
+│   │   ├── ConversationListScreen.kt
+│   │   ├── NotificationScreen.kt
+│   │   └── PaymentScreen.kt
+│   │
+│   ├── viewmodels/                  # ViewModels (Hilt-injected, expose StateFlow)
+│   │   ├── AuthViewModel.kt
+│   │   ├── TaskListViewModel.kt
+│   │   ├── TaskDetailViewModel.kt
+│   │   ├── CreateTaskViewModel.kt
+│   │   ├── CategoryViewModel.kt
+│   │   ├── ChatViewModel.kt
+│   │   ├── ConversationListViewModel.kt
+│   │   ├── WalletViewModel.kt
+│   │   ├── PaymentViewModel.kt
+│   │   └── NotificationViewModel.kt
+│   │
+│   ├── components/
+│   │   └── TaskCard.kt              # Reusable task card component
+│   │
+│   └── theme/
+│       ├── Color.kt
+│       ├── Theme.kt
+│       └── Type.kt
+│
+└── utils/
+    ├── FormatUtils.kt               # Currency/date formatting
+    ├── HttpErrorParser.kt           # Parse error responses
+    └── ValidationUtils.kt           # Input validation
 ```
+
+### MVVM Data Flow
+
+```
+┌──────────────┐        ┌──────────────┐        ┌──────────────┐
+│   Compose    │        │  ViewModel   │        │  Repository  │
+│   Screen     │◄──────│  (StateFlow) │◄──────│ (API + Room) │
+│              │  state │              │  data  │              │
+│  onClick ────┼──────►│  function()  │──────►│  suspend fn  │
+│              │  event │              │  call  │              │
+└──────────────┘        └──────────────┘        └──────┬───────┘
+                                                       │
+                                            ┌──────────┴──────────┐
+                                            │                     │
+                                    ┌───────▼───────┐    ┌───────▼───────┐
+                                    │  Retrofit API │    │   Room DAO   │
+                                    │  (Network)    │    │  (Local DB)  │
+                                    └───────────────┘    └──────────────┘
+```
+
+### Hilt Dependency Graph
+
+```
+NetworkModule (@Singleton)
+├── OkHttpClient (AuthInterceptor + LoggingInterceptor)
+├── Retrofit (Moshi converter)
+├── AuthApi, TaskApi, CategoryApi, UserApi, WalletApi, PaymentApi, MessageApi
+
+DataModule (@Singleton)
+├── TokenManager (EncryptedSharedPreferences)
+├── AppDatabase (Room)
+├── TaskDao, CategoryDao, NotificationDao
+├── AuthRepository, TaskRepository, CategoryRepository
+├── UserRepository, WalletRepository, PaymentRepository, NotificationRepository
+```
+
+### Navigation Routes
+
+| Route                    | Screen                   | Auth Required |
+|--------------------------|--------------------------|---------------|
+| `splash`                 | SplashScreen             | No            |
+| `login`                  | LoginScreen              | No            |
+| `register`               | RegisterScreen           | No            |
+| `main`                   | MainScreen (bottom tabs) | Yes           |
+| `task_detail/{taskId}`   | TaskDetailScreen         | Yes           |
+| `create_task`            | CreateTaskScreen         | Yes           |
+| `apply_task/{taskId}/{price}` | ApplyTaskScreen     | Yes           |
+| `profile`                | ProfileScreen            | Yes           |
+| `wallet`                 | WalletScreen             | Yes           |
+| `chat/{conversationId}`  | ChatScreen               | Yes           |
+| `notifications`          | NotificationScreen       | Yes           |
+| `my_jobs/{mode}`         | MyJobsScreen             | Yes           |
+
+### Product Flavors
+
+| Flavor | API Base URL                        | App Name    | Application ID Suffix |
+|--------|-------------------------------------|-------------|----------------------|
+| `dev`  | `http://10.0.2.2:9999/api/v1/`      | Viecz Dev   | `.dev`               |
+| `prod` | Production server URL               | Viecz       | (none)               |
 
 ---
 
-## 6. Database Design
+## 6. Database Layer
 
-### 6.1 Entity Relationship Diagram
+### GORM Models (AutoMigrate)
+
+The following models are auto-migrated on server startup:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        ENTITY RELATIONSHIP DIAGRAM                           │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-                              ┌───────────────────┐
-                              │     CATEGORIES    │
-                              ├───────────────────┤
-                              │ id (PK)           │
-                              │ name              │
-                              │ name_vi           │
-                              │ icon              │
-                              │ is_active         │
-                              └─────────┬─────────┘
-                                        │
-                                        │ 1:N
-                                        ▼
-┌───────────────────┐         ┌───────────────────┐         ┌───────────────────┐
-│      USERS        │         │      TASKS        │         │    APPLICATIONS   │
-├───────────────────┤         ├───────────────────┤         ├───────────────────┤
-│ id (PK)           │◄────────┤ requester_id (FK) │         │ id (PK)           │
-│ zalo_id (UNIQUE)  │    1:N  │ tasker_id (FK)────┼────────►│ task_id (FK)      │
-│ name              │         │ category_id (FK)  │    1:N  │ tasker_id (FK)    │
-│ avatar_url        │         │ id (PK)           │         │ proposed_price    │
-│ phone             │         │ title             │         │ message           │
-│ email             │         │ description       │         │ status            │
-│ university        │         │ price             │         │ created_at        │
-│ student_id        │         │ status            │         └───────────────────┘
-│ is_verified       │         │ location_from     │
-│ rating            │         │ location_to       │
-│ total_completed   │         │ deadline          │         ┌───────────────────┐
-│ total_posted      │         │ created_at        │         │     MESSAGES      │
-│ balance           │         │ updated_at        │         ├───────────────────┤
-│ is_tasker         │         └─────────┬─────────┘         │ id (PK)           │
-│ tasker_bio        │                   │                   │ task_id (FK)──────┼───┐
-│ tasker_skills[]   │                   │ 1:N               │ sender_id (FK)    │   │
-│ created_at        │                   │                   │ content           │   │
-│ updated_at        │                   ▼                   │ is_read           │   │
-└─────────┬─────────┘         ┌───────────────────┐         │ created_at        │   │
-          │                   │     REVIEWS       │         └───────────────────┘   │
-          │                   ├───────────────────┤                                 │
-          │                   │ id (PK)           │                                 │
-          │              ┌────┤ task_id (FK)──────┼─────────────────────────────────┘
-          │              │    │ reviewer_id (FK)  │
-          │              │    │ reviewee_id (FK)  │
-          │              │    │ rating (1-5)      │
-          │              │    │ comment           │
-          │              │    │ is_for_tasker     │
-          │              │    │ created_at        │
-          │              │    └───────────────────┘
-          │              │
-          │              │    ┌───────────────────┐
-          │              │    │   TRANSACTIONS    │
-          │              │    ├───────────────────┤
-          │              └───►│ id (PK)           │
-          │                   │ task_id (FK)      │
-          │                   │ payer_id (FK)     │
-          │                   │ payee_id (FK)     │
-          │                   │ amount            │
-          │                   │ platform_fee      │
-          │                   │ type              │
-          │                   │ status            │
-          │                   │ zalopay_txn_id    │
-          │                   │ created_at        │
-          │                   └───────────────────┘
-          │
-          │              ┌───────────────────┐
-          │              │   NOTIFICATIONS   │
-          │              ├───────────────────┤
-          └─────────────►│ id (PK)           │
-                         │ user_id (FK)      │
-                         │ title             │
-                         │ content           │
-                         │ type              │
-                         │ reference_id      │
-                         │ is_read           │
-                         │ created_at        │
-                         └───────────────────┘
+User, Category, Task, TaskApplication, Transaction,
+Wallet, WalletTransaction, Conversation, Message
 ```
 
-### 6.2 SQLAlchemy Models
+### Entity Relationship Diagram
 
-```python
-# app/models/base.py
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+```
+┌───────────────┐       ┌───────────────┐       ┌──────────────────┐
+│     User      │       │   Category    │       │  TaskApplication │
+├───────────────┤       ├───────────────┤       ├──────────────────┤
+│ id (PK)       │       │ id (PK)       │       │ id (PK)          │
+│ email (UNIQUE)│       │ name          │       │ task_id (FK)     │
+│ password_hash │       │ name_vi       │       │ tasker_id (FK)   │
+│ name          │       │ icon          │       │ proposed_price   │
+│ avatar_url    │       │ is_active     │       │ message          │
+│ phone         │       └──────┬────────┘       │ status           │
+│ university    │              │ 1:N            └─────────┬────────┘
+│ student_id    │              │                          │
+│ is_verified   │       ┌──────▼────────┐                │ N:1
+│ rating        │       │     Task      │◄───────────────┘
+│ is_tasker     │       ├───────────────┤
+│ tasker_bio    │  1:N  │ id (PK)       │
+│ tasker_skills │◄──────│ requester_id  │
+│ total_*       │       │ tasker_id     │
+│ created_at    │       │ category_id   │
+│ updated_at    │       │ title         │
+└──────┬────────┘       │ description   │
+       │                │ price         │
+       │                │ location      │
+       │ 1:1            │ lat/lng       │
+       │                │ status        │
+┌──────▼────────┐       │ scheduled_for │
+│    Wallet     │       │ completed_at  │
+├───────────────┤       │ image_urls    │
+│ id (PK)       │       └──────┬────────┘
+│ user_id (FK)  │              │
+│ balance       │              │ 1:N
+│ escrow_balance│       ┌──────▼────────┐
+│ total_*       │       │ Conversation  │
+└──────┬────────┘       ├───────────────┤
+       │                │ id (PK)       │
+       │ 1:N            │ task_id (FK)  │
+┌──────▼────────────┐   │ poster_id     │
+│ WalletTransaction │   │ tasker_id     │
+├───────────────────┤   │ last_message  │
+│ id (PK)           │   └──────┬────────┘
+│ wallet_id (FK)    │          │
+│ transaction_id    │          │ 1:N
+│ task_id           │   ┌──────▼────────┐
+│ type              │   │    Message    │
+│ amount            │   ├───────────────┤
+│ balance_before    │   │ id (PK)       │
+│ balance_after     │   │ conversation_id│
+│ escrow_before     │   │ sender_id     │
+│ escrow_after      │   │ content       │
+│ description       │   │ is_read       │
+│ reference_user_id │   └───────────────┘
+└───────────────────┘
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./data/viecz.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}  # SQLite specific
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-
-# app/models/user.py
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, JSON
-from sqlalchemy.orm import relationship
-from datetime import datetime
-from .base import Base
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    zalo_id = Column(String, unique=True, index=True, nullable=False)
-    name = Column(String, nullable=False)
-    avatar_url = Column(String, nullable=True)
-    phone = Column(String, nullable=True)
-    email = Column(String, nullable=True)
-    university = Column(String, default="ĐHQG-HCM")
-    student_id = Column(String, nullable=True)
-    is_verified = Column(Boolean, default=False)
-    rating = Column(Float, default=5.0)
-    total_tasks_completed = Column(Integer, default=0)
-    total_tasks_posted = Column(Integer, default=0)
-    balance = Column(Integer, default=0)
-    is_tasker = Column(Boolean, default=False)
-    tasker_bio = Column(String, nullable=True)
-    tasker_skills = Column(JSON, default=list)  # JSON array for SQLite
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    posted_tasks = relationship("Task", back_populates="requester", foreign_keys="Task.requester_id")
-    accepted_tasks = relationship("Task", back_populates="tasker", foreign_keys="Task.tasker_id")
-    applications = relationship("TaskApplication", back_populates="tasker")
-    sent_messages = relationship("Message", back_populates="sender")
-    reviews_given = relationship("Review", back_populates="reviewer", foreign_keys="Review.reviewer_id")
-    reviews_received = relationship("Review", back_populates="reviewee", foreign_keys="Review.reviewee_id")
-    notifications = relationship("Notification", back_populates="user")
-
-
-# app/models/category.py
-class Category(Base):
-    __tablename__ = "categories"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    name_vi = Column(String, nullable=False)
-    icon = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True)
-
-    tasks = relationship("Task", back_populates="category")
-
-
-# app/models/task.py
-import enum
-
-class TaskStatus(str, enum.Enum):
-    OPEN = "open"
-    ACCEPTED = "accepted"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    DISPUTED = "disputed"
-
-class Task(Base):
-    __tablename__ = "tasks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    requester_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    tasker_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    price = Column(Integer, nullable=False)
-    price_negotiable = Column(Boolean, default=False)
-    status = Column(String, default=TaskStatus.OPEN.value, index=True)
-    location_from = Column(String, nullable=True)
-    location_to = Column(String, nullable=True)
-    deadline = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
-    cancelled_at = Column(DateTime, nullable=True)
-    cancellation_reason = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    requester = relationship("User", back_populates="posted_tasks", foreign_keys=[requester_id])
-    tasker = relationship("User", back_populates="accepted_tasks", foreign_keys=[tasker_id])
-    category = relationship("Category", back_populates="tasks")
-    applications = relationship("TaskApplication", back_populates="task", cascade="all, delete-orphan")
-    messages = relationship("Message", back_populates="task", cascade="all, delete-orphan")
-    reviews = relationship("Review", back_populates="task", cascade="all, delete-orphan")
-    transactions = relationship("Transaction", back_populates="task")
-
-
-# app/models/task_application.py
-class ApplicationStatus(str, enum.Enum):
-    PENDING = "pending"
-    ACCEPTED = "accepted"
-    REJECTED = "rejected"
-
-class TaskApplication(Base):
-    __tablename__ = "task_applications"
-
-    id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
-    tasker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    proposed_price = Column(Integer, nullable=True)
-    message = Column(String, nullable=True)
-    status = Column(String, default=ApplicationStatus.PENDING.value)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    task = relationship("Task", back_populates="applications")
-    tasker = relationship("User", back_populates="applications")
-
-    __table_args__ = (UniqueConstraint("task_id", "tasker_id"),)
-
-
-# app/models/message.py
-class Message(Base):
-    __tablename__ = "messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    content = Column(String, nullable=False)
-    is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    task = relationship("Task", back_populates="messages")
-    sender = relationship("User", back_populates="sent_messages")
-
-
-# app/models/review.py
-class Review(Base):
-    __tablename__ = "reviews"
-
-    id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
-    reviewer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    reviewee_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    rating = Column(Integer, nullable=False)  # 1-5
-    comment = Column(String, nullable=True)
-    is_for_tasker = Column(Boolean, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    task = relationship("Task", back_populates="reviews")
-    reviewer = relationship("User", back_populates="reviews_given", foreign_keys=[reviewer_id])
-    reviewee = relationship("User", back_populates="reviews_received", foreign_keys=[reviewee_id])
-
-    __table_args__ = (UniqueConstraint("task_id", "reviewer_id"),)
-
-
-# app/models/transaction.py
-class TransactionType(str, enum.Enum):
-    PAYMENT = "payment"
-    PAYOUT = "payout"
-    REFUND = "refund"
-
-class TransactionStatus(str, enum.Enum):
-    PENDING = "pending"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    REFUNDED = "refunded"
-
-class Transaction(Base):
-    __tablename__ = "transactions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
-    payer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    payee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    amount = Column(Integer, nullable=False)
-    platform_fee = Column(Integer, nullable=False)
-    type = Column(String, nullable=False)
-    status = Column(String, default=TransactionStatus.PENDING.value)
-    zalopay_transaction_id = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    task = relationship("Task", back_populates="transactions")
-
-
-# app/models/notification.py
-class NotificationType(str, enum.Enum):
-    TASK_UPDATE = "task_update"
-    MESSAGE = "message"
-    PAYMENT = "payment"
-    REVIEW = "review"
-    SYSTEM = "system"
-
-class Notification(Base):
-    __tablename__ = "notifications"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = Column(String, nullable=False)
-    content = Column(String, nullable=True)
-    type = Column(String, nullable=False)
-    reference_id = Column(Integer, nullable=True)
-    is_read = Column(Boolean, default=False, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    user = relationship("User", back_populates="notifications")
-
-
-# app/models/report.py
-class ReportStatus(str, enum.Enum):
-    PENDING = "pending"
-    INVESTIGATING = "investigating"
-    RESOLVED = "resolved"
-    DISMISSED = "dismissed"
-
-class Report(Base):
-    __tablename__ = "reports"
-
-    id = Column(Integer, primary_key=True, index=True)
-    reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    reported_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
-    reason = Column(String, nullable=False)
-    status = Column(String, default=ReportStatus.PENDING.value)
-    admin_notes = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+┌───────────────────┐
+│   Transaction     │
+├───────────────────┤
+│ id (PK)           │
+│ task_id (FK)      │
+│ payer_id (FK)     │
+│ payee_id (FK)     │
+│ amount            │
+│ platform_fee      │
+│ net_amount        │
+│ type              │  (escrow | release | refund | deposit | withdrawal | platform_fee)
+│ status            │  (pending | success | failed | cancelled)
+│ payos_order_code  │
+│ description       │
+└───────────────────┘
 ```
 
-### 6.3 Database Indexes Strategy
+### Production vs Test Server Database
 
-```sql
--- Performance indexes (defined in SQLAlchemy models via index=True)
--- These are automatically created by SQLAlchemy:
-CREATE INDEX ix_users_zalo_id ON users(zalo_id);
-CREATE INDEX ix_tasks_status ON tasks(status);
-CREATE INDEX ix_messages_task_id ON messages(task_id);
-CREATE INDEX ix_notifications_user_id ON notifications(user_id);
-CREATE INDEX ix_notifications_is_read ON notifications(is_read);
+| Aspect          | Production (`cmd/server`)     | Test (`cmd/testserver`)          |
+|-----------------|-------------------------------|----------------------------------|
+| Database        | PostgreSQL (via GORM driver)  | SQLite in-memory                 |
+| Connection      | `database.NewGORM()` + options| `gorm.Open(sqlite.Open(...))`    |
+| Migrations      | AutoMigrate + golang-migrate  | AutoMigrate only                 |
+| Seed Data       | Categories + test user        | Categories + test user           |
+| PayOS           | Real PayOS SDK                | Mock (auto-fires webhook)        |
+| Port            | Configurable (default 8080)   | 9999 (hardcoded)                 |
+| JWT Secret      | From env var                  | `e2e-test-secret-key`            |
 
--- Composite indexes for common queries (add via Alembic migration)
-CREATE INDEX idx_tasks_status_category ON tasks(status, category_id);
-CREATE INDEX idx_tasks_status_created ON tasks(status, created_at DESC);
+### Android Local Database (Room)
 
--- Note: SQLite has limited index capabilities compared to PostgreSQL
--- Full-text search can be added using SQLite FTS5 extension if needed
-```
+Room is used for offline caching on the Android side:
+
+| Entity            | Purpose                           |
+|-------------------|-----------------------------------|
+| `TaskEntity`      | Cache task list for offline view  |
+| `CategoryEntity`  | Cache categories                  |
+| `NotificationEntity` | Local notification storage     |
 
 ---
 
-## 7. API Design
+## 7. WebSocket Architecture
 
-### 7.1 API Standards
-
-| Standard | Description |
-|----------|-------------|
-| **Protocol** | HTTPS only |
-| **Format** | JSON |
-| **Versioning** | URL path (`/api/v1/`) |
-| **Authentication** | Bearer token (JWT) |
-| **Pagination** | Cursor-based or offset |
-| **Error Format** | Standard error object |
-
-### 7.2 Response Format
-
-```typescript
-// Success Response
-{
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 100
-  }
-}
-
-// Error Response
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Validation failed",
-    "details": [
-      { "field": "title", "message": "Title is required" }
-    ]
-  }
-}
-```
-
-### 7.3 API Endpoints
-
-#### Authentication
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/auth/zalo` | Zalo OAuth callback | No |
-| POST | `/api/v1/auth/refresh` | Refresh JWT token | Yes |
-| POST | `/api/v1/auth/logout` | Logout | Yes |
-
-#### Users
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/users/me` | Get current user | Yes |
-| PUT | `/api/v1/users/me` | Update profile | Yes |
-| GET | `/api/v1/users/:id` | Get user public profile | Yes |
-| POST | `/api/v1/users/become-tasker` | Register as Tasker | Yes |
-
-#### Tasks
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/tasks` | List tasks (with filters) | Yes |
-| POST | `/api/v1/tasks` | Create new task | Yes |
-| GET | `/api/v1/tasks/:id` | Get task details | Yes |
-| PUT | `/api/v1/tasks/:id` | Update task | Yes |
-| DELETE | `/api/v1/tasks/:id` | Cancel task | Yes |
-| POST | `/api/v1/tasks/:id/apply` | Apply for task | Yes |
-| POST | `/api/v1/tasks/:id/accept/:applicationId` | Accept application | Yes |
-| POST | `/api/v1/tasks/:id/complete` | Mark completed | Yes |
-| POST | `/api/v1/tasks/:id/review` | Submit review | Yes |
-
-#### Messages
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/tasks/:id/messages` | Get chat messages | Yes |
-| POST | `/api/v1/tasks/:id/messages` | Send message | Yes |
-
-#### Categories
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/categories` | List all categories | No |
-
-#### Notifications
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/notifications` | Get user notifications | Yes |
-| PUT | `/api/v1/notifications/:id/read` | Mark as read | Yes |
-| PUT | `/api/v1/notifications/read-all` | Mark all as read | Yes |
-
-### 7.4 Query Parameters
+### Server-Side (Gorilla WebSocket)
 
 ```
-GET /api/v1/tasks?status=open&category=1&sort=created_at&order=desc&page=1&limit=20
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `status` | string | Filter by status (open, accepted, etc.) |
-| `category` | number | Filter by category ID |
-| `search` | string | Search in title/description |
-| `sort` | string | Sort field (created_at, price) |
-| `order` | string | Sort order (asc, desc) |
-| `page` | number | Page number (default: 1) |
-| `limit` | number | Items per page (default: 20, max: 100) |
-
----
-
-## 8. Authentication & Authorization
-
-### 8.1 Authentication Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         ZALO OAUTH FLOW                                      │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Zalo Mini   │     │   Backend    │     │  Zalo OAuth  │     │  PostgreSQL  │
-│     App      │     │   Server     │     │   Server     │     │   Database   │
-└──────┬───────┘     └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
-       │                    │                    │                    │
-       │  1. User clicks    │                    │                    │
-       │     "Login"        │                    │                    │
-       │                    │                    │                    │
-       │  2. getAccessToken()                    │                    │
-       │─────────────────────────────────────────►                    │
-       │                    │                    │                    │
-       │  3. Zalo access_token                   │                    │
-       │◄─────────────────────────────────────────                    │
-       │                    │                    │                    │
-       │  4. POST /auth/zalo                     │                    │
-       │  { access_token }  │                    │                    │
-       │───────────────────►│                    │                    │
-       │                    │                    │                    │
-       │                    │  5. Verify token   │                    │
-       │                    │───────────────────►│                    │
-       │                    │                    │                    │
-       │                    │  6. User profile   │                    │
-       │                    │◄───────────────────│                    │
-       │                    │                    │                    │
-       │                    │  7. Find or create │                    │
-       │                    │     user           │                    │
-       │                    │───────────────────────────────────────►│
-       │                    │                    │                    │
-       │                    │  8. User record    │                    │
-       │                    │◄───────────────────────────────────────│
-       │                    │                    │                    │
-       │                    │  9. Generate JWT   │                    │
-       │                    │     (15 min exp)   │                    │
-       │                    │                    │                    │
-       │  10. { jwt, user } │                    │                    │
-       │◄───────────────────│                    │                    │
-       │                    │                    │                    │
-       │  11. Store JWT     │                    │                    │
-       │      locally       │                    │                    │
-       │                    │                    │                    │
-```
-
-### 8.2 JWT Structure
-
-```javascript
-// Header
-{
-  "alg": "HS256",
-  "typ": "JWT"
-}
-
-// Payload
-{
-  "sub": "123",              // User ID
-  "zalo_id": "xxx",          // Zalo user ID
-  "name": "Nguyen Van A",    // User name
-  "is_tasker": true,         // Tasker flag
-  "iat": 1705200000,         // Issued at
-  "exp": 1705200900          // Expires (15 min)
-}
-
-// Signature
-HMACSHA256(
-  base64UrlEncode(header) + "." + base64UrlEncode(payload),
-  JWT_SECRET
-)
-```
-
-### 8.3 Authorization Rules
-
-| Resource | Action | Requester | Tasker | Admin |
-|----------|--------|-----------|--------|-------|
-| Task | Create | ✅ | ✅ | ✅ |
-| Task | Update | Owner only | ❌ | ✅ |
-| Task | Delete | Owner only | ❌ | ✅ |
-| Task | Apply | ❌ | ✅ | ✅ |
-| Task | Accept | Owner only | ❌ | ✅ |
-| Task | Complete | Owner | Assigned | ✅ |
-| Message | Send | Participants | Participants | ✅ |
-| Review | Create | Post-completion | Post-completion | ✅ |
-
----
-
-## 9. Real-time Communication
-
-### 9.1 WebSocket Architecture (FastAPI)
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      WEBSOCKET ARCHITECTURE                                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           FASTAPI WEBSOCKET SERVER                           │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │                           ENDPOINTS                                      │ │
-│  ├─────────────────────────────────────────────────────────────────────────┤ │
-│  │                                                                          │ │
-│  │  /ws/chat/{task_id}         Chat WebSocket for task participants        │ │
-│  │  ├── connect                User connects with JWT auth                 │ │
-│  │  ├── send_message           Send message to task chat                   │ │
-│  │  ├── receive_message        Receive messages from others                │ │
-│  │  └── typing                 Typing indicator                            │ │
-│  │                                                                          │ │
-│  │  /ws/notifications/{user_id} Notification WebSocket                     │ │
-│  │  ├── connect                Subscribe to user notifications             │ │
-│  │  ├── new_notification       Receive notification                        │ │
-│  │  └── mark_read              Mark notification as read                   │ │
-│  │                                                                          │ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-│                                                                               │
-│  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │                     CONNECTION MANAGER                                   │ │
-│  ├─────────────────────────────────────────────────────────────────────────┤ │
-│  │                                                                          │ │
-│  │  In-memory connection tracking (dict of WebSocket connections)          │ │
-│  │  task_connections: Dict[int, List[WebSocket]]                           │ │
-│  │  user_connections: Dict[int, List[WebSocket]]                           │ │
-│  │                                                                          │ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-│                                                                               │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 9.2 WebSocket Events
-
-```python
-# app/websocket/chat.py
-
-from fastapi import WebSocket, WebSocketDisconnect
-from typing import Dict, List
-
-class ConnectionManager:
-    def __init__(self):
-        self.task_connections: Dict[int, List[WebSocket]] = {}
-        self.user_connections: Dict[int, List[WebSocket]] = {}
-
-    async def connect(self, websocket: WebSocket, task_id: int, user_id: int):
-        await websocket.accept()
-        if task_id not in self.task_connections:
-            self.task_connections[task_id] = []
-        self.task_connections[task_id].append(websocket)
-
-    def disconnect(self, websocket: WebSocket, task_id: int):
-        self.task_connections[task_id].remove(websocket)
-
-    async def broadcast_to_task(self, task_id: int, message: dict):
-        for connection in self.task_connections.get(task_id, []):
-            await connection.send_json(message)
-
-# Message types
-class ChatMessage:
-    type: str = "message"
-    task_id: int
-    sender_id: int
-    content: str
-    timestamp: str
-
-class TypingIndicator:
-    type: str = "typing"
-    task_id: int
-    user_id: int
-    is_typing: bool
-
-class NewNotification:
-    type: str = "notification"
-    user_id: int
-    title: str
-    content: str
-    notification_type: str
-```
-
----
-
-## 10. Payment Integration
-
-### 10.1 Payment Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         PAYMENT FLOW (ESCROW)                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Phase 1: Task Creation (No payment yet)
-┌────────────┐                    ┌────────────┐
-│ Requester  │──── Create Task ───►│   System   │
-└────────────┘                    └────────────┘
-
-Phase 2: Task Accepted (Escrow Payment)
-┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
-│ Requester  │     │   System   │     │  ZaloPay   │     │   Escrow   │
-└─────┬──────┘     └─────┬──────┘     └─────┬──────┘     └─────┬──────┘
-      │                  │                  │                  │
-      │  Accept Tasker   │                  │                  │
-      │─────────────────►│                  │                  │
-      │                  │                  │                  │
-      │  Payment Request │                  │                  │
-      │◄─────────────────│                  │                  │
-      │                  │                  │                  │
-      │  Confirm Payment │                  │                  │
-      │─────────────────►│                  │                  │
-      │                  │                  │                  │
-      │                  │  Create Order    │                  │
-      │                  │─────────────────►│                  │
-      │                  │                  │                  │
-      │                  │  Payment URL     │                  │
-      │                  │◄─────────────────│                  │
-      │                  │                  │                  │
-      │  Redirect to Pay │                  │                  │
-      │◄─────────────────│                  │                  │
-      │                  │                  │                  │
-      │──────────────────────────Pay────────►                  │
-      │                  │                  │                  │
-      │                  │  Webhook: Paid   │                  │
-      │                  │◄─────────────────│                  │
-      │                  │                  │                  │
-      │                  │  Hold in Escrow  │                  │
-      │                  │─────────────────────────────────────►
-      │                  │                  │                  │
-
-Phase 3: Task Completed (Release Payment)
-┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
-│ Requester  │     │   System   │     │   Escrow   │     │   Tasker   │
-└─────┬──────┘     └─────┬──────┘     └─────┬──────┘     └─────┬──────┘
-      │                  │                  │                  │
-      │  Mark Complete   │                  │                  │
-      │─────────────────►│                  │                  │
-      │                  │                  │                  │
-      │                  │  Release Escrow  │                  │
-      │                  │─────────────────►│                  │
-      │                  │                  │                  │
-      │                  │                  │  Transfer (90%)  │
-      │                  │                  │─────────────────►│
-      │                  │                  │                  │
-      │                  │  Platform Fee    │                  │
-      │                  │◄─────────────────│  (10% retained)  │
-      │                  │                  │                  │
-```
-
-### 10.2 Payment States
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│ PENDING  │────►│  PAID    │────►│ ESCROWED │────►│ RELEASED │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-      │                │                │                │
-      │                │                │                │
-      ▼                ▼                ▼                ▼
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│ CANCELLED│     │  FAILED  │     │ DISPUTED │     │ REFUNDED │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-```
-
----
-
-## 11. Security Architecture
-
-### 11.1 Security Layers
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          SECURITY LAYERS                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Layer 1: Network Security
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  • HTTPS only (TLS 1.3)                                                     │
-│  • Firewall (UFW): Only ports 80, 443, 22 open                             │
-│  • DDoS protection (Cloudflare - future)                                    │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-Layer 2: Application Gateway (Nginx)
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  • Rate limiting: 100 req/min per IP                                        │
-│  • Request size limit: 10MB                                                 │
-│  • Security headers (X-Frame-Options, CSP, etc.)                           │
-│  • Bot detection (future)                                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-Layer 3: Application Security (FastAPI)
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  • JWT authentication (python-jose)                                         │
-│  • Input validation (Pydantic)                                             │
-│  • SQL injection prevention (SQLAlchemy parameterized)                     │
-│  • XSS prevention (output encoding)                                        │
-│  • CSRF protection (SameSite cookies)                                      │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-Layer 4: Data Security
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  • Encrypted at rest (PostgreSQL)                                          │
-│  • Encrypted in transit (TLS)                                              │
-│  • PII minimization                                                        │
-│  • Secure password storage (bcrypt - if needed)                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 11.2 OWASP Top 10 Mitigations
-
-| Vulnerability | Mitigation |
-|---------------|------------|
-| **A01: Broken Access Control** | JWT + role-based authorization (FastAPI Depends) |
-| **A02: Cryptographic Failures** | HTTPS, secure JWT secret, no sensitive data in logs |
-| **A03: Injection** | SQLAlchemy ORM (parameterized queries), Pydantic validation |
-| **A04: Insecure Design** | Security review, threat modeling |
-| **A05: Security Misconfiguration** | Hardened Nginx config, no default credentials |
-| **A06: Vulnerable Components** | pip-audit, Dependabot alerts |
-| **A07: Auth Failures** | Zalo OAuth, JWT with short expiry, rate limiting |
-| **A08: Data Integrity Failures** | Pydantic validation, signed JWTs |
-| **A09: Logging Failures** | Structured logging (structlog), no PII in logs |
-| **A10: SSRF** | Validate external URLs, whitelist domains |
-
-### 11.3 Security Checklist
-
-```markdown
-## Pre-Launch Security Checklist
-
-### Infrastructure
-- [ ] HTTPS configured with valid certificate
-- [ ] Firewall configured (UFW)
-- [ ] SSH key-only authentication
-- [ ] Regular security updates enabled
-
-### Application
-- [ ] JWT secret is strong and stored securely
-- [ ] All inputs validated
-- [ ] SQL injection tested
-- [ ] XSS tested
-- [ ] CSRF protection enabled
-- [ ] Rate limiting configured
-- [ ] Error messages don't leak info
-
-### Data
-- [ ] Database access restricted
-- [ ] Backups encrypted
-- [ ] PII handling compliant
-- [ ] Logging excludes sensitive data
-
-### Monitoring
-- [ ] Failed login attempts logged
-- [ ] Suspicious activity alerts
-- [ ] Security headers verified
-```
-
----
-
-## 12. Infrastructure & Deployment
-
-### 12.1 Server Configuration
-
-```yaml
-# Server Specs (Bare Metal)
-CPU: 4 cores
-RAM: 8GB
-Storage: 100GB SSD
-Bandwidth: 1Gbps
-OS: Ubuntu 22.04 LTS
-```
-
-### 12.2 Deployment Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        DEPLOYMENT ARCHITECTURE                               │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-                         ┌─────────────────────┐
-                         │    Bare Metal       │
-                         │      Server         │
-                         └──────────┬──────────┘
-                                    │
-         ┌──────────────────────────┼──────────────────────────┐
-         │                          │                          │
-         ▼                          ▼                          ▼
-┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│     Nginx       │      │  FastAPI App    │      │     SQLite      │
-│   (Port 80/443) │      │  (Port 8000)    │      │                 │
-│                 │      │                 │      │                 │
-│  - SSL/TLS      │      │  - Gunicorn     │      │  - Single file  │
-│  - Reverse proxy│─────►│  - 4 workers    │─────►│  - Daily backup │
-│  - Static files │      │  - Systemd svc  │      │  - data/viecz │
-└─────────────────┘      └─────────────────┘      └─────────────────┘
-```
-
-### 12.3 Nginx Configuration
-
-```nginx
-# /etc/nginx/sites-available/viecz
-
-upstream backend {
-    server 127.0.0.1:8000;
-}
-
-server {
-    listen 80;
-    server_name api.viecz.vn;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name api.viecz.vn;
-
-    # SSL Configuration
-    ssl_certificate /etc/letsencrypt/live/api.viecz.vn/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.viecz.vn/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-
-    # Security Headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-
-    # Rate Limiting
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-    limit_req zone=api burst=20 nodelay;
-
-    # Request Size Limit
-    client_max_body_size 10M;
-
-    # API Proxy
-    location /api/ {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # WebSocket Proxy
-    location /ws/ {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-### 12.4 Systemd Service Configuration
-
-```ini
-# /etc/systemd/system/viecz.service
-
-[Unit]
-Description=Viecz FastAPI Application
-After=network.target
-
-[Service]
-Type=exec
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/viecz-backend
-Environment="PATH=/var/www/viecz-backend/venv/bin"
-ExecStart=/var/www/viecz-backend/venv/bin/gunicorn app.main:app \
-    --workers 4 \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --bind 127.0.0.1:8000 \
-    --access-logfile /var/log/viecz/access.log \
-    --error-logfile /var/log/viecz/error.log
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 12.5 Deployment Script
-
-```bash
-#!/bin/bash
-# deploy.sh
-
-set -e
-
-echo "🚀 Deploying Viecz API..."
-
-# Pull latest code
-cd /var/www/viecz-backend
-git pull origin main
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run database migrations
-alembic upgrade head
-
-# Restart service
-sudo systemctl restart viecz
-
-echo "✅ Deployment complete!"
-```
-
----
-
-## 13. Monitoring & Observability
-
-### 13.1 Logging Strategy
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          LOGGING ARCHITECTURE                                │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Application Logs                    System Logs
-      │                                  │
-      ▼                                  ▼
-┌─────────────────┐            ┌─────────────────┐
-│  Python logging │            │    journald     │
-│  + structlog    │            │                 │
-│                 │            │  - Nginx logs   │
-│  - JSON format  │            │  - Systemd logs │
-│  - Levels       │            │                 │
-│  - Timestamps   │            │                 │
-└────────┬────────┘            └────────┬────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    WebSocket Hub (goroutine)                   │
+│                                                              │
+│  clients: map[userID] → *Client                              │
+│  conversations: map[conversationID] → map[*Client]bool       │
+│                                                              │
+│  Channels:                                                   │
+│    Register   ◄── new client connections                     │
+│    Unregister ◄── client disconnections                      │
+│    Broadcast  ◄── messages to broadcast to conversations     │
+│                                                              │
+│  Methods:                                                    │
+│    JoinConversation(client, conversationID)                   │
+│    LeaveConversation(client, conversationID)                  │
+│    SendToUser(userID, message)                               │
+│    IsUserOnline(userID) bool                                 │
+└──────────────────────────────────────────────────────────────┘
          │                              │
-         └──────────────┬───────────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │   Log Files     │
-               │                 │
-               │  /var/log/      │
-               │  viecz/       │
-               └────────┬────────┘
-                        │
-                        ▼
-               ┌─────────────────┐
-               │  Log Rotation   │
-               │  (logrotate)    │
-               │                 │
-               │  - Daily        │
-               │  - 7 days       │
-               │  - Compress     │
-               └─────────────────┘
+    ┌────▼────┐                    ┌────▼────┐
+    │ Client  │                    │ Client  │
+    │ UserID=1│                    │ UserID=2│
+    │         │                    │         │
+    │readPump │ (reads from conn)  │readPump │
+    │writePump│ (writes to conn)   │writePump│
+    │send chan│                    │send chan│
+    └─────────┘                    └─────────┘
 ```
 
-### 13.2 Log Format
+### Connection Flow
 
-```python
-# Log structure (using structlog)
-{
-    "timestamp": "2026-01-14T10:30:00.000Z",
-    "level": "info",
-    "event": "Task created",
-    "service": "viecz-api",
-    "request_id": "uuid-xxx",
-    "user_id": 123,
-    "task_id": 456,
-    "duration_ms": 45,
-    "status_code": 201
+```
+Android                        Server
+  │                              │
+  │  GET /api/v1/ws?token=JWT    │
+  │─────────────────────────────►│
+  │                              │  Validate JWT
+  │                              │  Upgrade to WebSocket
+  │  101 Switching Protocols     │
+  │◄─────────────────────────────│
+  │                              │  Create Client, Register with Hub
+  │                              │
+  │  {"type":"join",             │
+  │   "conversation_id":5}       │
+  │─────────────────────────────►│  Hub.JoinConversation(client, 5)
+  │                              │
+  │  {"type":"message",          │
+  │   "conversation_id":5,       │
+  │   "content":"Hello"}         │
+  │─────────────────────────────►│  MessageService.HandleMessage
+  │                              │    → Save to DB
+  │                              │    → Hub.Broadcast to conv 5
+  │                              │
+  │  {"type":"message",          │
+  │   "sender_id":2,             │
+  │   "content":"Hi back"}       │
+  │◄─────────────────────────────│  Broadcast from other user
+  │                              │
+```
+
+### WebSocket Message Types
+
+| Type      | Direction      | Description                          |
+|-----------|----------------|--------------------------------------|
+| `join`    | Client → Server | Join a conversation room             |
+| `leave`   | Client → Server | Leave a conversation room            |
+| `message` | Bidirectional  | Chat message                         |
+| `typing`  | Client → Server | Typing indicator                     |
+| `read`    | Client → Server | Mark conversation as read            |
+| `error`   | Server → Client | Error response                       |
+
+### Client-Side (OkHttp WebSocket)
+
+The Android `WebSocketClient` is a `@Singleton` injected via Hilt. It:
+- Connects with `ws://<base_url>/ws?token=<jwt>`
+- Exposes `connectionState: StateFlow<WebSocketState>`
+- Exposes `messages: Channel<WebSocketMessage>` for incoming messages
+- Provides methods: `connect()`, `joinConversation()`, `sendChatMessage()`, `sendTypingIndicator()`, `markAsRead()`, `disconnect()`
+
+---
+
+## 8. Payment & Wallet System
+
+### Wallet-Based Escrow Flow
+
+```
+Phase 1: Deposit (PayOS → Wallet)
+┌──────────┐     ┌──────────┐     ┌──────────┐
+│  User    │     │  Server  │     │  PayOS   │
+└────┬─────┘     └────┬─────┘     └────┬─────┘
+     │ POST /wallet/deposit            │
+     │──────────────►│                 │
+     │               │ CreatePaymentLink
+     │               │────────────────►│
+     │               │ checkout_url    │
+     │ ◄─────────────│◄────────────────│
+     │               │                 │
+     │  User pays    │                 │
+     │──────────────────────────────►│
+     │               │  Webhook: paid  │
+     │               │◄────────────────│
+     │               │                 │
+     │               │ WalletService.Deposit(userID, amount)
+     │               │ → wallet.Credit(amount)
+     │               │ → create WalletTransaction
+     │               │                 │
+
+Phase 2: Escrow Hold (Accept Task Application)
+┌──────────┐     ┌──────────┐
+│ Requester│     │  Server  │
+└────┬─────┘     └────┬─────┘
+     │ POST /payments/escrow
+     │──────────────►│
+     │               │ WalletService.HoldInEscrow(requesterID, amount, taskID)
+     │               │ → wallet.Balance -= amount
+     │               │ → wallet.EscrowBalance += amount
+     │               │ → create Transaction (type=escrow)
+     │               │ → create WalletTransaction (type=escrow_hold)
+     │ ◄─────────────│
+
+Phase 3: Release (Task Completed)
+┌──────────┐     ┌──────────┐     ┌──────────┐
+│ Requester│     │  Server  │     │  Tasker  │
+└────┬─────┘     └────┬─────┘     └────┬─────┘
+     │ POST /payments/release          │
+     │──────────────►│                 │
+     │               │ WalletService.ReleaseFromEscrow
+     │               │ → requester.EscrowBalance -= amount
+     │               │ → tasker.Balance += amount
+     │               │ → create WalletTransactions for both
+     │ ◄─────────────│                 │
+```
+
+### Wallet Transaction Types
+
+| Type               | Amount Sign | Description                        |
+|--------------------|-------------|------------------------------------|
+| `deposit`          | +           | PayOS deposit credited to wallet   |
+| `withdrawal`       | -           | Withdrawn from wallet              |
+| `escrow_hold`      | -           | Balance → escrow (task accepted)   |
+| `escrow_release`   | -           | Escrow → payee (task completed)    |
+| `escrow_refund`    | +           | Escrow → balance (task cancelled)  |
+| `payment_received` | +           | Received from escrow release       |
+| `platform_fee`     | -           | Platform fee deduction             |
+
+### Max Wallet Balance
+
+Configurable via `MAX_WALLET_BALANCE` env var (default: 200,000 VND). Deposits that would exceed this limit are rejected before creating the PayOS payment link.
+
+---
+
+## 9. Authentication
+
+### Flow
+
+```
+Android App                       Go Server
+    │                                │
+    │  POST /api/v1/auth/register    │
+    │  { email, password, name }     │
+    │───────────────────────────────►│
+    │                                │  bcrypt.Hash(password)
+    │                                │  userRepo.Create(user)
+    │                                │  jwt.GenerateToken(user)
+    │  { token, user }               │
+    │◄───────────────────────────────│
+    │                                │
+    │  Store token in                │
+    │  EncryptedSharedPreferences    │
+    │                                │
+    │  Subsequent requests:          │
+    │  Authorization: Bearer <token> │
+    │───────────────────────────────►│
+    │                                │  auth.AuthRequired middleware
+    │                                │  → ValidateToken(token, secret)
+    │                                │  → Set user_id in gin.Context
+```
+
+### JWT Claims
+
+```go
+type Claims struct {
+    UserID   int64  `json:"user_id"`
+    Email    string `json:"email"`
+    Name     string `json:"name"`
+    IsTasker bool   `json:"is_tasker"`
+    jwt.RegisteredClaims
 }
 ```
 
-### 13.3 Health Checks
+### Middleware
 
-```python
-# GET /health
-{
-    "status": "healthy",
-    "timestamp": "2026-01-14T10:30:00.000Z",
-    "uptime": 86400,
-    "checks": {
-        "database": {"status": "healthy", "latency_ms": 5},
-        "memory": {"status": "healthy", "usage_percent": 45},
-        "disk": {"status": "healthy", "usage_percent": 30}
-    }
-}
-```
+- `AuthRequired(jwtSecret)` -- Rejects requests without valid Bearer token. Sets `user_id`, `email`, `name`, `is_tasker` in gin context.
+- `OptionalAuth(jwtSecret)` -- Extracts user info if token present, but allows unauthenticated access.
+- `auth.GetUserID(c *gin.Context)` -- Helper to extract user ID from context.
 
-### 13.4 Monitoring Checklist
+### Android Side
 
-```markdown
-## Monitoring Setup (MVP)
-
-### Application Metrics
-- [ ] Request count per endpoint
-- [ ] Response time (p50, p95, p99)
-- [ ] Error rate
-- [ ] Active users (WebSocket connections)
-
-### System Metrics
-- [ ] CPU usage
-- [ ] Memory usage
-- [ ] Disk usage
-- [ ] Network I/O
-
-### Alerts (via simple script + Zalo notification)
-- [ ] Server down
-- [ ] High CPU (> 80%)
-- [ ] High memory (> 80%)
-- [ ] High error rate (> 5%)
-- [ ] Database connection failed
-```
+- `AuthInterceptor` (OkHttp interceptor) reads token from `TokenManager` and adds `Authorization: Bearer <token>` to every request.
+- `AuthEventManager` emits events when token expires (401 response), triggering force logout in the UI.
 
 ---
 
-## 14. Scalability Strategy
+## 10. API Routes
 
-### 14.1 Current Architecture Limits
+All routes are prefixed with `/api/v1/`.
 
-| Component | Current Capacity | Scaling Strategy |
-|-----------|------------------|------------------|
-| **API Server** | ~500 req/s | Gunicorn workers (4 workers) |
-| **SQLite** | ~50 concurrent writes | Sufficient for MVP |
-| **WebSocket** | ~1K concurrent | FastAPI WebSocket |
+### Public Routes
 
-### 14.2 Future Scaling Path
+| Method | Path                      | Handler                    |
+|--------|---------------------------|----------------------------|
+| GET    | `/health`                 | Health check               |
+| POST   | `/auth/register`          | Register new user          |
+| POST   | `/auth/login`             | Login (email + password)   |
+| POST   | `/auth/refresh`           | Refresh JWT token          |
+| GET    | `/categories`             | List all categories        |
+| GET    | `/users/:id`              | Get public user profile    |
+| POST   | `/payment/webhook`        | PayOS webhook callback     |
+| POST   | `/payment/confirm-webhook`| Confirm webhook URL        |
 
-```
-Phase 1: MVP (Current)
-┌────────────────┐
-│  Single Server │
-│  - FastAPI     │
-│  - 4 workers   │
-│  - SQLite      │
-└────────────────┘
-        │
-        │ When: 1K+ daily users
-        ▼
-Phase 2: Database Migration
-┌────────────────┐
-│  Single Server │
-│  - FastAPI     │
-│  - 8 workers   │
-│  - PostgreSQL  │  ← Migrate from SQLite
-└────────────────┘
-        │
-        │ When: 10K+ daily users
-        ▼
-Phase 3: Horizontal Scaling
-┌────────────────┐     ┌────────────────┐
-│   App Server 1 │     │   App Server 2 │
-│   (FastAPI)    │     │   (FastAPI)    │
-└───────┬────────┘     └───────┬────────┘
-        │                      │
-        └──────────┬───────────┘
-                   │
-        ┌──────────▼──────────┐
-        │    Load Balancer    │
-        │    (Nginx/HAProxy)  │
-        └──────────┬──────────┘
-                   │
-        ┌──────────▼──────────┐
-        │   Database Server   │
-        │   (PostgreSQL)      │
-        └─────────────────────┘
-```
+### Protected Routes (require `Authorization: Bearer <token>`)
+
+| Method | Path                           | Handler                       |
+|--------|--------------------------------|-------------------------------|
+| GET    | `/users/me`                    | Get current user profile      |
+| PUT    | `/users/me`                    | Update profile                |
+| POST   | `/users/become-tasker`         | Register as tasker            |
+| POST   | `/tasks`                       | Create task                   |
+| GET    | `/tasks`                       | List tasks (with filters)     |
+| GET    | `/tasks/:id`                   | Get task detail               |
+| PUT    | `/tasks/:id`                   | Update task                   |
+| DELETE | `/tasks/:id`                   | Delete task                   |
+| POST   | `/tasks/:id/applications`      | Apply for task                |
+| GET    | `/tasks/:id/applications`      | Get task applications         |
+| POST   | `/tasks/:id/complete`          | Mark task completed           |
+| POST   | `/applications/:id/accept`     | Accept application            |
+| GET    | `/wallet`                      | Get wallet balance            |
+| POST   | `/wallet/deposit`              | Create deposit (PayOS link)   |
+| GET    | `/wallet/transactions`         | Wallet transaction history    |
+| POST   | `/payments/escrow`             | Create escrow payment         |
+| POST   | `/payments/release`            | Release escrow to tasker      |
+| POST   | `/payments/refund`             | Refund escrow to requester    |
+| GET    | `/conversations`               | List user's conversations     |
+| POST   | `/conversations`               | Create conversation           |
+| GET    | `/conversations/:id/messages`  | Get conversation messages     |
+| GET    | `/ws?token=<jwt>`              | WebSocket upgrade             |
 
 ---
 
-## 15. Development Workflow
+## 11. Deployment
 
-### 15.1 Git Workflow
+### Server Infrastructure
 
-```
-main (production)
-  │
-  └── develop (staging)
-        │
-        ├── feature/task-crud
-        ├── feature/chat
-        ├── fix/auth-bug
-        └── ...
+| Field    | Value                      |
+|----------|----------------------------|
+| Provider | OVH Bare Metal (Singapore) |
+| OS       | Ubuntu 24.04 LTS           |
+| CPU      | 8 cores                    |
+| RAM      | 32 GB                      |
+| Disk     | 1.8 TB RAID                |
 
-Branch Naming:
-- feature/xxx - New features
-- fix/xxx     - Bug fixes
-- hotfix/xxx  - Production fixes
-- refactor/xxx - Code refactoring
-```
-
-### 15.2 Development Process
+### Production Stack
 
 ```
-1. Create branch from develop
-   git checkout -b feature/task-crud develop
-
-2. Write code + tests
-   - Follow ESLint rules
-   - Write unit tests
-   - Update API docs
-
-3. Create Pull Request
-   - Self-review
-   - Request review from team
-
-4. Code Review
-   - Check logic
-   - Check security
-   - Check performance
-
-5. Merge to develop
-   - Squash commits
-   - Delete branch
-
-6. Deploy to staging
-   - Automated via PM2
-
-7. QA Testing
-   - Manual testing
-   - Bug fixes if needed
-
-8. Merge to main
-   - Deploy to production
+Internet → Nginx (SSL/443) → Go Binary (:8080) → PostgreSQL (:5432)
+                                    ↕
+                               PayOS API
 ```
 
-### 15.3 Code Quality Tools
-
-```bash
-# Development commands
-
-# Start development server with auto-reload
-uvicorn app.main:app --reload --port 8000
-
-# Run linting
-ruff check app/
-ruff format app/
-
-# Run type checking
-mypy app/
-
-# Run tests
-pytest
-pytest --cov=app --cov-report=html
-
-# Database migrations
-alembic revision --autogenerate -m "Description"
-alembic upgrade head
-alembic downgrade -1
-```
-
-```ini
-# requirements.txt
-fastapi>=0.109.0
-uvicorn[standard]>=0.27.0
-sqlalchemy>=2.0.0
-alembic>=1.13.0
-pydantic>=2.5.0
-python-jose[cryptography]>=3.3.0
-python-multipart>=0.0.6
-httpx>=0.26.0
-
-# Development
-pytest>=7.4.0
-pytest-cov>=4.1.0
-pytest-asyncio>=0.23.0
-ruff>=0.1.0
-mypy>=1.8.0
-```
-
----
-
-## 16. Technical Roadmap
-
-### 16.1 MVP (Week 1-7)
+### Test Server Stack
 
 ```
-Week 1-2: Foundation
-├── [x] Server setup (Nginx, SSL, PostgreSQL, Redis)
-├── [ ] Database schema implementation
-├── [ ] Project structure setup
-└── [ ] Basic Express server
-
-Week 3-4: Core Backend
-├── [ ] Zalo OAuth integration
-├── [ ] User APIs (profile, become-tasker)
-├── [ ] Task APIs (CRUD, apply, accept)
-├── [ ] Application flow
-└── [ ] API documentation
-
-Week 5: Frontend Integration
-├── [ ] Connect frontend to backend
-├── [ ] End-to-end testing
-└── [ ] Bug fixes
-
-Week 6: Features
-├── [ ] Basic chat (simplified)
-├── [ ] Task status flow
-├── [ ] Notifications (basic)
-└── [ ] Beta testing
-
-Week 7: Polish
-├── [ ] Bug fixes
-├── [ ] Performance optimization
-├── [ ] Documentation
-└── [ ] Submission prep
+Emulator/Device → Go Binary (:9999) → SQLite (in-memory)
+                        ↕
+                   Mock PayOS (auto-webhook)
 ```
-
-### 16.2 Post-MVP (Month 2-3)
-
-```
-Month 2: Enhanced Features
-├── [ ] Full chat with Socket.io
-├── [ ] Push notifications (Zalo ZNS)
-├── [ ] Review & rating system
-├── [ ] Search optimization
-└── [ ] Admin dashboard (basic)
-
-Month 3: Payment & Scale
-├── [ ] ZaloPay integration
-├── [ ] Escrow system
-├── [ ] Transaction history
-├── [ ] Performance tuning
-└── [ ] Security audit
-```
-
-### 16.3 Future (Month 4+)
-
-```
-├── [ ] Advanced search (full-text)
-├── [ ] Recommendation engine
-├── [ ] Analytics dashboard
-├── [ ] Multi-language support
-├── [ ] Mobile push notifications
-└── [ ] Microservices migration (if needed)
-```
-
----
-
-## 17. Risk Assessment
-
-### 17.1 Technical Risks
-
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Zalo API changes | Medium | High | Abstract Zalo SDK, monitor changes |
-| Server downtime | Low | High | Daily backups, monitoring alerts |
-| Security breach | Low | Critical | OWASP compliance, security review |
-| Performance issues | Medium | Medium | Load testing, caching strategy |
-| Tech debt | High | Medium | Code reviews, refactoring sprints |
-
-### 17.2 Contingency Plans
-
-```
-Scenario: Server Failure
-├── Detection: Health check fails
-├── Response:
-│   ├── 1. Check PM2 status
-│   ├── 2. Check Nginx logs
-│   ├── 3. Check PostgreSQL status
-│   └── 4. Restart services
-└── Recovery: Restore from backup if needed
-
-Scenario: Database Corruption
-├── Detection: Data inconsistency errors
-├── Response:
-│   ├── 1. Stop application
-│   ├── 2. Assess damage
-│   └── 3. Restore from backup
-└── Recovery: Point-in-time recovery
-
-Scenario: Security Incident
-├── Detection: Anomaly in logs
-├── Response:
-│   ├── 1. Isolate affected systems
-│   ├── 2. Assess breach scope
-│   ├── 3. Notify users if PII affected
-│   └── 4. Patch vulnerability
-└── Recovery: Security audit, penetration testing
-```
-
----
-
-## 18. Appendix
-
-### 18.1 Environment Variables
-
-```bash
-# .env.example
-
-# Server
-ENVIRONMENT=production
-DEBUG=false
-API_URL=https://api.viecz.vn
-
-# Database (SQLite)
-DATABASE_URL=sqlite:///./data/viecz.db
-
-# JWT
-JWT_SECRET=your-super-secret-key-at-least-32-chars
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-
-# Zalo
-ZALO_APP_ID=your-app-id
-ZALO_APP_SECRET=your-app-secret
-ZALO_OAUTH_REDIRECT_URL=https://api.viecz.vn/api/v1/auth/zalo/callback
-
-# ZaloPay (future)
-ZALOPAY_APP_ID=
-ZALOPAY_KEY1=
-ZALOPAY_KEY2=
-ZALOPAY_ENDPOINT=
-
-# Logging
-LOG_LEVEL=INFO
-LOG_DIR=/var/log/viecz
-
-# CORS
-CORS_ORIGINS=["https://your-zalo-miniapp-url.com"]
-```
-
-### 18.2 API Error Codes
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `AUTH_REQUIRED` | 401 | Authentication required |
-| `AUTH_INVALID` | 401 | Invalid token |
-| `AUTH_EXPIRED` | 401 | Token expired |
-| `FORBIDDEN` | 403 | Access denied |
-| `NOT_FOUND` | 404 | Resource not found |
-| `VALIDATION_ERROR` | 400 | Input validation failed |
-| `DUPLICATE_ENTRY` | 409 | Resource already exists |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `SERVER_ERROR` | 500 | Internal server error |
-
-### 18.3 References
-
-- [Zalo Mini App Documentation](https://developers.zalo.me/docs)
-- [ZaloPay API Documentation](https://docs.zalopay.vn/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)
-- [Alembic Documentation](https://alembic.sqlalchemy.org/)
-- [Pydantic Documentation](https://docs.pydantic.dev/)
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-
----
-
-## Document History
-
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-01-14 | Tech Lead | Initial architecture document |
-| 1.1 | 2026-01-14 | Tech Lead | Migrated to FastAPI + SQLite stack |
 
 ---
 

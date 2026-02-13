@@ -1,881 +1,453 @@
-# Backend Deployment Guide
+# Deployment Guide
 
-**Author:** Tech Lead
-**Created:** 2026-01-17
-**Last Updated:** 2026-01-17
+**Last Updated:** 2026-02-14
 
 ---
 
 ## Table of Contents
 
-1. [Server Requirements](#1-server-requirements)
-2. [Initial Server Setup](#2-initial-server-setup)
-3. [Deploy Application Code](#3-deploy-application-code)
-4. [Environment Configuration](#4-environment-configuration)
-5. [Initialize Database](#5-initialize-database)
-6. [Create Systemd Service](#6-create-systemd-service)
-7. [Configure Nginx](#7-configure-nginx)
-8. [Firewall Setup](#8-firewall-setup)
-9. [SSL Certificate](#9-ssl-certificate)
-10. [Deployment Script](#10-deployment-script)
-11. [Verify Deployment](#11-verify-deployment)
-12. [Maintenance Commands](#12-maintenance-commands)
-13. [Troubleshooting](#13-troubleshooting)
-14. [Backup Strategy](#14-backup-strategy)
+1. [Architecture Overview](#1-architecture-overview)
+2. [Docker Compose Services](#2-docker-compose-services)
+3. [Environment Variables](#3-environment-variables)
+4. [Production Deployment](#4-production-deployment)
+5. [Test Server (Development / E2E)](#5-test-server-development--e2e)
+6. [Android Build Flavors](#6-android-build-flavors)
+7. [Cloudflare Tunnel](#7-cloudflare-tunnel)
+8. [E2E Test Deployment](#8-e2e-test-deployment)
+9. [Verify Deployment](#9-verify-deployment)
+10. [Maintenance](#10-maintenance)
 
 ---
 
-## 1. Server Requirements
+## 1. Architecture Overview
 
-### Minimum Specifications
+| Component | Technology | Database | Port |
+|---|---|---|---|
+| Production server | Go (Gin) | PostgreSQL 15 | 8080 (default) |
+| Test server | Go (Gin) | SQLite in-memory | 9999 |
+| Android app (dev) | Kotlin / Jetpack Compose | Room (local) | N/A |
+| Android app (prod) | Kotlin / Jetpack Compose | Room (local) | N/A |
 
-| Resource | Minimum | Recommended |
-|----------|---------|-------------|
-| CPU | 2 cores | 4 cores |
-| RAM | 4GB | 8GB |
-| Storage | 50GB SSD | 100GB SSD |
-| Bandwidth | 100Mbps | 1Gbps |
-| OS | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
+**Production stack**: Docker Compose with three services (PostgreSQL, Go server, Cloudflare Tunnel). The Go server connects to PostgreSQL via GORM. External HTTPS is handled by Cloudflare Tunnel (no Nginx or Certbot needed).
 
-### Required Software
-
-- Python 3.11+
-- Nginx 1.24+
-- Certbot (for SSL)
-- Git
+**Test stack**: Standalone Go binary with SQLite in-memory and mock PayOS. Zero external dependencies.
 
 ---
 
-## 2. Initial Server Setup
+## 2. Docker Compose Services
 
-### 2.1 Update System
-
-```bash
-sudo apt update && sudo apt upgrade -y
-```
-
-### 2.2 Install Dependencies
+The project uses three Compose files, combined at deploy time:
 
 ```bash
-# Install Python 3.11
-sudo apt install -y python3.11 python3.11-venv python3.11-dev
-
-# Install Nginx
-sudo apt install -y nginx
-
-# Install Certbot for SSL
-sudo apt install -y certbot python3-certbot-nginx
-
-# Install Git and other utilities
-sudo apt install -y git curl htop
+docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml up -d
 ```
 
-### 2.3 Create Application Directory
+### `docker-compose.yml` -- PostgreSQL
 
-```bash
-# Create app directory
-sudo mkdir -p /var/www/viecz-backend
-sudo chown $USER:$USER /var/www/viecz-backend
+```yaml
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: viecz-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-viecz}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-# Create log directory
-sudo mkdir -p /var/log/viecz
-sudo chown www-data:www-data /var/log/viecz
+volumes:
+  postgres_data:
 ```
 
-### 2.4 Create Deploy User (Optional but Recommended)
+### `docker-compose.server.yml` -- Go API server
 
-```bash
-# Create a dedicated deploy user
-sudo useradd -m -s /bin/bash deploy
-sudo usermod -aG sudo deploy
-
-# Set up SSH keys for deploy user
-sudo mkdir -p /home/deploy/.ssh
-sudo cp ~/.ssh/authorized_keys /home/deploy/.ssh/
-sudo chown -R deploy:deploy /home/deploy/.ssh
+```yaml
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: viecz-server
+    environment:
+      PORT: ${PORT:-8080}
+      GO_ENV: production
+      SERVER_URL: ${SERVER_URL:-http://localhost:8080}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:8081}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-viecz}
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET}
+      PAYOS_CLIENT_ID: ${PAYOS_CLIENT_ID:-}
+      PAYOS_API_KEY: ${PAYOS_API_KEY:-}
+      PAYOS_CHECKSUM_KEY: ${PAYOS_CHECKSUM_KEY:-}
+    ports:
+      - "${DOCKER_SERVER_PORT:-8080}:${PORT:-8080}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 ```
+
+### `docker-compose.cloudflared.yml` -- Cloudflare Tunnel
+
+```yaml
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: viecz-cloudflared
+    command: tunnel run --token ${CLOUDFLARED_TOKEN}
+    depends_on:
+      server:
+        condition: service_started
+    restart: unless-stopped
+```
+
+The tunnel is configured in Cloudflare Zero Trust dashboard to route `viecz-api.fishcmus.io.vn` (and the dev variant `viecz-api-dev.fishcmus.io.vn`) to the `server` container on port 8080.
+
+### Server Dockerfile
+
+Multi-stage Alpine build (`server/Dockerfile`):
+
+```dockerfile
+FROM golang:1.25-alpine AS builder
+RUN apk add --no-cache git
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server ./cmd/server
+
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+COPY --from=builder /server .
+COPY --from=builder /app/static ./static
+EXPOSE 8080
+CMD ["./server"]
+```
+
+Key points:
+- `CGO_ENABLED=0` -- production server uses PostgreSQL driver (no CGO needed)
+- Static files (`static/`) are copied for `.well-known` (Android App Links) and privacy policy
+- Final image is minimal Alpine (~20 MB)
 
 ---
 
-## 3. Deploy Application Code
+## 3. Environment Variables
 
-### 3.1 Clone Repository
+### Production (`.env.production.example`)
 
-```bash
-cd /var/www/viecz-backend
+| Variable | Required | Description |
+|---|---|---|
+| `DB_USER` | Yes | PostgreSQL username |
+| `DB_PASSWORD` | Yes | PostgreSQL password (change from default) |
+| `DB_NAME` | Yes | PostgreSQL database name |
+| `CLIENT_URL` | Yes | Frontend URL for CORS |
+| `JWT_SECRET` | Yes | Minimum 32 characters, random string |
+| `PAYOS_CLIENT_ID` | No | PayOS payment gateway client ID |
+| `PAYOS_API_KEY` | No | PayOS payment gateway API key |
+| `PAYOS_CHECKSUM_KEY` | No | PayOS payment gateway checksum key |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Yes | Token from Cloudflare Zero Trust dashboard |
 
-# Option 1: Clone from Git
-git clone <your-repo-url> .
+### Server (full list from `server/.env.example`)
 
-# Option 2: Copy from local (using rsync)
-# rsync -avz --exclude '.git' --exclude 'venv' --exclude '__pycache__' \
-#   ./backend/ user@server:/var/www/viecz-backend/
-```
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8080` | Server listen port |
+| `GO_ENV` | `development` | `development` or `production` |
+| `SERVER_URL` | `http://localhost:8080` | Public server URL (used for webhook callbacks) |
+| `CLIENT_URL` | `http://localhost:8081` | Client URL for CORS and redirects |
+| `DB_HOST` | `localhost` | PostgreSQL host |
+| `DB_PORT` | `5432` | PostgreSQL port |
+| `DB_USER` | `postgres` | PostgreSQL user |
+| `DB_PASSWORD` | `postgres` | PostgreSQL password |
+| `DB_NAME` | `viecz` | PostgreSQL database |
+| `DB_SSLMODE` | `disable` | PostgreSQL SSL mode |
+| `JWT_SECRET` | (insecure default) | JWT signing key |
+| `PAYOS_CLIENT_ID` | (empty) | PayOS credentials |
+| `PAYOS_API_KEY` | (empty) | PayOS credentials |
+| `PAYOS_CHECKSUM_KEY` | (empty) | PayOS credentials |
+| `PLATFORM_FEE_RATE` | `0` | Platform fee as decimal (e.g. `0.10` = 10%) |
+| `MAX_WALLET_BALANCE` | `200000` | Max wallet balance per user in VND |
 
-### 3.2 Set Up Python Virtual Environment
+### Docker-specific variables
 
-```bash
-cd /var/www/viecz-backend
-
-# Create virtual environment
-python3.11 -m venv venv
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Install uv package manager
-pip install uv
-
-# Install dependencies
-uv sync
-
-# Install gunicorn for production
-pip install gunicorn
-```
-
-### 3.3 Create Data Directory
-
-```bash
-# Create directory for SQLite database
-mkdir -p /var/www/viecz-backend/data
-
-# Set permissions
-sudo chown -R www-data:www-data /var/www/viecz-backend/data
-```
+| Variable | Default | Description |
+|---|---|---|
+| `DOCKER_SERVER_PORT` | `8080` | Host port mapped to server container |
+| `CLOUDFLARED_TOKEN` | (none) | Cloudflare tunnel token (passed via `CLOUDFLARED_TOKEN` in `.env`) |
 
 ---
 
-## 4. Environment Configuration
+## 4. Production Deployment
 
-### 4.1 Create Environment File
+### Prerequisites
 
-```bash
-cp .env.example .env
-nano .env
-```
+- Docker and Docker Compose installed
+- Cloudflare tunnel token from Zero Trust dashboard
 
-### 4.2 Production Environment Variables
+### Steps
 
 ```bash
-# ===========================================
-# Server Configuration
-# ===========================================
-ENVIRONMENT=production
-DEBUG=false
-API_URL=https://api.viecz.vn
+# 1. Clone the repository
+git clone <repo-url> && cd viecz
 
-# ===========================================
-# Database (SQLite)
-# ===========================================
-DATABASE_URL=sqlite:///./data/viecz.db
+# 2. Create .env from example
+cp .env.production.example .env
+# Edit .env: set DB_PASSWORD, JWT_SECRET, CLOUDFLARED_TOKEN, PayOS keys
 
-# ===========================================
-# JWT Authentication
-# ===========================================
-# Generate a strong secret: openssl rand -hex 32
-JWT_SECRET=your-super-secret-key-at-least-32-characters-long
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-REFRESH_TOKEN_EXPIRE_DAYS=7
+# 3. Start all services
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.server.yml \
+  -f docker-compose.cloudflared.yml \
+  up -d --build
 
-# ===========================================
-# Zalo Integration
-# ===========================================
-ZALO_APP_ID=your-zalo-app-id
-ZALO_APP_SECRET=your-zalo-app-secret
-ZALO_OAUTH_REDIRECT_URL=https://api.viecz.vn/api/v1/auth/zalo/callback
-
-# ===========================================
-# Payment Configuration
-# ===========================================
-# Set to false for production with real ZaloPay
-MOCK_PAYMENT_ENABLED=false
-
-# ZaloPay Production Credentials
-ZALOPAY_APP_ID=your-zalopay-app-id
-ZALOPAY_KEY1=your-zalopay-key1
-ZALOPAY_KEY2=your-zalopay-key2
-ZALOPAY_ENDPOINT=https://openapi.zalopay.vn/v2
-ZALOPAY_CALLBACK_URL=https://api.viecz.vn/api/v1/payments/callback
-ZALOPAY_REDIRECT_URL=https://your-zalo-miniapp-url.com/#/payment/result
-
-# Platform fee percentage
-PLATFORM_FEE_PERCENT=10
-
-# ===========================================
-# CORS Configuration
-# ===========================================
-CORS_ORIGINS=["https://your-zalo-miniapp-url.com"]
-
-# ===========================================
-# Logging
-# ===========================================
-LOG_LEVEL=INFO
-LOG_DIR=/var/log/viecz
+# 4. Verify
+docker compose ps
+curl -s http://localhost:8080/api/v1/health
 ```
 
-### 4.3 Secure the Environment File
+The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, test user) via `database.SeedData`.
+
+### Updating
 
 ```bash
-# Restrict permissions
-chmod 600 .env
-
-# Change ownership
-sudo chown www-data:www-data .env
+git pull
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.server.yml \
+  -f docker-compose.cloudflared.yml \
+  up -d --build
 ```
+
+Only the `server` container rebuilds; `postgres` data persists in the `postgres_data` volume.
 
 ---
 
-## 5. Initialize Database
+## 5. Test Server (Development / E2E)
 
-### 5.1 Run Database Migrations
+The test server (`server/cmd/testserver/main.go`) is a standalone binary for local development and E2E testing. It requires no external services.
 
-```bash
-cd /var/www/viecz-backend
-source venv/bin/activate
+| Property | Value |
+|---|---|
+| Port | `9999` (hardcoded) |
+| Database | SQLite in-memory (fresh on each start) |
+| JWT Secret | `e2e-test-secret-key` (hardcoded) |
+| PayOS | Mock -- `CreatePaymentLink` auto-fires webhook after 100ms to credit wallet |
+| Seed data | Categories + test user |
+| Health check | `GET /api/v1/health` |
 
-# Run Alembic migrations
-uv run alembic upgrade head
-```
-
-### 5.2 Seed Initial Data
-
-```bash
-# Seed categories and initial data
-uv run python -m app.seeds
-```
-
-### 5.3 Verify Database
+### Build and run
 
 ```bash
-# Check if database file exists
-ls -la data/viecz.db
-
-# Quick verification (optional)
-sqlite3 data/viecz.db ".tables"
+cd server
+CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver
+./bin/testserver
 ```
+
+`CGO_ENABLED=1` is required because the SQLite driver uses CGO.
+
+### Routes
+
+The test server mirrors all production routes exactly:
+- Auth: `/api/v1/auth/{register,login,refresh}`
+- Users: `/api/v1/users/{:id,me}`
+- Tasks: `/api/v1/tasks/...`
+- Wallet: `/api/v1/wallet/{deposit,transactions}`
+- Payments: `/api/v1/payments/{escrow,release,refund}`
+- WebSocket: `/api/v1/ws`
+- Conversations: `/api/v1/conversations/...`
+- Categories: `/api/v1/categories`
 
 ---
 
-## 6. Create Systemd Service
+## 6. Android Build Flavors
 
-### 6.1 Create Service File
+Defined in `android/app/build.gradle.kts` under `productFlavors`:
 
-```bash
-sudo nano /etc/systemd/system/viecz.service
-```
+| Flavor | Application ID | API Base URL | App Name |
+|---|---|---|---|
+| `dev` | `com.viecz.vieczandroid.dev` | `http://10.0.2.2:9999/api/v1/` | Viecz Dev |
+| `prod` | `com.viecz.vieczandroid` | `https://viecz-api.fishcmus.io.vn/api/v1/` | Viecz |
 
-### 6.2 Service Configuration
+Both flavors can coexist on the same device (different application IDs).
 
-```ini
-[Unit]
-Description=Viecz FastAPI Application
-After=network.target
+### Build variants
 
-[Service]
-Type=exec
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/viecz-backend
-Environment="PATH=/var/www/viecz-backend/venv/bin"
-EnvironmentFile=/var/www/viecz-backend/.env
+- `devDebug` -- Local development against test server
+- `devRelease` -- Release build against test server
+- `prodDebug` -- Debug build against production server
+- `prodRelease` -- Release build for Play Store distribution
 
-ExecStart=/var/www/viecz-backend/venv/bin/gunicorn app.main:app \
-    --workers 4 \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --bind 127.0.0.1:8000 \
-    --access-logfile /var/log/viecz/access.log \
-    --error-logfile /var/log/viecz/error.log \
-    --capture-output \
-    --timeout 120
-
-Restart=always
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-
-# Security hardening
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/var/www/viecz-backend/data /var/log/viecz
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 6.3 Set Permissions
+### Building
 
 ```bash
-# Set ownership for application directory
-sudo chown -R www-data:www-data /var/www/viecz-backend
+cd android
+
+# Dev (local test server)
+./gradlew assembleDevDebug
+./gradlew installDevDebug
+
+# Production
+./gradlew assembleProdRelease
 ```
 
-### 6.4 Enable and Start Service
+### Overriding API URL
+
+Create/edit `android/local.properties`:
+
+```properties
+API_BASE_URL_DEV=http://10.0.2.2:9999/api/v1/
+API_BASE_URL_PROD=https://viecz-api.fishcmus.io.vn/api/v1/
+```
+
+### Physical device connectivity
+
+Emulators reach `10.0.2.2:9999` natively (Android emulator loopback to host). Physical devices need ADB port forwarding:
 
 ```bash
-# Reload systemd
-sudo systemctl daemon-reload
-
-# Enable service to start on boot
-sudo systemctl enable viecz
-
-# Start the service
-sudo systemctl start viecz
-
-# Check status
-sudo systemctl status viecz
+adb reverse tcp:9999 tcp:9999
+# Verify: adb reverse --list
 ```
 
 ---
 
-## 7. Configure Nginx
+## 7. Cloudflare Tunnel
 
-### 7.1 Create Nginx Configuration
+The production API is exposed via Cloudflare Tunnel (no public ports, no Nginx, no Certbot).
 
-```bash
-sudo nano /etc/nginx/sites-available/viecz
-```
+**How it works**:
+1. `cloudflared` container connects outbound to Cloudflare edge
+2. Cloudflare routes `viecz-api.fishcmus.io.vn` traffic through the tunnel to the `server` container on port 8080
+3. HTTPS termination happens at Cloudflare edge
 
-### 7.2 Nginx Configuration File
+**Setup**:
+1. Go to Cloudflare Zero Trust > Networks > Tunnels
+2. Create a tunnel, get the token
+3. Set `CLOUDFLARED_TOKEN` in `.env`
+4. Configure public hostname in the tunnel dashboard:
+   - Hostname: `viecz-api.fishcmus.io.vn`
+   - Service: `http://server:8080` (Docker service name)
 
-```nginx
-# Rate limiting zone
-limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+The config file `cloudflared-config.yml` is gitignored (contains tunnel credentials). It references `viecz-api-dev.fishcmus.io.vn` for the dev tunnel endpoint.
 
-# Upstream backend
-upstream backend {
-    server 127.0.0.1:8000;
-    keepalive 32;
-}
+---
 
-# HTTP -> HTTPS redirect
-server {
-    listen 80;
-    listen [::]:80;
-    server_name api.viecz.vn;
+## 8. E2E Test Deployment
 
-    # Allow certbot challenge
-    location /.well-known/acme-challenge/ {
-        root /var/www/html;
-    }
-
-    # Redirect all other traffic to HTTPS
-    location / {
-        return 301 https://$server_name$request_uri;
-    }
-}
-
-# HTTPS server
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name api.viecz.vn;
-
-    # SSL Configuration (managed by Certbot)
-    ssl_certificate /etc/letsencrypt/live/api.viecz.vn/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.viecz.vn/privkey.pem;
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:50m;
-    ssl_session_tickets off;
-
-    # Modern SSL configuration
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-
-    # Security Headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    # Request size limit
-    client_max_body_size 10M;
-
-    # Logging
-    access_log /var/log/nginx/viecz-access.log;
-    error_log /var/log/nginx/viecz-error.log;
-
-    # Health check endpoint (no rate limiting)
-    location /health {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    # API endpoints
-    location /api/ {
-        # Rate limiting
-        limit_req zone=api burst=20 nodelay;
-        limit_req_status 429;
-
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Connection "";
-
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-
-    # WebSocket endpoint for chat
-    location /ws/ {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # WebSocket timeouts
-        proxy_read_timeout 86400s;
-        proxy_send_timeout 86400s;
-    }
-
-    # API documentation (optional - disable in production if needed)
-    location /docs {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }
-
-    location /redoc {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }
-
-    location /openapi.json {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }
-}
-```
-
-### 7.3 Enable Site
+The script `scripts/run-full-e2e.sh` automates the full E2E flow:
 
 ```bash
-# Create symbolic link
-sudo ln -s /etc/nginx/sites-available/viecz /etc/nginx/sites-enabled/
+# Interactive mode
+./scripts/run-full-e2e.sh
 
-# Remove default site (optional)
-sudo rm /etc/nginx/sites-enabled/default
+# Emulator mode
+./scripts/run-full-e2e.sh emulator
 
-# Test configuration
-sudo nginx -t
+# Physical device mode
+./scripts/run-full-e2e.sh device
+```
 
-# Reload Nginx
-sudo systemctl reload nginx
+### What it does
+
+1. Detects or starts an Android emulator / finds a USB device
+2. Builds the test server (`CGO_ENABLED=1 go build`)
+3. Starts the test server on port 9999
+4. Waits for health check
+5. Runs `S13_FullJobLifecycleE2ETest` via Gradle instrumented tests
+6. Reports pass/fail, outputs logs to `/tmp/viecz-e2e-output.log`
+
+### Gradle test profiles
+
+```bash
+# Mock-only tests (no server needed)
+./gradlew connectedDevDebugAndroidTest -PexcludeRealServer
+
+# Real-server tests only (requires test server on :9999)
+./gradlew connectedDevDebugAndroidTest -PonlyRealServer
+
+# Convenience tasks
+./gradlew connectedMockE2E
+./gradlew connectedRealServerE2E
 ```
 
 ---
 
-## 8. Firewall Setup
+## 9. Verify Deployment
 
-### 8.1 Configure UFW
-
-```bash
-# Allow SSH
-sudo ufw allow 22/tcp
-
-# Allow HTTP
-sudo ufw allow 80/tcp
-
-# Allow HTTPS
-sudo ufw allow 443/tcp
-
-# Enable firewall
-sudo ufw enable
-
-# Check status
-sudo ufw status
-```
-
-### 8.2 Expected Output
-
-```
-Status: active
-
-To                         Action      From
---                         ------      ----
-22/tcp                     ALLOW       Anywhere
-80/tcp                     ALLOW       Anywhere
-443/tcp                    ALLOW       Anywhere
-22/tcp (v6)                ALLOW       Anywhere (v6)
-80/tcp (v6)                ALLOW       Anywhere (v6)
-443/tcp (v6)               ALLOW       Anywhere (v6)
-```
-
----
-
-## 9. SSL Certificate
-
-### 9.1 Obtain Certificate with Certbot
-
-```bash
-# Obtain SSL certificate
-sudo certbot --nginx -d api.viecz.vn
-
-# Follow the prompts:
-# - Enter email address
-# - Agree to terms
-# - Choose whether to redirect HTTP to HTTPS (recommended: Yes)
-```
-
-### 9.2 Verify Auto-Renewal
-
-```bash
-# Test renewal process
-sudo certbot renew --dry-run
-
-# Check renewal timer
-sudo systemctl status certbot.timer
-```
-
-### 9.3 Manual Renewal (if needed)
-
-```bash
-sudo certbot renew
-sudo systemctl reload nginx
-```
-
----
-
-## 10. Deployment Script
-
-### 10.1 Create Deployment Script
-
-```bash
-nano /var/www/viecz-backend/deploy.sh
-```
-
-### 10.2 Script Content
-
-```bash
-#!/bin/bash
-set -e
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-echo -e "${GREEN}🚀 Starting Viecz API Deployment...${NC}"
-
-# Change to app directory
-cd /var/www/viecz-backend
-
-# Pull latest code
-echo -e "${YELLOW}📥 Pulling latest code...${NC}"
-git pull origin main
-
-# Activate virtual environment
-echo -e "${YELLOW}🐍 Activating virtual environment...${NC}"
-source venv/bin/activate
-
-# Install/update dependencies
-echo -e "${YELLOW}📦 Installing dependencies...${NC}"
-uv sync
-
-# Backup database before migration
-echo -e "${YELLOW}💾 Backing up database...${NC}"
-if [ -f data/viecz.db ]; then
-    cp data/viecz.db data/viecz.db.backup.$(date +%Y%m%d_%H%M%S)
-fi
-
-# Run database migrations
-echo -e "${YELLOW}🗃️  Running database migrations...${NC}"
-uv run alembic upgrade head
-
-# Restart application service
-echo -e "${YELLOW}🔄 Restarting service...${NC}"
-sudo systemctl restart viecz
-
-# Wait for service to start
-sleep 3
-
-# Verify service is running
-if sudo systemctl is-active --quiet viecz; then
-    echo -e "${GREEN}✅ Service is running${NC}"
-else
-    echo -e "${RED}❌ Service failed to start${NC}"
-    sudo journalctl -u viecz --no-pager -n 20
-    exit 1
-fi
-
-# Health check
-echo -e "${YELLOW}🏥 Running health check...${NC}"
-HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
-
-if [ "$HEALTH_RESPONSE" == "200" ]; then
-    echo -e "${GREEN}✅ Health check passed${NC}"
-else
-    echo -e "${RED}❌ Health check failed (HTTP $HEALTH_RESPONSE)${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}🎉 Deployment completed successfully!${NC}"
-echo -e "API is running at: https://api.viecz.vn"
-```
-
-### 10.3 Make Script Executable
-
-```bash
-chmod +x /var/www/viecz-backend/deploy.sh
-```
-
-### 10.4 Run Deployment
-
-```bash
-# Full deployment
-./deploy.sh
-
-# Or with sudo for service restart
-sudo ./deploy.sh
-```
-
----
-
-## 11. Verify Deployment
-
-### 11.1 Check Service Status
-
-```bash
-# Service status
-sudo systemctl status viecz
-
-# View recent logs
-sudo journalctl -u viecz -n 50 --no-pager
-```
-
-### 11.2 Test Endpoints
+### Production
 
 ```bash
 # Health check
-curl https://api.viecz.vn/health
+curl https://viecz-api.fishcmus.io.vn/api/v1/health
 
-# API docs (if enabled)
-curl -I https://api.viecz.vn/docs
+# Docker status
+docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml ps
 
-# Categories endpoint (public)
-curl https://api.viecz.vn/api/v1/categories
+# Server logs
+docker logs viecz-server --tail 50
+
+# PostgreSQL logs
+docker logs viecz-postgres --tail 20
 ```
 
-### 11.3 Test WebSocket
+### Test server
 
 ```bash
-# Install websocat if needed
-# sudo apt install websocat
-
-# Test WebSocket connection (requires valid JWT)
-# websocat "wss://api.viecz.vn/ws/chat/1?token=<jwt_token>"
+curl http://localhost:9999/api/v1/health
+curl http://localhost:9999/api/v1/categories
 ```
 
 ---
 
-## 12. Maintenance Commands
+## 10. Maintenance
 
-### Quick Reference
+### Logs
 
-| Action | Command |
-|--------|---------|
-| Start service | `sudo systemctl start viecz` |
-| Stop service | `sudo systemctl stop viecz` |
-| Restart service | `sudo systemctl restart viecz` |
-| View status | `sudo systemctl status viecz` |
-| View logs (live) | `sudo journalctl -u viecz -f` |
-| View logs (recent) | `sudo journalctl -u viecz -n 100` |
-| Reload Nginx | `sudo systemctl reload nginx` |
-| Test Nginx config | `sudo nginx -t` |
-| Deploy updates | `./deploy.sh` |
+| Log | Command |
+|---|---|
+| Server (production) | `docker logs viecz-server -f` |
+| PostgreSQL | `docker logs viecz-postgres -f` |
+| Cloudflared | `docker logs viecz-cloudflared -f` |
+| Test server | Check terminal output or `/tmp/testserver.log` |
+| Android app | `adb logcat --pid=$(adb shell pidof com.viecz.vieczandroid.dev)` |
 
-### Log Locations
-
-| Log | Location |
-|-----|----------|
-| Application logs | `/var/log/viecz/` |
-| Systemd logs | `journalctl -u viecz` |
-| Nginx access | `/var/log/nginx/viecz-access.log` |
-| Nginx errors | `/var/log/nginx/viecz-error.log` |
-
-### Database Operations
+### Database backup
 
 ```bash
-# Backup database
-cp data/viecz.db data/viecz.db.backup
+# Dump PostgreSQL from container
+docker exec viecz-postgres pg_dump -U postgres viecz > backup_$(date +%Y%m%d).sql
 
-# Create timestamped backup
-cp data/viecz.db "data/viecz.db.$(date +%Y%m%d_%H%M%S)"
-
-# Restore from backup
-cp data/viecz.db.backup data/viecz.db
-sudo systemctl restart viecz
+# Restore
+docker exec -i viecz-postgres psql -U postgres viecz < backup_20260214.sql
 ```
 
----
-
-## 13. Troubleshooting
-
-### 13.1 Service Won't Start
+### Restart services
 
 ```bash
-# Check logs for errors
-sudo journalctl -u viecz -n 50
+# Restart server only (DB persists)
+docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml restart server
 
-# Check if port is in use
-sudo lsof -i :8000
-
-# Verify permissions
-ls -la /var/www/viecz-backend/
-ls -la /var/www/viecz-backend/data/
-
-# Fix permissions if needed
-sudo chown -R www-data:www-data /var/www/viecz-backend
+# Full restart
+docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml down
+docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml up -d
 ```
 
-### 13.2 502 Bad Gateway
+### Rebuild server after code changes
 
 ```bash
-# Check if backend is running
-curl http://localhost:8000/health
-
-# Check Nginx error logs
-sudo tail -f /var/log/nginx/viecz-error.log
-
-# Restart both services
-sudo systemctl restart viecz
-sudo systemctl restart nginx
+docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml up -d --build server
 ```
-
-### 13.3 Database Errors
-
-```bash
-# Check database file permissions
-ls -la data/viecz.db
-
-# Fix permissions
-sudo chown www-data:www-data data/viecz.db
-sudo chmod 664 data/viecz.db
-
-# Check database integrity
-sqlite3 data/viecz.db "PRAGMA integrity_check;"
-```
-
-### 13.4 SSL Certificate Issues
-
-```bash
-# Check certificate status
-sudo certbot certificates
-
-# Renew certificate manually
-sudo certbot renew --force-renewal
-sudo systemctl reload nginx
-
-# Check SSL configuration
-sudo nginx -t
-```
-
-### 13.5 Memory Issues
-
-```bash
-# Check memory usage
-free -h
-
-# Check process memory
-ps aux | grep gunicorn
-
-# Reduce workers if needed (edit systemd service)
-# Change --workers 4 to --workers 2
-sudo systemctl daemon-reload
-sudo systemctl restart viecz
-```
-
----
-
-## 14. Backup Strategy
-
-### 14.1 Automated Daily Backup Script
-
-```bash
-sudo nano /etc/cron.daily/viecz-backup
-```
-
-```bash
-#!/bin/bash
-
-BACKUP_DIR="/var/backups/viecz"
-DATE=$(date +%Y%m%d)
-RETENTION_DAYS=7
-
-# Create backup directory
-mkdir -p $BACKUP_DIR
-
-# Backup database
-cp /var/www/viecz-backend/data/viecz.db "$BACKUP_DIR/viecz-$DATE.db"
-
-# Backup environment file
-cp /var/www/viecz-backend/.env "$BACKUP_DIR/env-$DATE"
-
-# Compress backups
-gzip -f "$BACKUP_DIR/viecz-$DATE.db"
-gzip -f "$BACKUP_DIR/env-$DATE"
-
-# Remove old backups
-find $BACKUP_DIR -name "*.gz" -mtime +$RETENTION_DAYS -delete
-
-echo "Backup completed: $DATE"
-```
-
-```bash
-sudo chmod +x /etc/cron.daily/viecz-backup
-```
-
-### 14.2 Manual Backup
-
-```bash
-# Full backup
-tar -czvf viecz-backup-$(date +%Y%m%d).tar.gz \
-    /var/www/viecz-backend/data \
-    /var/www/viecz-backend/.env
-```
-
-### 14.3 Restore from Backup
-
-```bash
-# Stop service
-sudo systemctl stop viecz
-
-# Restore database
-gunzip -c /var/backups/viecz/viecz-YYYYMMDD.db.gz > /var/www/viecz-backend/data/viecz.db
-
-# Fix permissions
-sudo chown www-data:www-data /var/www/viecz-backend/data/viecz.db
-
-# Start service
-sudo systemctl start viecz
-```
-
----
-
-## Document History
-
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-01-17 | Tech Lead | Initial deployment guide |
-
----
-
-*For questions or issues, refer to the [Architecture Documentation](./ARCHITECTURE.md) or contact the development team.*

