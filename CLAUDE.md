@@ -99,6 +99,7 @@ Viecz is a multi-package project containing:
 - **After changing business logic or algorithms** — update `ALGORITHM.md`
 - **After changing auth, security, or middleware** — update `SECURITY.md`
 - **After changing deployment, Docker, or infra config** — update `DEPLOYMENT.md`
+- **After updating any technical doc** — update the Document Index table in this `CLAUDE.md` if the doc's content scope changed
 
 ### Document Index
 
