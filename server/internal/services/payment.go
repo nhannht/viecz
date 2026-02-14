@@ -94,7 +94,7 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 		NetAmount:   netAmount,
 		Type:        models.TransactionTypeEscrow,
 		Status:      models.TransactionStatusPending,
-		Description: fmt.Sprintf("Escrow payment for task: %s", task.Title),
+		Description: truncatePayOSDescription(fmt.Sprintf("Escrow: %s", task.Title)),
 	}
 
 	if s.mockMode {
@@ -385,4 +385,12 @@ func (s *PaymentService) GetTransactionsByTask(ctx context.Context, taskID int64
 // Helper function to create string pointer
 func stringPtr(s string) *string {
 	return &s
+}
+
+// truncatePayOSDescription ensures description fits PayOS's 25-character limit
+func truncatePayOSDescription(s string) string {
+	if len([]rune(s)) <= 25 {
+		return s
+	}
+	return string([]rune(s)[:25])
 }

@@ -750,8 +750,8 @@ func TestWalletService_GetTransactionHistory(t *testing.T) {
 			limit:       10,
 			offset:      0,
 			setupRepo:   func(walletRepo *testutil.MockWalletRepository, txRepo *testutil.MockWalletTransactionRepository) {},
-			wantErr:     true,
-			errContains: "wallet not found",
+			wantErr:     false,
+			checkCount:  0,
 		},
 	}
 

@@ -117,6 +117,10 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 	if req.Description == "" {
 		req.Description = "Wallet deposit"
 	}
+	// PayOS limits description to 25 characters
+	if len([]rune(req.Description)) > 25 {
+		req.Description = string([]rune(req.Description)[:25])
+	}
 
 	// Validate deposit against max wallet balance before creating payment link
 	if err := h.walletService.ValidateDeposit(c.Request.Context(), userID.(int64), req.Amount); err != nil {

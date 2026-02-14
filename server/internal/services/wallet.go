@@ -300,7 +300,8 @@ func (s *WalletService) RefundFromEscrow(ctx context.Context, userID, amount, ta
 func (s *WalletService) GetTransactionHistory(ctx context.Context, userID int64, limit, offset int) ([]*models.WalletTransaction, error) {
 	wallet, err := s.walletRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("wallet not found: %w", err)
+		// Wallet not created yet — return empty list instead of error
+		return []*models.WalletTransaction{}, nil
 	}
 
 	transactions, err := s.walletTransactionRepo.GetByWalletID(ctx, wallet.ID, limit, offset)
