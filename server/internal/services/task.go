@@ -14,6 +14,7 @@ type TaskService struct {
 	applicationRepo repository.TaskApplicationRepository
 	categoryRepo    repository.CategoryRepository
 	userRepo        repository.UserRepository
+	walletService   *WalletService
 }
 
 // NewTaskService creates a new TaskService
@@ -22,12 +23,14 @@ func NewTaskService(
 	applicationRepo repository.TaskApplicationRepository,
 	categoryRepo repository.CategoryRepository,
 	userRepo repository.UserRepository,
+	walletService *WalletService,
 ) *TaskService {
 	return &TaskService{
 		taskRepo:        taskRepo,
 		applicationRepo: applicationRepo,
 		categoryRepo:    categoryRepo,
 		userRepo:        userRepo,
+		walletService:   walletService,
 	}
 }
 
@@ -56,6 +59,17 @@ func (s *TaskService) CreateTask(ctx context.Context, requesterID int64, input *
 	_, err = s.userRepo.GetByID(ctx, requesterID)
 	if err != nil {
 		return nil, fmt.Errorf("requester not found: %w", err)
+	}
+
+	// Validate available balance covers task price
+	if s.walletService != nil {
+		available, err := s.walletService.GetAvailableBalance(ctx, requesterID, s.taskRepo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check available balance: %w", err)
+		}
+		if available < input.Price {
+			return nil, fmt.Errorf("insufficient available balance: have %d, need %d", available, input.Price)
+		}
 	}
 
 	task := &models.Task{
@@ -110,6 +124,18 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID, requesterID int64,
 	// Can only update open tasks
 	if task.Status != models.TaskStatusOpen {
 		return nil, fmt.Errorf("can only update tasks with status 'open'")
+	}
+
+	// Validate available balance if price is increasing
+	if s.walletService != nil && input.Price > task.Price {
+		available, err := s.walletService.GetAvailableBalance(ctx, requesterID, s.taskRepo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check available balance: %w", err)
+		}
+		delta := input.Price - task.Price
+		if available < delta {
+			return nil, fmt.Errorf("insufficient available balance for price increase: have %d, need %d", available, delta)
+		}
 	}
 
 	// Update fields

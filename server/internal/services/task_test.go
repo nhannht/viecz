@@ -7,6 +7,7 @@ import (
 
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
+	"viecz.vieczserver/internal/testutil"
 )
 
 // Mock repositories
@@ -74,6 +75,16 @@ func (m *mockTaskRepository) AssignTasker(ctx context.Context, taskID, taskerID 
 	task.TaskerID = &taskerID
 	task.Status = models.TaskStatusInProgress
 	return nil
+}
+
+func (m *mockTaskRepository) SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error) {
+	var total int64
+	for _, task := range m.tasks {
+		if task.RequesterID == requesterID && task.Status == models.TaskStatusOpen {
+			total += task.Price
+		}
+	}
+	return total, nil
 }
 
 func (m *mockTaskRepository) UpdateStatus(ctx context.Context, taskID int64, status models.TaskStatus) error {
@@ -393,7 +404,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 				tt.setupRepo(catRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -413,6 +424,227 @@ func TestTaskService_CreateTask(t *testing.T) {
 				}
 				if task != nil && task.Status != models.TaskStatusOpen {
 					t.Errorf("Expected status to be 'open', got '%s'", task.Status)
+				}
+			}
+		})
+	}
+}
+
+func newTestWalletService(t *testing.T) (*WalletService, *testutil.MockWalletRepository, func()) {
+	t.Helper()
+	walletRepo := testutil.NewMockWalletRepository()
+	walletTxRepo := testutil.NewMockWalletTransactionRepository()
+	db, cleanup, err := testutil.NewMockGormDB()
+	if err != nil {
+		t.Fatalf("Failed to create mock GORM DB: %v", err)
+	}
+	ws := NewWalletService(walletRepo, walletTxRepo, db, 0)
+	return ws, walletRepo, cleanup
+}
+
+func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		requesterID int64
+		input       *CreateTaskInput
+		setup       func(*mockTaskRepository, *mockCategoryRepository, *mockUserRepository, *testutil.MockWalletRepository)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "insufficient available balance",
+			requesterID: 1,
+			input: &CreateTaskInput{
+				Title:       "Expensive Task",
+				Description: "Test",
+				CategoryID:  1,
+				Price:       100000,
+				Location:    "HCMUS",
+			},
+			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
+				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 50000, EscrowBalance: 0}
+			},
+			wantErr:     true,
+			errContains: "insufficient available balance",
+		},
+		{
+			name:        "available balance accounts for open tasks",
+			requesterID: 1,
+			input: &CreateTaskInput{
+				Title:       "Another Task",
+				Description: "Test",
+				CategoryID:  1,
+				Price:       100000,
+				Location:    "HCMUS",
+			},
+			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
+				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 0}
+				// Existing open task worth 150k
+				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 150000, Status: models.TaskStatusOpen}
+			},
+			wantErr:     true,
+			errContains: "insufficient available balance",
+		},
+		{
+			name:        "available balance accounts for escrow",
+			requesterID: 1,
+			input: &CreateTaskInput{
+				Title:       "Task",
+				Description: "Test",
+				CategoryID:  1,
+				Price:       150000,
+				Location:    "HCMUS",
+			},
+			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
+				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 100000}
+			},
+			wantErr:     true,
+			errContains: "insufficient available balance",
+		},
+		{
+			name:        "sufficient available balance",
+			requesterID: 1,
+			input: &CreateTaskInput{
+				Title:       "Affordable Task",
+				Description: "Test",
+				CategoryID:  1,
+				Price:       100000,
+				Location:    "HCMUS",
+			},
+			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
+				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 0}
+				// Existing open task worth 50k
+				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen}
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+			walletService, walletRepo, cleanup := newTestWalletService(t)
+			defer cleanup()
+
+			if tt.setup != nil {
+				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService)
+			ctx := context.Background()
+
+			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if task == nil {
+					t.Error("Expected task to be created, got nil")
+				}
+			}
+		})
+	}
+}
+
+func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		taskID      int64
+		requesterID int64
+		input       *CreateTaskInput
+		setup       func(*mockTaskRepository, *mockCategoryRepository, *mockUserRepository, *testutil.MockWalletRepository)
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "price increase exceeds available balance",
+			taskID:      1,
+			requesterID: 1,
+			input: &CreateTaskInput{
+				Title:       "Updated Task",
+				Description: "Test",
+				CategoryID:  1,
+				Price:       200000,
+				Location:    "HCMUS",
+			},
+			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
+				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen, Title: "Old Task", Description: "Old", CategoryID: 1, Location: "HCMUS"}
+				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 100000, EscrowBalance: 0}
+			},
+			wantErr:     true,
+			errContains: "insufficient available balance for price increase",
+		},
+		{
+			name:        "price decrease always allowed",
+			taskID:      1,
+			requesterID: 1,
+			input: &CreateTaskInput{
+				Title:       "Updated Task",
+				Description: "Test",
+				CategoryID:  1,
+				Price:       30000,
+				Location:    "HCMUS",
+			},
+			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
+				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen, Title: "Old Task", Description: "Old", CategoryID: 1, Location: "HCMUS"}
+				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 10000, EscrowBalance: 0}
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+			walletService, walletRepo, cleanup := newTestWalletService(t)
+			defer cleanup()
+
+			if tt.setup != nil {
+				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
+			}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService)
+			ctx := context.Background()
+
+			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if task == nil {
+					t.Error("Expected task to be updated, got nil")
 				}
 			}
 		})
@@ -518,7 +750,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			app, err := service.ApplyForTask(ctx, tt.taskID, tt.taskerID, tt.input)
@@ -633,7 +865,7 @@ func TestTaskService_AcceptApplication(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			err := service.AcceptApplication(ctx, tt.applicationID, tt.requesterID)
@@ -694,7 +926,7 @@ func TestTaskService_GetTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			task, err := service.GetTask(ctx, tt.taskID)
@@ -800,7 +1032,7 @@ func TestTaskService_UpdateTask(t *testing.T) {
 				tt.setupRepo(taskRepo, catRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -894,7 +1126,7 @@ func TestTaskService_DeleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			err := service.DeleteTask(ctx, tt.taskID, tt.requesterID)
@@ -952,7 +1184,7 @@ func TestTaskService_ListTasks(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			tasks, total, err := service.ListTasks(ctx, tt.filters)
@@ -1051,7 +1283,7 @@ func TestTaskService_CompleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			err := service.CompleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1146,7 +1378,7 @@ func TestTaskService_GetTaskApplications(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
 			ctx := context.Background()
 
 			apps, err := service.GetTaskApplications(ctx, tt.taskID, tt.requesterID)

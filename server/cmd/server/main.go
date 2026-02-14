@@ -77,10 +77,10 @@ func main() {
 	}
 
 	userService := services.NewUserService(userRepo)
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo)
-
 	// Initialize wallet and payment services (Phase 3)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, cfg.MaxWalletBalance)
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService)
 
 	// Initialize PayOS service
 	payosService, err := services.NewPayOSService(

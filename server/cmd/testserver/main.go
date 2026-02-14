@@ -140,8 +140,8 @@ func main() {
 	}
 
 	userService := services.NewUserService(userRepo)
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService)
 
 	mockPayOS := &mockPayOS{}
 

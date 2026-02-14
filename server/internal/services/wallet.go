@@ -311,3 +311,21 @@ func (s *WalletService) GetTransactionHistory(ctx context.Context, userID int64,
 
 	return transactions, nil
 }
+
+// GetAvailableBalance computes the balance available for new task creation.
+// Available = Balance - EscrowBalance - sum(prices of open tasks by this user).
+func (s *WalletService) GetAvailableBalance(ctx context.Context, userID int64, taskRepo repository.TaskRepository) (int64, error) {
+	wallet, err := s.walletRepo.GetOrCreate(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	openTaskTotal, err := taskRepo.SumOpenTaskPricesByRequester(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	available := wallet.Balance - wallet.EscrowBalance - openTaskTotal
+	if available < 0 {
+		available = 0
+	}
+	return available, nil
+}

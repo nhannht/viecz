@@ -152,6 +152,21 @@ func (r *taskGormRepository) UpdateStatus(ctx context.Context, id int64, status 
 	return nil
 }
 
+func (r *taskGormRepository) SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error) {
+	var total *int64
+	err := r.db.WithContext(ctx).Model(&models.Task{}).
+		Select("COALESCE(SUM(price), 0)").
+		Where("requester_id = ? AND status = ?", requesterID, models.TaskStatusOpen).
+		Scan(&total).Error
+	if err != nil {
+		return 0, fmt.Errorf("failed to sum open task prices: %w", err)
+	}
+	if total == nil {
+		return 0, nil
+	}
+	return *total, nil
+}
+
 func (r *taskGormRepository) AssignTasker(ctx context.Context, taskID, taskerID int64) error {
 	// First, get the task
 	var task models.Task

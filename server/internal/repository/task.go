@@ -19,6 +19,7 @@ type TaskRepository interface {
 	CountByFilters(ctx context.Context, filters TaskFilters) (int, error)
 	UpdateStatus(ctx context.Context, id int64, status models.TaskStatus) error
 	AssignTasker(ctx context.Context, taskID, taskerID int64) error
+	SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error)
 }
 
 // TaskFilters represents filters for listing tasks
@@ -349,6 +350,16 @@ func (r *taskRepository) UpdateStatus(ctx context.Context, id int64, status mode
 	}
 
 	return nil
+}
+
+func (r *taskRepository) SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error) {
+	query := `SELECT COALESCE(SUM(price), 0) FROM tasks WHERE requester_id = $1 AND status = $2`
+	var total int64
+	err := r.db.QueryRowContext(ctx, query, requesterID, models.TaskStatusOpen).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to sum open task prices: %w", err)
+	}
+	return total, nil
 }
 
 func (r *taskRepository) AssignTasker(ctx context.Context, taskID, taskerID int64) error {

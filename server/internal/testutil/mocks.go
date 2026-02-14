@@ -312,6 +312,16 @@ func (m *MockTaskRepository) CountByFilters(ctx context.Context, filters reposit
 	return len(m.Tasks), nil
 }
 
+func (m *MockTaskRepository) SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error) {
+	var total int64
+	for _, task := range m.Tasks {
+		if task.RequesterID == requesterID && task.Status == models.TaskStatusOpen {
+			total += task.Price
+		}
+	}
+	return total, nil
+}
+
 func (m *MockTaskRepository) AssignTasker(ctx context.Context, taskID, taskerID int64) error {
 	task, exists := m.Tasks[taskID]
 	if !exists {
