@@ -82,7 +82,7 @@ Viecz is a multi-package project containing:
 
 **Location:** `docs/technical/`
 
-**MANDATORY**: Always consult the technical docs in `docs/technical/` for context before working on tasks. These docs contain up-to-date information about the system architecture, API endpoints, data models, algorithms, security, deployment, and user flows.
+**MANDATORY**: Always consult the technical docs in `docs/technical/` for context **before** working on tasks, and always update them **after** making code changes. These docs must stay in sync with the codebase — outdated docs are worse than no docs.
 
 ### When to Read
 
