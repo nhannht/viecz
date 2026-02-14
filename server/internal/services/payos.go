@@ -54,6 +54,10 @@ func NewPayOSService(clientID, apiKey, checksumKey string) (*PayOSService, error
 
 // CreatePaymentLink creates a payment link with PayOS
 func (s *PayOSService) CreatePaymentLink(ctx context.Context, orderCode int64, amount int, description string, returnURL, cancelURL string) (*PaymentLinkResponse, error) {
+	if s.client == nil || s.client.PaymentRequests == nil {
+		return nil, fmt.Errorf("PayOS client not configured (missing API credentials)")
+	}
+
 	// Create payment link request
 	request := payos.CreatePaymentLinkRequest{
 		OrderCode:   orderCode,
