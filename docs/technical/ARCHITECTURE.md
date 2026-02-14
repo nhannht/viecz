@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
 **Version:** 2.0
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 
 ---
 
@@ -263,6 +263,11 @@ func NewUserGormRepository(db *gorm.DB) UserRepository { ... }
 ```
 Config → Database → Repositories → Services → Handlers → Gin Router
 ```
+
+**Service Dependencies:**
+- `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, and `WalletService` (for available balance validation at task creation/update)
+- `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, and `WalletService`
+- `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, and `*gorm.DB`
 
 ---
 

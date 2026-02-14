@@ -355,6 +355,51 @@ TotalSpent >= 0
 | `ReleaseFromEscrow(amount)` | unchanged | -= amount | Funds go to payee, not back to balance |
 | `RefundFromEscrow(amount)` | += amount | -= amount | Also decrements TotalSpent (reversal) |
 
+### Available Balance (Soft Reservation)
+
+**Source:** `server/internal/services/wallet.go` -- `GetAvailableBalance`, `server/internal/services/task.go` -- `CreateTask`, `UpdateTask`
+
+When a requester creates or updates a task, the system checks that the requester's **available balance** covers the task price. This prevents posting tasks the requester cannot pay for.
+
+```
+AvailableBalance = Balance - EscrowBalance - SumOpenTaskPrices(requesterID)
+```
+
+Where `SumOpenTaskPrices` is `SELECT COALESCE(SUM(price), 0) FROM tasks WHERE requester_id = ? AND status = 'open'`.
+
+```
+GetAvailableBalance(userID, taskRepo):
+  1. Get wallet for user (GetOrCreate)
+  2. Sum prices of all OPEN tasks by this requester
+  3. available = wallet.Balance - wallet.EscrowBalance - openTaskTotal
+  4. If available < 0, clamp to 0
+  5. Return available
+```
+
+**Validation in CreateTask:**
+```
+CreateTask(...):
+  ...
+  available = GetAvailableBalance(requesterID, taskRepo)
+  if available < input.Price:
+    return error("insufficient available balance: have %d, need %d")
+  ...
+```
+
+**Validation in UpdateTask (price increase only):**
+```
+UpdateTask(...):
+  ...
+  if input.Price > task.Price:
+    available = GetAvailableBalance(requesterID, taskRepo)
+    delta = input.Price - task.Price
+    if available < delta:
+      return error("insufficient available balance for price increase")
+  ...
+```
+
+No new database columns are added -- available balance is computed on-the-fly from existing wallet fields and the tasks table.
+
 ### Max Wallet Balance Enforcement
 
 **Source:** `WalletService.ValidateDeposit`, `WalletService.Deposit`
@@ -537,6 +582,6 @@ All models enforce validation on create and update via GORM hooks:
 
 ---
 
-**Document Version:** 2.0
-**Last Updated:** 2026-02-14
+**Document Version:** 2.1
+**Last Updated:** 2026-02-15
 **Source of Truth:** Go source code in `server/internal/`

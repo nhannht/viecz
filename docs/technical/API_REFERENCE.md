@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 
 ---
 
@@ -391,6 +391,11 @@ All task endpoints require authentication.
 }
 ```
 
+#### Errors
+
+- `400` - Validation error (missing required fields, invalid category)
+- `500` - Insufficient available balance (wallet balance minus escrow minus sum of open task prices is less than the task price)
+
 ---
 
 ### 4.2. List Tasks
@@ -495,6 +500,7 @@ Returns updated task.
 #### Errors
 
 - `400` - Not authorized or task not updatable
+- `500` - Insufficient available balance for price increase (only validated when the new price exceeds the current price; the delta must be covered by available balance)
 
 ---
 
