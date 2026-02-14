@@ -17,6 +17,58 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Why**: UI/UX issues are best understood by observing the real app. Code reading alone can miss runtime state, timing, and visual layout problems.
 
+## Stack Overflow API Access
+
+**Stack Overflow and Stack Exchange content can be accessed programmatically via the official Stack Exchange API.**
+
+### Official API Endpoint
+
+```bash
+https://api.stackexchange.com/2.2/
+```
+
+### Common Use Cases
+
+**Fetch a specific question with body:**
+```bash
+curl -s "https://api.stackexchange.com/2.2/questions/{question_id}?site=stackoverflow&filter=withbody" | jq
+```
+
+**Fetch answers for a question:**
+```bash
+curl -s "https://api.stackexchange.com/2.2/questions/{question_id}/answers?site=stackoverflow&filter=withbody&sort=votes" | jq
+```
+
+**Example:**
+```bash
+# Get question 76823978 with body
+curl -s "https://api.stackexchange.com/2.2/questions/76823978?site=stackoverflow&filter=withbody" | jq -r '.items[0].body'
+
+# Get all answers sorted by votes
+curl -s "https://api.stackexchange.com/2.2/questions/76823978/answers?site=stackoverflow&filter=withbody&sort=votes" | jq -r '.items[].body'
+```
+
+### Alternative Tools
+
+**Python:**
+- `stackapi` package - Python binding to StackExchange APIs
+- `beautifulsoup4` + `requests` - For HTML scraping
+
+**Node.js:**
+- `crawlee` - Web scraping and browser automation framework
+
+**CLI:**
+- Stack Overflow CLI search tools available via npm/pip
+
+### Why Use the API
+
+- **No web scraping needed** - Official, reliable access
+- **Rate limits** - Free tier: 300 requests/day (no auth), 10,000/day (with auth)
+- **Structured data** - Clean JSON responses
+- **No parsing** - Pre-formatted content
+
+**Reference:** [Stack Exchange API Documentation](https://api.stackexchange.com/docs)
+
 ## Project Overview
 
 Viecz is a multi-package project containing:
@@ -25,6 +77,42 @@ Viecz is a multi-package project containing:
 - **@viecz/server** (`server/`) - Go backend with comprehensive test coverage
 
 **Current Status**: Active development on Go backend and Android app
+
+## Technical Documentation (CRITICAL - ALWAYS FOLLOW)
+
+**Location:** `docs/technical/`
+
+**MANDATORY**: Always consult the technical docs in `docs/technical/` for context before working on tasks. These docs contain up-to-date information about the system architecture, API endpoints, data models, algorithms, security, deployment, and user flows.
+
+### When to Read
+
+- **Before implementing a feature** — check relevant docs for existing patterns, models, and endpoints
+- **Before debugging** — understand the architecture and data flow from the docs
+- **When onboarding to an unfamiliar area** — read the relevant doc before diving into code
+
+### When to Update
+
+- **After adding/modifying API endpoints** — update `API_REFERENCE.md`
+- **After adding/modifying database models** — update `DATA_STRUCTURE.md`
+- **After changing architecture or package structure** — update `ARCHITECTURE.md` and/or `SYSTEM_DESIGN.md`
+- **After adding/modifying user-facing flows** — update `USER_FLOW.md`
+- **After changing business logic or algorithms** — update `ALGORITHM.md`
+- **After changing auth, security, or middleware** — update `SECURITY.md`
+- **After changing deployment, Docker, or infra config** — update `DEPLOYMENT.md`
+
+### Document Index
+
+| Document | Content |
+|----------|---------|
+| `SYSTEM_DESIGN.md` | High-level architecture, tech stack, patterns |
+| `ARCHITECTURE.md` | Go backend layers, Android MVVM, ER diagram |
+| `DATA_STRUCTURE.md` | 9 GORM models, schemas, relationships |
+| `API_REFERENCE.md` | 32 REST endpoints + WebSocket |
+| `USER_FLOW.md` | Auth, task, payment, chat flows |
+| `ALGORITHM.md` | JWT, escrow, WebSocket routing, wallet |
+| `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification |
+| `DEPLOYMENT.md` | Docker Compose, Cloudflare tunnel, Android flavors |
+| `README.md` | Index and navigation guide |
 
 ## YouTrack Project Management
 
@@ -319,18 +407,27 @@ android/E2E_TESTING_GUIDE.md
   2. **App logs**: `adb logcat -d --pid=$(adb shell pidof com.viecz.vieczandroid.dev) | tail -100` — look for network errors, HTTP status codes, crash stack traces
 - **Never guess at the root cause** — read the logs first. Many test failures (e.g., chat, wallet, task operations) are caused by server-side errors that are invisible from the UI alone.
 
-**MANDATORY — Physical Device Port Forwarding**:
+**MANDATORY — Physical Device Port Forwarding & Test Server Host**:
 - **Always use `adb reverse` to connect physical devices to the test server**
-- The dev app is configured to use `http://10.0.2.2:9999/api/v1/` (emulator localhost)
 - Physical devices cannot reach `10.0.2.2` — they need port forwarding
 - **Before running E2E tests on a physical device**, run:
   ```bash
   adb reverse tcp:9999 tcp:9999
   ```
-  This forwards device port 9999 → host port 9999, allowing the app to reach the test server at `10.0.2.2:9999`
+- **CRITICAL**: `RealServerRule` defaults to `10.0.2.2` (emulator-only). For physical devices, you MUST pass `testServerHost=localhost`:
+  ```bash
+  # Emulator (default — no extra args needed):
+  ./gradlew connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<TestClass>
+
+  # Physical device (MUST add testServerHost):
+  ./gradlew connectedDevDebugAndroidTest \
+    -Pandroid.testInstrumentationRunnerArguments.class=<TestClass> \
+    -Pandroid.testInstrumentationRunnerArguments.testServerHost=localhost
+  ```
+- Without `testServerHost=localhost`, real-server tests silently fail (no API requests reach the server, registration/login times out)
 - Verify forwarding: `adb reverse --list`
 - Remove forwarding: `adb reverse --remove tcp:9999`
-- **Emulators do NOT need this** — they can reach `10.0.2.2:9999` directly
+- **Emulators do NOT need `adb reverse` or `testServerHost`** — they reach `10.0.2.2:9999` directly
 
 #### Code Quality
 
@@ -528,6 +625,27 @@ cd android
 ./gradlew --refresh-dependencies
 ```
 
+## Server Deployment to sg (CRITICAL - ALWAYS FOLLOW)
+
+**MANDATORY**: Do NOT use Docker or git push/pull for deploying server fixes. Use direct binary deployment:
+
+```bash
+# 1. Cross-compile for Linux on local machine
+cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/server-linux ./cmd/server
+
+# 2. Rsync binary to sg
+rsync -avz bin/server-linux baremetal-sg-ks3:~/nhannht-projects/viecz/server/bin/
+
+# 3. SSH to sg and restart the server
+ssh baremetal-sg-ks3 "sudo systemctl restart viecz-server"
+# OR if running manually:
+ssh baremetal-sg-ks3 "pkill -f server-linux; cd ~/nhannht-projects/viecz && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &"
+```
+
+**Why**: Faster iteration — no Docker rebuild (~90s), no git push/pull round-trip. Just build + rsync + restart.
+
+**Server details**: See `sg` in global CLAUDE.md (SSH: `baremetal-sg-ks3`, IP: 139.99.69.32)
+
 ## Project Status
 
 - ✅ **Android app** - Native Kotlin with Jetpack Compose (Active development)
@@ -544,97 +662,107 @@ cd android
 
 ## Claudtest - ADB-Based Device Interaction Testing (CRITICAL - ALWAYS FOLLOW)
 
-**Claudtest** is this project's custom definition for automated E2E-style testing performed by Claude Code on a real Android device connected via ADB. It combines raw ADB input commands with UI Automator inspection to mimic real human interaction — no extra framework (Maestro, Espresso, Appium) required.
+**Claudtest** is automated E2E-style testing on a real Android device via ADB. Optimized for speed: **batch commands, minimize screenshots, visual coordinate estimation**.
 
-### What Claudtest Is
+### Speed Principles
 
-Claudtest is an **observe-act loop** on a real device:
+1. **Batch ADB commands** — Each `adb shell` call has ~100-200ms overhead. Chain multiple commands in one call.
+2. **Screenshot only when needed** — Only at start of a new screen and for final verification. NOT between every action.
+3. **Visual estimation over uiautomator dump** — Claude reads screenshots and estimates coordinates. `uiautomator dump` takes 1-3s; use it only as fallback.
+4. **Minimal sleeps** — Use `sleep 0.5` between UI actions, `sleep 1-2` only after network calls or screen transitions.
+5. **Cache screen dimensions** — Query `wm size` once at session start, reuse for all coordinate math.
 
-1. **Observe** — Capture the current screen state
-   - `adb shell screencap` — Take a screenshot (Claude reads it visually)
-   - `adb shell uiautomator dump` — Dump the UI hierarchy XML to find element bounds, resource IDs, and text labels
-2. **Act** — Perform human-like interactions using element coordinates from the UI dump
-   - `adb shell input tap <x> <y>` — Tap a button/field
-   - `adb shell input text "<text>"` — Type into a focused field
-   - `adb shell input swipe <x1> <y1> <x2> <y2> <duration>` — Scroll/swipe
-   - `adb shell input keyevent <code>` — Press keys (Back=4, Enter=66, Home=3)
-   - `adb shell am start` — Launch activities or deep links
-3. **Verify** — Observe again to confirm the expected result
-   - Screenshot comparison (visual check)
-   - UI hierarchy assertion (element exists/contains text)
-   - `adb logcat` — Check for errors or expected log entries
-
-### How to Find Element Coordinates
+### Batching Commands (CRITICAL for Speed)
 
 ```bash
-# 1. Dump UI hierarchy
-adb shell uiautomator dump /sdcard/ui.xml
-adb pull /sdcard/ui.xml /tmp/ui.xml
+# BAD — 4 separate adb calls (~600ms overhead)
+adb shell input tap 380 690
+adb shell input text "test@example.com"
+adb shell input tap 380 820
+adb shell input text "password123"
 
-# 2. Parse bounds from XML — elements have bounds="[left,top][right,bottom]"
-# Example: <node text="Login" bounds="[100,900][640,980]" />
-# Tap center: x = (100+640)/2 = 370, y = (900+980)/2 = 940
-adb shell input tap 370 940
+# GOOD — 1 adb call (~150ms overhead)
+adb shell "input tap 380 690; sleep 0.3; input text 'test@example.com'; input tap 380 820; sleep 0.3; input text 'password123'"
+
+# GOOD — batch tap + type + tap in one shell
+adb shell "input tap 380 690 && sleep 0.3 && input text 'test@example.com' && input tap 380 820 && sleep 0.3 && input text 'password123' && input tap 380 950"
+```
+
+### Core Loop
+
+1. **Setup once** — Get screen size, launch app
+   ```bash
+   adb shell wm size          # Cache this: e.g., 1080x2400 -> center x=540
+   adb shell am start -n <package>/<activity>
+   sleep 2
+   ```
+
+2. **Screenshot** — Only when entering a new screen
+   ```bash
+   adb exec-out screencap -p > /tmp/screen.png
+   ```
+   Claude reads visually, estimates all element coordinates at once.
+
+3. **Batch actions** — All interactions for this screen in one `adb shell` call
+   ```bash
+   adb shell "input tap 540 690; sleep 0.3; input text 'user@test.com'; input tap 540 820; sleep 0.3; input text 'pass123'; input tap 540 950"
+   sleep 1  # wait for navigation
+   ```
+
+4. **Verify** — Screenshot the result screen
+   ```bash
+   adb exec-out screencap -p > /tmp/result.png
+   ```
+
+### When to Use uiautomator dump (Fallback Only)
+
+- **Small icons close together** — need precise bounds
+- **Visual estimation failed** — tapped wrong element twice
+- **Need resource-id** — for programmatic assertions
+
+```bash
+adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml /tmp/ui.xml
 ```
 
 ### When to Use Claudtest
 
-Use claudtest when:
 - Verifying a UI/UX fix on the real device after code changes
 - Reproducing a user-reported bug by following their steps
 - Testing a full user flow (register -> login -> navigate -> perform action)
 - The user asks to "test it on the device" or "try it on the phone"
 
-### Claudtest Workflow
-
-```
-1. Ensure device connected:     adb devices
-2. Launch app:                  adb shell am start -n <package>/<activity>
-3. Wait for load:               sleep 2-3
-4. Screenshot + UI dump:        Observe current state
-5. Find target element:         Parse bounds from UI XML
-6. Tap/type/swipe:              Perform interaction
-7. Wait for response:           sleep 1-2
-8. Screenshot + UI dump:        Verify result
-9. Repeat 5-8 for each step
-10. Check logcat if needed:     adb logcat -d --pid=$(adb shell pidof <package>)
-```
-
-### Example: Claudtest Login Flow
+### Example: Fast Login Flow
 
 ```bash
-# Launch app
+# Setup (once per session)
+adb shell wm size  # 760x1580 -> center x=380
+
+# Launch
 adb shell am start -n com.viecz.vieczandroid.dev/com.viecz.vieczandroid.MainActivity
-sleep 3
+sleep 2
 
-# Screenshot to see login screen
-adb shell screencap -p /sdcard/s1.png && adb pull /sdcard/s1.png /tmp/s1.png
+# Screenshot — Claude reads it, estimates ALL coordinates at once
+adb exec-out screencap -p > /tmp/login.png
+# Claude sees: Email ~y=690, Password ~y=820, Login button ~y=950
 
-# Dump UI to find Email field coordinates
-adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml /tmp/ui.xml
-# Parse: Email field bounds="[64,650][696,730]" -> tap center (380, 690)
+# Batch all login actions in ONE adb call
+adb shell "input tap 380 690; sleep 0.3; input text 'test@example.com'; input tap 380 820; sleep 0.3; input text 'password123'; input tap 380 950"
+sleep 2
 
-# Tap email field and type
-adb shell input tap 380 690
-adb shell input text "test@example.com"
-
-# Tap password field and type
-adb shell input tap 380 820
-adb shell input text "password123"
-
-# Tap Login button
-adb shell input tap 380 950
-sleep 3
-
-# Verify: screenshot should show home screen, not login
-adb shell screencap -p /sdcard/s2.png && adb pull /sdcard/s2.png /tmp/s2.png
+# Verify — one final screenshot
+adb exec-out screencap -p > /tmp/home.png
 ```
+
+**Old approach**: 7+ adb calls, 3 screenshots, ~8s overhead
+**New approach**: 3 adb calls, 2 screenshots, ~3s overhead
 
 ### Important Rules
 
-- **Always dump UI hierarchy** to get accurate coordinates — never guess coordinates
-- **Always wait** (`sleep`) after navigation or network calls before checking results
-- **Read screenshots visually** to confirm what the user would see
+- **Batch commands** — always chain actions in one `adb shell` call when possible
+- **Screenshot only at screen transitions** — not between every tap
+- **Visual estimation first** — ~10-20px tolerance is fine for buttons
+- **`sleep 0.3`** between UI actions within a batch, **`sleep 1-2`** only after network/navigation
+- **Fall back to uiautomator dump** only when visual estimation fails twice
 - **Check logcat** when interactions don't produce expected results
 - **Report results** with screenshots so the user can see what happened
 - Claudtest is for **verification and debugging**, not a replacement for unit tests

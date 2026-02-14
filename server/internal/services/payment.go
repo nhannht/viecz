@@ -3,23 +3,20 @@ package services
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
 )
 
-// PaymentService handles payment orchestration with escrow logic
+// PaymentService handles payment orchestration with escrow logic.
+// All escrow/release/refund operations use the wallet — PayOS is only for deposits.
 type PaymentService struct {
 	transactionRepo repository.TransactionRepository
 	taskRepo        repository.TaskRepository
 	applicationRepo repository.TaskApplicationRepository
 	walletService   *WalletService
-	payosService    *PayOSService
-	mockMode        bool
 	platformFeeRate float64 // Platform fee as percentage (e.g., 0.10 for 10%)
-	serverURL       string
 }
 
 // NewPaymentService creates a new payment service.
@@ -29,22 +26,14 @@ func NewPaymentService(
 	taskRepo repository.TaskRepository,
 	applicationRepo repository.TaskApplicationRepository,
 	walletService *WalletService,
-	payosService *PayOSService,
 	platformFeeRate float64,
-	serverURL string,
 ) *PaymentService {
-	// Check if mock mode is enabled via environment variable
-	mockMode := os.Getenv("PAYMENT_MOCK_MODE") == "true"
-
 	return &PaymentService{
 		transactionRepo: transactionRepo,
 		taskRepo:        taskRepo,
 		applicationRepo: applicationRepo,
 		walletService:   walletService,
-		payosService:    payosService,
-		mockMode:        mockMode,
 		platformFeeRate: platformFeeRate,
-		serverURL:       serverURL,
 	}
 }
 
@@ -97,66 +86,31 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 		Description: truncatePayOSDescription(fmt.Sprintf("Escrow: %s", task.Title)),
 	}
 
-	if s.mockMode {
-		// Mock mode: Use wallet service
-		if err := s.walletService.HoldInEscrow(ctx, payerID, effectivePrice, taskID, nil); err != nil {
-			transaction.Status = models.TransactionStatusFailed
-			transaction.FailureReason = stringPtr(err.Error())
-			if createErr := s.transactionRepo.Create(ctx, transaction); createErr != nil {
-				return nil, "", fmt.Errorf("failed to create transaction: %w", createErr)
-			}
-			return transaction, "", err
-		}
-
-		transaction.Status = models.TransactionStatusSuccess
-		now := time.Now()
-		transaction.CompletedAt = &now
-
-		if err := s.transactionRepo.Create(ctx, transaction); err != nil {
-			return nil, "", fmt.Errorf("failed to create transaction: %w", err)
-		}
-
-		// Update task status to in_progress
-		task.Status = models.TaskStatusInProgress
-		if err := s.taskRepo.Update(ctx, task); err != nil {
-			return nil, "", fmt.Errorf("failed to update task status: %w", err)
-		}
-
-		return transaction, "", nil
-	}
-
-	// Real mode: Use PayOS
-	orderCode := time.Now().Unix()
-	transaction.PayOSOrderCode = &orderCode
-
-	returnURL := fmt.Sprintf("%s/api/v1/payment/return", s.serverURL)
-	cancelURL := fmt.Sprintf("%s/api/v1/payment/return", s.serverURL)
-
-	// Create payment link with PayOS
-	result, err := s.payosService.CreatePaymentLink(
-		ctx,
-		orderCode,
-		int(effectivePrice),
-		transaction.Description,
-		returnURL,
-		cancelURL,
-	)
-	if err != nil {
+	// Hold funds in escrow from requester's wallet
+	if err := s.walletService.HoldInEscrow(ctx, payerID, effectivePrice, taskID, nil); err != nil {
 		transaction.Status = models.TransactionStatusFailed
 		transaction.FailureReason = stringPtr(err.Error())
 		if createErr := s.transactionRepo.Create(ctx, transaction); createErr != nil {
 			return nil, "", fmt.Errorf("failed to create transaction: %w", createErr)
 		}
-		return transaction, "", fmt.Errorf("failed to create payment link: %w", err)
+		return transaction, "", err
 	}
 
-	transaction.PayOSPaymentID = &result.PaymentLinkId
+	transaction.Status = models.TransactionStatusSuccess
+	now := time.Now()
+	transaction.CompletedAt = &now
 
 	if err := s.transactionRepo.Create(ctx, transaction); err != nil {
 		return nil, "", fmt.Errorf("failed to create transaction: %w", err)
 	}
 
-	return transaction, result.CheckoutUrl, nil
+	// Update task status to in_progress
+	task.Status = models.TaskStatusInProgress
+	if err := s.taskRepo.Update(ctx, task); err != nil {
+		return nil, "", fmt.Errorf("failed to update task status: %w", err)
+	}
+
+	return transaction, "", nil
 }
 
 // ReleasePayment releases funds from escrow to tasker when task is completed
@@ -213,60 +167,48 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 		Description: fmt.Sprintf("Payment release for task: %s", task.Title),
 	}
 
-	if s.mockMode {
-		// Mock mode: Release from escrow in wallet
-		if err := s.walletService.ReleaseFromEscrow(
-			ctx,
-			requesterID,
-			*task.TaskerID,
-			escrowTx.NetAmount,
-			taskID,
-			&escrowTx.ID,
-		); err != nil {
-			releaseTx.Status = models.TransactionStatusFailed
-			releaseTx.FailureReason = stringPtr(err.Error())
-			if createErr := s.transactionRepo.Create(ctx, releaseTx); createErr != nil {
-				return fmt.Errorf("failed to create release transaction: %w", createErr)
-			}
-			return err
+	// Release from escrow in wallet
+	if err := s.walletService.ReleaseFromEscrow(
+		ctx,
+		requesterID,
+		*task.TaskerID,
+		escrowTx.NetAmount,
+		taskID,
+		&escrowTx.ID,
+	); err != nil {
+		releaseTx.Status = models.TransactionStatusFailed
+		releaseTx.FailureReason = stringPtr(err.Error())
+		if createErr := s.transactionRepo.Create(ctx, releaseTx); createErr != nil {
+			return fmt.Errorf("failed to create release transaction: %w", createErr)
+		}
+		return err
+	}
+
+	releaseTx.Status = models.TransactionStatusSuccess
+	now := time.Now()
+	releaseTx.CompletedAt = &now
+
+	if err := s.transactionRepo.Create(ctx, releaseTx); err != nil {
+		return fmt.Errorf("failed to create release transaction: %w", err)
+	}
+
+	// Create platform fee transaction (only if fee > 0)
+	if escrowTx.PlatformFee > 0 {
+		feeTx := &models.Transaction{
+			TaskID:      &taskID,
+			PayerID:     requesterID,
+			PayeeID:     nil, // Platform
+			Amount:      escrowTx.PlatformFee,
+			PlatformFee: 0,
+			NetAmount:   escrowTx.PlatformFee,
+			Type:        models.TransactionTypePlatformFee,
+			Status:      models.TransactionStatusSuccess,
+			Description: fmt.Sprintf("Platform fee for task: %s", task.Title),
+			CompletedAt: &now,
 		}
 
-		releaseTx.Status = models.TransactionStatusSuccess
-		now := time.Now()
-		releaseTx.CompletedAt = &now
-
-		if err := s.transactionRepo.Create(ctx, releaseTx); err != nil {
-			return fmt.Errorf("failed to create release transaction: %w", err)
-		}
-
-		// Create platform fee transaction (only if fee > 0)
-		if escrowTx.PlatformFee > 0 {
-			feeTx := &models.Transaction{
-				TaskID:      &taskID,
-				PayerID:     requesterID,
-				PayeeID:     nil, // Platform
-				Amount:      escrowTx.PlatformFee,
-				PlatformFee: 0,
-				NetAmount:   escrowTx.PlatformFee,
-				Type:        models.TransactionTypePlatformFee,
-				Status:      models.TransactionStatusSuccess,
-				Description: fmt.Sprintf("Platform fee for task: %s", task.Title),
-				CompletedAt: &now,
-			}
-
-			if err := s.transactionRepo.Create(ctx, feeTx); err != nil {
-				return fmt.Errorf("failed to create platform fee transaction: %w", err)
-			}
-		}
-	} else {
-		// Real mode: Platform fee is already deducted in escrow
-		// In production, this would trigger actual fund transfer
-		releaseTx.Status = models.TransactionStatusSuccess
-		now := time.Now()
-		releaseTx.CompletedAt = &now
-
-		if err := s.transactionRepo.Create(ctx, releaseTx); err != nil {
-			return fmt.Errorf("failed to create release transaction: %w", err)
+		if err := s.transactionRepo.Create(ctx, feeTx); err != nil {
+			return fmt.Errorf("failed to create platform fee transaction: %w", err)
 		}
 	}
 
@@ -322,45 +264,28 @@ func (s *PaymentService) RefundPayment(ctx context.Context, taskID, requesterID 
 		Description: fmt.Sprintf("Refund for task: %s. Reason: %s", task.Title, reason),
 	}
 
-	if s.mockMode {
-		// Mock mode: Refund from escrow in wallet
-		if err := s.walletService.RefundFromEscrow(
-			ctx,
-			requesterID,
-			escrowTx.Amount,
-			taskID,
-			&escrowTx.ID,
-		); err != nil {
-			refundTx.Status = models.TransactionStatusFailed
-			refundTx.FailureReason = stringPtr(err.Error())
-			if createErr := s.transactionRepo.Create(ctx, refundTx); createErr != nil {
-				return fmt.Errorf("failed to create refund transaction: %w", createErr)
-			}
-			return err
+	// Refund from escrow in wallet
+	if err := s.walletService.RefundFromEscrow(
+		ctx,
+		requesterID,
+		escrowTx.Amount,
+		taskID,
+		&escrowTx.ID,
+	); err != nil {
+		refundTx.Status = models.TransactionStatusFailed
+		refundTx.FailureReason = stringPtr(err.Error())
+		if createErr := s.transactionRepo.Create(ctx, refundTx); createErr != nil {
+			return fmt.Errorf("failed to create refund transaction: %w", createErr)
 		}
+		return err
+	}
 
-		refundTx.Status = models.TransactionStatusSuccess
-		now := time.Now()
-		refundTx.CompletedAt = &now
+	refundTx.Status = models.TransactionStatusSuccess
+	now := time.Now()
+	refundTx.CompletedAt = &now
 
-		if err := s.transactionRepo.Create(ctx, refundTx); err != nil {
-			return fmt.Errorf("failed to create refund transaction: %w", err)
-		}
-	} else {
-		// Real mode: Cancel PayOS payment link
-		if escrowTx.PayOSOrderCode != nil {
-			if _, err := s.payosService.CancelPaymentLink(ctx, *escrowTx.PayOSOrderCode, reason); err != nil {
-				return fmt.Errorf("failed to cancel PayOS payment: %w", err)
-			}
-		}
-
-		refundTx.Status = models.TransactionStatusSuccess
-		now := time.Now()
-		refundTx.CompletedAt = &now
-
-		if err := s.transactionRepo.Create(ctx, refundTx); err != nil {
-			return fmt.Errorf("failed to create refund transaction: %w", err)
-		}
+	if err := s.transactionRepo.Create(ctx, refundTx); err != nil {
+		return fmt.Errorf("failed to create refund transaction: %w", err)
 	}
 
 	// Update task status to cancelled

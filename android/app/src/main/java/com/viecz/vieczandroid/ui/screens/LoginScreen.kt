@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -25,6 +27,7 @@ fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -126,6 +129,46 @@ fun LoginScreen(
                 }
                 Text("Login")
             }
+
+            // Google Sign-In hidden per user request
+            /*
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Divider with "OR"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text(
+                    text = "OR",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Google Sign-In button
+            OutlinedButton(
+                onClick = {
+                    viewModel.loginWithGoogle(context as Activity)
+                },
+                enabled = authState !is AuthState.Loading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (authState is AuthState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("Continue with Google")
+            }
+            */
 
             Spacer(modifier = Modifier.height(16.dp))
 

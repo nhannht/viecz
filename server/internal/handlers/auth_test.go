@@ -134,6 +134,18 @@ func (m *mockUserRepository) UpdateRating(ctx context.Context, userID int64, rat
 	return nil
 }
 
+func (m *mockUserRepository) GetByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
+	if m.shouldFail {
+		return nil, errors.New("user not found")
+	}
+	for _, user := range m.usersById {
+		if user.GoogleID != nil && *user.GoogleID == googleID {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.New()
@@ -249,7 +261,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo)
-			handler := NewAuthHandler(authService, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/register", handler.Register)
 
@@ -300,11 +312,13 @@ func TestAuthHandler_Login(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				// Create user with hashed password
 				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("Password123"), bcrypt.DefaultCost)
+				hashedPasswordStr := string(hashedPassword)
 				repo.users["test@example.com"] = &models.User{
 					ID:           1,
 					Email:        "test@example.com",
 					Name:         "Test User",
-					PasswordHash: string(hashedPassword),
+					PasswordHash: &hashedPasswordStr,
+					AuthProvider: "email",
 				}
 			},
 			expectedStatusCode: http.StatusOK,
@@ -328,11 +342,13 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			setupRepo: func(repo *mockUserRepository) {
 				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("Password123"), bcrypt.DefaultCost)
+				hashedPasswordStr := string(hashedPassword)
 				repo.users["test@example.com"] = &models.User{
 					ID:           1,
 					Email:        "test@example.com",
 					Name:         "Test User",
-					PasswordHash: string(hashedPassword),
+					PasswordHash: &hashedPasswordStr,
+					AuthProvider: "email",
 				}
 			},
 			expectedStatusCode: http.StatusUnauthorized,
@@ -384,7 +400,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo)
-			handler := NewAuthHandler(authService, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/login", handler.Login)
 
@@ -486,7 +502,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			// Setup
 			mockUserRepo := newMockUserRepository()
 			authService := auth.NewAuthService(mockUserRepo)
-			handler := NewAuthHandler(authService, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/refresh", handler.RefreshToken)
 

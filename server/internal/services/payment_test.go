@@ -3,14 +3,13 @@ package services
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/testutil"
 )
 
-func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
+func TestPaymentService_CreateEscrowPayment(t *testing.T) {
 	tests := []struct {
 		name             string
 		taskID           int64
@@ -23,7 +22,7 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 		checkWalletCalls func(*testing.T, *testutil.MockWalletService)
 	}{
 		{
-			name:    "successful escrow payment - mock mode",
+			name:    "successful escrow payment",
 			taskID:  1,
 			payerID: 1,
 			setupRepos: func(taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
@@ -56,7 +55,7 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 			},
 		},
 		{
-			name:    "insufficient wallet balance - mock mode",
+			name:    "insufficient wallet balance",
 			taskID:  1,
 			payerID: 1,
 			setupRepos: func(taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
@@ -120,10 +119,6 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set mock mode
-			os.Setenv("PAYMENT_MOCK_MODE", "true")
-			defer os.Unsetenv("PAYMENT_MOCK_MODE")
-
 			taskRepo := testutil.NewMockTaskRepository()
 			txRepo := testutil.NewMockTransactionRepository()
 			walletRepo := testutil.NewMockWalletRepository()
@@ -133,7 +128,6 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 				tt.setupRepos(taskRepo, txRepo)
 			}
 
-			// Create real wallet service with mock repositories and in-memory DB
 			mockDB, cleanup, err := testutil.NewMockGormDB()
 			if err != nil {
 				t.Fatalf("Failed to create mock DB: %v", err)
@@ -142,12 +136,10 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-			// Setup wallet behavior through repository
 			if tt.setupWallet != nil {
-				// For mock mode, we need to setup the wallet in the repository
-				balance := int64(200000) // Sufficient balance by default
+				balance := int64(200000)
 				if tt.errContains == "insufficient balance" {
-					balance = 10000 // Insufficient for 100000 payment
+					balance = 10000
 				}
 				wallet := &models.Wallet{
 					ID:            1,
@@ -158,9 +150,7 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 				walletRepo.Wallets[1] = wallet
 			}
 
-			// Create payment service
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
-			service.mockMode = true
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0)
 
 			ctx := context.Background()
 
@@ -169,13 +159,11 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 			testutil.AssertError(t, err, tt.wantErr, tt.errContains)
 			if !tt.wantErr {
 				testutil.AssertNotNil(t, transaction, "Transaction")
-				testutil.AssertEqual(t, checkoutURL, "", "Checkout URL should be empty in mock mode")
+				testutil.AssertEqual(t, checkoutURL, "", "Checkout URL should be empty")
 				if tt.checkTransaction != nil {
 					tt.checkTransaction(t, transaction)
 				}
-				// Check wallet repository was called
 				if len(walletTxRepo.Transactions) > 0 {
-					// Verify escrow transaction was created in wallet
 					foundEscrow := false
 					for _, wtx := range walletTxRepo.Transactions {
 						if wtx.Type == models.WalletTransactionTypeEscrowHold {
@@ -191,16 +179,12 @@ func TestPaymentService_CreateEscrowPayment_MockMode(t *testing.T) {
 }
 
 func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
-	os.Setenv("PAYMENT_MOCK_MODE", "true")
-	defer os.Unsetenv("PAYMENT_MOCK_MODE")
-
 	taskRepo := testutil.NewMockTaskRepository()
 	txRepo := testutil.NewMockTransactionRepository()
 	appRepo := testutil.NewMockTaskApplicationRepository()
 	walletRepo := testutil.NewMockWalletRepository()
 	walletTxRepo := testutil.NewMockWalletTransactionRepository()
 
-	// Setup task with price 100000
 	task := testutil.NewTaskBuilder().
 		WithID(1).
 		WithRequesterID(1).
@@ -210,7 +194,6 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 		Build()
 	taskRepo.Tasks[1] = task
 
-	// Setup accepted application with proposed price 90000
 	proposedPrice := int64(90000)
 	app := &models.TaskApplication{
 		TaskID:        1,
@@ -220,7 +203,6 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 	}
 	appRepo.Create(context.Background(), app)
 
-	// Setup wallet with sufficient balance
 	wallet := &models.Wallet{
 		ID:            1,
 		UserID:        1,
@@ -237,8 +219,7 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 
 	walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, nil, 0.10, "http://localhost:8080")
-	service.mockMode = true
+	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, 0.10)
 
 	transaction, checkoutURL, err := service.CreateEscrowPayment(context.Background(), 1, 1)
 
@@ -246,15 +227,13 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	testutil.AssertNotNil(t, transaction, "Transaction")
-	testutil.AssertEqual(t, checkoutURL, "", "Checkout URL should be empty in mock mode")
+	testutil.AssertEqual(t, checkoutURL, "", "Checkout URL should be empty")
 
-	// Verify escrow uses proposed price (90000), not task price (100000)
 	testutil.AssertEqual(t, transaction.Amount, int64(90000), "Amount should use proposed price")
 	testutil.AssertEqual(t, transaction.PlatformFee, int64(9000), "Platform fee (10% of 90000)")
 	testutil.AssertEqual(t, transaction.NetAmount, int64(81000), "Net amount (90000 - 9000)")
 	testutil.AssertEqual(t, transaction.Status, models.TransactionStatusSuccess, "Status")
 
-	// Verify wallet hold used proposed price
 	foundEscrow := false
 	for _, wtx := range walletTxRepo.Transactions {
 		if wtx.Type == models.WalletTransactionTypeEscrowHold {
@@ -265,98 +244,7 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 	testutil.AssertTrue(t, foundEscrow, "Wallet escrow transaction should exist")
 }
 
-func TestPaymentService_CreateEscrowPayment_RealMode(t *testing.T) {
-	tests := []struct {
-		name             string
-		taskID           int64
-		payerID          int64
-		setupRepos       func(*testutil.MockTaskRepository, *testutil.MockTransactionRepository)
-		setupPayOS       func(*testutil.MockPayOSService)
-		wantErr          bool
-		errContains      string
-		checkTransaction func(*testing.T, *models.Transaction, string)
-		checkPayOSCalls  func(*testing.T, *testutil.MockPayOSService)
-	}{
-		{
-			name:    "successful payment link creation - real mode",
-			taskID:  1,
-			payerID: 1,
-			setupRepos: func(taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
-				task := testutil.NewTaskBuilder().
-					WithID(1).
-					WithRequesterID(1).
-					WithTaskerID(2).
-					WithPrice(100000).
-					WithStatus(models.TaskStatusOpen).
-					Build()
-				taskRepo.Tasks[1] = task
-			},
-			setupPayOS: func(ps *testutil.MockPayOSService) {
-				ps.ShouldFail = false
-			},
-			wantErr: false,
-			checkTransaction: func(t *testing.T, tx *models.Transaction, checkoutURL string) {
-				testutil.AssertEqual(t, tx.Amount, int64(100000), "Amount")
-				testutil.AssertEqual(t, tx.Status, models.TransactionStatusPending, "Status should be pending")
-				testutil.AssertNotNil(t, tx.PayOSOrderCode, "PayOS order code should be set")
-				testutil.AssertNotNil(t, tx.PayOSPaymentID, "PayOS payment ID should be set")
-				testutil.AssertTrue(t, checkoutURL != "", "Checkout URL should not be empty")
-			},
-			checkPayOSCalls: func(t *testing.T, ps *testutil.MockPayOSService) {
-				testutil.AssertEqual(t, len(ps.CreatePaymentLinkCalls), 1, "CreatePaymentLink should be called once")
-				call := ps.CreatePaymentLinkCalls[0]
-				testutil.AssertEqual(t, call.Amount, 100000, "Payment amount")
-			},
-		},
-		{
-			name:    "PayOS API failure - real mode",
-			taskID:  1,
-			payerID: 1,
-			setupRepos: func(taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
-				task := testutil.NewTaskBuilder().
-					WithID(1).
-					WithRequesterID(1).
-					WithPrice(100000).
-					WithStatus(models.TaskStatusOpen).
-					Build()
-				taskRepo.Tasks[1] = task
-			},
-			setupPayOS: func(ps *testutil.MockPayOSService) {
-				ps.ShouldFail = true
-				ps.FailError = errors.New("PayOS API error")
-			},
-			wantErr:     true,
-			errContains: "failed to create payment link",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Unset mock mode (real mode)
-			os.Unsetenv("PAYMENT_MOCK_MODE")
-
-			taskRepo := testutil.NewMockTaskRepository()
-			txRepo := testutil.NewMockTransactionRepository()
-
-			if tt.setupRepos != nil {
-				tt.setupRepos(taskRepo, txRepo)
-			}
-
-			// For real mode testing, we skip PayOS integration since it requires
-			// actual API credentials. In a real test environment, you would use
-			// the mock PayOSService or test against a sandbox environment.
-			// For now, we'll skip real mode tests or mark them as integration tests.
-			t.Skip("Real mode PayOS tests require API credentials - run as integration test")
-
-			ctx := context.Background()
-
-			// Placeholder for when PayOS mock is properly set up
-			_ = ctx
-		})
-	}
-}
-
-func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
+func TestPaymentService_ReleasePayment(t *testing.T) {
 	tests := []struct {
 		name             string
 		taskID           int64
@@ -369,7 +257,7 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 		checkWalletCalls func(*testing.T, *testutil.MockWalletService)
 	}{
 		{
-			name:        "successful payment release - mock mode",
+			name:        "successful payment release",
 			taskID:      1,
 			requesterID: 1,
 			setupRepos: func(taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
@@ -383,7 +271,6 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 					Build()
 				taskRepo.Tasks[1] = task
 
-				// Escrow transaction
 				escrowTx := testutil.NewTransactionBuilder().
 					WithTaskID(1).
 					WithPayerID(1).
@@ -400,11 +287,9 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 			},
 			wantErr: false,
 			checkRepos: func(t *testing.T, taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
-				// Task status should remain in_progress (CompleteTask handles status change)
 				task := taskRepo.Tasks[1]
 				testutil.AssertEqual(t, task.Status, models.TaskStatusInProgress, "Task status should remain in_progress")
 
-				// Check release transaction created
 				releaseFound := false
 				platformFeeFound := false
 				for _, tx := range txRepo.Transactions {
@@ -456,7 +341,7 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 					WithRequesterID(1).
 					WithStatus(models.TaskStatusInProgress).
 					Build()
-				task.TaskerID = nil // No tasker
+				task.TaskerID = nil
 				taskRepo.Tasks[1] = task
 			},
 			setupWallet: func(ws *testutil.MockWalletService) {},
@@ -476,7 +361,6 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 					WithStatus(models.TaskStatusInProgress).
 					Build()
 				taskRepo.Tasks[1] = task
-				// No escrow transaction
 			},
 			setupWallet: func(ws *testutil.MockWalletService) {},
 			wantErr:     true,
@@ -502,9 +386,6 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("PAYMENT_MOCK_MODE", "true")
-			defer os.Unsetenv("PAYMENT_MOCK_MODE")
-
 			taskRepo := testutil.NewMockTaskRepository()
 			txRepo := testutil.NewMockTransactionRepository()
 			walletRepo := testutil.NewMockWalletRepository()
@@ -514,12 +395,11 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 				tt.setupRepos(taskRepo, txRepo)
 			}
 
-			// Setup wallets for payer and payee
 			payerWallet := &models.Wallet{
 				ID:            1,
 				UserID:        tt.requesterID,
 				Balance:       0,
-				EscrowBalance: 100000, // Has funds in escrow
+				EscrowBalance: 100000,
 			}
 			walletRepo.Wallets[1] = payerWallet
 
@@ -539,8 +419,7 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
-			service.mockMode = true
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0)
 
 			ctx := context.Background()
 
@@ -556,7 +435,7 @@ func TestPaymentService_ReleasePayment_MockMode(t *testing.T) {
 	}
 }
 
-func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
+func TestPaymentService_RefundPayment(t *testing.T) {
 	tests := []struct {
 		name             string
 		taskID           int64
@@ -570,7 +449,7 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 		checkWalletCalls func(*testing.T, *testutil.MockWalletService)
 	}{
 		{
-			name:        "successful refund - mock mode",
+			name:        "successful refund",
 			taskID:      1,
 			requesterID: 1,
 			reason:      "Task cancelled by requester",
@@ -583,7 +462,6 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 					Build()
 				taskRepo.Tasks[1] = task
 
-				// Escrow transaction
 				escrowTx := testutil.NewTransactionBuilder().
 					WithTaskID(1).
 					WithPayerID(1).
@@ -599,11 +477,9 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 			},
 			wantErr: false,
 			checkRepos: func(t *testing.T, taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
-				// Check task status updated to cancelled
 				task := taskRepo.Tasks[1]
 				testutil.AssertEqual(t, task.Status, models.TaskStatusCancelled, "Task status")
 
-				// Check refund transaction created
 				refundFound := false
 				for _, tx := range txRepo.Transactions {
 					if tx.Type == models.TransactionTypeRefund {
@@ -659,9 +535,6 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("PAYMENT_MOCK_MODE", "true")
-			defer os.Unsetenv("PAYMENT_MOCK_MODE")
-
 			taskRepo := testutil.NewMockTaskRepository()
 			txRepo := testutil.NewMockTransactionRepository()
 			walletRepo := testutil.NewMockWalletRepository()
@@ -671,14 +544,12 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 				tt.setupRepos(taskRepo, txRepo)
 			}
 
-			// Setup wallet with escrow balance and TotalSpent
-			// The wallet should reflect that money was spent (moved to escrow)
 			wallet := &models.Wallet{
 				ID:            1,
 				UserID:        tt.requesterID,
 				Balance:       0,
 				EscrowBalance: 100000,
-				TotalSpent:    100000, // Amount that was moved to escrow
+				TotalSpent:    100000,
 			}
 			walletRepo.Wallets[1] = wallet
 
@@ -690,8 +561,7 @@ func TestPaymentService_RefundPayment_MockMode(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
-			service.mockMode = true
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0)
 
 			ctx := context.Background()
 
@@ -748,7 +618,7 @@ func TestPaymentService_GetTransactionsByTask(t *testing.T) {
 				tt.setupRepos(txRepo)
 			}
 
-			service := NewPaymentService(txRepo, nil, nil, nil, nil, 0, "http://localhost:8080")
+			service := NewPaymentService(txRepo, nil, nil, nil, 0)
 			ctx := context.Background()
 
 			transactions, err := service.GetTransactionsByTask(ctx, tt.taskID)

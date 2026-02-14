@@ -15,7 +15,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "valid user",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 				Rating:       4.5,
 			},
@@ -24,7 +25,8 @@ func TestUser_Validate(t *testing.T) {
 		{
 			name: "missing email",
 			user: &User{
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 			},
 			wantErr: true,
@@ -34,7 +36,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "invalid email format",
 			user: &User{
 				Email:        "notanemail",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 			},
 			wantErr: true,
@@ -44,7 +47,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "missing name",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "",
 			},
 			wantErr: true,
@@ -54,7 +58,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "name too long",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         string(make([]byte, 101)), // 101 characters
 			},
 			wantErr: true,
@@ -63,17 +68,19 @@ func TestUser_Validate(t *testing.T) {
 		{
 			name: "missing password hash",
 			user: &User{
-				Email: "test@example.com",
-				Name:  "Test User",
+				Email:        "test@example.com",
+				Name:         "Test User",
+				AuthProvider: "email",
 			},
 			wantErr: true,
-			errMsg:  "password hash is required",
+			errMsg:  "password hash is required for email authentication",
 		},
 		{
 			name: "invalid rating - negative",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 				Rating:       -1.0,
 			},
@@ -84,7 +91,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "invalid rating - too high",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 				Rating:       6.0,
 			},
@@ -95,7 +103,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "negative total tasks completed",
 			user: &User{
 				Email:               "test@example.com",
-				PasswordHash:        "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:                "Test User",
 				TotalTasksCompleted: -1,
 			},
@@ -106,7 +115,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "negative total tasks posted",
 			user: &User{
 				Email:            "test@example.com",
-				PasswordHash:     "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:             "Test User",
 				TotalTasksPosted: -1,
 			},
@@ -117,7 +127,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "negative total earnings",
 			user: &User{
 				Email:         "test@example.com",
-				PasswordHash:  "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:          "Test User",
 				TotalEarnings: -1,
 			},
@@ -128,7 +139,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "tasker with bio too long",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 				IsTasker:     true,
 				TaskerBio:    stringPtr(string(make([]byte, 501))), // 501 characters
@@ -140,7 +152,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "tasker with too many skills",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 				IsTasker:     true,
 				TaskerSkills: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"}, // 11 skills
@@ -152,7 +165,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "valid tasker",
 			user: &User{
 				Email:        "test@example.com",
-				PasswordHash: "hashedpassword123",
+				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
+				AuthProvider: "email",
 				Name:         "Test User",
 				IsTasker:     true,
 				TaskerBio:    stringPtr("Experienced developer"),

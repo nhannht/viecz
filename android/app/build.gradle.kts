@@ -72,6 +72,11 @@ android {
                 "http://10.0.2.2:9999/api/v1/"
             )
             buildConfigField("String", "API_BASE_URL", "\"$devUrl\"")
+
+            // Google OAuth Client ID (load from local.properties)
+            val googleClientId = localProperties.getProperty("GOOGLE_CLIENT_ID", "")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+
             resValue("string", "app_name", "Viecz Dev")
         }
         create("prod") {
@@ -81,6 +86,11 @@ android {
                 "https://viecz-api.fishcmus.io.vn/api/v1/"
             )
             buildConfigField("String", "API_BASE_URL", "\"$prodUrl\"")
+
+            // Google OAuth Client ID (load from local.properties)
+            val googleClientId = localProperties.getProperty("GOOGLE_CLIENT_ID", "")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+
             resValue("string", "app_name", "Viecz")
         }
     }
@@ -121,6 +131,18 @@ android {
         }
     }
 
+    // Test profile filtering via project properties:
+    //   ./gradlew connectedDevDebugAndroidTest -PexcludeRealServer  (mock-only)
+    //   ./gradlew connectedDevDebugAndroidTest -PonlyRealServer     (real-server only)
+    if (project.hasProperty("excludeRealServer")) {
+        defaultConfig.testInstrumentationRunnerArguments["notAnnotation"] =
+            "com.viecz.vieczandroid.e2e.RealServerTest"
+    }
+    if (project.hasProperty("onlyRealServer")) {
+        defaultConfig.testInstrumentationRunnerArguments["annotation"] =
+            "com.viecz.vieczandroid.e2e.RealServerTest"
+    }
+
     packaging {
         resources {
             excludes += listOf(
@@ -129,6 +151,32 @@ android {
             )
         }
     }
+}
+
+// Convenience tasks for split E2E test profiles
+tasks.register<Exec>("connectedMockE2E") {
+    description = "Run only mock-server E2E tests (no backend needed)"
+    group = "verification"
+    workingDir = project.rootDir
+    commandLine(
+        "${project.rootDir}/gradlew",
+        "connectedDevDebugAndroidTest",
+        "-PexcludeRealServer"
+    )
+}
+
+tasks.register<Exec>("connectedRealServerE2E") {
+    description = "Run only real-server E2E tests (requires Go test server on :9999)"
+    group = "verification"
+    workingDir = project.rootDir
+    // Use localhost for physical devices (adb reverse), 10.0.2.2 for emulators
+    val serverHost = project.findProperty("testServerHost")?.toString() ?: "localhost"
+    commandLine(
+        "${project.rootDir}/gradlew",
+        "connectedDevDebugAndroidTest",
+        "-PonlyRealServer",
+        "-Pandroid.testInstrumentationRunnerArguments.testServerHost=$serverHost"
+    )
 }
 
 // Workaround for Hilt Gradle plugin compatibility issue with AGP 8.12+
@@ -203,6 +251,11 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+
+    // Google Sign-In / Credential Manager
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     // Testing - Unit tests (JVM)
     testImplementation(libs.junit)

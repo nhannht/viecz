@@ -295,6 +295,15 @@ func (m *mockUserRepository) UpdateRating(ctx context.Context, userID int64, rat
 	return nil
 }
 
+func (m *mockUserRepository) GetByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
+	for _, user := range m.users {
+		if user.GoogleID != nil && *user.GoogleID == googleID {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
 // Tests
 func TestTaskService_CreateTask(t *testing.T) {
 	tests := []struct {

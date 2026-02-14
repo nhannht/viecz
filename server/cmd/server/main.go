@@ -65,6 +65,17 @@ func main() {
 
 	// Initialize services
 	authService := auth.NewAuthService(userRepo)
+
+	// Initialize Google OAuth service
+	googleOAuthService, err := auth.NewGoogleOAuthService(
+		cfg.GoogleClientID,
+		cfg.GoogleClientSecret,
+		"", // redirectURL not needed for ID token verification
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize Google OAuth service: %v", err)
+	}
+
 	userService := services.NewUserService(userRepo)
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo)
 
@@ -87,9 +98,7 @@ func main() {
 		taskRepo,
 		applicationRepo,
 		walletService,
-		payosService,
 		cfg.PlatformFeeRate,
-		cfg.ServerURL,
 	)
 
 	// Initialize WebSocket Hub (Phase 4)
@@ -101,7 +110,7 @@ func main() {
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, cfg.JWTSecret)
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL, cfg.ServerURL)
 	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo, walletService)
@@ -140,6 +149,7 @@ func main() {
 		{
 			authRoutes.POST("/register", authHandler.Register)
 			authRoutes.POST("/login", authHandler.Login)
+			authRoutes.POST("/google", authHandler.GoogleLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
 		}
 

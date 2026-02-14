@@ -13,13 +13,19 @@ import (
 type User struct {
 	ID                  int64     `gorm:"primaryKey;autoIncrement" json:"id"`
 	Email               string    `gorm:"unique;size:255;not null" json:"email"`
-	PasswordHash        string    `gorm:"size:255;not null" json:"-"` // Never expose password hash in JSON
+	PasswordHash        *string   `gorm:"size:255" json:"-"` // Nullable - not required for Google OAuth users
 	Name                string    `gorm:"size:100;not null" json:"name"`
 	AvatarURL           *string   `gorm:"type:text" json:"avatar_url,omitempty"`
 	Phone               *string   `gorm:"size:20" json:"phone,omitempty"`
 	University          string    `gorm:"size:255;not null;default:'ĐHQG-HCM'" json:"university"`
 	StudentID           *string   `gorm:"size:50" json:"student_id,omitempty"`
 	IsVerified          bool      `gorm:"default:false" json:"is_verified"`
+
+	// Authentication provider fields
+	AuthProvider        string    `gorm:"size:20;not null;default:'email'" json:"auth_provider"` // "email" or "google"
+	GoogleID            *string   `gorm:"size:255;unique" json:"-"` // Google's unique user ID (sub claim)
+	EmailVerified       bool      `gorm:"default:false" json:"email_verified"` // Google pre-verifies emails
+
 	Rating              float64   `gorm:"type:decimal(3,2);default:0" json:"rating"`
 	TotalTasksCompleted int       `gorm:"default:0" json:"total_tasks_completed"`
 	TotalTasksPosted    int       `gorm:"default:0" json:"total_tasks_posted"`
@@ -51,8 +57,19 @@ func (u *User) Validate() error {
 		return fmt.Errorf("name must be less than 100 characters")
 	}
 
-	if u.PasswordHash == "" {
-		return fmt.Errorf("password hash is required")
+	// Validate auth provider specific fields
+	if u.AuthProvider != "email" && u.AuthProvider != "google" {
+		return fmt.Errorf("auth provider must be 'email' or 'google'")
+	}
+
+	// Password hash only required for email authentication
+	if u.AuthProvider == "email" && (u.PasswordHash == nil || *u.PasswordHash == "") {
+		return fmt.Errorf("password hash is required for email authentication")
+	}
+
+	// Google ID required for google authentication
+	if u.AuthProvider == "google" && (u.GoogleID == nil || *u.GoogleID == "") {
+		return fmt.Errorf("google ID is required for google authentication")
 	}
 
 	if u.Rating < 0 || u.Rating > 5 {

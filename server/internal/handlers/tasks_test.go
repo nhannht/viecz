@@ -229,6 +229,15 @@ func (m *mockTaskUserRepository) UpdateRating(ctx context.Context, userID int64,
 	return nil
 }
 
+func (m *mockTaskUserRepository) GetByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
+	for _, user := range m.users {
+		if user.GoogleID != nil && *user.GoogleID == googleID {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
 func TestTaskHandler_CreateTask(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

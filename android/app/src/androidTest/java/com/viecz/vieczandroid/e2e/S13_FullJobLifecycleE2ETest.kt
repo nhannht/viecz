@@ -38,6 +38,7 @@ import org.junit.runner.RunWith
  * Run via: ./scripts/run-full-e2e.sh
  */
 @E2ETest
+@RealServerTest
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class S13_FullJobLifecycleE2ETest : RealServerBaseE2ETest() {

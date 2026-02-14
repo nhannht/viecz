@@ -92,6 +92,15 @@ func (m *mockUserRepository) UpdateRating(ctx context.Context, userID int64, rat
 	return errors.New("user not found")
 }
 
+func (m *mockUserRepository) GetByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
+	for _, user := range m.users {
+		if user.GoogleID != nil && *user.GoogleID == googleID {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
 func TestAuthService_Register(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -202,10 +211,10 @@ func TestAuthService_Register(t *testing.T) {
 				if user.Name != tt.userName {
 					t.Errorf("Expected name '%s', got '%s'", tt.userName, user.Name)
 				}
-				if user.PasswordHash == "" {
+				if user.PasswordHash == nil || *user.PasswordHash == "" {
 					t.Error("Expected password to be hashed, got empty string")
 				}
-				if user.PasswordHash == tt.password {
+				if user.PasswordHash != nil && *user.PasswordHash == tt.password {
 					t.Error("Expected password to be hashed, got plain text")
 				}
 			}

@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.data.repository
 import android.util.Log
 import com.viecz.vieczandroid.data.api.AuthApi
 import com.viecz.vieczandroid.data.local.TokenManager
+import com.viecz.vieczandroid.data.models.GoogleLoginRequest
 import com.viecz.vieczandroid.data.models.LoginRequest
 import com.viecz.vieczandroid.data.models.RefreshTokenRequest
 import com.viecz.vieczandroid.data.models.RegisterRequest
@@ -82,6 +83,27 @@ class AuthRepository(
         } catch (e: Exception) {
             val errorMessage = parseErrorMessage(e)
             Log.e(TAG, "Login failed: $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        }
+    }
+
+    /**
+     * Login with Google ID token
+     */
+    suspend fun loginWithGoogle(idToken: String): Result<User> {
+        return try {
+            Log.d(TAG, "Logging in with Google")
+            val response = api.googleLogin(GoogleLoginRequest(idToken))
+
+            // Save tokens
+            tokenManager.saveTokens(response.accessToken, response.refreshToken)
+            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name)
+
+            Log.d(TAG, "Google login successful for user ID: ${response.user.id}")
+            Result.success(response.user)
+        } catch (e: Exception) {
+            val errorMessage = parseErrorMessage(e)
+            Log.e(TAG, "Google login failed: $errorMessage", e)
             Result.failure(Exception(errorMessage))
         }
     }

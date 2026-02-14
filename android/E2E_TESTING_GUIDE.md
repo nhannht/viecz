@@ -15,27 +15,59 @@
 
 ## Running E2E Tests
 
-### Instrumented tests (mock server — no external dependencies)
+All E2E test classes are in:
+```
+android/app/src/androidTest/java/com/viecz/vieczandroid/e2e/
+```
+
+### Test Profiles
+
+| Command | What it runs | Backend needed? |
+|---------|-------------|-----------------|
+| `./gradlew connectedMockE2E` | Mock-server tests only (~112 tests) | No |
+| `./gradlew connectedRealServerE2E` | Real-server tests only (~7 tests) | Yes (port 9999) |
+| `./gradlew connectedDevDebugAndroidTest` | All tests (~119 tests) | Yes for full pass |
+
+### Mock-server tests (no external dependencies)
+
+```bash
+cd android
+./gradlew connectedMockE2E
+```
+
+Tests use `BaseE2ETest` with an in-process `MockWebServer`. No Go backend needed.
+
+### Real-server tests (requires Go test server on port 9999)
+
+```bash
+# Terminal 1: Start test server
+cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+
+# Terminal 2: Run real-server tests
+cd android && ./gradlew connectedRealServerE2E
+```
+
+Real-server tests are annotated with `@RealServerTest` and extend `RealServerBaseE2ETest`.
+
+### All tests
 
 ```bash
 cd android
 ./gradlew connectedDevDebugAndroidTest
 ```
 
-Tests use `BaseE2ETest` with a mock server. All E2E test classes are in:
-```
-android/app/src/androidTest/java/com/viecz/vieczandroid/e2e/
-```
-
-### Full lifecycle test (requires real Go test server on port 9999)
+### Run a specific test class
 
 ```bash
-# Terminal 1: Start test server
-cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
-
-# Terminal 2: Run full E2E
-cd android && ./gradlew connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.S13_FullJobLifecycleE2ETest
+cd android && ./gradlew connectedDevDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.viecz.vieczandroid.e2e.S13_FullJobLifecycleE2ETest
 ```
+
+### How filtering works
+
+The `@RealServerTest` annotation marks tests that need a running backend. Gradle properties control filtering:
+- `-PexcludeRealServer` → sets `notAnnotation` instrumentation arg → skips `@RealServerTest`
+- `-PonlyRealServer` → sets `annotation` instrumentation arg → runs only `@RealServerTest`
 
 ---
 

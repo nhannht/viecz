@@ -90,7 +90,8 @@ func TestUserGormRepository_Create(t *testing.T) {
 	t.Run("create user successfully", func(t *testing.T) {
 		user := &models.User{
 			Email:        "test@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Test User",
 		}
 
@@ -122,7 +123,8 @@ func TestUserGormRepository_Create(t *testing.T) {
 		// Create first user
 		user1 := &models.User{
 			Email:        "duplicate@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "User 1",
 		}
 		if err := repo.Create(ctx, user1); err != nil {
@@ -132,7 +134,8 @@ func TestUserGormRepository_Create(t *testing.T) {
 		// Try to create second user with same email
 		user2 := &models.User{
 			Email:        "duplicate@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "User 2",
 		}
 		err := repo.Create(ctx, user2)
@@ -147,7 +150,8 @@ func TestUserGormRepository_Create(t *testing.T) {
 	t.Run("timestamps are set", func(t *testing.T) {
 		user := &models.User{
 			Email:        "timestamps@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Timestamp User",
 		}
 
@@ -176,7 +180,8 @@ func TestUserGormRepository_GetByID(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "getbyid@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Get By ID User",
 		}
 		if err := repo.Create(ctx, user); err != nil {
@@ -219,7 +224,8 @@ func TestUserGormRepository_GetByEmail(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "getbyemail@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Get By Email User",
 		}
 		if err := repo.Create(ctx, user); err != nil {
@@ -254,7 +260,8 @@ func TestUserGormRepository_GetByEmail(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "CaseSensitive@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Case User",
 		}
 		if err := repo.Create(ctx, user); err != nil {
@@ -282,7 +289,8 @@ func TestUserGormRepository_Update(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "update@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Original Name",
 		}
 		if err := repo.Create(ctx, user); err != nil {
@@ -317,7 +325,8 @@ func TestUserGormRepository_Update(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "timestamps-update@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Timestamp User",
 		}
 		if err := repo.Create(ctx, user); err != nil {
@@ -352,7 +361,8 @@ func TestUserGormRepository_ExistsByEmail(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "exists@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Exists User",
 		}
 		if err := repo.Create(ctx, user); err != nil {
@@ -391,7 +401,8 @@ func TestUserGormRepository_BecomeTasker(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "tasker@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Future Tasker",
 			IsTasker:     false,
 		}
@@ -439,7 +450,8 @@ func TestUserGormRepository_UpdateRating(t *testing.T) {
 		// Create user
 		user := &models.User{
 			Email:        "rating@example.com",
-			PasswordHash: "hashed_password",
+			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 			Name:         "Rating User",
 			Rating:       0.0,
 		}
@@ -481,7 +493,8 @@ func TestUserGormRepository_IncrementCounters(t *testing.T) {
 	// Create user
 	user := &models.User{
 		Email:                "counter@example.com",
-		PasswordHash:         "hashed_password",
+		PasswordHash: func() *string { s := "hashed_password"; return &s }(),
+			AuthProvider: "email",
 		Name:                 "Counter User",
 		TotalTasksCompleted:  0,
 		TotalTasksPosted:     0,

@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.ui.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.viecz.vieczandroid.auth.GoogleSignInManager
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.User
 import com.viecz.vieczandroid.data.repository.AuthRepository
@@ -23,7 +24,8 @@ sealed class AuthState {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val repository: AuthRepository,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val googleSignInManager: GoogleSignInManager
 ) : ViewModel() {
     companion object {
         private const val TAG = "AuthViewModel"
@@ -73,6 +75,40 @@ class AuthViewModel @Inject constructor(
                     Log.e(TAG, "Login failed", error)
                     _authState.value = AuthState.Error(
                         error.message ?: "Login failed"
+                    )
+                }
+        }
+    }
+
+    /**
+     * Login with Google
+     */
+    fun loginWithGoogle(activity: android.app.Activity) {
+        viewModelScope.launch {
+            Log.d(TAG, "loginWithGoogle() called")
+            _authState.value = AuthState.Loading
+
+            // Get Google ID token
+            googleSignInManager.signIn(activity)
+                .onSuccess { idToken ->
+                    Log.d(TAG, "Got Google ID token, authenticating with backend...")
+                    // Authenticate with backend
+                    repository.loginWithGoogle(idToken)
+                        .onSuccess { user ->
+                            Log.d(TAG, "Google login successful!")
+                            _authState.value = AuthState.Success(user)
+                        }
+                        .onFailure { error ->
+                            Log.e(TAG, "Backend authentication failed", error)
+                            _authState.value = AuthState.Error(
+                                error.message ?: "Google login failed"
+                            )
+                        }
+                }
+                .onFailure { error ->
+                    Log.e(TAG, "Google Sign-In failed", error)
+                    _authState.value = AuthState.Error(
+                        error.message ?: "Google Sign-In failed"
                     )
                 }
         }

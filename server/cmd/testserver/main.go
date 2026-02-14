@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -92,9 +91,6 @@ func main() {
 	log.Println("=== Viecz Test Server ===")
 	log.Println("SQLite in-memory | Mock PayOS | Auto-complete deposits")
 
-	// Enable mock mode for escrow/release
-	os.Setenv("PAYMENT_MOCK_MODE", "true")
-
 	// 1. In-memory SQLite
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -131,6 +127,18 @@ func main() {
 
 	// 5. Services
 	authService := auth.NewAuthService(userRepo)
+
+	// Initialize Google OAuth service for testing (optional - will fail gracefully if credentials not set)
+	googleOAuthService, err := auth.NewGoogleOAuthService(
+		"test-google-client-id", // Mock client ID for test server
+		"",                       // Client secret not needed
+		"",                       // Redirect URL not needed
+	)
+	if err != nil {
+		log.Printf("Warning: Google OAuth not available in test server: %v", err)
+		// Continue without Google OAuth - the endpoint will return 401 if used
+	}
+
 	userService := services.NewUserService(userRepo)
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
@@ -138,7 +146,7 @@ func main() {
 	mockPayOS := &mockPayOS{}
 
 	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, applicationRepo, walletService, nil, 0, serverURL,
+		transactionRepo, taskRepo, applicationRepo, walletService, 0,
 	)
 
 	// WebSocket Hub
@@ -148,7 +156,7 @@ func main() {
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
 
 	// 6. Handlers
-	authHandler := handlers.NewAuthHandler(authService, jwtSecret)
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL)
 	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
@@ -173,6 +181,7 @@ func main() {
 		{
 			authRoutes.POST("/register", authHandler.Register)
 			authRoutes.POST("/login", authHandler.Login)
+			authRoutes.POST("/google", authHandler.GoogleLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
 		}
 

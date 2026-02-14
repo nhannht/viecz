@@ -26,6 +26,9 @@ type Config struct {
 	DBSSLMode  string
 	// JWT
 	JWTSecret string
+	// Google OAuth
+	GoogleClientID     string
+	GoogleClientSecret string
 	// Platform
 	PlatformFeeRate  float64 // e.g. 0.10 for 10%, 0 for beta
 	MaxWalletBalance int64   // max balance per wallet in VND (e.g. 200000)
@@ -58,6 +61,9 @@ func Load() (*Config, error) {
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 		// JWT
 		JWTSecret: getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+		// Google OAuth
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	}
 
 	// Parse platform fee rate (default 0 for beta)

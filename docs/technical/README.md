@@ -1,7 +1,7 @@
 # Technical Documentation
 
 **Project:** Viecz - Dịch Vụ Nhỏ Cho Sinh Viên
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-02-14
 **Stack:** Go (Gin) backend + Native Kotlin/Jetpack Compose Android app
 
 ---
@@ -122,5 +122,5 @@ graph TD
 
 ---
 
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-02-14
 **Maintained By:** Development Team

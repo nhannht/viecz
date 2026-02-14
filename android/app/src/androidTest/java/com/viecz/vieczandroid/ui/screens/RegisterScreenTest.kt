@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.ui.screens
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.viecz.vieczandroid.auth.GoogleSignInManager
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.repository.AuthRepository
 import com.viecz.vieczandroid.ui.theme.VieczTheme
@@ -26,7 +27,8 @@ class RegisterScreenTest {
         val mockTokenManager = mockk<TokenManager>(relaxed = true) {
             coEvery { isLoggedIn } returns flowOf(false)
         }
-        return AuthViewModel(mockRepository, mockTokenManager)
+        val mockGoogleSignInManager = mockk<GoogleSignInManager>(relaxed = true)
+        return AuthViewModel(mockRepository, mockTokenManager, mockGoogleSignInManager)
     }
 
     @Test

@@ -53,6 +53,18 @@ func (r *userGormRepository) GetByEmail(ctx context.Context, email string) (*mod
 	return &user, nil
 }
 
+// GetByGoogleID retrieves a user by Google ID
+func (r *userGormRepository) GetByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
+	var user models.User
+	if err := r.db.WithContext(ctx).Where("google_id = ?", googleID).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user by google ID: %w", err)
+	}
+	return &user, nil
+}
+
 func (r *userGormRepository) Update(ctx context.Context, user *models.User) error {
 	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)

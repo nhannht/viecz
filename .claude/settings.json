@@ -1,5 +1,8 @@
 {
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true
-  }
+  },
+  "deniedMcpServers": [
+    { "serverName": "stitch" }
+  ]
 }

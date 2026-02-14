@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -33,17 +32,13 @@ func setupPaymentHandlerTest(t *testing.T, setupRepos func(*testutil.MockTaskRep
 		t.Fatalf("Failed to create mock DB: %v", err)
 	}
 
-	// Set mock mode BEFORE creating payment service (constructor reads this env var)
-	os.Setenv("PAYMENT_MOCK_MODE", "true")
-
 	// Create services
 	walletService := services.NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
-	paymentService := services.NewPaymentService(txRepo, taskRepo, nil, walletService, nil, 0, "http://localhost:8080")
+	paymentService := services.NewPaymentService(txRepo, taskRepo, nil, walletService, 0)
 
 	handler := NewPaymentHandler(nil, paymentService, "http://localhost:3000", "http://localhost:8080")
 
 	return handler, func() {
-		os.Unsetenv("PAYMENT_MOCK_MODE")
 		cleanup()
 	}
 }

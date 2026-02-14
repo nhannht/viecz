@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.data.api
 
+import com.viecz.vieczandroid.data.models.GoogleLoginRequest
 import com.viecz.vieczandroid.data.models.LoginRequest
 import com.viecz.vieczandroid.data.models.RefreshTokenRequest
 import com.viecz.vieczandroid.data.models.RefreshTokenResponse
@@ -14,6 +15,9 @@ interface AuthApi {
 
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): TokenResponse
+
+    @POST("auth/google")
+    suspend fun googleLogin(@Body request: GoogleLoginRequest): TokenResponse
 
     @POST("auth/refresh")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): RefreshTokenResponse

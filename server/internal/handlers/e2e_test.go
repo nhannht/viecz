@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -97,16 +96,13 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	// 6. MockPayOS
 	mockPayOS := &e2eMockPayOS{}
 
-	// 7. Enable mock mode for escrow
-	os.Setenv("PAYMENT_MOCK_MODE", "true")
-
-	// 8. PaymentService (uses real wallet service + mock PayOS)
+	// 7. PaymentService (uses real wallet service)
 	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, applicationRepo, walletService, nil, 0, "http://localhost:8080",
+		transactionRepo, taskRepo, applicationRepo, walletService, 0,
 	)
 
 	// 9. Handlers
-	authHandler := NewAuthHandler(authService, e2eJWTSecret)
+	authHandler := NewAuthHandler(authService, nil, e2eJWTSecret)
 	userHandler := NewUserHandler(userService)
 	taskHandler := NewTaskHandler(taskService, applicationRepo)
 	walletHandler := NewWalletHandler(walletService, mockPayOS, transactionRepo, "http://localhost:8080")
@@ -192,7 +188,6 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	}
 
 	cleanup := func() {
-		os.Unsetenv("PAYMENT_MOCK_MODE")
 		sqlDB, _ := db.DB()
 		if sqlDB != nil {
 			sqlDB.Close()

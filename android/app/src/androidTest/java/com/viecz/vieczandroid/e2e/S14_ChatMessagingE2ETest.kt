@@ -43,6 +43,7 @@ import org.junit.runner.RunWith
  * Requires: Go test server running on host at port 9999.
  */
 @E2ETest
+@RealServerTest
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class S14_ChatMessagingE2ETest : RealServerBaseE2ETest() {

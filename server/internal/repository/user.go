@@ -14,6 +14,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) error
 	GetByID(ctx context.Context, id int64) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetByGoogleID(ctx context.Context, googleID string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error
@@ -148,6 +149,49 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetByGoogleID retrieves a user by Google ID
+func (r *userRepository) GetByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
+	query := `
+		SELECT id, email, password_hash, name, avatar_url, phone, university, student_id,
+		       is_verified, rating, total_tasks_completed, total_tasks_posted, total_earnings,
+		       is_tasker, tasker_bio, tasker_skills, created_at, updated_at
+		FROM users
+		WHERE google_id = $1
+	`
+
+	user := &models.User{}
+	err := r.db.QueryRowContext(ctx, query, googleID).Scan(
+		&user.ID,
+		&user.Email,
+		&user.PasswordHash,
+		&user.Name,
+		&user.AvatarURL,
+		&user.Phone,
+		&user.University,
+		&user.StudentID,
+		&user.IsVerified,
+		&user.Rating,
+		&user.TotalTasksCompleted,
+		&user.TotalTasksPosted,
+		&user.TotalEarnings,
+		&user.IsTasker,
+		&user.TaskerBio,
+		pq.Array(&user.TaskerSkills),
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by google ID: %w", err)
 	}
 
 	return user, nil

@@ -10,15 +10,17 @@ import (
 
 // AuthHandler handles authentication endpoints
 type AuthHandler struct {
-	authService *auth.AuthService
-	jwtSecret   string
+	authService        *auth.AuthService
+	googleOAuthService *auth.GoogleOAuthService
+	jwtSecret          string
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(authService *auth.AuthService, jwtSecret string) *AuthHandler {
+func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.GoogleOAuthService, jwtSecret string) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
-		jwtSecret:   jwtSecret,
+		authService:        authService,
+		googleOAuthService: googleOAuthService,
+		jwtSecret:          jwtSecret,
 	}
 }
 
@@ -33,6 +35,11 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+}
+
+// GoogleLoginRequest represents the Google OAuth login request
+type GoogleLoginRequest struct {
+	IDToken string `json:"id_token" binding:"required"`
 }
 
 // TokenResponse represents the authentication response
@@ -104,6 +111,57 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login"})
+		}
+		return
+	}
+
+	// Generate tokens
+	accessToken, err := auth.GenerateAccessToken(user, h.jwtSecret, 30) // 30 minutes
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken(user, h.jwtSecret, 7) // 7 days
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
+		return
+	}
+
+	// Return response
+	c.JSON(http.StatusOK, TokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         user,
+	})
+}
+
+// GoogleLogin handles Google OAuth login
+// POST /api/v1/auth/google
+func (h *AuthHandler) GoogleLogin(c *gin.Context) {
+	var req GoogleLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Verify Google ID token
+	googleInfo, err := h.googleOAuthService.VerifyIDToken(c.Request.Context(), req.IDToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid Google ID token"})
+		return
+	}
+
+	// Login or create user with Google info
+	user, err := h.authService.LoginWithGoogle(c.Request.Context(), googleInfo)
+	if err != nil {
+		switch err {
+		case auth.ErrEmailAlreadyUsedByEmail:
+			c.JSON(http.StatusConflict, gin.H{"error": "email already registered with email/password authentication"})
+		case auth.ErrGoogleAuthFailed:
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Google authentication failed"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to authenticate with Google"})
 		}
 		return
 	}
