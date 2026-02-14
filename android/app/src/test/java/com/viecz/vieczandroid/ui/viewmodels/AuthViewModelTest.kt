@@ -1,6 +1,7 @@
 package com.viecz.vieczandroid.ui.viewmodels
 
 import app.cash.turbine.test
+import com.viecz.vieczandroid.auth.GoogleSignInManager
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.repository.AuthRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
@@ -36,7 +37,7 @@ class AuthViewModelTest {
 
         every { mockTokenManager.isLoggedIn } returns MutableStateFlow(false)
 
-        viewModel = AuthViewModel(mockRepository, mockTokenManager)
+        viewModel = AuthViewModel(mockRepository, mockTokenManager, mockk(relaxed = true))
     }
 
     @After
@@ -189,7 +190,7 @@ class AuthViewModelTest {
         val loggedInFlow = MutableStateFlow(true)
         every { mockTokenManager.isLoggedIn } returns loggedInFlow
 
-        val vm = AuthViewModel(mockRepository, mockTokenManager)
+        val vm = AuthViewModel(mockRepository, mockTokenManager, mockk(relaxed = true))
 
         vm.isLoggedIn.test {
             assertEquals(true, awaitItem())

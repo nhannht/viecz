@@ -667,6 +667,7 @@ Get current user's wallet information.
   "user_id": 1,
   "balance": 150000,
   "escrow_balance": 20000,
+  "available_balance": 80000,
   "total_deposited": 200000,
   "total_withdrawn": 0,
   "total_earned": 0,
@@ -680,6 +681,7 @@ Get current user's wallet information.
 |-------|-------------|
 | `balance` | Available balance (VND) |
 | `escrow_balance` | Amount held in escrow for active tasks |
+| `available_balance` | Spendable balance after accounting for escrow and open task prices |
 | `total_deposited` | Lifetime total deposited |
 | `total_withdrawn` | Lifetime total withdrawn |
 | `total_earned` | Lifetime earnings from completed tasks |

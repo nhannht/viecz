@@ -121,11 +121,12 @@ class TaskRepository(
             Log.d(TAG, "Task created successfully: id=${task.id}")
             Result.success(task)
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error creating task: ${e.code()}", e)
-            Result.failure(e)
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error creating task: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
         } catch (e: IOException) {
             Log.e(TAG, "Network error creating task", e)
-            Result.failure(e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error creating task", e)
             Result.failure(e)
@@ -139,11 +140,12 @@ class TaskRepository(
             Log.d(TAG, "Task updated successfully")
             Result.success(task)
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error updating task: ${e.code()}", e)
-            Result.failure(e)
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error updating task: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
         } catch (e: IOException) {
             Log.e(TAG, "Network error updating task", e)
-            Result.failure(e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error updating task", e)
             Result.failure(e)

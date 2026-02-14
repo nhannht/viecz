@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import com.viecz.vieczandroid.data.repository.CategoryRepository
 import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.data.repository.WalletRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
@@ -48,7 +49,9 @@ class CreateTaskScreenTest {
         )
 
         val mockNotificationRepo: NotificationRepository = mockk(relaxed = true)
-        createTaskViewModel = CreateTaskViewModel(mockTaskRepo, mockNotificationRepo)
+        val mockWalletRepo: WalletRepository = mockk(relaxed = true)
+        coEvery { mockWalletRepo.getWallet() } returns Result.failure(Exception("not configured"))
+        createTaskViewModel = CreateTaskViewModel(mockTaskRepo, mockNotificationRepo, mockWalletRepo)
         categoryViewModel = CategoryViewModel(mockCategoryRepo)
     }
 

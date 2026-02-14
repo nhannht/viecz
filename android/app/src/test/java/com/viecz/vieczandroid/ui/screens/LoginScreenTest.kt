@@ -34,7 +34,7 @@ class LoginScreenTest {
     fun setup() {
         mockRepository = mockk(relaxed = true)
         mockTokenManager = mockk(relaxed = true)
-        viewModel = AuthViewModel(mockRepository, mockTokenManager)
+        viewModel = AuthViewModel(mockRepository, mockTokenManager, mockk(relaxed = true))
     }
 
     @After

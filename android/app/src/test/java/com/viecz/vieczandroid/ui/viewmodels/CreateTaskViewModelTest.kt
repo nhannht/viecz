@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.ui.viewmodels
 import app.cash.turbine.test
 import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.data.repository.WalletRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
 import io.mockk.*
@@ -26,13 +27,16 @@ class CreateTaskViewModelTest {
 
     private lateinit var mockRepository: TaskRepository
     private lateinit var mockNotificationRepository: NotificationRepository
+    private lateinit var mockWalletRepository: WalletRepository
     private lateinit var viewModel: CreateTaskViewModel
 
     @Before
     fun setup() {
         mockRepository = mockk()
         mockNotificationRepository = mockk(relaxed = true)
-        viewModel = CreateTaskViewModel(mockRepository, mockNotificationRepository)
+        mockWalletRepository = mockk(relaxed = true)
+        coEvery { mockWalletRepository.getWallet() } returns Result.failure(Exception("not configured"))
+        viewModel = CreateTaskViewModel(mockRepository, mockNotificationRepository, mockWalletRepository)
     }
 
     @After

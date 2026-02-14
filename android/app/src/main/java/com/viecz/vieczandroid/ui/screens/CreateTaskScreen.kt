@@ -6,16 +6,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.CreateTaskViewModel
+import com.viecz.vieczandroid.utils.formatCurrency
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,6 +120,72 @@ fun CreateTaskScreen(
                 }
             }
 
+            // Available balance info
+            item {
+                val available = uiState.availableBalance
+                val priceValue = uiState.price.toLongOrNull() ?: 0L
+                val isInsufficient = available != null && priceValue > available
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isInsufficient)
+                            MaterialTheme.colorScheme.errorContainer
+                        else
+                            MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = if (isInsufficient)
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Column {
+                            Text(
+                                text = "Available Balance",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isInsufficient)
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                else
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            if (uiState.isLoadingBalance) {
+                                Text(
+                                    text = "Loading...",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            } else if (available != null) {
+                                Text(
+                                    text = formatCurrency(available),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isInsufficient)
+                                        MaterialTheme.colorScheme.error
+                                    else
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            } else {
+                                Text(
+                                    text = "Could not load balance",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Price field
             item {
                 OutlinedTextField(
@@ -169,10 +238,12 @@ fun CreateTaskScreen(
 
             // Create button
             item {
+                val priceValue = uiState.price.toLongOrNull() ?: 0L
+                val isInsufficient = uiState.availableBalance != null && priceValue > uiState.availableBalance!!
                 Button(
                     onClick = { createTaskViewModel.createTask() },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading && !isInsufficient
                 ) {
                     if (uiState.isLoading) {
                         CircularProgressIndicator(

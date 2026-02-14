@@ -9,6 +9,7 @@ data class Wallet(
     @Json(name = "user_id") val userId: Long,
     val balance: Long,
     @Json(name = "escrow_balance") val escrowBalance: Long,
+    @Json(name = "available_balance") val availableBalance: Long = 0,
     @Json(name = "total_deposited") val totalDeposited: Long,
     @Json(name = "total_withdrawn") val totalWithdrawn: Long,
     @Json(name = "total_earned") val totalEarned: Long,

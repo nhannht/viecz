@@ -7,6 +7,7 @@ import com.viecz.vieczandroid.data.models.CreateTaskRequest
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.data.repository.WalletRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,13 +28,16 @@ data class CreateTaskUiState(
     val descriptionError: String? = null,
     val categoryError: String? = null,
     val priceError: String? = null,
-    val locationError: String? = null
+    val locationError: String? = null,
+    val availableBalance: Long? = null,
+    val isLoadingBalance: Boolean = false
 )
 
 @HiltViewModel
 class CreateTaskViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val walletRepository: WalletRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateTaskUiState())
@@ -41,6 +45,28 @@ class CreateTaskViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "CreateTaskViewModel"
+    }
+
+    init {
+        fetchAvailableBalance()
+    }
+
+    private fun fetchAvailableBalance() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingBalance = true)
+            walletRepository.getWallet().fold(
+                onSuccess = { wallet ->
+                    _uiState.value = _uiState.value.copy(
+                        availableBalance = wallet.availableBalance,
+                        isLoadingBalance = false
+                    )
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to fetch wallet", error)
+                    _uiState.value = _uiState.value.copy(isLoadingBalance = false)
+                }
+            )
+        }
     }
 
     fun updateTitle(title: String) {
@@ -101,7 +127,14 @@ class CreateTaskViewModel @Inject constructor(
             price.isBlank() -> "Price is required"
             price.toLongOrNull() == null -> "Price must be a number"
             price.toLong() <= 0 -> "Price must be greater than 0"
-            else -> null
+            else -> {
+                val available = _uiState.value.availableBalance
+                if (available != null && price.toLong() > available) {
+                    "Exceeds available balance (${com.viecz.vieczandroid.utils.formatCurrency(available)})"
+                } else {
+                    null
+                }
+            }
         }
     }
 

@@ -117,7 +117,7 @@ func main() {
 	returnHandler := handlers.NewReturnHandler(payosService, cfg.ClientURL)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
-	walletHandler := handlers.NewWalletHandler(walletService, payosService, transactionRepo, cfg.ServerURL)
+	walletHandler := handlers.NewWalletHandler(walletService, payosService, transactionRepo, taskRepo, cfg.ServerURL)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, cfg.JWTSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
 

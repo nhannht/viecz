@@ -162,7 +162,7 @@ func main() {
 	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
-	walletHandler := handlers.NewWalletHandler(walletService, mockPayOS, transactionRepo, serverURL)
+	walletHandler := handlers.NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, serverURL)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, jwtSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
 

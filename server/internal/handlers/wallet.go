@@ -18,6 +18,7 @@ type WalletHandler struct {
 	walletService   *services.WalletService
 	payosService    services.PayOSServicer
 	transactionRepo repository.TransactionRepository
+	taskRepo        repository.TaskRepository
 	serverURL       string
 }
 
@@ -26,14 +27,22 @@ func NewWalletHandler(
 	walletService *services.WalletService,
 	payosService services.PayOSServicer,
 	transactionRepo repository.TransactionRepository,
+	taskRepo repository.TaskRepository,
 	serverURL string,
 ) *WalletHandler {
 	return &WalletHandler{
 		walletService:   walletService,
 		payosService:    payosService,
 		transactionRepo: transactionRepo,
+		taskRepo:        taskRepo,
 		serverURL:       serverURL,
 	}
+}
+
+// WalletResponse extends Wallet with computed available balance
+type WalletResponse struct {
+	models.Wallet
+	AvailableBalance int64 `json:"available_balance"`
 }
 
 // GetWallet retrieves user's wallet information
@@ -67,7 +76,22 @@ func (h *WalletHandler) GetWallet(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, wallet)
+	// Compute available balance (balance - escrow - sum of open task prices)
+	var availableBalance int64
+	if h.taskRepo != nil {
+		availableBalance, err = h.walletService.GetAvailableBalance(c.Request.Context(), userID.(int64), h.taskRepo)
+		if err != nil {
+			log.Printf("Failed to compute available balance: %v (returning wallet without it)", err)
+			availableBalance = wallet.Balance - wallet.EscrowBalance
+		}
+	} else {
+		availableBalance = wallet.Balance - wallet.EscrowBalance
+	}
+
+	c.JSON(http.StatusOK, WalletResponse{
+		Wallet:           *wallet,
+		AvailableBalance: availableBalance,
+	})
 }
 
 // DepositRequest represents request to deposit funds via PayOS
