@@ -1,7 +1,7 @@
 # Technical Documentation
 
 **Project:** Viecz - Dịch Vụ Nhỏ Cho Sinh Viên
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 **Stack:** Go (Gin) backend + Native Kotlin/Jetpack Compose Android app
 
 ---
@@ -18,6 +18,7 @@
 | **[ALGORITHM.md](./ALGORITHM.md)** | Core algorithms & complexity | JWT, escrow, WebSocket routing, wallet management |
 | **[SECURITY.md](./SECURITY.md)** | Security measures | JWT auth, bcrypt, CORS, PayOS webhook verification |
 | **[DEPLOYMENT.md](./DEPLOYMENT.md)** | Deployment & infrastructure | Docker Compose, Cloudflare tunnel, Android build flavors |
+| **[FIREBASE_DISTRIBUTION.md](./FIREBASE_DISTRIBUTION.md)** | App distribution | Firebase App Distribution workflow, tester management |
 
 ---
 
@@ -48,8 +49,9 @@ Read in this order:
 ### For DevOps
 
 1. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Docker, Cloudflare tunnel, env config
-2. **[SECURITY.md](./SECURITY.md)** - Security checklist
-3. **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** - Infrastructure overview
+2. **[FIREBASE_DISTRIBUTION.md](./FIREBASE_DISTRIBUTION.md)** - APK distribution to testers
+3. **[SECURITY.md](./SECURITY.md)** - Security checklist
+4. **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** - Infrastructure overview
 
 ---
 
@@ -122,5 +124,5 @@ graph TD
 
 ---
 
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 **Maintained By:** Development Team

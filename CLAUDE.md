@@ -113,6 +113,7 @@ Viecz is a multi-package project containing:
 | `ALGORITHM.md` | JWT, escrow, WebSocket routing, wallet, available balance validation |
 | `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification |
 | `DEPLOYMENT.md` | Docker Compose, Cloudflare tunnel, Android flavors |
+| `FIREBASE_DISTRIBUTION.md` | Firebase App Distribution workflow, tester management |
 | `README.md` | Index and navigation guide |
 
 ## YouTrack Project Management
