@@ -38,6 +38,7 @@ androidx-test-core = "1.6.1"
 firebaseBom = "34.9.0"
 googleServices = "4.4.4"
 firebaseAppDistribution = "5.2.1"
+appVersioning = "1.5.0"
 # Google Sign-In / Credential Manager
 credentials = "1.6.0-rc01"
 googleid = "1.1.1"
@@ -137,4 +138,5 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 firebase-appdistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebaseAppDistribution" }
+app-versioning = { id = "io.github.reactivecircus.app-versioning", version.ref = "appVersioning" }
 

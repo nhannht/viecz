@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 
 ---
 
@@ -11,11 +11,12 @@
 3. [Environment Variables](#3-environment-variables)
 4. [Production Deployment](#4-production-deployment)
 5. [Test Server (Development / E2E)](#5-test-server-development--e2e)
-6. [Android Build Flavors](#6-android-build-flavors)
-7. [Cloudflare Tunnel](#7-cloudflare-tunnel)
-8. [E2E Test Deployment](#8-e2e-test-deployment)
-9. [Verify Deployment](#9-verify-deployment)
-10. [Maintenance](#10-maintenance)
+6. [Android Versioning (CalVer)](#6-android-versioning-calver)
+7. [Android Build Flavors](#7-android-build-flavors)
+8. [Cloudflare Tunnel](#8-cloudflare-tunnel)
+9. [E2E Test Deployment](#9-e2e-test-deployment)
+10. [Verify Deployment](#10-verify-deployment)
+11. [Maintenance](#11-maintenance)
 
 ---
 
@@ -279,7 +280,67 @@ The test server mirrors all production routes exactly:
 
 ---
 
-## 6. Android Build Flavors
+## 6. Android Versioning (CalVer)
+
+The Android app uses JetBrains-style calendar versioning derived automatically from **Git tags** via the [ReactiveCircus/app-versioning](https://github.com/ReactiveCircus/app-versioning) Gradle plugin.
+
+### Format
+
+Tags follow the pattern `android/YYYY.R` or `android/YYYY.R.P`:
+
+| Component | Meaning | Example |
+|---|---|---|
+| `android/` | Monorepo prefix (filtered by `tagFilter`) | `android/` |
+| `YYYY` | Release year | `2026` |
+| `R` | Release number within that year (1, 2, 3...) | `1` |
+| `P` | Patch number (optional, 0 = omitted) | `1` |
+
+### How it works
+
+The plugin reads the latest matching Git tag and computes:
+
+- **versionName**: tag without prefix (e.g., `2026.1` or `2026.1.1`). Dev flavor appends `-dev`.
+- **versionCode**: `YYYY * 10000 + R * 100 + P` (e.g., `20260100`, `20260201`)
+
+No manual `versionCode`/`versionName` in `build.gradle.kts` — the plugin injects them at build time.
+
+### How to bump
+
+```bash
+# New release
+git tag android/2026.2
+
+# Patch/hotfix
+git tag android/2026.2.1
+
+# New year
+git tag android/2027.1
+
+# Push tags to remote
+git push origin android/2026.2
+```
+
+### Monorepo tag convention
+
+Each component uses its own tag prefix so versions are independent:
+
+| Component | Tag prefix | Example | Filter |
+|---|---|---|---|
+| Android | `android/` | `android/2026.1` | `android/*` |
+| Server (future) | `server/` | `server/2026.1` | `server/*` |
+
+### Examples
+
+| Git tag | versionName (prod) | versionName (dev) | versionCode |
+|---|---|---|---|
+| `android/2026.1` | `2026.1` | `2026.1-dev` | `20260100` |
+| `android/2026.2` | `2026.2` | `2026.2-dev` | `20260200` |
+| `android/2026.2.1` | `2026.2.1` | `2026.2.1-dev` | `20260201` |
+| `android/2027.1` | `2027.1` | `2027.1-dev` | `20270100` |
+
+---
+
+## 7. Android Build Flavors
 
 Defined in `android/app/build.gradle.kts` under `productFlavors`:
 
@@ -330,7 +391,7 @@ adb reverse tcp:9999 tcp:9999
 
 ---
 
-## 7. Cloudflare Tunnel
+## 8. Cloudflare Tunnel
 
 The production API is exposed via Cloudflare Tunnel (no public ports, no Nginx, no Certbot).
 
@@ -351,7 +412,7 @@ The config file `cloudflared-config.yml` is gitignored (contains tunnel credenti
 
 ---
 
-## 8. E2E Test Deployment
+## 9. E2E Test Deployment
 
 The script `scripts/run-full-e2e.sh` automates the full E2E flow:
 
@@ -391,7 +452,7 @@ The script `scripts/run-full-e2e.sh` automates the full E2E flow:
 
 ---
 
-## 9. Verify Deployment
+## 10. Verify Deployment
 
 ### Production
 
@@ -418,7 +479,7 @@ curl http://localhost:9999/api/v1/categories
 
 ---
 
-## 10. Maintenance
+## 11. Maintenance
 
 ### Logs
 
