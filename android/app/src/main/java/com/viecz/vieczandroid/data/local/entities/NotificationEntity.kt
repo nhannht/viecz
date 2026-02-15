@@ -10,6 +10,12 @@ data class NotificationEntity(
     @ColumnInfo(name = "id")
     val id: Long = 0,
 
+    @ColumnInfo(name = "server_id")
+    val serverId: Long? = null,
+
+    @ColumnInfo(name = "user_id")
+    val userId: Long? = null,
+
     @ColumnInfo(name = "type")
     val type: String,
 

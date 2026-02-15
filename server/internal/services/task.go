@@ -10,11 +10,12 @@ import (
 
 // TaskService handles business logic for tasks
 type TaskService struct {
-	taskRepo        repository.TaskRepository
-	applicationRepo repository.TaskApplicationRepository
-	categoryRepo    repository.CategoryRepository
-	userRepo        repository.UserRepository
-	walletService   *WalletService
+	taskRepo            repository.TaskRepository
+	applicationRepo     repository.TaskApplicationRepository
+	categoryRepo        repository.CategoryRepository
+	userRepo            repository.UserRepository
+	walletService       *WalletService
+	notificationService *NotificationService
 }
 
 // NewTaskService creates a new TaskService
@@ -24,13 +25,15 @@ func NewTaskService(
 	categoryRepo repository.CategoryRepository,
 	userRepo repository.UserRepository,
 	walletService *WalletService,
+	notificationService *NotificationService,
 ) *TaskService {
 	return &TaskService{
-		taskRepo:        taskRepo,
-		applicationRepo: applicationRepo,
-		categoryRepo:    categoryRepo,
-		userRepo:        userRepo,
-		walletService:   walletService,
+		taskRepo:            taskRepo,
+		applicationRepo:     applicationRepo,
+		categoryRepo:        categoryRepo,
+		userRepo:            userRepo,
+		walletService:       walletService,
+		notificationService: notificationService,
 	}
 }
 
@@ -94,6 +97,13 @@ func (s *TaskService) CreateTask(ctx context.Context, requesterID int64, input *
 
 	if err := s.taskRepo.Create(ctx, task); err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
+	}
+
+	// Notify creator
+	if s.notificationService != nil {
+		_ = s.notificationService.CreateNotification(ctx, requesterID,
+			models.NotificationTypeTaskCreated, "Task Posted",
+			fmt.Sprintf("Your task '%s' has been posted", task.Title), &task.ID)
 	}
 
 	return task, nil
@@ -259,6 +269,18 @@ func (s *TaskService) ApplyForTask(ctx context.Context, taskID, taskerID int64, 
 		return nil, fmt.Errorf("failed to create application: %w", err)
 	}
 
+	// Notify task creator about new application
+	if s.notificationService != nil {
+		_ = s.notificationService.CreateNotification(ctx, task.RequesterID,
+			models.NotificationTypeApplicationReceived, "New Application",
+			fmt.Sprintf("Someone applied to your task '%s'", task.Title), &taskID)
+
+		// Notify applicant
+		_ = s.notificationService.CreateNotification(ctx, taskerID,
+			models.NotificationTypeApplicationSent, "Application Sent",
+			fmt.Sprintf("You applied for '%s'", task.Title), &taskID)
+	}
+
 	return application, nil
 }
 
@@ -313,6 +335,13 @@ func (s *TaskService) AcceptApplication(ctx context.Context, applicationID, requ
 		}
 	}
 
+	// Notify applicant that their application was accepted
+	if s.notificationService != nil {
+		_ = s.notificationService.CreateNotification(ctx, app.TaskerID,
+			models.NotificationTypeApplicationAccepted, "Application Accepted",
+			fmt.Sprintf("Your application for '%s' was accepted", task.Title), &task.ID)
+	}
+
 	return nil
 }
 
@@ -337,6 +366,19 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID, requesterID int6
 	// Update status
 	if err := s.taskRepo.UpdateStatus(ctx, taskID, models.TaskStatusCompleted); err != nil {
 		return fmt.Errorf("failed to complete task: %w", err)
+	}
+
+	// Notify both parties
+	if s.notificationService != nil {
+		_ = s.notificationService.CreateNotification(ctx, requesterID,
+			models.NotificationTypeTaskCompleted, "Task Completed",
+			fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID)
+
+		if task.TaskerID != nil {
+			_ = s.notificationService.CreateNotification(ctx, *task.TaskerID,
+				models.NotificationTypeTaskCompleted, "Task Completed",
+				fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID)
+		}
 	}
 
 	return nil

@@ -12,11 +12,12 @@ import (
 // PaymentService handles payment orchestration with escrow logic.
 // All escrow/release/refund operations use the wallet — PayOS is only for deposits.
 type PaymentService struct {
-	transactionRepo repository.TransactionRepository
-	taskRepo        repository.TaskRepository
-	applicationRepo repository.TaskApplicationRepository
-	walletService   *WalletService
-	platformFeeRate float64 // Platform fee as percentage (e.g., 0.10 for 10%)
+	transactionRepo     repository.TransactionRepository
+	taskRepo            repository.TaskRepository
+	applicationRepo     repository.TaskApplicationRepository
+	walletService       *WalletService
+	platformFeeRate     float64 // Platform fee as percentage (e.g., 0.10 for 10%)
+	notificationService *NotificationService
 }
 
 // NewPaymentService creates a new payment service.
@@ -27,13 +28,15 @@ func NewPaymentService(
 	applicationRepo repository.TaskApplicationRepository,
 	walletService *WalletService,
 	platformFeeRate float64,
+	notificationService *NotificationService,
 ) *PaymentService {
 	return &PaymentService{
-		transactionRepo: transactionRepo,
-		taskRepo:        taskRepo,
-		applicationRepo: applicationRepo,
-		walletService:   walletService,
-		platformFeeRate: platformFeeRate,
+		transactionRepo:     transactionRepo,
+		taskRepo:            taskRepo,
+		applicationRepo:     applicationRepo,
+		walletService:       walletService,
+		platformFeeRate:     platformFeeRate,
+		notificationService: notificationService,
 	}
 }
 
@@ -210,6 +213,13 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 		if err := s.transactionRepo.Create(ctx, feeTx); err != nil {
 			return fmt.Errorf("failed to create platform fee transaction: %w", err)
 		}
+	}
+
+	// Notify tasker about payment received
+	if s.notificationService != nil && task.TaskerID != nil {
+		_ = s.notificationService.CreateNotification(ctx, *task.TaskerID,
+			models.NotificationTypePaymentReceived, "Payment Received",
+			fmt.Sprintf("You received payment for task '%s'", task.Title), &taskID)
 	}
 
 	return nil

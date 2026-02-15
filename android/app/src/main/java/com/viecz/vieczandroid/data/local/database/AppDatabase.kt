@@ -14,7 +14,7 @@ import com.viecz.vieczandroid.data.local.entities.TaskEntity
 
 @Database(
     entities = [TaskEntity::class, CategoryEntity::class, NotificationEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -42,6 +42,13 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notifications` ADD COLUMN `server_id` INTEGER")
+                db.execSQL("ALTER TABLE `notifications` ADD COLUMN `user_id` INTEGER")
             }
         }
     }

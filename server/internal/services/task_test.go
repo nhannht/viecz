@@ -404,7 +404,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 				tt.setupRepo(catRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -541,7 +541,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -628,7 +628,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -750,7 +750,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			app, err := service.ApplyForTask(ctx, tt.taskID, tt.taskerID, tt.input)
@@ -865,7 +865,7 @@ func TestTaskService_AcceptApplication(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			err := service.AcceptApplication(ctx, tt.applicationID, tt.requesterID)
@@ -926,7 +926,7 @@ func TestTaskService_GetTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.GetTask(ctx, tt.taskID)
@@ -1032,7 +1032,7 @@ func TestTaskService_UpdateTask(t *testing.T) {
 				tt.setupRepo(taskRepo, catRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -1126,7 +1126,7 @@ func TestTaskService_DeleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			err := service.DeleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1184,7 +1184,7 @@ func TestTaskService_ListTasks(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			tasks, total, err := service.ListTasks(ctx, tt.filters)
@@ -1283,7 +1283,7 @@ func TestTaskService_CompleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			err := service.CompleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1378,7 +1378,7 @@ func TestTaskService_GetTaskApplications(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
 			ctx := context.Background()
 
 			apps, err := service.GetTaskApplications(ctx, tt.taskID, tt.requesterID)

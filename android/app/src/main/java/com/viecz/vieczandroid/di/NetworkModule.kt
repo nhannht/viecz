@@ -121,4 +121,10 @@ object NetworkModule {
     fun provideMessageApi(retrofit: Retrofit): MessageApi {
         return retrofit.create(MessageApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(retrofit: Retrofit): NotificationApi {
+        return retrofit.create(NotificationApi::class.java)
+    }
 }

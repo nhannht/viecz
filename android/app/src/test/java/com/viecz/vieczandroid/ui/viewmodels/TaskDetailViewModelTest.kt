@@ -3,7 +3,6 @@ package com.viecz.vieczandroid.ui.viewmodels
 import app.cash.turbine.test
 import com.viecz.vieczandroid.data.models.*
 import com.viecz.vieczandroid.data.repository.MessageRepository
-import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.PaymentRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
@@ -31,7 +30,6 @@ class TaskDetailViewModelTest {
     private lateinit var mockTaskRepository: TaskRepository
     private lateinit var mockPaymentRepository: PaymentRepository
     private lateinit var mockMessageRepository: MessageRepository
-    private lateinit var mockNotificationRepository: NotificationRepository
     private lateinit var viewModel: TaskDetailViewModel
 
     @Before
@@ -39,8 +37,7 @@ class TaskDetailViewModelTest {
         mockTaskRepository = mockk()
         mockPaymentRepository = mockk()
         mockMessageRepository = mockk()
-        mockNotificationRepository = mockk(relaxed = true)
-        viewModel = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository, mockNotificationRepository)
+        viewModel = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository)
     }
 
     @After

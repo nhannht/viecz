@@ -45,7 +45,7 @@ object DataModule {
             context,
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
-        ).addMigrations(AppDatabase.MIGRATION_1_2)
+        ).addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
 
         if (BuildConfig.DEBUG) {
             builder.fallbackToDestructiveMigration()
@@ -74,8 +74,12 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideNotificationRepository(notificationDao: NotificationDao): NotificationRepository {
-        return NotificationRepository(notificationDao)
+    fun provideNotificationRepository(
+        notificationApi: NotificationApi,
+        notificationDao: NotificationDao,
+        tokenManager: TokenManager
+    ): NotificationRepository {
+        return NotificationRepository(notificationApi, notificationDao, tokenManager)
     }
 
     @Provides

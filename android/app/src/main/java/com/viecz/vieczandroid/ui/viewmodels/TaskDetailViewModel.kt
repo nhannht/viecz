@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.TaskApplication
 import com.viecz.vieczandroid.data.repository.MessageRepository
-import com.viecz.vieczandroid.data.repository.NotificationRepository
 import com.viecz.vieczandroid.data.repository.PaymentRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,8 +31,7 @@ data class TaskDetailUiState(
 class TaskDetailViewModel @Inject constructor(
     private val repository: TaskRepository,
     private val paymentRepository: PaymentRepository,
-    private val messageRepository: MessageRepository,
-    private val notificationRepository: NotificationRepository
+    private val messageRepository: MessageRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskDetailUiState())
@@ -125,14 +123,7 @@ class TaskDetailViewModel @Inject constructor(
             acceptResult.fold(
                 onSuccess = {
                     Log.d(TAG, "Application accepted successfully")
-                    val taskTitle = _uiState.value.task?.title ?: "Unknown"
                     val taskId = _uiState.value.task?.id
-                    notificationRepository.addNotification(
-                        type = "APPLICATION_ACCEPTED",
-                        title = "Application Accepted",
-                        message = "Application accepted for '${taskTitle}'",
-                        taskId = taskId
-                    )
 
                     // Step 2: Create escrow payment
                     if (taskId != null) {
@@ -212,13 +203,6 @@ class TaskDetailViewModel @Inject constructor(
                     completeResult.fold(
                         onSuccess = {
                             Log.d(TAG, "Task completed successfully")
-                            val taskTitle = _uiState.value.task?.title ?: "Unknown"
-                            notificationRepository.addNotification(
-                                type = "TASK_COMPLETED",
-                                title = "Task Completed",
-                                message = "Task '${taskTitle}' has been completed",
-                                taskId = taskId
-                            )
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
                                 paymentSuccess = true,

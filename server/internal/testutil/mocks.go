@@ -548,3 +548,67 @@ func (m *MockPayOSService) CancelPaymentLink(ctx context.Context, orderCode int6
 	}
 	return m.PaymentLink, nil
 }
+
+// MockNotificationRepository is a mock implementation of repository.NotificationRepository
+type MockNotificationRepository struct {
+	Notifications map[int64]*models.Notification
+}
+
+func NewMockNotificationRepository() *MockNotificationRepository {
+	return &MockNotificationRepository{
+		Notifications: make(map[int64]*models.Notification),
+	}
+}
+
+func (m *MockNotificationRepository) Create(ctx context.Context, notification *models.Notification) error {
+	notification.ID = int64(len(m.Notifications) + 1)
+	m.Notifications[notification.ID] = notification
+	return nil
+}
+
+func (m *MockNotificationRepository) GetByUserID(ctx context.Context, userID int64, limit, offset int) ([]*models.Notification, int64, error) {
+	var notifications []*models.Notification
+	for _, n := range m.Notifications {
+		if n.UserID == userID {
+			notifications = append(notifications, n)
+		}
+	}
+	return notifications, int64(len(notifications)), nil
+}
+
+func (m *MockNotificationRepository) GetUnreadCountByUserID(ctx context.Context, userID int64) (int64, error) {
+	var count int64
+	for _, n := range m.Notifications {
+		if n.UserID == userID && !n.IsRead {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (m *MockNotificationRepository) MarkAsRead(ctx context.Context, id, userID int64) error {
+	n, exists := m.Notifications[id]
+	if !exists || n.UserID != userID {
+		return errors.New("notification not found")
+	}
+	n.IsRead = true
+	return nil
+}
+
+func (m *MockNotificationRepository) MarkAllAsReadByUserID(ctx context.Context, userID int64) error {
+	for _, n := range m.Notifications {
+		if n.UserID == userID {
+			n.IsRead = true
+		}
+	}
+	return nil
+}
+
+func (m *MockNotificationRepository) Delete(ctx context.Context, id, userID int64) error {
+	n, exists := m.Notifications[id]
+	if !exists || n.UserID != userID {
+		return errors.New("notification not found")
+	}
+	delete(m.Notifications, id)
+	return nil
+}

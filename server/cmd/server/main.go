@@ -80,7 +80,16 @@ func main() {
 	// Initialize wallet and payment services (Phase 3)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, cfg.MaxWalletBalance)
 
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService)
+	// Initialize WebSocket Hub
+	hub := websocket.NewHub()
+	go hub.Run()
+	log.Println("WebSocket Hub started")
+
+	// Initialize notification service
+	notificationRepo := repository.NewNotificationGormRepository(db)
+	notificationService := services.NewNotificationService(notificationRepo, hub)
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService)
 
 	// Initialize PayOS service
 	payosService, err := services.NewPayOSService(
@@ -99,12 +108,8 @@ func main() {
 		applicationRepo,
 		walletService,
 		cfg.PlatformFeeRate,
+		notificationService,
 	)
-
-	// Initialize WebSocket Hub (Phase 4)
-	hub := websocket.NewHub()
-	go hub.Run() // Start hub in background
-	log.Println("WebSocket Hub started")
 
 	// Initialize message service (Phase 4)
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
@@ -116,6 +121,7 @@ func main() {
 	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo, walletService)
 	returnHandler := handlers.NewReturnHandler(payosService, cfg.ClientURL)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 	walletHandler := handlers.NewWalletHandler(walletService, payosService, transactionRepo, taskRepo, cfg.ServerURL)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, cfg.JWTSecret)
@@ -218,6 +224,17 @@ func main() {
 			payments.POST("/escrow", paymentHandler.CreateEscrowPayment)
 			payments.POST("/release", paymentHandler.ReleasePayment)
 			payments.POST("/refund", paymentHandler.RefundPayment)
+		}
+
+		// Notification routes (protected)
+		notifications := api.Group("/notifications")
+		notifications.Use(auth.AuthRequired(cfg.JWTSecret))
+		{
+			notifications.GET("", notificationHandler.GetNotifications)
+			notifications.GET("/unread-count", notificationHandler.GetUnreadCount)
+			notifications.POST("/:id/read", notificationHandler.MarkAsRead)
+			notifications.POST("/read-all", notificationHandler.MarkAllAsRead)
+			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
 		}
 
 		// WebSocket route (protected via query param) - Phase 4

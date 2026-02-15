@@ -141,17 +141,22 @@ func main() {
 
 	userService := services.NewUserService(userRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService)
-
-	mockPayOS := &mockPayOS{}
-
-	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, applicationRepo, walletService, 0,
-	)
 
 	// WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()
+
+	// Notification service
+	notificationRepo := repository.NewNotificationGormRepository(db)
+	notificationService := services.NewNotificationService(notificationRepo, hub)
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService)
+
+	mockPayOS := &mockPayOS{}
+
+	paymentService := services.NewPaymentService(
+		transactionRepo, taskRepo, applicationRepo, walletService, 0, notificationService,
+	)
 
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
 
@@ -161,6 +166,7 @@ func main() {
 	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL)
 	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 	walletHandler := handlers.NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, serverURL)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, jwtSecret)
@@ -246,6 +252,17 @@ func main() {
 			payments.POST("/escrow", paymentHandler.CreateEscrowPayment)
 			payments.POST("/release", paymentHandler.ReleasePayment)
 			payments.POST("/refund", paymentHandler.RefundPayment)
+		}
+
+		// Notification routes (protected)
+		notifications := api.Group("/notifications")
+		notifications.Use(auth.AuthRequired(jwtSecret))
+		{
+			notifications.GET("", notificationHandler.GetNotifications)
+			notifications.GET("/unread-count", notificationHandler.GetUnreadCount)
+			notifications.POST("/:id/read", notificationHandler.MarkAsRead)
+			notifications.POST("/read-all", notificationHandler.MarkAllAsRead)
+			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
 		}
 
 		// WebSocket route

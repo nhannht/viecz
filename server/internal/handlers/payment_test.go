@@ -34,7 +34,7 @@ func setupPaymentHandlerTest(t *testing.T, setupRepos func(*testutil.MockTaskRep
 
 	// Create services
 	walletService := services.NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
-	paymentService := services.NewPaymentService(txRepo, taskRepo, nil, walletService, 0)
+	paymentService := services.NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil)
 
 	handler := NewPaymentHandler(nil, paymentService, "http://localhost:3000", "http://localhost:8080")
 

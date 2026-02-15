@@ -3,6 +3,8 @@ package com.viecz.vieczandroid.ui.screens
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import com.viecz.vieczandroid.data.api.NotificationApi
+import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.local.dao.NotificationDao
 import com.viecz.vieczandroid.data.repository.CategoryRepository
 import com.viecz.vieczandroid.data.repository.NotificationRepository
@@ -44,11 +46,15 @@ class HomeScreenTest {
         mockTaskRepo = mockk()
         mockCategoryRepo = mockk()
 
+        val mockNotificationApi: NotificationApi = mockk(relaxed = true)
         val mockNotificationDao: NotificationDao = mockk()
-        coEvery { mockNotificationDao.getAllNotifications() } returns flowOf(emptyList())
-        coEvery { mockNotificationDao.getUnreadCount() } returns flowOf(0)
-        val notificationRepository = NotificationRepository(mockNotificationDao)
-        notificationViewModel = NotificationViewModel(notificationRepository)
+        val mockTokenManager: TokenManager = mockk()
+        coEvery { mockTokenManager.userId } returns flowOf(1L)
+        coEvery { mockNotificationDao.getNotificationsByUserId(any()) } returns flowOf(emptyList())
+        coEvery { mockNotificationDao.getUnreadCount(any()) } returns flowOf(0)
+        coEvery { mockNotificationApi.getNotifications(any(), any()) } returns com.viecz.vieczandroid.data.models.NotificationListResponse(notifications = emptyList(), total = 0)
+        val notificationRepository = NotificationRepository(mockNotificationApi, mockNotificationDao, mockTokenManager)
+        notificationViewModel = NotificationViewModel(notificationRepository, mockTokenManager)
 
         val tasks = listOf(
             TestData.createTask(id = 1, title = "Clean apartment", description = "Deep cleaning needed", location = "D1"),
