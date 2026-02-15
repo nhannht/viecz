@@ -42,13 +42,13 @@ func (s *NotificationService) CreateNotification(ctx context.Context, userID int
 	}
 
 	// Send via WebSocket if user is online
-	if s.hub != nil && s.hub.IsUserOnline(uint(userID)) {
+	if s.hub != nil && userID > 0 && s.hub.IsUserOnline(uint(userID)) {
 		wsMsg := &models.WebSocketMessage{
 			Type:    "notification",
 			Content: message,
 		}
 		s.hub.SendToUser(uint(userID), wsMsg)
-		log.Printf("[NotificationService] Sent real-time notification to user %d: %s", userID, title)
+		log.Printf("[NotificationService] sent real-time notification to user %d: %s", userID, title)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.viecz.vieczandroid.data.local.entities.NotificationEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -39,4 +40,10 @@ interface NotificationDao {
 
     @Query("DELETE FROM notifications WHERE user_id = :userId")
     suspend fun deleteAllByUserId(userId: Long)
+
+    @Transaction
+    suspend fun replaceAllByUserId(userId: Long, notifications: List<NotificationEntity>) {
+        deleteAllByUserId(userId)
+        insertAll(notifications)
+    }
 }

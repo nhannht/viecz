@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"viecz.vieczserver/internal/models"
@@ -215,11 +216,13 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 		}
 	}
 
-	// Notify tasker about payment received
+	// Notify tasker about payment received (non-critical — log and continue on failure)
 	if s.notificationService != nil && task.TaskerID != nil {
-		_ = s.notificationService.CreateNotification(ctx, *task.TaskerID,
+		if err := s.notificationService.CreateNotification(ctx, *task.TaskerID,
 			models.NotificationTypePaymentReceived, "Payment Received",
-			fmt.Sprintf("You received payment for task '%s'", task.Title), &taskID)
+			fmt.Sprintf("You received payment for task '%s'", task.Title), &taskID); err != nil {
+			log.Printf("[PaymentService] failed to send payment_received notification: %v", err)
+		}
 	}
 
 	return nil

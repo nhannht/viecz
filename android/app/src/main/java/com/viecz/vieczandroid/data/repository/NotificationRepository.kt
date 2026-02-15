@@ -38,8 +38,7 @@ class NotificationRepository(
             val userId = tokenManager.userId.first()
             if (userId != null) {
                 val entities = notifications.map { it.toEntity(userId) }
-                notificationDao.deleteAllByUserId(userId)
-                notificationDao.insertAll(entities)
+                notificationDao.replaceAllByUserId(userId, entities)
                 Log.d(TAG, "Cached ${entities.size} notifications for user $userId")
             }
 
