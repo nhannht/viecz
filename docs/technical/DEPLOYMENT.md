@@ -320,6 +320,16 @@ git tag android/2027.1
 git push origin android/2026.2
 ```
 
+### CI/CD Release (GitHub Actions)
+
+Pushing a CalVer tag automatically builds and uploads the APK to Firebase App Distribution:
+
+```bash
+git tag android/2026.2 && git push origin android/2026.2
+```
+
+See `.github/workflows/android-release.yml` and [FIREBASE_DISTRIBUTION.md](FIREBASE_DISTRIBUTION.md#7-cicd-distribution-github-actions) for details on required GitHub Secrets and the workflow.
+
 ### Monorepo tag convention
 
 Each component uses its own tag prefix so versions are independent:

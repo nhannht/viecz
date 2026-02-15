@@ -12,7 +12,8 @@
 4. [Tester & Group Management](#4-tester--group-management)
 5. [Tester Experience](#5-tester-experience)
 6. [Gradle Configuration Reference](#6-gradle-configuration-reference)
-7. [Troubleshooting](#7-troubleshooting)
+7. [CI/CD Distribution (GitHub Actions)](#7-cicd-distribution-github-actions)
+8. [Troubleshooting](#8-troubleshooting)
 
 ---
 
@@ -213,7 +214,62 @@ dependencies {
 
 ---
 
-## 7. Troubleshooting
+## 7. CI/CD Distribution (GitHub Actions)
+
+Automated builds and uploads are triggered by pushing a CalVer tag matching `android/*`.
+
+### Workflow
+
+**File**: `.github/workflows/android-release.yml`
+
+**Trigger**: Push tag `android/*` (e.g., `android/2026.2`) or manual `workflow_dispatch`.
+
+### Release Flow
+
+```bash
+# 1. Tag the release
+git tag android/2026.2
+
+# 2. Push the tag — triggers the workflow
+git push origin android/2026.2
+```
+
+The workflow:
+1. Checks out with full history (needed by app-versioning plugin)
+2. Decodes secrets (`google-services.json`, keystore, Firebase service account)
+3. Generates release notes from git log between previous and current `android/*` tag
+4. Builds `prodRelease` APK and uploads to Firebase App Distribution
+5. Uploads APK as GitHub Actions artifact (90-day retention)
+
+### Required GitHub Secrets
+
+Configure in repo **Settings > Secrets and variables > Actions**:
+
+| Secret | Content | How to generate |
+|---|---|---|
+| `GOOGLE_SERVICES_JSON_B64` | Base64 of `android/app/google-services.json` | `base64 -w0 android/app/google-services.json` |
+| `KEYSTORE_B64` | Base64 of `android/viecz-upload.jks` | `base64 -w0 android/viecz-upload.jks` |
+| `KEYSTORE_PASSWORD` | Keystore password | From `android/keystore.properties` |
+| `KEY_ALIAS` | Key alias | From `android/keystore.properties` |
+| `KEY_PASSWORD` | Key password | From `android/keystore.properties` |
+| `FIREBASE_SERVICE_ACCOUNT_B64` | Base64 of Firebase service account JSON | See below |
+
+### Creating the Firebase Service Account
+
+1. Go to [Firebase Console](https://console.firebase.google.com/) > Project Settings > Service Accounts
+2. Click **Generate new private key** — downloads a JSON file
+3. Base64-encode it: `base64 -w0 <downloaded-file>.json`
+4. Store as `FIREBASE_SERVICE_ACCOUNT_B64` GitHub Secret
+
+The workflow sets `GOOGLE_APPLICATION_CREDENTIALS` to the decoded JSON file, which the Firebase App Distribution Gradle plugin uses for authentication.
+
+### Auth: Why Service Account (not Workload Identity Federation)
+
+Firebase App Distribution Gradle plugin authenticates via `GOOGLE_APPLICATION_CREDENTIALS` env var pointing to a service account JSON file. Workload Identity Federation is not supported by the Firebase Admin SDK for this use case.
+
+---
+
+## 8. Troubleshooting
 
 ### "Group not found" error on upload
 
