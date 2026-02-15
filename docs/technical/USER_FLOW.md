@@ -15,13 +15,14 @@
 5. [Apply for Task (Tasker)](#5-apply-for-task-tasker)
 6. [Accept Application & Escrow Payment](#6-accept-application--escrow-payment)
 7. [Task Completion & Payment Release](#7-task-completion--payment-release)
-8. [Chat Messaging](#8-chat-messaging)
-9. [Wallet & Deposits](#9-wallet--deposits)
-10. [Profile & Become Tasker](#10-profile--become-tasker)
-11. [Notifications](#11-notifications)
-12. [My Jobs](#12-my-jobs)
-13. [Full Job Lifecycle (End-to-End)](#13-full-job-lifecycle-end-to-end)
-14. [State Machines](#14-state-machines)
+8. [Task Deletion / Cancellation](#8-task-deletion--cancellation)
+9. [Chat Messaging](#9-chat-messaging)
+10. [Wallet & Deposits](#10-wallet--deposits)
+11. [Profile & Become Tasker](#11-profile--become-tasker)
+12. [Notifications](#12-notifications)
+13. [My Jobs](#13-my-jobs)
+14. [Full Job Lifecycle (End-to-End)](#14-full-job-lifecycle-end-to-end)
+15. [State Machines](#15-state-machines)
 
 ---
 
@@ -314,9 +315,50 @@ Task status badge shows "Completed"
 
 ---
 
-## 8. Chat Messaging
+## 8. Task Deletion / Cancellation
 
-### 8.1 Opening a Chat
+The task requester can delete (soft-cancel) their own open task from the TaskDetailScreen.
+
+```
+TaskDetailScreen (requester view, task status == OPEN)
+    |
+    v
+Top bar shows trash icon (delete button)
+    Visible only when: isOwnTask == true && task.status == "open"
+    |
+    v
+Tap trash icon
+    |
+    v
+Confirmation dialog:
+    "Are you sure you want to delete this task?"
+    [Cancel]  [Delete]
+    |
+    v
+Tap "Delete"
+    |
+    v
+DELETE /api/v1/tasks/:id
+    |
+    v
+Server-side effects:
+    1. Task status --> CANCELLED (soft delete)
+    2. All pending applications --> REJECTED
+    3. Applicants notified (task_cancelled notification)
+    |
+    v
+Navigate back to marketplace (HomeContent)
+```
+
+**Screen:** `TaskDetailScreen.kt` (trash icon in top bar + confirmation dialog)
+**API:** `DELETE /api/v1/tasks/:id`
+**Conditions:** Only the task owner can delete; task must be in OPEN status (no escrow to refund)
+
+---
+
+## 9. Chat Messaging
+
+### 9.1 Opening a Chat
 
 ```
 TaskDetailScreen (task IN_PROGRESS)
@@ -332,7 +374,7 @@ TaskDetailViewModel.getOrCreateConversation()
 Navigate to ChatScreen (chat/{conversationId})
 ```
 
-### 8.2 Chat Screen
+### 9.2 Chat Screen
 
 ```
 ChatScreen
@@ -373,7 +415,7 @@ Task finished (COMPLETED/CANCELLED):
 **WebSocket:** `/api/v1/ws?token=JWT`
 **Message types:** `join`, `joined`, `message`, `message_sent`, `typing`, `read`
 
-### 8.3 Conversation List
+### 9.3 Conversation List
 
 ```
 MainScreen > Messages tab (tab 2)
@@ -398,9 +440,9 @@ Tap card --> ChatScreen (chat/{conversationId})
 
 ---
 
-## 9. Wallet & Deposits
+## 10. Wallet & Deposits
 
-### 9.1 Viewing Wallet
+### 10.1 Viewing Wallet
 
 ```
 MainScreen > Wallet tab (tab 3)
@@ -423,7 +465,7 @@ WalletContent
 - `GET /api/v1/wallet/balance`
 - `GET /api/v1/wallet/transactions`
 
-### 9.2 Deposit Flow (PayOS)
+### 10.2 Deposit Flow (PayOS)
 
 ```
 Wallet tab > Tap Deposit (+) in top bar
@@ -459,7 +501,7 @@ Return to app (lifecycle RESUMED triggers refresh)
 **Constraint:** Max wallet balance = 200,000 VND for deposits (earnings bypass limit)
 **Test server:** Mock PayOS auto-fires webhook after 100ms
 
-### 9.3 Transaction Types
+### 10.3 Transaction Types
 
 | Type              | Direction | Description                         |
 |-------------------|-----------|-------------------------------------|
@@ -473,9 +515,9 @@ Return to app (lifecycle RESUMED triggers refresh)
 
 ---
 
-## 10. Profile & Become Tasker
+## 11. Profile & Become Tasker
 
-### 10.1 Profile View
+### 11.1 Profile View
 
 ```
 MainScreen > Profile tab (tab 1)
@@ -497,7 +539,7 @@ ProfileContent
 
 **Screen:** `ProfileScreen.kt` (`ProfileContent` composable, used both in tab and standalone)
 
-### 10.2 Become Tasker
+### 11.2 Become Tasker
 
 ```
 Profile tab > Tap "Become a Tasker"
@@ -521,7 +563,7 @@ Snackbar: "You are now registered as a tasker!"
 
 ---
 
-## 11. Notifications
+## 12. Notifications
 
 ```
 MainScreen > Tap notification bell in top bar
@@ -529,9 +571,16 @@ MainScreen > Tap notification bell in top bar
     v
 NotificationScreen
     |
-    +-- Notification list (local storage):
+    +-- Notification list (server-fetched + locally cached):
+    |     GET /api/v1/notifications
     |     Each item: icon (by type), title, message, relative time
     |     Unread items highlighted
+    |
+    +-- Real-time delivery via WebSocket:
+    |     ws://{host}/api/v1/ws?token=JWT
+    |     Server pushes new notifications instantly
+    |
+    +-- Local Room cache (NotificationEntity) for offline access
     |
     +-- Top bar actions: Mark all read, Clear all
     |
@@ -540,13 +589,13 @@ Tap notification --> Mark as read + navigate to task_detail/{taskId}
 ```
 
 **Screen:** `NotificationScreen.kt`
-**Storage:** Local Room database (`NotificationEntity`), not server-fetched
-**Types:** `TASK_CREATED`, `APPLICATION_SENT`, `APPLICATION_ACCEPTED`, `TASK_COMPLETED`
+**Storage:** Server-fetched via REST API (`GET /api/v1/notifications`), real-time delivery via WebSocket, local Room cache (`NotificationEntity`) for offline access
+**Types:** `task_created`, `application_received`, `application_accepted`, `application_rejected`, `task_completed`, `payment_received`, `task_cancelled`
 **Badge:** Unread count shown on notification bell icon across all tabs
 
 ---
 
-## 12. My Jobs
+## 13. My Jobs
 
 ```
 Profile > Tap "My Posted Jobs" / "My Applied Jobs" / "My Completed Jobs"
@@ -568,7 +617,7 @@ Task list (paginated, pull-to-refresh)
 
 ---
 
-## 13. Full Job Lifecycle (End-to-End)
+## 14. Full Job Lifecycle (End-to-End)
 
 This is the complete happy-path flow tested by `S13_FullJobLifecycleE2ETest`:
 
@@ -608,24 +657,27 @@ When Bob proposes 90k instead of the task price 100k:
 
 ---
 
-## 14. State Machines
+## 15. State Machines
 
-### 14.1 Task Status
+### 15.1 Task Status
 
 ```
-OPEN ---[accept application]--> IN_PROGRESS ---[complete]--> COMPLETED
-  |
-  +---[cancel]----------------> CANCELLED
+OPEN ---[accept application + escrow payment]--> IN_PROGRESS ---[complete]--> COMPLETED
+  |                                                  |
+  +---[DELETE /api/v1/tasks/:id (soft delete)]-->  CANCELLED
+                                                     ^
+  IN_PROGRESS ---[POST /payments/refund]-------------+
 ```
 
-| Status       | Trigger                             | Actions Taken                          |
-|--------------|-------------------------------------|----------------------------------------|
-| OPEN         | Task created                        | Visible to all, applications accepted  |
-| IN_PROGRESS  | Requester accepts application       | Escrow created, chat enabled           |
-| COMPLETED    | Requester marks complete            | Escrow released to tasker              |
-| CANCELLED    | Requester cancels                   | Escrow refunded (if held)              |
+| Status       | Trigger                                          | Actions Taken                                               |
+|--------------|--------------------------------------------------|-------------------------------------------------------------|
+| OPEN         | Task created                                     | Visible to all, applications accepted                       |
+| IN_PROGRESS  | Accept application + escrow payment               | Escrow created, other apps rejected, chat enabled           |
+| COMPLETED    | Requester marks complete                         | Escrow released to tasker (minus platform fee)              |
+| CANCELLED    | `DELETE /api/v1/tasks/:id` (soft delete, from OPEN) | Pending apps rejected, applicants notified                 |
+| CANCELLED    | `POST /payments/refund` (from IN_PROGRESS)        | Escrow refunded to requester                                |
 
-### 14.2 Application Status
+### 15.2 Application Status
 
 ```
 PENDING ---[requester accepts]--> ACCEPTED
@@ -633,7 +685,7 @@ PENDING ---[requester accepts]--> ACCEPTED
     +---[other app accepted]---> REJECTED
 ```
 
-### 14.3 Escrow Transaction Flow
+### 15.3 Escrow Transaction Flow
 
 ```
 Deposit (PayOS webhook) --> Wallet credited
@@ -698,4 +750,4 @@ Scenario docs: `android/e2escenarios/`
 ---
 
 **Last Updated:** 2026-02-15
-**Version:** 2.1
+**Version:** 2.2

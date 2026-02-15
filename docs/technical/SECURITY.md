@@ -197,6 +197,7 @@ The following route groups require `AuthRequired`:
 | `/api/v1/wallet/*` | AuthRequired |
 | `/api/v1/payments/*` | AuthRequired |
 | `/api/v1/conversations/*` | AuthRequired |
+| `/api/v1/notifications/*` | AuthRequired |
 
 Public routes (no auth): `/api/v1/auth/*`, `/api/v1/health`, `/api/v1/categories`, `GET /api/v1/users/:id`, `/api/v1/payment/webhook`.
 
@@ -211,6 +212,17 @@ Authorization checks are enforced at the service/handler level:
 - **Release payment:** Only the requester can release (`task.RequesterID != requesterID`)
 - **Refund payment:** Only the requester can refund
 - **Conversations:** Only poster or tasker can send/read messages (`conversation.PosterID != client.UserID && conversation.TaskerID != client.UserID`)
+
+#### Task Deletion Race Condition Handling
+
+`DeleteTask` uses `SELECT ... FOR UPDATE` row locking within a database transaction to prevent race conditions during deletion:
+
+- The task row is locked at the start of the transaction, blocking concurrent `ApplyForTask` or `AcceptApplication` operations from proceeding until the transaction completes
+- If an accepted application exists, deletion is blocked and returns an error ("cannot delete: applicant accepted")
+- All pending applications are atomically rejected (status set to "rejected") within the same transaction
+- After commit, rejected applicants are notified asynchronously (non-critical, does not block the deletion)
+
+**Source:** `server/internal/services/task.go` -- `DeleteTask`
 
 ---
 
@@ -503,7 +515,7 @@ private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
 )
 ```
 
-**Stored values:** `access_token`, `refresh_token`, `user_id`, `user_email`, `user_name`
+**Stored values:** `access_token`, `refresh_token`, `user_id`, `user_email`, `user_name`, `is_tasker`
 
 **Source:** `android/app/src/main/java/com/viecz/vieczandroid/data/local/TokenManager.kt`
 

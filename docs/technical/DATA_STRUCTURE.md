@@ -349,6 +349,8 @@ type Task struct {
 open --> in_progress --> completed
   |                        |
   +--> cancelled    cancelled
+        (DeleteTask:
+        soft delete)
 ```
 
 ---
@@ -863,6 +865,7 @@ const (
     NotificationTypeApplicationAccepted NotificationType = "application_accepted"
     NotificationTypeTaskCompleted       NotificationType = "task_completed"
     NotificationTypePaymentReceived     NotificationType = "payment_received"
+    NotificationTypeTaskCancelled       NotificationType = "task_cancelled"
 )
 ```
 
@@ -1030,7 +1033,7 @@ func IsStrongPassword(password string) bool
 4. **Immutable ledger**: WalletTransaction has no BeforeUpdate hook -- entries are append-only
 5. **Balance snapshots**: WalletTransaction stores BalanceBefore/After and EscrowBefore/After for auditability
 6. **Auto-calculated fields**: Transaction.NetAmount is computed from Amount - PlatformFee in hooks
-7. **Soft delete**: Conversation and Message use GORM soft delete; all other models use hard delete
+7. **Soft delete**: Task deletion is a logical soft delete (status set to 'cancelled') at the service layer; Conversation and Message use GORM's built-in soft delete mechanism (`gorm.DeletedAt`); all other deletes are hard deletes
 8. **PayOS integration**: Transaction stores PayOSOrderCode (unique) and PayOSPaymentID for payment gateway tracking
 9. **PostgreSQL arrays**: User.TaskerSkills and Task.ImageURLs use `text[]` PostgreSQL array type via `pq.StringArray`/`[]string`
 10. **Denormalized counters**: User stores TotalTasksCompleted, TotalTasksPosted, TotalEarnings for fast reads

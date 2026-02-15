@@ -159,6 +159,11 @@ All routes are under `/api/v1`.
 | GET    | /conversations                | List user's conversations       |
 | POST   | /conversations                | Create conversation for a task  |
 | GET    | /conversations/:id/messages   | Get message history             |
+| GET    | /notifications                | List notifications              |
+| GET    | /notifications/unread-count   | Get unread count                |
+| PUT    | /notifications/:id/read       | Mark as read                    |
+| PUT    | /notifications/read-all       | Mark all as read                |
+| DELETE | /notifications/:id            | Delete notification             |
 
 ### 4.4 Authentication Flow
 
@@ -277,8 +282,23 @@ erDiagram
     Category ||--o{ Task : "categorizes"
     Task ||--o{ Transaction : "has"
     Conversation ||--o{ Message : "contains"
+    Notification {
+        int64 id PK
+        int64 user_id FK
+        string type "NotificationType"
+        string title
+        string message
+        int64 related_id "nullable"
+        string related_type "nullable"
+        bool is_read "default false"
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at
+    }
+
     Task ||--o| Conversation : "has"
     User ||--o{ Conversation : "participates"
+    User ||--o{ Notification : "receives"
 ```
 
 ### 5.2 Key Models
@@ -316,12 +336,11 @@ linked to a specific task.
 stateDiagram-v2
     [*] --> open
     open --> in_progress : application accepted + escrow created
-    open --> removed : deleted
+    open --> cancelled : deleted
     in_progress --> completed : completed
     in_progress --> cancelled : refunded
     completed --> [*]
     cancelled --> [*]
-    removed --> [*]
 ```
 
 **Application lifecycle:**
@@ -569,7 +588,7 @@ Both flavors can coexist on the same device.
 - **Mock PayOS** -- `CreatePaymentLink` auto-fires a webhook after 100ms to
   instantly credit the wallet
 - **Port 9999** (hardcoded), JWT secret `e2e-test-secret-key`
-- **Seed data** -- 11 categories + 1 test user (tasker-enabled)
+- **Seed data** -- 11 categories + 2 test users (tasker-enabled)
 - **Mock escrow** -- `PAYMENT_MOCK_MODE=true` for wallet-based escrow operations
 
 **Prerequisite:** Start the test DB container: `docker compose -f docker-compose.testdb.yml up -d`

@@ -260,6 +260,8 @@ type userGormRepository struct { db *gorm.DB }
 func NewUserGormRepository(db *gorm.DB) UserRepository { ... }
 ```
 
+**TaskRepository Interface**: Includes `GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error)` which executes `SELECT ... FOR UPDATE` within a GORM transaction for row-level locking. Used by `TaskService.DeleteTask` to prevent concurrent modifications during task deletion.
+
 **Service Layer**: Services encapsulate business logic and depend on repository interfaces, not concrete implementations. Services are injected into handlers.
 
 **Model Validation Hooks**: GORM models implement `BeforeCreate` and `BeforeUpdate` hooks that call `Validate()`, enforcing data integrity at the ORM level.
@@ -270,7 +272,7 @@ Config → Database → Repositories → Services → Handlers → Gin Router
 ```
 
 **Service Dependencies:**
-- `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, and `NotificationService`
+- `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, `NotificationService`, and `*gorm.DB` (used for DB transactions with `SELECT ... FOR UPDATE` row locking in `DeleteTask`)
 - `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, and `NotificationService`
 - `NotificationService` depends on `NotificationRepository` and `WebSocket Hub`
 - `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, and `*gorm.DB`

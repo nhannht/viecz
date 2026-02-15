@@ -274,6 +274,7 @@ The test server mirrors all production routes exactly:
 - Payments: `/api/v1/payments/{escrow,release,refund}`
 - WebSocket: `/api/v1/ws`
 - Conversations: `/api/v1/conversations/...`
+- Notifications: `/api/v1/notifications/...`
 - Categories: `/api/v1/categories`
 
 ---

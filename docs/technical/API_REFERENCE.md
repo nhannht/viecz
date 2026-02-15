@@ -507,22 +507,30 @@ Returns updated task.
 
 ### 4.5. Delete Task
 
-Delete/cancel a task. Only the requester can delete.
+Cancel a task (soft delete). Sets task status to `cancelled` -- does NOT remove the row from the database. Only the requester can cancel their own task.
 
 **Endpoint:** `DELETE /api/v1/tasks/:id`
 **Auth:** Required (must be requester)
+
+#### Behavior
+
+- **Soft delete**: Sets task status to `cancelled` (row remains in the database)
+- **Rejects pending applications**: All applications with `pending` status are changed to `rejected`
+- **Notifies applicants**: Sends a `task_cancelled` notification to each applicant whose application was rejected
+- **Blocks when accepted application exists**: If any application has `accepted` status, the request is rejected with a `400` error (task cannot be cancelled once a tasker has been accepted)
+- **Row locking**: Uses `SELECT ... FOR UPDATE` to lock the task row, preventing race conditions between concurrent cancel and accept operations
 
 #### Response: 200 OK
 
 ```json
 {
-  "message": "task deleted successfully"
+  "message": "task cancelled successfully"
 }
 ```
 
 #### Errors
 
-- `400` - Not authorized or task not deletable
+- `400` - Not authorized, task not deletable, or an accepted application exists
 
 ---
 
@@ -1406,6 +1414,7 @@ Notifications are created server-side at these trigger points:
 | `application_accepted` | Applicant | Task creator accepted their application |
 | `task_completed` | Both parties | Task marked complete |
 | `payment_received` | Tasker | Escrow released to their wallet |
+| `task_cancelled` | Rejected applicants | Task creator deletes/cancels the task |
 
 ### 12.7. Real-Time Delivery
 
@@ -1480,7 +1489,7 @@ open --> in_progress --> completed
 |------------|---------|
 | `open` -> `in_progress` | Escrow payment created (via webhook confirmation) |
 | `in_progress` -> `completed` | Requester calls `POST /tasks/:id/complete` |
-| `open` -> `cancelled` | Requester deletes task |
+| `open` -> `cancelled` | Requester deletes task. Side effects: all pending applications rejected, applicants notified via `task_cancelled` notification |
 
 ### C. Payment Flow
 
@@ -1535,7 +1544,7 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 - Mock PayOS (auto-completes deposits via internal webhook)
 - JWT secret: `e2e-test-secret-key`
 - Max wallet balance: 200,000 VND
-- Seeded test user: `nhannht.alpha@gmail.com` / `Password123` (tasker)
+- Seeded test users: `nhan1@gmail.com` / `Password123` and `nhan2@gmail.com` / `Password123` (both taskers)
 - Port: 9999
 
 ### H. Route Summary
