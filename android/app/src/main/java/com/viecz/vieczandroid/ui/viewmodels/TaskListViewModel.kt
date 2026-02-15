@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.ui.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.repository.TaskRepository
@@ -10,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,12 +22,14 @@ data class TaskListUiState(
     val currentPage: Int = 1,
     val hasMore: Boolean = true,
     val selectedCategoryId: Long? = null,
-    val searchQuery: String? = null
+    val searchQuery: String? = null,
+    val currentUserId: Long? = null
 )
 
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
-    private val repository: TaskRepository
+    private val repository: TaskRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskListUiState())
@@ -36,6 +40,11 @@ class TaskListViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                currentUserId = tokenManager.userId.firstOrNull()
+            )
+        }
         loadTasks()
     }
 

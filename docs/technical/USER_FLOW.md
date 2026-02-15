@@ -165,6 +165,7 @@ HomeContent loads tasks via TaskListViewModel
     |
     +-- Task list (LazyColumn, paginated, pull-to-refresh)
     |     Each TaskCard shows: title, price, location, status
+    |     Own tasks (requesterId == currentUserId) show "Your Task" badge
     |
     v
 Tap TaskCard --> navigate to task_detail/{taskId}
@@ -172,7 +173,7 @@ Tap TaskCard --> navigate to task_detail/{taskId}
 
 **Screen:** `HomeScreen.kt` (`HomeContent` composable)
 **API:** `GET /api/v1/tasks?page=N&category_id=X&search=Q`
-**Features:** Infinite scroll (`loadMore()`), pull-to-refresh, shimmer loading
+**Features:** Infinite scroll (`loadMore()`), pull-to-refresh, shimmer loading, own-task indicator
 
 ---
 
@@ -211,6 +212,11 @@ Navigate to TaskDetailScreen (new task)
 
 ```
 TaskDetailScreen (task with status OPEN)
+    |
+    +-- Own task (requesterId == currentUserId): Apply section hidden
+    |
+    +-- Non-tasker user (!isTasker): "Register as Tasker" CTA card
+    |     Navigates to Profile screen to become a tasker
     |
     +-- Task NOT yet applied: "Apply for this Task" button
     |   |
@@ -691,5 +697,5 @@ Scenario docs: `android/e2escenarios/`
 
 ---
 
-**Last Updated:** 2026-02-14
-**Version:** 2.0
+**Last Updated:** 2026-02-15
+**Version:** 2.1

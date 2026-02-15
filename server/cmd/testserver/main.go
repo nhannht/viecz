@@ -10,15 +10,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"viecz.vieczserver/internal/auth"
 	"viecz.vieczserver/internal/database"
 	"viecz.vieczserver/internal/handlers"
 	"viecz.vieczserver/internal/middleware"
-	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/services"
 	"viecz.vieczserver/internal/websocket"
@@ -87,26 +84,42 @@ func (m *mockPayOS) ConfirmWebhook(_ context.Context, webhookURL string) (string
 	return webhookURL, nil
 }
 
+// dropAllTables drops all tables for a fresh database on each test server start.
+func dropAllTables(db *gorm.DB) {
+	tables := []string{
+		"notifications", "messages", "conversations",
+		"wallet_transactions", "wallets", "transactions",
+		"task_applications", "tasks", "categories", "users",
+	}
+	for _, table := range tables {
+		db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", table))
+	}
+	log.Println("Dropped all tables for fresh start")
+}
+
 func main() {
 	log.Println("=== Viecz Test Server ===")
-	log.Println("SQLite in-memory | Mock PayOS | Auto-complete deposits")
+	log.Println("PostgreSQL (port 5433) | Mock PayOS | Auto-complete deposits")
 
-	// 1. In-memory SQLite
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	// 1. PostgreSQL test database (docker-compose.testdb.yml)
+	db, err := database.NewGORM(
+		database.WithHost("localhost"),
+		database.WithPort(5433),
+		database.WithUser("postgres"),
+		database.WithPassword("testpass"),
+		database.WithDatabase("viecz_test"),
+		database.WithSSLMode("disable"),
+	)
 	if err != nil {
-		log.Fatalf("Failed to create in-memory DB: %v", err)
+		log.Fatalf("Failed to connect to test database: %v\nHint: run 'docker compose -f docker-compose.testdb.yml up -d' first", err)
 	}
+
+	// Drop all tables for a fresh start (equivalent to in-memory SQLite reset)
+	dropAllTables(db)
 
 	// 2. AutoMigrate all tables
 	if err := database.AutoMigrate(db); err != nil {
 		log.Fatalf("AutoMigrate failed: %v", err)
-	}
-
-	// Also migrate conversation/message tables
-	if err := db.AutoMigrate(&models.Conversation{}, &models.Message{}); err != nil {
-		log.Fatalf("AutoMigrate (messaging) failed: %v", err)
 	}
 
 	// 3. Seed categories

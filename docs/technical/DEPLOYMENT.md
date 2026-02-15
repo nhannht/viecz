@@ -24,13 +24,13 @@
 | Component | Technology | Database | Port |
 |---|---|---|---|
 | Production server | Go (Gin) | PostgreSQL 15 | 8080 (default) |
-| Test server | Go (Gin) | SQLite in-memory | 9999 |
+| Test server | Go (Gin) | PostgreSQL (Docker tmpfs, port 5433) | 9999 |
 | Android app (dev) | Kotlin / Jetpack Compose | Room (local) | N/A |
 | Android app (prod) | Kotlin / Jetpack Compose | Room (local) | N/A |
 
 **Production stack**: Docker Compose with three services (PostgreSQL, Go server, Cloudflare Tunnel). The Go server connects to PostgreSQL via GORM. External HTTPS is handled by Cloudflare Tunnel (no Nginx or Certbot needed).
 
-**Test stack**: Standalone Go binary with SQLite in-memory and mock PayOS. Zero external dependencies.
+**Test stack**: Go binary with PostgreSQL test container (port 5433, Docker tmpfs for RAM-backed storage) and mock PayOS. Requires test PostgreSQL container (`docker-compose.testdb.yml`).
 
 ---
 
@@ -239,12 +239,12 @@ Only the `server` container rebuilds; `postgres` data persists in the `postgres_
 
 ## 5. Test Server (Development / E2E)
 
-The test server (`server/cmd/testserver/main.go`) is a standalone binary for local development and E2E testing. It requires no external services.
+The test server (`server/cmd/testserver/main.go`) is a binary for local development and E2E testing. It requires a test PostgreSQL container.
 
 | Property | Value |
 |---|---|
 | Port | `9999` (hardcoded) |
-| Database | SQLite in-memory (fresh on each start) |
+| Database | PostgreSQL (port 5433, Docker tmpfs -- drops all tables on startup for fresh state) |
 | JWT Secret | `e2e-test-secret-key` (hardcoded) |
 | PayOS | Mock -- `CreatePaymentLink` auto-fires webhook after 100ms to credit wallet |
 | Seed data | Categories + 2 test users (`nhan1@gmail.com`, `nhan2@gmail.com` / `Password123`) |
@@ -253,12 +253,16 @@ The test server (`server/cmd/testserver/main.go`) is a standalone binary for loc
 ### Build and run
 
 ```bash
+# 1. Start the test PostgreSQL container
+docker compose -f docker-compose.testdb.yml up -d
+
+# 2. Build and run the test server
 cd server
-CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver
+go build -o bin/testserver ./cmd/testserver
 ./bin/testserver
 ```
 
-`CGO_ENABLED=1` is required because the SQLite driver uses CGO.
+The test server connects to PostgreSQL on port 5433 (database `viecz_test`, user `postgres`, password `testpass`). The container uses tmpfs for RAM-backed storage, making it fast and ephemeral.
 
 ### Routes
 
@@ -364,7 +368,7 @@ The script `scripts/run-full-e2e.sh` automates the full E2E flow:
 ### What it does
 
 1. Detects or starts an Android emulator / finds a USB device
-2. Builds the test server (`CGO_ENABLED=1 go build`)
+2. Builds the test server (`go build`)
 3. Starts the test server on port 9999
 4. Waits for health check
 5. Runs `S13_FullJobLifecycleE2ETest` via Gradle instrumented tests

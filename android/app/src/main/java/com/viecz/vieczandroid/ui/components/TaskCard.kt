@@ -18,6 +18,7 @@ import java.util.*
 @Composable
 fun TaskCard(
     task: Task,
+    isOwnTask: Boolean = false,
     onClick: () -> Unit
 ) {
     Card(
@@ -54,7 +55,25 @@ fun TaskCard(
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                TaskStatusBadge(status = task.status.name)
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    TaskStatusBadge(status = task.status.name)
+                    if (isOwnTask) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "Your Task",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))

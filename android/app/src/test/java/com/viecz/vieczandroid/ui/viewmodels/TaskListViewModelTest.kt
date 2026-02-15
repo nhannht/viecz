@@ -1,11 +1,13 @@
 package com.viecz.vieczandroid.ui.viewmodels
 
 import app.cash.turbine.test
+import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -24,16 +26,19 @@ class TaskListViewModelTest {
     val coroutineRule = CoroutineTestRule()
 
     private lateinit var mockRepository: TaskRepository
+    private lateinit var mockTokenManager: TokenManager
     private lateinit var viewModel: TaskListViewModel
 
     @Before
     fun setup() {
         mockRepository = mockk()
+        mockTokenManager = mockk()
+        every { mockTokenManager.userId } returns MutableStateFlow(1L)
         // Mock the initial loadTasks call in init block
         coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(
             TestData.createTasksResponse()
         )
-        viewModel = TaskListViewModel(mockRepository)
+        viewModel = TaskListViewModel(mockRepository, mockTokenManager)
     }
 
     @After
@@ -150,7 +155,7 @@ class TaskListViewModelTest {
         coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
 
         // Create a fresh ViewModel where init returns hasMore=true (20 items >= 20 limit)
-        val vm = TaskListViewModel(mockRepository)
+        val vm = TaskListViewModel(mockRepository, mockTokenManager)
         advanceUntilIdle()
 
         vm.loadMore()
@@ -208,6 +213,16 @@ class TaskListViewModelTest {
         }
 
         coVerify { mockRepository.getTasks(page = 1, categoryId = null, search = null, status = "open") }
+    }
+
+    @Test
+    fun `currentUserId should be set from TokenManager`() = runTest {
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(1L, state.currentUserId)
+        }
     }
 
     @Test

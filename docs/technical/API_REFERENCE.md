@@ -1531,7 +1531,7 @@ On the test server, step 2-3 happen automatically (mock PayOS fires webhook afte
 ### G. Test Server
 
 The test server (`cmd/testserver/main.go`) provides an identical API with:
-- SQLite in-memory database (fresh on each restart)
+- PostgreSQL test database (port 5433, Docker tmpfs -- drops all tables on each restart)
 - Mock PayOS (auto-completes deposits via internal webhook)
 - JWT secret: `e2e-test-secret-key`
 - Max wallet balance: 200,000 VND

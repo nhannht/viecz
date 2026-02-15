@@ -202,6 +202,7 @@ fun HomeContent(
                     items(taskUiState.tasks, key = { it.id }) { task ->
                         TaskCard(
                             task = task,
+                            isOwnTask = taskUiState.currentUserId != null && task.requesterId == taskUiState.currentUserId,
                             onClick = { onNavigateToTaskDetail(task.id) }
                         )
                     }

@@ -1,6 +1,7 @@
 package com.viecz.vieczandroid.ui.viewmodels
 
 import app.cash.turbine.test
+import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.*
 import com.viecz.vieczandroid.data.repository.MessageRepository
 import com.viecz.vieczandroid.data.repository.PaymentRepository
@@ -9,6 +10,7 @@ import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -30,6 +32,7 @@ class TaskDetailViewModelTest {
     private lateinit var mockTaskRepository: TaskRepository
     private lateinit var mockPaymentRepository: PaymentRepository
     private lateinit var mockMessageRepository: MessageRepository
+    private lateinit var mockTokenManager: TokenManager
     private lateinit var viewModel: TaskDetailViewModel
 
     @Before
@@ -37,7 +40,10 @@ class TaskDetailViewModelTest {
         mockTaskRepository = mockk()
         mockPaymentRepository = mockk()
         mockMessageRepository = mockk()
-        viewModel = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository)
+        mockTokenManager = mockk()
+        every { mockTokenManager.userId } returns MutableStateFlow(1L)
+        every { mockTokenManager.isTasker } returns MutableStateFlow(true)
+        viewModel = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository, mockTokenManager)
     }
 
     @After
@@ -243,6 +249,70 @@ class TaskDetailViewModelTest {
 
         viewModel.uiState.test {
             assertNull(awaitItem().paymentCheckoutUrl)
+        }
+    }
+
+    @Test
+    fun `loadTask should set isOwnTask true when requesterId matches current user`() = runTest {
+        val task = TestData.createTask(id = 5, requesterId = 1) // matches mock userId=1
+        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(emptyList())
+
+        viewModel.loadTask(5)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.isOwnTask)
+        }
+    }
+
+    @Test
+    fun `loadTask should set isOwnTask false when requesterId differs from current user`() = runTest {
+        val task = TestData.createTask(id = 5, requesterId = 99) // does not match mock userId=1
+        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(emptyList())
+
+        viewModel.loadTask(5)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertFalse(state.isOwnTask)
+        }
+    }
+
+    @Test
+    fun `loadTask should set isCurrentUserTasker true when user is tasker`() = runTest {
+        val task = TestData.createTask(id = 5, requesterId = 99)
+        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(emptyList())
+
+        viewModel.loadTask(5)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.isCurrentUserTasker)
+        }
+    }
+
+    @Test
+    fun `loadTask should set isCurrentUserTasker false when user is not tasker`() = runTest {
+        // Override mock to return false for isTasker
+        every { mockTokenManager.isTasker } returns MutableStateFlow(false)
+        val vm = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository, mockTokenManager)
+
+        val task = TestData.createTask(id = 5, requesterId = 99)
+        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
+        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(emptyList())
+
+        vm.loadTask(5)
+        advanceUntilIdle()
+
+        vm.uiState.test {
+            val state = awaitItem()
+            assertFalse(state.isCurrentUserTasker)
         }
     }
 }

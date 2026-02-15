@@ -27,7 +27,7 @@ Viecz is a P2P marketplace connecting university students for small services. Th
 
 - **Go backend** (Gin + GORM) serving REST and WebSocket APIs
 - **Native Android app** (Kotlin + Jetpack Compose) with MVVM architecture
-- **PostgreSQL** (production) / **SQLite** (test server) for persistence
+- **PostgreSQL** (production, port 5432) / **PostgreSQL** (test server, port 5433, Docker tmpfs) for persistence
 - **PayOS** for payment processing (deposit via payment links, escrow via wallet)
 
 ---
@@ -68,7 +68,7 @@ graph TD
 
     NGINX --> Handlers
 
-    DB[("PostgreSQL (Production)<br/>SQLite (Test)")]
+    DB[("PostgreSQL (Production :5432)<br/>PostgreSQL (Test :5433)")]
     PayOS(("PayOS<br/>(Payments)"))
 
     Repository --> DB
@@ -111,7 +111,7 @@ graph TD
 | HTTP Framework   | Gin                     | 1.11    |
 | ORM              | GORM                    | 1.31    |
 | Database (prod)  | PostgreSQL (via pgx)    | -       |
-| Database (test)  | SQLite in-memory        | -       |
+| Database (test)  | PostgreSQL (Docker tmpfs, port 5433) | -  |
 | Auth             | golang-jwt/jwt          | v5.3    |
 | WebSocket        | Gorilla WebSocket       | 1.5     |
 | Payments         | PayOS SDK               | v2.0    |
@@ -144,7 +144,7 @@ graph TD
 server/
 ├── cmd/
 │   ├── server/main.go           # Production entrypoint (PostgreSQL)
-│   └── testserver/main.go       # Test server entrypoint (SQLite in-memory, mock PayOS)
+│   └── testserver/main.go       # Test server entrypoint (PostgreSQL test DB, mock PayOS)
 │
 ├── internal/
 │   ├── auth/
@@ -205,7 +205,7 @@ server/
 │   │   ├── message_gorm.go
 │   │   ├── notification.go      # NotificationRepository interface
 │   │   ├── notification_gorm.go
-│   │   └── *_gorm_test.go       # Repository tests (SQLite in-memory)
+│   │   └── *_gorm_test.go       # Repository tests
 │   │
 │   ├── models/                  # GORM models (struct + Validate + BeforeCreate hooks)
 │   │   ├── user.go
@@ -381,7 +381,7 @@ android/app/src/main/java/com/viecz/vieczandroid/
 │   │   └── NotificationViewModel.kt
 │   │
 │   ├── components/
-│   │   └── TaskCard.kt              # Reusable task card component
+│   │   └── TaskCard.kt              # Reusable task card (isOwnTask badge support)
 │   │
 │   └── theme/
 │       ├── Color.kt
@@ -603,8 +603,8 @@ erDiagram
 
 | Aspect          | Production (`cmd/server`)     | Test (`cmd/testserver`)          |
 |-----------------|-------------------------------|----------------------------------|
-| Database        | PostgreSQL (via GORM driver)  | SQLite in-memory                 |
-| Connection      | `database.NewGORM()` + options| `gorm.Open(sqlite.Open(...))`    |
+| Database        | PostgreSQL (via GORM driver)  | PostgreSQL (Docker tmpfs, port 5433) |
+| Connection      | `database.NewGORM()` + options| `database.NewGORM()` + test DB options |
 | Migrations      | AutoMigrate + golang-migrate  | AutoMigrate only                 |
 | Seed Data       | Categories + test users       | Categories + 2 test users        |
 | PayOS           | Real PayOS SDK                | Mock (auto-fires webhook)        |
@@ -879,11 +879,11 @@ graph LR
 graph LR
     Device["Emulator / Device"]
     GoBinary["Go Binary<br/>(:9999)"]
-    SQLite[("SQLite<br/>(in-memory)")]
+    PostgreSQLTest[("PostgreSQL<br/>(:5433 tmpfs)")]
     MockPayOS["Mock PayOS<br/>(auto-webhook)"]
 
     Device --> GoBinary
-    GoBinary --> SQLite
+    GoBinary --> PostgreSQLTest
     GoBinary --> MockPayOS
 ```
 

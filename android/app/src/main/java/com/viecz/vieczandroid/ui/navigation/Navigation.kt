@@ -154,6 +154,9 @@ fun VieczNavHost(
                 },
                 onNavigateToChat = { conversationId ->
                     navController.navigate(NavigationRoutes.chat(conversationId))
+                },
+                onNavigateToProfile = {
+                    navController.navigate(NavigationRoutes.PROFILE)
                 }
             )
         }

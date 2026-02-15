@@ -41,6 +41,8 @@ class HomeScreenTest {
     private lateinit var categoryViewModel: CategoryViewModel
     private lateinit var notificationViewModel: NotificationViewModel
 
+    private lateinit var mockTokenManager: TokenManager
+
     @Before
     fun setup() {
         mockTaskRepo = mockk()
@@ -48,7 +50,7 @@ class HomeScreenTest {
 
         val mockNotificationApi: NotificationApi = mockk(relaxed = true)
         val mockNotificationDao: NotificationDao = mockk()
-        val mockTokenManager: TokenManager = mockk()
+        mockTokenManager = mockk()
         coEvery { mockTokenManager.userId } returns flowOf(1L)
         coEvery { mockNotificationDao.getNotificationsByUserId(any()) } returns flowOf(emptyList())
         coEvery { mockNotificationDao.getUnreadCount(any()) } returns flowOf(0)
@@ -70,7 +72,7 @@ class HomeScreenTest {
         )
         coEvery { mockCategoryRepo.getCategories() } returns Result.success(categories)
 
-        taskListViewModel = TaskListViewModel(mockTaskRepo)
+        taskListViewModel = TaskListViewModel(mockTaskRepo, mockTokenManager)
         categoryViewModel = CategoryViewModel(mockCategoryRepo)
     }
 
@@ -254,7 +256,7 @@ class HomeScreenTest {
         coEvery { mockTaskRepo.getTasks(any(), any(), any(), any(), any(), any()) } returns Result.success(
             TestData.createTasksResponse(data = emptyList(), total = 0)
         )
-        val emptyViewModel = TaskListViewModel(mockTaskRepo)
+        val emptyViewModel = TaskListViewModel(mockTaskRepo, mockTokenManager)
 
         composeTestRule.setContent {
             MaterialTheme {
@@ -280,7 +282,7 @@ class HomeScreenTest {
         coEvery { mockTaskRepo.getTasks(any(), any(), any(), any(), any(), any()) } returns Result.failure(
             Exception("Network error")
         )
-        val errorViewModel = TaskListViewModel(mockTaskRepo)
+        val errorViewModel = TaskListViewModel(mockTaskRepo, mockTokenManager)
 
         composeTestRule.setContent {
             MaterialTheme {

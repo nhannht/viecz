@@ -14,7 +14,7 @@ The system is a monolithic client-server architecture:
 
 - **Client** -- Native Android app (Kotlin / Jetpack Compose)
 - **Server** -- Go REST API + WebSocket (Gin framework)
-- **Database** -- PostgreSQL (production) / SQLite in-memory (test server)
+- **Database** -- PostgreSQL (production, port 5432) / PostgreSQL (test server, port 5433, Docker tmpfs)
 - **Payments** -- PayOS integration for deposits; wallet-based escrow for task payments
 
 ---
@@ -45,8 +45,8 @@ graph TD
     end
 
     subgraph Database
-        PostgreSQL["PostgreSQL (prod)"]
-        SQLite["SQLite (test)"]
+        PostgreSQL["PostgreSQL (prod :5432)"]
+        PostgreSQLTest["PostgreSQL (test :5433)"]
     end
 
     PayOS["PayOS (payment gateway)"]
@@ -56,7 +56,7 @@ graph TD
     NginxProxy --> Handlers
     NginxProxy --> WebSocketHub
     GORM --> PostgreSQL
-    GORM --> SQLite
+    GORM --> PostgreSQLTest
     GORM -.->|external| PayOS
 ```
 
@@ -71,11 +71,11 @@ graph TD
 | Android Net  | Retrofit + Moshi, OkHttp (HTTP + WebSocket)             |
 | Android DB   | Room (local cache for tasks, categories, notifications) |
 | Server       | Go 1.21+, Gin web framework                             |
-| ORM          | GORM (PostgreSQL driver + SQLite for tests)             |
+| ORM          | GORM (PostgreSQL driver for prod + test)                |
 | Auth         | JWT (HS256) via golang-jwt/jwt v5                       |
 | WebSocket    | Gorilla WebSocket                                       |
 | Payments     | PayOS (Vietnamese payment gateway)                      |
-| Database     | PostgreSQL 15+ (prod), SQLite in-memory (test)          |
+| Database     | PostgreSQL 15+ (prod :5432), PostgreSQL (test :5433, Docker tmpfs) |
 | Config       | godotenv (.env) + OS environment variables              |
 
 ---
@@ -88,7 +88,7 @@ graph TD
 server/
 ├── cmd/
 │   ├── server/main.go        # Production entrypoint (PostgreSQL + real PayOS)
-│   └── testserver/main.go    # Dev/E2E entrypoint (SQLite + mock PayOS)
+│   └── testserver/main.go    # Dev/E2E entrypoint (PostgreSQL test DB + mock PayOS)
 ├── internal/
 │   ├── auth/                  # JWT generation, validation, middleware
 │   ├── config/                # Env-based configuration
@@ -108,12 +108,13 @@ graph TD
     A["HTTP Request"] --> B["Handler<br/>Parse request, validate input,<br/>call service, return JSON"]
     B --> C["Service<br/>Business logic, orchestration,<br/>transactions"]
     C --> D["Repository<br/>GORM queries, interface-based<br/>(testable)"]
-    D --> E["GORM<br/>ORM -> PostgreSQL / SQLite"]
+    D --> E["GORM<br/>ORM -> PostgreSQL"]
 ```
 
 Each repository is defined as a Go interface (e.g. `UserRepository`, `TaskRepository`)
 with a GORM-backed implementation (`UserGormRepository`, `TaskGormRepository`). This
-allows swapping the data layer for testing.
+allows swapping the data layer for testing. Both production and test servers use
+PostgreSQL, ensuring identical code paths.
 
 ### 4.3 API Routes
 
@@ -562,14 +563,16 @@ Both flavors can coexist on the same device.
 
 ## 9. Test Server
 
-`server/cmd/testserver/main.go` provides a zero-dependency dev server:
+`server/cmd/testserver/main.go` provides a dev server that requires only a test PostgreSQL container:
 
-- **SQLite in-memory** -- fresh database on each start, no PostgreSQL needed
+- **PostgreSQL (port 5433, Docker tmpfs)** -- drops all tables on startup for fresh state; same DB engine as production
 - **Mock PayOS** -- `CreatePaymentLink` auto-fires a webhook after 100ms to
   instantly credit the wallet
 - **Port 9999** (hardcoded), JWT secret `e2e-test-secret-key`
 - **Seed data** -- 11 categories + 1 test user (tasker-enabled)
 - **Mock escrow** -- `PAYMENT_MOCK_MODE=true` for wallet-based escrow operations
+
+**Prerequisite:** Start the test DB container: `docker compose -f docker-compose.testdb.yml up -d`
 
 Used for: local Android development, E2E instrumented tests, manual API testing.
 
@@ -580,7 +583,7 @@ Used for: local Android development, E2E instrumented tests, manual API testing.
 | Decision | Rationale |
 |----------|-----------|
 | **Monolithic Go server** | MVP speed; single deployable binary |
-| **GORM with interface repos** | Easy PostgreSQL/SQLite swap; testable |
+| **GORM with interface repos** | Same PostgreSQL for prod and test; testable via interfaces |
 | **Wallet-based escrow** | Simpler than real-time payment holds; no external escrow service |
 | **WebSocket Hub pattern** | Standard Go concurrency pattern; scales to thousands of connections |
 | **JWT access + refresh** | Stateless auth; short-lived access tokens for security |

@@ -330,7 +330,7 @@ Build variants: `devDebug`, `devRelease`, `prodDebug`, `prodRelease`
 **For Emulator:**
 ```bash
 # 1. Start test server on host machine
-cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+docker compose -f docker-compose.testdb.yml up -d && cd server && go build -o bin/testserver ./cmd/testserver && ./bin/testserver
 
 # 2. Build and install dev APK on emulator
 cd android && ./gradlew installDevDebug
@@ -342,7 +342,7 @@ cd android && ./gradlew installDevDebug
 **For Physical Device:**
 ```bash
 # 1. Start test server on host machine
-cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+docker compose -f docker-compose.testdb.yml up -d && cd server && go build -o bin/testserver ./cmd/testserver && ./bin/testserver
 
 # 2. Set up port forwarding (CRITICAL for physical devices)
 adb reverse tcp:9999 tcp:9999
@@ -384,6 +384,32 @@ android/E2E_TESTING_GUIDE.md
 - `RealServerBaseE2ETest` tests (e.g., `S13_FullJobLifecycleE2ETest`) require the Go test server running on port 9999
 - For LazyColumn scrolling in tests, use `performScrollToNode()` on the scrollable container — `performScrollTo()` does NOT work for off-screen LazyColumn items
 
+**E2E Test Writing Rules (Learned from Mistakes)**:
+- **ALWAYS `performScrollToNode` before clicking anything in a LazyColumn** — never assume an element is visible on-screen. Tablets and phones have different screen sizes; a button visible on one device may be off-screen on another. Apply this to ALL screens: CreateTask form, TaskDetail, Profile, etc.
+  ```kotlin
+  // BAD — assumes button is on-screen
+  composeRule.onNodeWithText("Create Task").performClick()
+
+  // GOOD — scrolls to it first
+  composeRule.onAllNodes(hasScrollToNodeAction()).onFirst()
+      .performScrollToNode(hasText("Create Task"))
+  composeRule.onNodeWithText("Create Task").performClick()
+  ```
+- **Use `waitUntil` + `performClick` instead of `assertIsDisplayed`** for elements that load asynchronously (e.g., TopAppBar actions that depend on API response)
+  ```kotlin
+  // BAD — may fail if element exists but isn't "displayed" yet
+  composeRule.onNodeWithContentDescription("Delete Task").assertIsDisplayed()
+
+  // GOOD — waits for it to appear in semantics tree
+  composeRule.waitUntil(timeoutMillis = 10000) {
+      composeRule.onAllNodes(hasContentDescription("Delete Task"))
+          .fetchSemanticsNodes().isNotEmpty()
+  }
+  composeRule.onNodeWithContentDescription("Delete Task").performClick()
+  ```
+- **Assert server-side truth, not UI cache** — the marketplace list doesn't auto-refresh on back-navigation. Instead of checking if a deleted task disappeared from the list, verify wallet balance, check API response, or navigate to a fresh screen.
+- **Reuse battle-tested helpers from S13** — `S13_FullJobLifecycleE2ETest` has working `registerUser`, `loginUser`, `depositFunds`, `createTask`, `navigateToProfileAndLogout` patterns. Copy them instead of rewriting from scratch.
+
 **Do NOT** use manual ADB claudtest for E2E scenarios that are already covered by instrumented tests.
 
 **E2E Test Naming Convention** (CRITICAL - ALWAYS FOLLOW):
@@ -399,11 +425,16 @@ android/E2E_TESTING_GUIDE.md
 - When creating new E2E tests, assign the next available scenario number
 
 **MANDATORY — Dev Server & Log Checking**:
-- **Always start the Go test server** before running E2E tests:
+- **Always start the test PostgreSQL and Go test server** before running E2E tests:
   ```bash
-  cd server && CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+  # 1. Start test PostgreSQL (port 5433, tmpfs — RAM-backed, fresh on container restart)
+  docker compose -f docker-compose.testdb.yml up -d
+
+  # 2. Build and start the test server
+  cd server && go build -o bin/testserver ./cmd/testserver && ./bin/testserver
   ```
   Verify it's running: `curl -s http://localhost:9999/api/v1/health`
+- The test server drops all tables on startup — restart it between test runs for a fresh DB
 - **When a test fails or a bug occurs**, ALWAYS check logs from **both** sides:
   1. **Server logs**: `cat /tmp/testserver.log` or check the terminal running the test server — look for 500 errors, panics, SQL errors, WebSocket failures
   2. **App logs**: `adb logcat -d --pid=$(adb shell pidof com.viecz.vieczandroid.dev) | tail -100` — look for network errors, HTTP status codes, crash stack traces
@@ -509,7 +540,7 @@ All Gradle commands use the existing daemon - no restart needed.
 - golang-jwt/jwt for JWT authentication
 - Gorilla WebSocket for real-time chat
 - PayOS integration for payments
-- SQLite in-memory for fast testing
+- PostgreSQL for both production and test server (same code path)
 
 #### Architecture Patterns
 - **Handler Layer**: HTTP endpoints using Gin
@@ -540,15 +571,15 @@ go tool cover -html=coverage.out
 
 #### Test Server (Development/E2E)
 
-A standalone test server for local development and E2E testing. Uses SQLite in-memory (no PostgreSQL needed) with mock PayOS (auto-completes deposits via internal webhook).
+A standalone test server for local development and E2E testing. Uses PostgreSQL (same engine as production) with mock PayOS (auto-completes deposits via internal webhook).
 
 ```bash
+# 1. Start the test PostgreSQL container (port 5433, RAM-backed via tmpfs)
+docker compose -f docker-compose.testdb.yml up -d
+
+# 2. Build and run the test server
 cd server
-
-# Build the test server (requires CGO for SQLite)
-CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver
-
-# Run the test server
+go build -o bin/testserver ./cmd/testserver
 ./bin/testserver
 ```
 
@@ -556,7 +587,7 @@ CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver
 - **Source**: `server/cmd/testserver/main.go`
 - **Port**: 9999 (hardcoded)
 - **URL**: `http://localhost:9999`
-- **Database**: SQLite in-memory (fresh on each start)
+- **Database**: PostgreSQL on port 5433 (`docker-compose.testdb.yml`), tmpfs-backed (RAM), drops all tables on startup
 - **JWT Secret**: `e2e-test-secret-key` (hardcoded)
 - **PayOS**: Mock mode — `CreatePaymentLink` auto-fires webhook to credit wallet after 100ms
 - **Seed data**: Categories + test user (see `database/seed.go`)
@@ -565,8 +596,8 @@ CGO_ENABLED=1 go build -o bin/testserver ./cmd/testserver
 - **Use case**: Local Android development, E2E tests (`scripts/run-full-e2e.sh`), manual API testing
 
 **When to use which server:**
-- **Production server** (`cmd/server/main.go`): Requires PostgreSQL, real PayOS keys, `.env` file
-- **Test server** (`cmd/testserver/main.go`): Zero external dependencies, instant startup, auto-resets on restart
+- **Production server** (`cmd/server/main.go`): Requires PostgreSQL (port 5432), real PayOS keys, `.env` file
+- **Test server** (`cmd/testserver/main.go`): Requires test PostgreSQL (`docker compose -f docker-compose.testdb.yml up -d`), mock PayOS, drops/recreates tables on each start
 
 ### Shared UI Components (Not Yet Implemented)
 - Planned location: `packages/ui/`

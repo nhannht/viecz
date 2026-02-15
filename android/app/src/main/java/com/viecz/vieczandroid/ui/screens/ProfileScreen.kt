@@ -72,6 +72,7 @@ class ProfileViewModel @Inject constructor(
             val result = repository.becomeTasker()
             result.fold(
                 onSuccess = { user ->
+                    tokenManager.updateIsTasker(true)
                     _uiState.value = _uiState.value.copy(
                         user = user,
                         isLoading = false,

@@ -37,7 +37,7 @@ flowchart TD
         L5["<b>5. Data Access Layer (GORM)</b><br/>- Parameterized queries<br/>- Model validation hooks<br/>(BeforeCreate / BeforeUpdate)"]
     end
 
-    DB[("<b>PostgreSQL</b> (prod)<br/><b>SQLite</b> (test)")]
+    DB[("<b>PostgreSQL</b> (prod :5432)<br/><b>PostgreSQL</b> (test :5433)")]
 
     APP -- "HTTPS / Bearer JWT" --> L1
     L1 --> L2
@@ -54,7 +54,7 @@ flowchart TD
 | Backend framework | Go + Gin |
 | Authentication | Email/password + JWT (golang-jwt/jwt v5) |
 | Password hashing | bcrypt (golang.org/x/crypto/bcrypt) |
-| ORM | GORM (PostgreSQL prod, SQLite test) |
+| ORM | GORM (PostgreSQL for both prod and test) |
 | Payment gateway | PayOS (payos-lib-golang v2) |
 | WebSocket | Gorilla WebSocket |
 | Android HTTP | OkHttp + Retrofit |

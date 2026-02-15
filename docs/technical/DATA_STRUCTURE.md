@@ -34,7 +34,7 @@ This document describes all data models in the Go backend (`server/internal/mode
 
 - **ORM**: GORM v2
 - **Production DB**: PostgreSQL (via `gorm.io/driver/postgres`)
-- **Test DB**: SQLite in-memory (via `gorm.io/driver/sqlite`, CGO required)
+- **Test DB**: PostgreSQL (port 5433, Docker tmpfs via `docker-compose.testdb.yml`)
 - **Migration**: GORM AutoMigrate + golang-migrate for production
 
 **AutoMigrate order** (`server/internal/database/gorm.go`):
