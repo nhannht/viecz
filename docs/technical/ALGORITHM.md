@@ -153,6 +153,15 @@ Login(email, password):
 
 **Update constraint:** Only open tasks can be edited (title, description, price, etc.).
 
+**Side effects on user statistics:**
+
+| Event | Side Effect |
+|---|---|
+| `CreateTask` succeeds | `userRepo.IncrementTasksPosted(requesterID)` — increments `total_tasks_posted` |
+| `CompleteTask` succeeds | `userRepo.IncrementTasksCompleted(requesterID)` — increments `total_tasks_completed` |
+
+Both are non-critical — logged on failure but do not block the main operation.
+
 ### Application Status State Machine
 
 ```

@@ -220,7 +220,7 @@ docker compose ps
 curl -s http://localhost:8080/api/v1/health
 ```
 
-The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, test user) via `database.SeedData`.
+The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, 2 test users) via `database.SeedData`.
 
 ### Updating
 
@@ -247,7 +247,7 @@ The test server (`server/cmd/testserver/main.go`) is a standalone binary for loc
 | Database | SQLite in-memory (fresh on each start) |
 | JWT Secret | `e2e-test-secret-key` (hardcoded) |
 | PayOS | Mock -- `CreatePaymentLink` auto-fires webhook after 100ms to credit wallet |
-| Seed data | Categories + test user |
+| Seed data | Categories + 2 test users (`nhan1@gmail.com`, `nhan2@gmail.com` / `Password123`) |
 | Health check | `GET /api/v1/health` |
 
 ### Build and run

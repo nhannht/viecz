@@ -64,51 +64,50 @@ func seedCategories(ctx context.Context, db *gorm.DB) error {
 	return nil
 }
 
-// seedTestUser creates a test user for development
+// seedTestUser creates test users for development
 func seedTestUser(ctx context.Context, db *gorm.DB) error {
 	userRepo := repository.NewUserGormRepository(db)
 	authService := auth.NewAuthService(userRepo)
 
-	testEmail := "nhannht.alpha@gmail.com"
-	testPassword := "Password123"
-	testName := "nhannht"
+	testUsers := []struct {
+		email    string
+		password string
+		name     string
+	}{
+		{"nhan1@gmail.com", "Password123", "nhan1"},
+		{"nhan2@gmail.com", "Password123", "nhan2"},
+	}
 
-	// Check if user already exists
-	existing, err := userRepo.GetByEmail(ctx, testEmail)
-	if err == nil && existing != nil {
-		log.Printf("✓ Test user already exists: %s (%s)", testName, testEmail)
-
-		// Make sure existing user is a tasker
-		if !existing.IsTasker {
-			existing.IsTasker = true
-			if err := userRepo.Update(ctx, existing); err != nil {
-				log.Printf("Failed to make existing test user a tasker: %v", err)
-				return err
+	for _, tu := range testUsers {
+		existing, err := userRepo.GetByEmail(ctx, tu.email)
+		if err == nil && existing != nil {
+			log.Printf("✓ Test user already exists: %s (%s)", tu.name, tu.email)
+			if !existing.IsTasker {
+				existing.IsTasker = true
+				if err := userRepo.Update(ctx, existing); err != nil {
+					log.Printf("Failed to make existing test user a tasker: %v", err)
+					return err
+				}
+				log.Printf("✓ Updated existing test user to be a tasker")
 			}
-			log.Printf("✓ Updated existing test user to be a tasker")
-		} else {
-			log.Printf("✓ Test user is already a tasker")
+			continue
 		}
 
-		return nil
-	}
+		user, err := authService.Register(ctx, tu.email, tu.password, tu.name)
+		if err != nil {
+			log.Printf("Failed to seed test user %s: %v", tu.email, err)
+			return err
+		}
 
-	// Create test user
-	user, err := authService.Register(ctx, testEmail, testPassword, testName)
-	if err != nil {
-		log.Printf("Failed to seed test user: %v", err)
-		return err
-	}
+		user.IsTasker = true
+		if err := userRepo.Update(ctx, user); err != nil {
+			log.Printf("Failed to make test user a tasker: %v", err)
+			return err
+		}
 
-	// Make the test user a tasker so they can apply for tasks
-	user.IsTasker = true
-	if err := userRepo.Update(ctx, user); err != nil {
-		log.Printf("Failed to make test user a tasker: %v", err)
-		return err
+		log.Printf("✓ Seeded test user: %s (%s) [TASKER]", user.Name, user.Email)
+		log.Printf("  Login credentials: email=%s, password=%s", tu.email, tu.password)
 	}
-
-	log.Printf("✓ Seeded test user: %s (%s) [TASKER]", user.Name, user.Email)
-	log.Printf("  Login credentials: email=%s, password=%s", testEmail, testPassword)
 
 	return nil
 }

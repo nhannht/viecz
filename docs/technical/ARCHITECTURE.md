@@ -606,7 +606,7 @@ erDiagram
 | Database        | PostgreSQL (via GORM driver)  | SQLite in-memory                 |
 | Connection      | `database.NewGORM()` + options| `gorm.Open(sqlite.Open(...))`    |
 | Migrations      | AutoMigrate + golang-migrate  | AutoMigrate only                 |
-| Seed Data       | Categories + test user        | Categories + test user           |
+| Seed Data       | Categories + test users       | Categories + 2 test users        |
 | PayOS           | Real PayOS SDK                | Mock (auto-fires webhook)        |
 | Port            | Configurable (default 8080)   | 9999 (hardcoded)                 |
 | JWT Secret      | From env var                  | `e2e-test-secret-key`            |
