@@ -1401,6 +1401,78 @@ func TestTaskService_GetTaskApplications(t *testing.T) {
 	}
 }
 
+func TestTaskService_CreateTask_IncrementsTasksPosted(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+	userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com", TotalTasksPosted: 0}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+	ctx := context.Background()
+
+	_, err := service.CreateTask(ctx, 1, &CreateTaskInput{
+		Title:       "Test Task",
+		Description: "Test Description",
+		CategoryID:  1,
+		Price:       10000,
+		Location:    "HCMUS",
+	})
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if userRepo.users[1].TotalTasksPosted != 1 {
+		t.Errorf("Expected TotalTasksPosted to be 1, got %d", userRepo.users[1].TotalTasksPosted)
+	}
+
+	// Create a second task to verify increment
+	_, err = service.CreateTask(ctx, 1, &CreateTaskInput{
+		Title:       "Second Task",
+		Description: "Test Description",
+		CategoryID:  1,
+		Price:       5000,
+		Location:    "HCMUS",
+	})
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if userRepo.users[1].TotalTasksPosted != 2 {
+		t.Errorf("Expected TotalTasksPosted to be 2, got %d", userRepo.users[1].TotalTasksPosted)
+	}
+}
+
+func TestTaskService_CompleteTask_IncrementsTasksCompleted(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com", TotalTasksCompleted: 0}
+	taskerID := int64(2)
+	taskRepo.tasks[1] = &models.Task{
+		ID:          1,
+		RequesterID: 1,
+		TaskerID:    &taskerID,
+		Status:      models.TaskStatusInProgress,
+	}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+	ctx := context.Background()
+
+	err := service.CompleteTask(ctx, 1, 1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if userRepo.users[1].TotalTasksCompleted != 1 {
+		t.Errorf("Expected TotalTasksCompleted to be 1, got %d", userRepo.users[1].TotalTasksCompleted)
+	}
+}
+
 // Helper functions
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || (len(s) > 0 && len(substr) > 0 && hasSubstring(s, substr)))
