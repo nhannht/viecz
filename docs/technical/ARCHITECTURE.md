@@ -166,6 +166,7 @@ server/
 │   │   ├── users.go             # GetProfile, GetMyProfile, UpdateProfile, BecomeTasker
 │   │   ├── tasks.go             # CRUD + Apply, Accept, Complete
 │   │   ├── categories.go        # GetCategories
+│   │   ├── notification.go      # CRUD notifications, mark read, unread count
 │   │   ├── payment.go           # CreateEscrowPayment, ReleasePayment, RefundPayment
 │   │   ├── wallet.go            # GetWallet, Deposit, GetTransactionHistory
 │   │   ├── webhook.go           # PayOS webhook handler
@@ -176,6 +177,7 @@ server/
 │   ├── services/                # Business logic
 │   │   ├── user.go              # UserService
 │   │   ├── task.go              # TaskService (create, list, apply, accept, complete)
+│   │   ├── notification.go      # NotificationService (create + WebSocket delivery)
 │   │   ├── wallet.go            # WalletService (deposit, escrow, release, refund)
 │   │   ├── payment.go           # PaymentService (orchestrates transactions + wallet)
 │   │   ├── payos.go             # PayOSService (PayOSServicer interface + SDK wrapper)
@@ -201,6 +203,8 @@ server/
 │   │   ├── conversation_gorm.go
 │   │   ├── message.go           # MessageRepository interface
 │   │   ├── message_gorm.go
+│   │   ├── notification.go      # NotificationRepository interface
+│   │   ├── notification_gorm.go
 │   │   └── *_gorm_test.go       # Repository tests (SQLite in-memory)
 │   │
 │   ├── models/                  # GORM models (struct + Validate + BeforeCreate hooks)
@@ -213,6 +217,7 @@ server/
 │   │   ├── wallet_transaction.go
 │   │   ├── conversation.go
 │   │   ├── message.go           # Also defines WebSocketMessage and FlexTime
+│   │   ├── notification.go      # Notification model + NotificationType enum
 │   │   └── payment.go
 │   │
 │   ├── middleware/
@@ -265,8 +270,9 @@ Config → Database → Repositories → Services → Handlers → Gin Router
 ```
 
 **Service Dependencies:**
-- `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, and `WalletService` (for available balance validation at task creation/update)
-- `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, and `WalletService`
+- `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, and `NotificationService`
+- `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, and `NotificationService`
+- `NotificationService` depends on `NotificationRepository` and `WebSocket Hub`
 - `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, and `*gorm.DB`
 
 ---
@@ -289,6 +295,7 @@ android/app/src/main/java/com/viecz/vieczandroid/
 │   │   ├── WalletApi.kt             # GET /wallet, POST /wallet/deposit
 │   │   ├── PaymentApi.kt            # Escrow/release/refund
 │   │   ├── MessageApi.kt            # Conversations + messages
+│   │   ├── NotificationApi.kt       # Notifications CRUD + mark read
 │   │   ├── AuthInterceptor.kt       # OkHttp interceptor (injects Bearer token)
 │   │   └── ErrorResponse.kt         # Error parsing
 │   │
@@ -320,7 +327,8 @@ android/app/src/main/java/com/viecz/vieczandroid/
 │   │   ├── Conversation.kt
 │   │   ├── Message.kt
 │   │   ├── PaymentRequest.kt
-│   │   └── PaymentResponse.kt
+│   │   ├── PaymentResponse.kt
+│   │   └── Notification.kt          # ServerNotification + response DTOs
 │   │
 │   ├── repository/                  # Repository classes (API + local cache)
 │   │   ├── AuthRepository.kt       # AuthApi + TokenManager
@@ -330,7 +338,7 @@ android/app/src/main/java/com/viecz/vieczandroid/
 │   │   ├── WalletRepository.kt     # WalletApi
 │   │   ├── PaymentRepository.kt    # PaymentApi
 │   │   ├── MessageRepository.kt    # MessageApi
-│   │   └── NotificationRepository.kt # NotificationDao (local-only)
+│   │   └── NotificationRepository.kt # NotificationApi + NotificationDao (network-first, local cache)
 │   │
 │   └── websocket/
 │       └── WebSocketClient.kt      # OkHttp WebSocket (connect, join, send, typing, read)
@@ -410,14 +418,14 @@ graph LR
 NetworkModule (@Singleton)
 ├── OkHttpClient (AuthInterceptor + LoggingInterceptor)
 ├── Retrofit (Moshi converter)
-├── AuthApi, TaskApi, CategoryApi, UserApi, WalletApi, PaymentApi, MessageApi
+├── AuthApi, TaskApi, CategoryApi, UserApi, WalletApi, PaymentApi, MessageApi, NotificationApi
 
 DataModule (@Singleton)
 ├── TokenManager (EncryptedSharedPreferences)
 ├── AppDatabase (Room)
 ├── TaskDao, CategoryDao, NotificationDao
 ├── AuthRepository, TaskRepository, CategoryRepository
-├── UserRepository, WalletRepository, PaymentRepository, NotificationRepository
+├── UserRepository, WalletRepository, PaymentRepository, NotificationRepository(NotificationApi + NotificationDao)
 ```
 
 ### Navigation Routes
@@ -454,7 +462,7 @@ The following models are auto-migrated on server startup:
 
 ```
 User, Category, Task, TaskApplication, Transaction,
-Wallet, WalletTransaction, Conversation, Message
+Wallet, WalletTransaction, Conversation, Message, Notification
 ```
 
 ### Entity Relationship Diagram
@@ -565,6 +573,17 @@ erDiagram
         string description
     }
 
+    Notification {
+        int id PK
+        int user_id FK
+        string type
+        string title
+        string message
+        int task_id FK
+        bool is_read
+        timestamp created_at
+    }
+
     User ||--o{ Task : "requester"
     Category ||--o{ Task : "has"
     Task ||--o{ TaskApplication : "has"
@@ -576,6 +595,8 @@ erDiagram
     User ||--o{ Transaction : "payer"
     User ||--o{ Transaction : "payee"
     Task ||--o{ Transaction : "has"
+    User ||--o{ Notification : "receives"
+    Task ||--o{ Notification : "triggers"
 ```
 
 ### Production vs Test Server Database
@@ -598,7 +619,7 @@ Room is used for offline caching on the Android side:
 |-------------------|-----------------------------------|
 | `TaskEntity`      | Cache task list for offline view  |
 | `CategoryEntity`  | Cache categories                  |
-| `NotificationEntity` | Local notification storage     |
+| `NotificationEntity` | Server notification cache (network-first) |
 
 ---
 
@@ -659,6 +680,7 @@ sequenceDiagram
 | `message` | Bidirectional  | Chat message                         |
 | `typing`  | Client → Server | Typing indicator                     |
 | `read`    | Client → Server | Mark conversation as read            |
+| `notification` | Server → Client | Real-time notification push     |
 | `error`   | Server → Client | Error response                       |
 
 ### Client-Side (OkHttp WebSocket)
@@ -817,6 +839,11 @@ All routes are prefixed with `/api/v1/`.
 | POST   | `/payments/escrow`             | Create escrow payment         |
 | POST   | `/payments/release`            | Release escrow to tasker      |
 | POST   | `/payments/refund`             | Refund escrow to requester    |
+| GET    | `/notifications`               | List notifications            |
+| GET    | `/notifications/unread-count`  | Get unread count              |
+| POST   | `/notifications/:id/read`      | Mark notification as read     |
+| POST   | `/notifications/read-all`      | Mark all as read              |
+| DELETE | `/notifications/:id`           | Delete notification           |
 | GET    | `/conversations`               | List user's conversations     |
 | POST   | `/conversations`               | Create conversation           |
 | GET    | `/conversations/:id/messages`  | Get conversation messages     |
@@ -828,13 +855,7 @@ All routes are prefixed with `/api/v1/`.
 
 ### Server Infrastructure
 
-| Field    | Value                      |
-|----------|----------------------------|
-| Provider | OVH Bare Metal (Singapore) |
-| OS       | Ubuntu 24.04 LTS           |
-| CPU      | 8 cores                    |
-| RAM      | 32 GB                      |
-| Disk     | 1.8 TB RAID                |
+Production runs on a dedicated bare metal server. Infrastructure details (IP, hostname, provider specs) are maintained separately and not included in public documentation.
 
 ### Production Stack
 

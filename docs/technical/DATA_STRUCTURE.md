@@ -1,7 +1,7 @@
 # DATA_STRUCTURE.md
 
 **Project:** Viecz - Go Backend Data Models
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 
 This document describes all data models in the Go backend (`server/internal/models/`), their GORM mappings, relationships, hooks, and constants.
 
@@ -21,6 +21,7 @@ This document describes all data models in the Go backend (`server/internal/mode
    - [WalletTransaction](#7-wallettransaction)
    - [Conversation](#8-conversation)
    - [Message](#9-message)
+   - [Notification](#10-notification)
 4. [Request/Response DTOs](#requestresponse-dtos)
 5. [Enums and Constants](#enums-and-constants)
 6. [GORM Hooks](#gorm-hooks)
@@ -48,6 +49,7 @@ db.AutoMigrate(
     &models.WalletTransaction{},
     &models.Conversation{},
     &models.Message{},
+    &models.Notification{},
 )
 ```
 
@@ -133,6 +135,17 @@ erDiagram
         bool is_read
     }
 
+    Notification {
+        int64 id PK
+        int64 user_id FK
+        string type
+        string title
+        string message
+        int64 task_id FK
+        bool is_read
+        timestamp created_at
+    }
+
     User ||--|| Wallet : "has one"
     User ||--o{ Task : "posts requester"
     User ||--o{ Task : "works tasker"
@@ -142,10 +155,12 @@ erDiagram
     User ||--o{ Conversation : "as poster"
     User ||--o{ Conversation : "as tasker"
     User ||--o{ Message : "sends"
+    User ||--o{ Notification : "receives"
     Category ||--o{ Task : "classifies"
     Task ||--o{ TaskApplication : "has"
     Task ||--o{ Transaction : "has"
     Task ||--o| Conversation : "has"
+    Task ||--o{ Notification : "triggers"
     Wallet ||--o{ WalletTransaction : "has"
     Transaction ||--o{ WalletTransaction : "linked to"
     Conversation ||--o{ Message : "contains"
@@ -656,6 +671,43 @@ type Message struct {
 
 ---
 
+### 10. Notification
+
+**File:** `server/internal/models/notification.go`
+**Table:** `notifications`
+
+```go
+type Notification struct {
+    ID        int64            `gorm:"primaryKey;autoIncrement" json:"id"`
+    UserID    int64            `gorm:"index;not null" json:"user_id"`
+    Type      NotificationType `gorm:"type:varchar(50);not null" json:"type"`
+    Title     string           `gorm:"type:varchar(255);not null" json:"title"`
+    Message   string           `gorm:"type:text;not null" json:"message"`
+    TaskID    *int64           `gorm:"index" json:"task_id,omitempty"`
+    IsRead    bool             `gorm:"default:false" json:"is_read"`
+    CreatedAt time.Time        `gorm:"autoCreateTime" json:"created_at"`
+    User      User             `gorm:"foreignKey:UserID" json:"-"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Primary key |
+| UserID | int64 | index, not null | FK to users.id (notification recipient) |
+| Type | NotificationType | type:varchar(50), not null | Notification type (see NotificationType enum) |
+| Title | string | type:varchar(255), not null | Notification title |
+| Message | string | type:text, not null | Notification message body |
+| TaskID | *int64 | index | FK to tasks.id (nullable, context link) |
+| IsRead | bool | default:false | Whether the user has read this notification |
+| CreatedAt | time.Time | autoCreateTime | Record creation timestamp |
+
+**Associations:**
+- `User` -> User (foreignKey: UserID)
+
+**GORM Hooks:** None.
+
+---
+
 ## Request/Response DTOs
 
 **File:** `server/internal/models/payment.go`
@@ -797,6 +849,23 @@ const (
 )
 ```
 
+### NotificationType
+
+**File:** `server/internal/models/notification.go`
+
+```go
+type NotificationType string
+
+const (
+    NotificationTypeTaskCreated         NotificationType = "task_created"
+    NotificationTypeApplicationReceived NotificationType = "application_received"
+    NotificationTypeApplicationSent     NotificationType = "application_sent"
+    NotificationTypeApplicationAccepted NotificationType = "application_accepted"
+    NotificationTypeTaskCompleted       NotificationType = "task_completed"
+    NotificationTypePaymentReceived     NotificationType = "payment_received"
+)
+```
+
 ### PaymentStatus
 
 **File:** `server/internal/models/payment.go`
@@ -827,6 +896,7 @@ const (
 | WalletTransaction | Validate() | -- | Immutable ledger entries (no update hook) |
 | Conversation | -- | -- | No hooks |
 | Message | -- | -- | No hooks |
+| Notification | -- | -- | No hooks |
 
 ---
 
@@ -876,6 +946,8 @@ All models use auto-incrementing primary keys. Most use `int64`; Conversation an
 | messages | conversation_id | INDEX | Get messages in conversation |
 | messages | sender_id | INDEX | Get messages by sender |
 | messages | deleted_at | INDEX | GORM soft-delete filter |
+| notifications | user_id | INDEX | Get notifications for a user |
+| notifications | task_id | INDEX | Get notifications for a task |
 
 ### Foreign Key Constraints
 
@@ -899,6 +971,8 @@ All models use auto-incrementing primary keys. Most use `int64`; Conversation an
 | conversations | tasker_id | users.id | -- |
 | messages | conversation_id | conversations.id | CASCADE |
 | messages | sender_id | users.id | -- |
+| notifications | user_id | users.id | -- |
+| notifications | task_id | tasks.id | -- |
 
 ---
 
@@ -930,11 +1004,13 @@ func IsStrongPassword(password string) bool
 - User -> Conversation (as PosterID)
 - User -> Conversation (as TaskerID)
 - User -> Message (as SenderID)
+- User -> Notification (as UserID)
 - User -> WalletTransaction (as ReferenceUserID)
 - Category -> Task
 - Task -> TaskApplication
 - Task -> Transaction
 - Task -> WalletTransaction
+- Task -> Notification
 - Task -> Conversation
 - Wallet -> WalletTransaction
 - Transaction -> WalletTransaction

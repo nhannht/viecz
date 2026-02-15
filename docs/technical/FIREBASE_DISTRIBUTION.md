@@ -37,10 +37,7 @@ Firebase App Distribution distributes pre-release APKs to internal testers witho
 
 ### Current Testers
 
-| Email | Added |
-|---|---|
-| nhannht.alpha@gmail.com | 2026-02-15 |
-| trangiasang77@gmail.com | 2026-02-15 |
+Tester emails are managed in the Firebase Console. See the Firebase project for the current list.
 
 ### Key Files
 

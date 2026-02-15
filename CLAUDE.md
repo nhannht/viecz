@@ -107,8 +107,8 @@ Viecz is a multi-package project containing:
 |----------|---------|
 | `SYSTEM_DESIGN.md` | High-level architecture, tech stack, patterns |
 | `ARCHITECTURE.md` | Go backend layers, Android MVVM, ER diagram, service dependencies |
-| `DATA_STRUCTURE.md` | 9 GORM models, schemas, relationships |
-| `API_REFERENCE.md` | 32 REST endpoints + WebSocket |
+| `DATA_STRUCTURE.md` | 10 GORM models, schemas, relationships |
+| `API_REFERENCE.md` | 37 REST endpoints + WebSocket |
 | `USER_FLOW.md` | Auth, task, payment, chat flows |
 | `ALGORITHM.md` | JWT, escrow, WebSocket routing, wallet, available balance validation |
 | `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification |
@@ -627,26 +627,28 @@ cd android
 ./gradlew --refresh-dependencies
 ```
 
-## Server Deployment to sg (CRITICAL - ALWAYS FOLLOW)
+## Server Deployment (CRITICAL - ALWAYS FOLLOW)
 
-**MANDATORY**: Do NOT use Docker or git push/pull for deploying server fixes. Use direct binary deployment:
+**MANDATORY**:
+1. **ALWAYS ask the user before deploying.** Never deploy without explicit user confirmation.
+2. Do NOT use Docker or git push/pull for deploying server fixes. Use direct binary deployment.
+3. Do NOT use `sudo` for deployment. Use manual process (pkill + nohup).
 
 ```bash
 # 1. Cross-compile for Linux on local machine
 cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/server-linux ./cmd/server
 
-# 2. Rsync binary to sg
-rsync -avz bin/server-linux baremetal-sg-ks3:~/nhannht-projects/viecz/server/bin/
+# 2. Rsync binary to production server (see global CLAUDE.md for SSH details)
+rsync -avz bin/server-linux <ssh-alias>:<remote-project-path>/server/bin/
 
-# 3. SSH to sg and restart the server
-ssh baremetal-sg-ks3 "sudo systemctl restart viecz-server"
-# OR if running manually:
-ssh baremetal-sg-ks3 "pkill -f server-linux; cd ~/nhannht-projects/viecz && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &"
+# 3. Restart the server (manual — no sudo, no systemctl)
+ssh <ssh-alias> "pkill -f server-linux || true"
+ssh -f <ssh-alias> "cd <remote-project-path> && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &"
 ```
 
 **Why**: Faster iteration — no Docker rebuild (~90s), no git push/pull round-trip. Just build + rsync + restart.
 
-**Server details**: See `sg` in global CLAUDE.md (SSH: `baremetal-sg-ks3`, IP: 139.99.69.32)
+**Server details**: See `sg` in global CLAUDE.md for SSH alias, IP, and connection details.
 
 ## Project Status
 

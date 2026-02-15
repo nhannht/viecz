@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-15 (Notifications added)
 
 ---
 
@@ -20,8 +20,9 @@
 9. [Webhooks](#9-webhooks)
 10. [Conversations & Messages](#10-conversations--messages)
 11. [WebSocket](#11-websocket)
-12. [Error Responses](#12-error-responses)
-13. [Appendices](#13-appendices)
+12. [Notifications](#12-notifications)
+13. [Error Responses](#13-error-responses)
+14. [Appendices](#14-appendices)
 
 ---
 
@@ -1275,7 +1276,151 @@ Must join a conversation before sending/receiving messages in it.
 
 ---
 
-## 12. Error Responses
+## 12. Notifications
+
+All notification endpoints require authentication. Users can only access their own notifications.
+
+### 12.1. List Notifications
+
+Get paginated list of notifications for the authenticated user.
+
+**Endpoint:** `GET /api/v1/notifications`
+**Auth:** Required
+
+#### Query Parameters
+
+| Parameter | Type | Default | Constraints | Description |
+|-----------|------|---------|-------------|-------------|
+| `limit` | int | 20 | 1-100 | Number of notifications |
+| `offset` | int | 0 | >= 0 | Offset for pagination |
+
+#### Response: 200 OK
+
+```json
+{
+  "notifications": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "type": "application_received",
+      "title": "New Application",
+      "message": "Someone applied to your task 'Deliver lunch'",
+      "task_id": 5,
+      "is_read": false,
+      "created_at": "2026-02-15T10:00:00Z"
+    }
+  ],
+  "total": 12
+}
+```
+
+---
+
+### 12.2. Get Unread Count
+
+Get the number of unread notifications for the authenticated user.
+
+**Endpoint:** `GET /api/v1/notifications/unread-count`
+**Auth:** Required
+
+#### Response: 200 OK
+
+```json
+{
+  "unread_count": 3
+}
+```
+
+---
+
+### 12.3. Mark as Read
+
+Mark a single notification as read.
+
+**Endpoint:** `POST /api/v1/notifications/:id/read`
+**Auth:** Required (must be notification owner)
+
+#### Response: 200 OK
+
+```json
+{
+  "message": "notification marked as read"
+}
+```
+
+#### Errors
+
+- `400` - Invalid notification ID
+- `404` - Notification not found or not owned by user
+
+---
+
+### 12.4. Mark All as Read
+
+Mark all notifications as read for the authenticated user.
+
+**Endpoint:** `POST /api/v1/notifications/read-all`
+**Auth:** Required
+
+#### Response: 200 OK
+
+```json
+{
+  "message": "all notifications marked as read"
+}
+```
+
+---
+
+### 12.5. Delete Notification
+
+Delete a single notification.
+
+**Endpoint:** `DELETE /api/v1/notifications/:id`
+**Auth:** Required (must be notification owner)
+
+#### Response: 200 OK
+
+```json
+{
+  "message": "notification deleted"
+}
+```
+
+#### Errors
+
+- `400` - Invalid notification ID
+- `404` - Notification not found or not owned by user
+
+---
+
+### 12.6. Notification Types
+
+Notifications are created server-side at these trigger points:
+
+| Type | Recipient | Trigger |
+|------|-----------|---------|
+| `task_created` | Task creator | Task posted successfully |
+| `application_received` | Task creator | Someone applied to their task |
+| `application_sent` | Applicant | Application submitted |
+| `application_accepted` | Applicant | Task creator accepted their application |
+| `task_completed` | Both parties | Task marked complete |
+| `payment_received` | Tasker | Escrow released to their wallet |
+
+### 12.7. Real-Time Delivery
+
+When a notification is created, if the recipient is connected via WebSocket, a real-time message is sent:
+
+```json
+{
+  "type": "notification",
+  "content": "Someone applied to your task 'Deliver lunch'"
+}
+```
+
+---
+
+## 13. Error Responses
 
 ### Standard Error Format
 
@@ -1310,7 +1455,7 @@ Or with message detail:
 
 ---
 
-## 13. Appendices
+## 14. Appendices
 
 ### A. Health Check
 
@@ -1425,6 +1570,11 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 | GET | `/api/v1/payment/return` | No | Payment return redirect |
 | POST | `/api/v1/payment/webhook` | No | PayOS webhook |
 | POST | `/api/v1/payment/confirm-webhook` | No | Confirm webhook URL |
+| GET | `/api/v1/notifications` | Yes | List notifications |
+| GET | `/api/v1/notifications/unread-count` | Yes | Get unread count |
+| POST | `/api/v1/notifications/:id/read` | Yes | Mark notification as read |
+| POST | `/api/v1/notifications/read-all` | Yes | Mark all as read |
+| DELETE | `/api/v1/notifications/:id` | Yes | Delete notification |
 | GET | `/api/v1/conversations` | Yes | List conversations |
 | POST | `/api/v1/conversations` | Yes | Create conversation |
 | GET | `/api/v1/conversations/:id/messages` | Yes | Get messages |
