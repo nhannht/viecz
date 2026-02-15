@@ -27,6 +27,21 @@ func (r *taskGormRepository) Create(ctx context.Context, task *models.Task) erro
 	return nil
 }
 
+func (r *taskGormRepository) GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error) {
+	var task models.Task
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	if err := db.WithContext(ctx).Set("gorm:query_option", "FOR UPDATE").First(&task, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("task not found")
+		}
+		return nil, fmt.Errorf("failed to get task for update: %w", err)
+	}
+	return &task, nil
+}
+
 func (r *taskGormRepository) GetByID(ctx context.Context, id int64) (*models.Task, error) {
 	var task models.Task
 	if err := r.db.WithContext(ctx).First(&task, id).Error; err != nil {

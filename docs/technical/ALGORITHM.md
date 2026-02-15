@@ -138,7 +138,7 @@ Login(email, password):
                       |                       v            v
                       |                  completed     cancelled
                       |
-                      +--- DeleteTask (only open tasks)
+                      +--- DeleteTask (soft delete → cancelled)
 ```
 
 **Transition rules enforced in code:**
@@ -149,7 +149,26 @@ Login(email, password):
 | open -> in_progress | System | `CreateEscrowPayment`: task must be open, payer = requester |
 | in_progress -> completed | Requester | `CompleteTask`: task must be in_progress, caller = requester |
 | in_progress -> cancelled | Requester | `RefundPayment`: task must be in_progress, caller = requester |
-| open -> deleted | Requester | `DeleteTask`: task must be open, caller = requester |
+| open -> cancelled | Requester | `DeleteTask`: task must be open, caller = requester, no accepted apps |
+
+### DeleteTask (Soft Delete) Logic
+
+```
+DeleteTask(taskID, requesterID):
+  DB Transaction (with SELECT FOR UPDATE row lock):
+    1. Get task with row lock
+    2. Verify ownership (requesterID == task.RequesterID)
+    3. Verify status == "open"
+    4. Check applications:
+       - If ANY app has status "accepted" → error "cannot delete: applicant accepted"
+    5. Set task.status = "cancelled"
+    6. Reject all pending applications (status → "rejected")
+
+  After commit (non-critical):
+    7. Notify rejected applicants (type: task_cancelled)
+```
+
+**Race condition handling:** Uses `SELECT ... FOR UPDATE` within a DB transaction to prevent concurrent application acceptance during deletion. Unit tests use a non-transactional fallback (db=nil).
 
 **Update constraint:** Only open tasks can be edited (title, description, price, etc.).
 
@@ -167,7 +186,8 @@ Both are non-critical — logged on failure but do not block the main operation.
 ```
 pending ──> accepted   (chosen application)
    |
-   +──> rejected      (all others when one is accepted)
+   +──> rejected      (all others when one is accepted,
+                        or all pending when task is deleted/cancelled)
 ```
 
 ---

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
 )
 
@@ -13,6 +14,7 @@ import (
 type TaskRepository interface {
 	Create(ctx context.Context, task *models.Task) error
 	GetByID(ctx context.Context, id int64) (*models.Task, error)
+	GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error)
 	Update(ctx context.Context, task *models.Task) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, filters TaskFilters) ([]*models.Task, error)
@@ -72,6 +74,11 @@ func (r *taskRepository) Create(ctx context.Context, task *models.Task) error {
 	}
 
 	return nil
+}
+
+func (r *taskRepository) GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error) {
+	// SQL-based repository delegates to GetByID (no GORM transaction support)
+	return r.GetByID(ctx, id)
 }
 
 func (r *taskRepository) GetByID(ctx context.Context, id int64) (*models.Task, error) {

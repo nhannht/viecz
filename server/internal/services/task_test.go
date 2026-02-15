@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/testutil"
@@ -29,6 +30,10 @@ func (m *mockTaskRepository) Create(ctx context.Context, task *models.Task) erro
 	task.ID = int64(len(m.tasks) + 1)
 	m.tasks[task.ID] = task
 	return nil
+}
+
+func (m *mockTaskRepository) GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error) {
+	return m.GetByID(ctx, id)
 }
 
 func (m *mockTaskRepository) GetByID(ctx context.Context, id int64) (*models.Task, error) {
@@ -404,7 +409,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 				tt.setupRepo(catRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -541,7 +546,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -628,7 +633,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -750,7 +755,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			app, err := service.ApplyForTask(ctx, tt.taskID, tt.taskerID, tt.input)
@@ -865,7 +870,7 @@ func TestTaskService_AcceptApplication(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.AcceptApplication(ctx, tt.applicationID, tt.requesterID)
@@ -926,7 +931,7 @@ func TestTaskService_GetTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.GetTask(ctx, tt.taskID)
@@ -1032,7 +1037,7 @@ func TestTaskService_UpdateTask(t *testing.T) {
 				tt.setupRepo(taskRepo, catRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -1060,28 +1065,93 @@ func TestTaskService_DeleteTask(t *testing.T) {
 		name        string
 		taskID      int64
 		requesterID int64
-		setupRepo   func(*mockTaskRepository)
+		setupRepo   func(*mockTaskRepository, *mockApplicationRepository)
 		wantErr     bool
 		errContains string
+		verifyAfter func(t *testing.T, taskRepo *mockTaskRepository, appRepo *mockApplicationRepository)
 	}{
 		{
-			name:        "valid deletion",
+			name:        "valid deletion - open task no applications",
 			taskID:      1,
 			requesterID: 1,
-			setupRepo: func(taskRepo *mockTaskRepository) {
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+					Title:       "Test Task",
+				}
+			},
+			wantErr: false,
+			verifyAfter: func(t *testing.T, taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
+				task := taskRepo.tasks[1]
+				if task.Status != models.TaskStatusCancelled {
+					t.Errorf("Expected task status 'cancelled', got '%s'", task.Status)
+				}
+			},
+		},
+		{
+			name:        "valid deletion - open task with pending applications rejected",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
+				taskRepo.tasks[1] = &models.Task{
+					ID:          1,
+					RequesterID: 1,
+					Status:      models.TaskStatusOpen,
+					Title:       "Test Task",
+				}
+				appRepo.applications[1] = &models.TaskApplication{
+					ID:       1,
+					TaskID:   1,
+					TaskerID: 2,
+					Status:   models.ApplicationStatusPending,
+				}
+				appRepo.applications[2] = &models.TaskApplication{
+					ID:       2,
+					TaskID:   1,
+					TaskerID: 3,
+					Status:   models.ApplicationStatusPending,
+				}
+			},
+			wantErr: false,
+			verifyAfter: func(t *testing.T, taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
+				task := taskRepo.tasks[1]
+				if task.Status != models.TaskStatusCancelled {
+					t.Errorf("Expected task status 'cancelled', got '%s'", task.Status)
+				}
+				for _, app := range appRepo.applications {
+					if app.TaskID == 1 && app.Status != models.ApplicationStatusRejected {
+						t.Errorf("Expected application %d to be rejected, got '%s'", app.ID, app.Status)
+					}
+				}
+			},
+		},
+		{
+			name:        "blocked - accepted application exists",
+			taskID:      1,
+			requesterID: 1,
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
 				taskRepo.tasks[1] = &models.Task{
 					ID:          1,
 					RequesterID: 1,
 					Status:      models.TaskStatusOpen,
 				}
+				appRepo.applications[1] = &models.TaskApplication{
+					ID:       1,
+					TaskID:   1,
+					TaskerID: 2,
+					Status:   models.ApplicationStatusAccepted,
+				}
 			},
-			wantErr: false,
+			wantErr:     true,
+			errContains: "cannot delete: an applicant has been accepted",
 		},
 		{
 			name:        "task not found",
 			taskID:      999,
 			requesterID: 1,
-			setupRepo:   func(taskRepo *mockTaskRepository) {},
+			setupRepo:   func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {},
 			wantErr:     true,
 			errContains: "task not found",
 		},
@@ -1089,7 +1159,7 @@ func TestTaskService_DeleteTask(t *testing.T) {
 			name:        "not authorized",
 			taskID:      1,
 			requesterID: 999,
-			setupRepo: func(taskRepo *mockTaskRepository) {
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
 				taskRepo.tasks[1] = &models.Task{
 					ID:          1,
 					RequesterID: 1,
@@ -1103,7 +1173,7 @@ func TestTaskService_DeleteTask(t *testing.T) {
 			name:        "task in progress",
 			taskID:      1,
 			requesterID: 1,
-			setupRepo: func(taskRepo *mockTaskRepository) {
+			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository) {
 				taskRepo.tasks[1] = &models.Task{
 					ID:          1,
 					RequesterID: 1,
@@ -1123,10 +1193,10 @@ func TestTaskService_DeleteTask(t *testing.T) {
 			userRepo := newMockUserRepository()
 
 			if tt.setupRepo != nil {
-				tt.setupRepo(taskRepo)
+				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.DeleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1140,6 +1210,9 @@ func TestTaskService_DeleteTask(t *testing.T) {
 			} else {
 				if err != nil {
 					t.Errorf("Expected no error, got %v", err)
+				}
+				if tt.verifyAfter != nil {
+					tt.verifyAfter(t, taskRepo, appRepo)
 				}
 			}
 		})
@@ -1184,7 +1257,7 @@ func TestTaskService_ListTasks(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			tasks, total, err := service.ListTasks(ctx, tt.filters)
@@ -1283,7 +1356,7 @@ func TestTaskService_CompleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.CompleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1378,7 +1451,7 @@ func TestTaskService_GetTaskApplications(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 			ctx := context.Background()
 
 			apps, err := service.GetTaskApplications(ctx, tt.taskID, tt.requesterID)
@@ -1410,7 +1483,7 @@ func TestTaskService_CreateTask_IncrementsTasksPosted(t *testing.T) {
 	catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
 	userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com", TotalTasksPosted: 0}
 
-	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	_, err := service.CreateTask(ctx, 1, &CreateTaskInput{
@@ -1460,7 +1533,7 @@ func TestTaskService_CompleteTask_IncrementsTasksCompleted(t *testing.T) {
 		Status:      models.TaskStatusInProgress,
 	}
 
-	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil)
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	err := service.CompleteTask(ctx, 1, 1)

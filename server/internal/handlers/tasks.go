@@ -132,7 +132,7 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "task deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "task cancelled successfully"})
 }
 
 // ListTasks handles GET /api/v1/tasks

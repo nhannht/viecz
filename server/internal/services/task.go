@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
 )
@@ -17,6 +18,7 @@ type TaskService struct {
 	userRepo            repository.UserRepository
 	walletService       *WalletService
 	notificationService *NotificationService
+	db                  *gorm.DB
 }
 
 // NewTaskService creates a new TaskService
@@ -27,6 +29,7 @@ func NewTaskService(
 	userRepo repository.UserRepository,
 	walletService *WalletService,
 	notificationService *NotificationService,
+	db *gorm.DB,
 ) *TaskService {
 	return &TaskService{
 		taskRepo:            taskRepo,
@@ -35,6 +38,7 @@ func NewTaskService(
 		userRepo:            userRepo,
 		walletService:       walletService,
 		notificationService: notificationService,
+		db:                  db,
 	}
 }
 
@@ -179,26 +183,138 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID, requesterID int64,
 	return task, nil
 }
 
-// DeleteTask deletes a task
+// DeleteTask soft-deletes a task by setting status to cancelled.
+// Rejects all pending applications and notifies applicants.
+// Blocks deletion when an accepted application exists.
+// Uses a DB transaction with row locking to prevent race conditions.
 func (s *TaskService) DeleteTask(ctx context.Context, taskID, requesterID int64) error {
-	// Get task
+	// Unit tests pass db=nil — use non-transactional path
+	if s.db == nil {
+		return s.deleteTaskSimple(ctx, taskID, requesterID)
+	}
+
+	var task *models.Task
+	var pendingApps []*models.TaskApplication
+
+	// Transactional path with row locking
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. SELECT task FOR UPDATE (row lock)
+		var txErr error
+		task, txErr = s.taskRepo.GetByIDForUpdate(ctx, tx, taskID)
+		if txErr != nil {
+			return fmt.Errorf("task not found: %w", txErr)
+		}
+
+		// 2. Verify ownership
+		if task.RequesterID != requesterID {
+			return fmt.Errorf("not authorized to delete this task")
+		}
+
+		// 3. Verify status == open
+		if task.Status != models.TaskStatusOpen {
+			return fmt.Errorf("can only delete tasks with status 'open'")
+		}
+
+		// 4. Check for accepted applications
+		apps, txErr := s.applicationRepo.GetByTaskID(ctx, taskID)
+		if txErr != nil {
+			return fmt.Errorf("failed to get applications: %w", txErr)
+		}
+
+		for _, app := range apps {
+			if app.Status == models.ApplicationStatusAccepted {
+				return fmt.Errorf("cannot delete: an applicant has been accepted")
+			}
+			if app.Status == models.ApplicationStatusPending {
+				pendingApps = append(pendingApps, app)
+			}
+		}
+
+		// 5. Set task status to cancelled
+		if txErr := s.taskRepo.UpdateStatus(ctx, taskID, models.TaskStatusCancelled); txErr != nil {
+			return fmt.Errorf("failed to cancel task: %w", txErr)
+		}
+
+		// 6. Reject all pending applications
+		for _, app := range pendingApps {
+			if txErr := s.applicationRepo.UpdateStatus(ctx, app.ID, models.ApplicationStatusRejected); txErr != nil {
+				log.Printf("[TaskService] failed to reject application %d: %v", app.ID, txErr)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// After commit (non-critical): notify rejected applicants
+	if s.notificationService != nil && task != nil {
+		for _, app := range pendingApps {
+			if notifyErr := s.notificationService.CreateNotification(ctx, app.TaskerID,
+				models.NotificationTypeTaskCancelled, "Task Cancelled",
+				fmt.Sprintf("Task '%s' has been cancelled by the creator", task.Title), &taskID); notifyErr != nil {
+				log.Printf("[TaskService] failed to send task_cancelled notification to user %d: %v", app.TaskerID, notifyErr)
+			}
+		}
+	}
+
+	return nil
+}
+
+// deleteTaskSimple is the non-transactional path for unit tests (db == nil).
+func (s *TaskService) deleteTaskSimple(ctx context.Context, taskID, requesterID int64) error {
 	task, err := s.taskRepo.GetByID(ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("task not found: %w", err)
 	}
 
-	// Verify ownership
 	if task.RequesterID != requesterID {
 		return fmt.Errorf("not authorized to delete this task")
 	}
 
-	// Can only delete open tasks
 	if task.Status != models.TaskStatusOpen {
 		return fmt.Errorf("can only delete tasks with status 'open'")
 	}
 
-	if err := s.taskRepo.Delete(ctx, taskID); err != nil {
-		return fmt.Errorf("failed to delete task: %w", err)
+	// Check for accepted applications
+	apps, err := s.applicationRepo.GetByTaskID(ctx, taskID)
+	if err != nil {
+		return fmt.Errorf("failed to get applications: %w", err)
+	}
+
+	var pendingApps []*models.TaskApplication
+	for _, app := range apps {
+		if app.Status == models.ApplicationStatusAccepted {
+			return fmt.Errorf("cannot delete: an applicant has been accepted")
+		}
+		if app.Status == models.ApplicationStatusPending {
+			pendingApps = append(pendingApps, app)
+		}
+	}
+
+	// Set status to cancelled (soft delete)
+	if err := s.taskRepo.UpdateStatus(ctx, taskID, models.TaskStatusCancelled); err != nil {
+		return fmt.Errorf("failed to cancel task: %w", err)
+	}
+
+	// Reject pending applications
+	for _, app := range pendingApps {
+		if err := s.applicationRepo.UpdateStatus(ctx, app.ID, models.ApplicationStatusRejected); err != nil {
+			log.Printf("[TaskService] failed to reject application %d: %v", app.ID, err)
+		}
+	}
+
+	// Notify rejected applicants (non-critical)
+	if s.notificationService != nil {
+		for _, app := range pendingApps {
+			if err := s.notificationService.CreateNotification(ctx, app.TaskerID,
+				models.NotificationTypeTaskCancelled, "Task Cancelled",
+				fmt.Sprintf("Task '%s' has been cancelled by the creator", task.Title), &taskID); err != nil {
+				log.Printf("[TaskService] failed to send task_cancelled notification to user %d: %v", app.TaskerID, err)
+			}
+		}
 	}
 
 	return nil

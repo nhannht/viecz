@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
 )
@@ -259,6 +260,10 @@ func NewMockTaskRepository() *MockTaskRepository {
 	return &MockTaskRepository{
 		Tasks: make(map[int64]*models.Task),
 	}
+}
+
+func (m *MockTaskRepository) GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error) {
+	return m.GetByID(ctx, id)
 }
 
 func (m *MockTaskRepository) GetByID(ctx context.Context, id int64) (*models.Task, error) {

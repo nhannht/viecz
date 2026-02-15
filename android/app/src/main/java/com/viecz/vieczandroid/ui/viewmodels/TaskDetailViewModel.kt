@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.ui.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.TaskApplication
 import com.viecz.vieczandroid.data.repository.MessageRepository
@@ -12,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,14 +26,18 @@ data class TaskDetailUiState(
     val paymentCheckoutUrl: String? = null,
     val paymentSuccess: Boolean = false,
     val paymentError: String? = null,
-    val conversationId: Long? = null
+    val conversationId: Long? = null,
+    val isOwnTask: Boolean = false,
+    val isCurrentUserTasker: Boolean = false,
+    val deleteSuccess: Boolean = false
 )
 
 @HiltViewModel
 class TaskDetailViewModel @Inject constructor(
     private val repository: TaskRepository,
     private val paymentRepository: PaymentRepository,
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskDetailUiState())
@@ -76,13 +82,17 @@ class TaskDetailViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             val result = repository.getTask(taskId)
+            val currentUserId = tokenManager.userId.firstOrNull()
+            val isTasker = tokenManager.isTasker.firstOrNull() ?: false
             result.fold(
                 onSuccess = { task ->
                     Log.d(TAG, "Task loaded successfully: ${task.title}")
                     _uiState.value = _uiState.value.copy(
                         task = task,
                         isLoading = false,
-                        error = null
+                        error = null,
+                        isOwnTask = currentUserId != null && task.requesterId == currentUserId,
+                        isCurrentUserTasker = isTasker
                     )
                     // If user is the requester, load applications
                     loadApplications(taskId)
@@ -229,6 +239,34 @@ class TaskDetailViewModel @Inject constructor(
                 }
             )
         }
+    }
+
+    fun deleteTask(taskId: Long) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            repository.deleteTask(taskId).fold(
+                onSuccess = {
+                    Log.d(TAG, "Task deleted (cancelled) successfully")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        deleteSuccess = true,
+                        error = null
+                    )
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to delete task", error)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Failed to delete task"
+                    )
+                }
+            )
+        }
+    }
+
+    fun clearDeleteSuccess() {
+        _uiState.value = _uiState.value.copy(deleteSuccess = false)
     }
 
     fun clearError() {

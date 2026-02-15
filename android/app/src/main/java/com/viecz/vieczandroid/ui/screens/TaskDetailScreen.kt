@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.MailOutline
@@ -36,15 +37,25 @@ fun TaskDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToApply: (Long) -> Unit,
     onNavigateToChat: (Long) -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     viewModel: TaskDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showAcceptDialog by remember { mutableStateOf<TaskApplication?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(taskId) {
         viewModel.loadTask(taskId)
+    }
+
+    // Handle delete success — navigate back
+    LaunchedEffect(uiState.deleteSuccess) {
+        if (uiState.deleteSuccess) {
+            viewModel.clearDeleteSuccess()
+            onNavigateBack()
+        }
     }
 
     // Handle payment checkout URL (real PayOS mode)
@@ -89,6 +100,17 @@ fun TaskDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    if (uiState.isOwnTask && uiState.task?.status == TaskStatus.OPEN) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete Task",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
             )
         },
@@ -125,7 +147,10 @@ fun TaskDetailScreen(
                         task = uiState.task!!,
                         applications = uiState.applications,
                         conversationId = uiState.conversationId,
+                        isOwnTask = uiState.isOwnTask,
+                        isCurrentUserTasker = uiState.isCurrentUserTasker,
                         onApply = { onNavigateToApply(taskId) },
+                        onNavigateToProfile = onNavigateToProfile,
                         onAcceptApplication = { application ->
                             showAcceptDialog = application
                         },
@@ -196,6 +221,35 @@ fun TaskDetailScreen(
             }
         )
     }
+
+    // Delete task confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Task") },
+            text = {
+                Text("Are you sure you want to delete this task? This will cancel the task and reject all pending applications.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteTask(taskId)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -203,7 +257,10 @@ fun TaskDetailContent(
     task: Task,
     applications: List<TaskApplication>,
     conversationId: Long?,
+    isOwnTask: Boolean = false,
+    isCurrentUserTasker: Boolean = false,
     onApply: () -> Unit,
+    onNavigateToProfile: () -> Unit = {},
     onAcceptApplication: (TaskApplication) -> Unit,
     onCompleteTask: () -> Unit,
     onMessageClick: () -> Unit
@@ -297,10 +354,35 @@ fun TaskDetailContent(
             }
         }
 
-        // Apply button or status (only if task is open)
-        if (task.status == TaskStatus.OPEN) {
+        // Apply button or status (only if task is open and not own task)
+        if (task.status == TaskStatus.OPEN && !isOwnTask) {
             item {
-                if (task.userHasApplied) {
+                if (!isCurrentUserTasker) {
+                    // Non-tasker CTA: suggest registering as a tasker
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "You need to be a tasker to apply for tasks.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(onClick = onNavigateToProfile) {
+                                Text("Register as Tasker")
+                            }
+                        }
+                    }
+                } else if (task.userHasApplied) {
                     // Show "Already Applied" status
                     Card(
                         modifier = Modifier.fillMaxWidth(),

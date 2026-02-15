@@ -14,6 +14,7 @@ const (
 	NotificationTypeApplicationAccepted NotificationType = "application_accepted"
 	NotificationTypeTaskCompleted       NotificationType = "task_completed"
 	NotificationTypePaymentReceived     NotificationType = "payment_received"
+	NotificationTypeTaskCancelled       NotificationType = "task_cancelled"
 )
 
 // Notification represents a notification for a user

@@ -89,7 +89,7 @@ func main() {
 	notificationRepo := repository.NewNotificationGormRepository(db)
 	notificationService := services.NewNotificationService(notificationRepo, hub)
 
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService)
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db)
 
 	// Initialize PayOS service
 	payosService, err := services.NewPayOSService(
