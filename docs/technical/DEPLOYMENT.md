@@ -161,7 +161,7 @@ Key points:
 | `PAYOS_CLIENT_ID` | No | PayOS payment gateway client ID |
 | `PAYOS_API_KEY` | No | PayOS payment gateway API key |
 | `PAYOS_CHECKSUM_KEY` | No | PayOS payment gateway checksum key |
-| `CLOUDFLARE_TUNNEL_TOKEN` | Yes | Token from Cloudflare Zero Trust dashboard |
+| `CLOUDFLARED_TOKEN` | Yes | Token from Cloudflare Zero Trust dashboard |
 
 ### Server (full list from `server/.env.example`)
 
@@ -223,7 +223,7 @@ Key points:
 ### Prerequisites
 
 - Docker and Docker Compose (for PostgreSQL + Cloudflare Tunnel)
-- Go 1.21+ on the development machine (for cross-compilation)
+- Go 1.25+ on the development machine (for cross-compilation)
 - SSH access to the production server (see `sg` in global CLAUDE.md)
 
 ### Initial Setup (One-Time)

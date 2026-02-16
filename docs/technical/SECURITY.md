@@ -1,7 +1,7 @@
 # Security Documentation
 
 **Project:** Viecz (Mini Services for Students)
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-16
 **Status:** Development
 
 ---
@@ -52,7 +52,7 @@ flowchart TD
 | Layer | Technology |
 |-------|-----------|
 | Backend framework | Go + Gin |
-| Authentication | Email/password + JWT (golang-jwt/jwt v5) |
+| Authentication | Email/password + Google OAuth (OIDC) + JWT (golang-jwt/jwt v5) |
 | Password hashing | bcrypt (golang.org/x/crypto/bcrypt) |
 | ORM | GORM (PostgreSQL for both prod and test) |
 | Payment gateway | PayOS (payos-lib-golang v2) |
@@ -66,14 +66,17 @@ flowchart TD
 
 ### 2.1 Auth Flow
 
-The project uses custom email/password authentication. No third-party OAuth (no Zalo, no Google).
+The project supports two authentication methods:
+1. **Email/password** -- Traditional registration and login with bcrypt-hashed passwords
+2. **Google OAuth (OIDC)** -- Sign in with Google, using OpenID Connect ID token verification
 
 **Endpoints:**
-- `POST /api/v1/auth/register` -- Create account
-- `POST /api/v1/auth/login` -- Get access + refresh tokens
+- `POST /api/v1/auth/register` -- Create account (email/password)
+- `POST /api/v1/auth/login` -- Get access + refresh tokens (email/password)
+- `POST /api/v1/auth/google` -- Sign in with Google ID token
 - `POST /api/v1/auth/refresh` -- Exchange refresh token for new access token
 
-**Source:** `server/internal/handlers/auth.go`, `server/internal/auth/auth.go`
+**Source:** `server/internal/handlers/auth.go`, `server/internal/auth/auth.go`, `server/internal/auth/google_oauth.go`
 
 ### 2.2 JWT Implementation
 
@@ -162,6 +165,143 @@ The validation checks:
 | Production | Must be set via `JWT_SECRET` env var | Enforced: config fails if default is used with `GO_ENV=production` |
 
 **Source:** `server/internal/config/config.go:60, 79-81`
+
+### 2.4 Google OAuth (OIDC)
+
+#### Overview
+
+Google sign-in uses OpenID Connect (OIDC) with server-side ID token verification. The Android client obtains a Google ID token via the Google Sign-In SDK and sends it to `POST /api/v1/auth/google`. The backend verifies the token against Google's OIDC provider before creating or authenticating the user.
+
+**Libraries:**
+- `github.com/coreos/go-oidc/v3/oidc` -- OIDC provider discovery and ID token verification
+- `golang.org/x/oauth2` + `golang.org/x/oauth2/google` -- OAuth2 configuration
+
+#### OIDC Provider Verification
+
+The `GoogleOAuthService` initializes an OIDC provider from `https://accounts.google.com` and creates a verifier bound to the configured `GOOGLE_CLIENT_ID`:
+
+```go
+provider, err := oidc.NewProvider(context.Background(), "https://accounts.google.com")
+verifier := provider.Verifier(&oidc.Config{
+    ClientID: clientID,
+})
+```
+
+The verifier checks:
+1. **Token signature** -- RSA signature against Google's public keys (fetched from OIDC discovery endpoint)
+2. **Audience (`aud`)** -- Must match the configured `GOOGLE_CLIENT_ID`
+3. **Issuer (`iss`)** -- Must be `https://accounts.google.com`
+4. **Expiration (`exp`)** -- Token must not be expired
+
+**Source:** `server/internal/auth/google_oauth.go:28-49`
+
+#### ID Token Claims Extraction
+
+After signature verification, the following claims are extracted from the ID token:
+
+| Claim | Type | Description |
+|-------|------|-------------|
+| `sub` | `string` | Google's unique user ID (stored as `GoogleID`) |
+| `email` | `string` | User's Google email address |
+| `email_verified` | `bool` | Whether Google has verified the email |
+| `name` | `string` | User's display name |
+| `picture` | `string` | URL to user's Google profile picture |
+
+#### Email Verification Requirement
+
+The backend **rejects** Google ID tokens where `email_verified` is `false`:
+
+```go
+if !claims.EmailVerified {
+    return nil, fmt.Errorf("email not verified by Google")
+}
+```
+
+This prevents authentication with unverified Google accounts and ensures email address ownership.
+
+**Source:** `server/internal/auth/google_oauth.go:52-85`
+
+#### Google User Creation Flow
+
+`LoginWithGoogle` handles three scenarios:
+
+1. **Returning Google user** (Google ID exists in DB) -- Logs in, updates name/avatar if changed
+2. **Email conflict** (email exists with `AuthProvider == "email"`) -- Returns `409 Conflict` with `ErrEmailAlreadyUsedByEmail`. Users who registered via email/password cannot switch to Google sign-in for the same email
+3. **New Google user** (no Google ID, no email match) -- Creates a new user with `AuthProvider = "google"`, `EmailVerified = true`, `PasswordHash = nil`
+
+```go
+// Conflict check
+if existingUser.AuthProvider == "email" {
+    return nil, ErrEmailAlreadyUsedByEmail
+}
+```
+
+**Source:** `server/internal/auth/auth.go:104-158`
+
+#### Login Guard for Google Users
+
+The `Login` handler (email/password) rejects users who registered via Google:
+
+```go
+if user.AuthProvider != "email" || user.PasswordHash == nil {
+    return nil, ErrInvalidCredentials
+}
+```
+
+This prevents password-based login attempts against Google-authenticated accounts (which have no password hash).
+
+**Source:** `server/internal/auth/auth.go:91-94`
+
+#### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_CLIENT_ID` | Yes (for Google auth) | Google OAuth client ID from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Yes (for Google auth) | Google OAuth client secret |
+
+Both are read from environment variables without defaults. If not set, Google OAuth is unavailable.
+
+**Source:** `server/internal/config/config.go:30-31, 65-66`
+
+#### Endpoint: `POST /api/v1/auth/google`
+
+**Request:**
+```json
+{
+  "id_token": "<Google ID token from Android client>"
+}
+```
+
+**Validation:** `id_token` field is `required` (Gin binding tag).
+
+**Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| `200 OK` | Successful authentication (returns `TokenResponse` with access/refresh tokens) |
+| `400 Bad Request` | Missing `id_token` |
+| `401 Unauthorized` | Invalid/expired Google ID token |
+| `409 Conflict` | Email already registered with email/password authentication |
+| `500 Internal Server Error` | User creation or token generation failure |
+
+**Source:** `server/internal/handlers/auth.go:139-188`
+
+### 2.5 User Model OAuth Fields
+
+The `User` model includes three fields for OAuth support:
+
+| Field | Type | GORM Tags | Security Notes |
+|-------|------|-----------|----------------|
+| `AuthProvider` | `string` | `size:20;not null;default:'email'` | Controls which authentication method is valid. Must be `"email"` or `"google"`. Validated in `Validate()`. |
+| `GoogleID` | `*string` | `size:255;unique` / `json:"-"` | Google's `sub` claim. Has `unique` DB constraint to prevent duplicate Google accounts. Excluded from JSON responses via `json:"-"`. Required when `AuthProvider == "google"`. |
+| `EmailVerified` | `bool` | `default:false` | Set to `true` for Google users (Google pre-verifies emails). Used to distinguish verified vs unverified accounts. |
+
+**Validation rules** (enforced in `User.Validate()`):
+- `AuthProvider` must be `"email"` or `"google"`
+- `PasswordHash` is required when `AuthProvider == "email"`, nullable for Google users
+- `GoogleID` is required when `AuthProvider == "google"`
+
+**Source:** `server/internal/models/user.go:25-27, 60-73`
 
 ---
 
@@ -264,9 +404,13 @@ Enforced at registration time via `IsStrongPassword()`:
 ### 4.4 User Model Security
 
 - `PasswordHash` field has `json:"-"` tag, ensuring it is never serialized in API responses
+- `PasswordHash` is a nullable pointer (`*string`) -- `nil` for Google OAuth users who have no password
+- `GoogleID` field has `json:"-"` tag, preventing Google's `sub` claim from leaking in API responses
+- `AuthProvider` field constrains password validation: password hash is only required for `"email"` provider users
 - `BeforeCreate` and `BeforeUpdate` GORM hooks run validation before any database write
 - Email format is validated via regex: `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
 - Email has a `unique` database constraint
+- `GoogleID` has a `unique` database constraint (prevents duplicate Google account linking)
 
 **Source:** `server/internal/models/user.go`
 
@@ -285,6 +429,7 @@ All request payloads are validated using Gin's struct binding tags:
 | `POST /auth/register` | `name` | `required` |
 | `POST /auth/login` | `email` | `required,email` |
 | `POST /auth/login` | `password` | `required` |
+| `POST /auth/google` | `id_token` | `required` |
 | `POST /auth/refresh` | `refresh_token` | `required` |
 | `POST /wallet/deposit` | `amount` | `required,min=2000` |
 | `POST /payments/escrow` | `task_id` | `required` |
@@ -301,7 +446,9 @@ All request payloads are validated using Gin's struct binding tags:
 The `User` model enforces constraints via `Validate()`:
 - Email required, regex-validated
 - Name required, max 100 characters
-- Password hash required
+- `AuthProvider` must be `"email"` or `"google"`
+- Password hash required only for `AuthProvider == "email"`
+- `GoogleID` required only for `AuthProvider == "google"`
 - Rating between 0 and 5
 - Non-negative counters (tasks completed, tasks posted, earnings)
 - Tasker bio max 500 characters
@@ -325,7 +472,7 @@ CORS is handled by a custom Gin middleware.
 
 #### Production Server
 
-Accepts a single `allowedOrigin` from config (`CLIENT_URL`). Also permits `null` origin for WebView/file protocol contexts.
+Accepts a single `allowedOrigin` from config (`CLIENT_URL`). Also permits `null` origin for WebView/file protocol contexts and empty origin for same-origin or non-browser requests.
 
 ```go
 // Headers set on every response:
@@ -573,5 +720,6 @@ JWT tokens passed via `?token=` are visible in server access logs and proxy logs
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 2.0 | 2026-02-14 | Full rewrite to reflect Go backend + Android app (no Zalo, no FastAPI, no Python) |
+| 2.1 | 2026-02-16 | Add Google OAuth (OIDC) security documentation, User model OAuth fields |
+| 2.0 | 2026-02-14 | Full rewrite to reflect Go backend + Android app |
 | 1.0 | 2026-02-04 | Initial security documentation (outdated) |

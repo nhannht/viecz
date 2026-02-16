@@ -2,7 +2,7 @@
 
 > **Viecz** -- P2P task marketplace for university students (Android native).
 >
-> Last updated: 2026-02-14
+> Last updated: 2026-02-16
 
 ---
 
@@ -93,7 +93,49 @@ JWT tokens saved --> MainScreen
 **Screen:** `LoginScreen.kt`
 **API:** `POST /api/v1/auth/login` -- `{ email, password }`
 
-### 1.4 Logout
+### 1.4 Google OAuth Login
+
+```
+LoginScreen
+    |
+    v
+Tap "Sign in with Google"
+    |
+    v
+Google Sign-In SDK launches Google account picker
+    |
+    v
+User selects Google account and grants consent
+    |
+    v
+Google returns ID token to the app
+    |
+    v
+POST /api/v1/auth/google  { id_token }
+    |
+    v
+Server-side:
+    1. Verify ID token with Google OIDC provider
+    2. Extract user info (email, name, avatar, Google ID)
+    3. Look up user by Google ID:
+       - Existing user: update profile (name, avatar) if changed, return JWT
+       - New user: create account (auth_provider="google", email_verified=true), return JWT
+    4. If email already used by email-based account: reject (409 conflict)
+    |
+    v
+JWT tokens saved --> MainScreen
+```
+
+**Screen:** `LoginScreen.kt`
+**API:** `POST /api/v1/auth/google` -- `{ id_token }`
+**Response:** `{ access_token, refresh_token, user }`
+**Notes:**
+- Google users do not have a password; `PasswordHash` is null
+- `AuthProvider` field is set to `"google"` (vs `"email"` for regular accounts)
+- `EmailVerified` is automatically `true` (Google pre-verifies emails)
+- If a Google user's name or avatar changes on Google's side, it is updated on next login
+
+### 1.5 Logout
 
 ```
 ProfileContent (Profile tab or standalone ProfileScreen)
@@ -229,7 +271,7 @@ TaskDetailScreen (task with status OPEN)
     |     |
     |     v
     |     Tap "Submit Application"
-    |     POST /api/v1/tasks/{taskId}/apply
+    |     POST /api/v1/tasks/{id}/applications
     |     |
     |     v
     |     Navigate back to TaskDetailScreen
@@ -238,7 +280,7 @@ TaskDetailScreen (task with status OPEN)
 ```
 
 **Screens:** `TaskDetailScreen.kt`, `ApplyTaskScreen.kt`
-**API:** `POST /api/v1/tasks/{taskId}/apply` -- `{ proposed_price?, message? }`
+**API:** `POST /api/v1/tasks/{id}/applications` -- `{ proposed_price?, message? }`
 **Condition:** User must be a tasker (`user.isTasker == true`)
 
 ---
@@ -271,11 +313,14 @@ Confirmation dialog:
 Tap "Accept"
     |
     v
-Server-side (single API call):
-    1. Application status --> ACCEPTED
-    2. Other applications --> REJECTED
-    3. Task status --> IN_PROGRESS
-    4. Escrow payment created (deducts from requester wallet)
+Android makes two sequential API calls:
+    Step 1: POST /api/v1/applications/{id}/accept
+      - Application status --> ACCEPTED
+      - Other applications --> REJECTED
+      - Tasker assigned to task
+    Step 2: POST /api/v1/payments/escrow
+      - Escrow payment created (deducts from requester wallet)
+      - Task status --> IN_PROGRESS
     |
     v
 Snackbar: "Payment processed successfully!"
@@ -283,7 +328,7 @@ TaskDetailScreen refreshes (shows IN_PROGRESS status)
 ```
 
 **Screen:** `TaskDetailScreen.kt` (accept dialog)
-**API:** `POST /api/v1/tasks/{taskId}/accept/{applicationId}`
+**APIs:** `POST /api/v1/applications/{id}/accept` then `POST /api/v1/payments/escrow`
 **Key detail:** Escrow amount = proposed_price (if set) OR task.price
 
 ---
@@ -300,17 +345,19 @@ TaskDetailScreen (task IN_PROGRESS, requester view)
 Tap "Mark as Completed"
     |
     v
-Server-side:
-    1. Task status --> COMPLETED
-    2. Escrow released to tasker wallet (minus platform fee)
-    3. Platform fee deducted
+Android makes two sequential API calls:
+    Step 1: POST /api/v1/payments/release
+      - Escrow released to tasker wallet (minus platform fee)
+      - Platform fee deducted
+    Step 2: POST /api/v1/tasks/{taskId}/complete
+      - Task status --> COMPLETED
     |
     v
 Task status badge shows "Completed"
 ```
 
 **Screen:** `TaskDetailScreen.kt`
-**API:** `POST /api/v1/tasks/{taskId}/complete`
+**APIs:** `POST /api/v1/payments/release` then `POST /api/v1/tasks/{taskId}/complete`
 **Payment split:** Tasker receives escrow amount (platform fee may apply)
 
 ---
@@ -462,7 +509,7 @@ WalletContent
 
 **Screen:** `WalletScreen.kt` (`WalletContent` composable)
 **APIs:**
-- `GET /api/v1/wallet/balance`
+- `GET /api/v1/wallet`
 - `GET /api/v1/wallet/transactions`
 
 ### 10.2 Deposit Flow (PayOS)
@@ -749,5 +796,5 @@ Scenario docs: `android/e2escenarios/`
 
 ---
 
-**Last Updated:** 2026-02-15
-**Version:** 2.2
+**Last Updated:** 2026-02-16
+**Version:** 2.3

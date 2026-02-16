@@ -108,7 +108,7 @@ Viecz is a multi-package project containing:
 | `SYSTEM_DESIGN.md` | High-level architecture, tech stack, patterns |
 | `ARCHITECTURE.md` | Go backend layers, Android MVVM, ER diagram, service dependencies |
 | `DATA_STRUCTURE.md` | 10 GORM models, schemas, relationships |
-| `API_REFERENCE.md` | 37 REST endpoints + WebSocket |
+| `API_REFERENCE.md` | 38 REST endpoints + WebSocket |
 | `USER_FLOW.md` | Auth, task, payment, chat flows |
 | `ALGORITHM.md` | JWT, escrow, WebSocket routing, wallet, available balance validation |
 | `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification |

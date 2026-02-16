@@ -1,7 +1,7 @@
 # DATA_STRUCTURE.md
 
 **Project:** Viecz - Go Backend Data Models
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-16
 
 This document describes all data models in the Go backend (`server/internal/models/`), their GORM mappings, relationships, hooks, and constants.
 
@@ -62,11 +62,14 @@ erDiagram
     User {
         int64 id PK
         string email UK
-        string password_hash
+        nullable_string password_hash
         string name
         string university
         float64 rating
         bool is_tasker
+        string auth_provider
+        nullable_string google_id UK
+        bool email_verified
     }
 
     Category {
@@ -120,17 +123,17 @@ erDiagram
     }
 
     Conversation {
-        int id PK
-        int task_id FK
-        int poster_id FK
-        int tasker_id FK
+        uint id PK
+        uint task_id FK
+        uint poster_id FK
+        uint tasker_id FK
         string last_message
     }
 
     Message {
-        int id PK
-        int conversation_id FK
-        int sender_id FK
+        uint id PK
+        uint conversation_id FK
+        uint sender_id FK
         string content
         bool is_read
     }
@@ -179,7 +182,7 @@ erDiagram
 type User struct {
     ID                  int64          `gorm:"primaryKey;autoIncrement" json:"id"`
     Email               string         `gorm:"unique;size:255;not null" json:"email"`
-    PasswordHash        string         `gorm:"size:255;not null" json:"-"`
+    PasswordHash        *string        `gorm:"size:255" json:"-"`
     Name                string         `gorm:"size:100;not null" json:"name"`
     AvatarURL           *string        `gorm:"type:text" json:"avatar_url,omitempty"`
     Phone               *string        `gorm:"size:20" json:"phone,omitempty"`
@@ -193,6 +196,9 @@ type User struct {
     IsTasker            bool           `gorm:"default:false" json:"is_tasker"`
     TaskerBio           *string        `gorm:"size:500" json:"tasker_bio,omitempty"`
     TaskerSkills        pq.StringArray `gorm:"type:text[]" json:"tasker_skills,omitempty"`
+    AuthProvider        string         `gorm:"size:20;not null;default:'email'" json:"auth_provider"`
+    GoogleID            *string   `gorm:"size:255;unique" json:"-"` // Google's unique user ID (sub claim)
+    EmailVerified       bool           `gorm:"default:false" json:"email_verified"`
     CreatedAt           time.Time      `gorm:"autoCreateTime" json:"created_at"`
     UpdatedAt           time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 }
@@ -202,7 +208,7 @@ type User struct {
 |-------|------|-----------|-------------|
 | ID | int64 | primaryKey, autoIncrement | Auto-incrementing primary key |
 | Email | string | unique, size:255, not null | User login email (unique) |
-| PasswordHash | string | size:255, not null | bcrypt hash, never exposed in JSON (`json:"-"`) |
+| PasswordHash | *string | size:255 | bcrypt hash, never exposed in JSON (`json:"-"`). Nullable for Google OAuth users who don't have a password. |
 | Name | string | size:100, not null | Display name |
 | AvatarURL | *string | type:text | Profile image URL (nullable) |
 | Phone | *string | size:20 | Phone number (nullable) |
@@ -216,17 +222,21 @@ type User struct {
 | IsTasker | bool | default:false | Whether user can accept tasks |
 | TaskerBio | *string | size:500 | Tasker biography (nullable) |
 | TaskerSkills | pq.StringArray | type:text[] | PostgreSQL text array of skills |
+| AuthProvider | string | size:20, not null, default:'email' | Authentication provider: "email" or "google" |
+| GoogleID | *string | size:255, unique | Google's unique user ID (nullable, unique). Excluded from JSON via `json:"-"`. |
+| EmailVerified | bool | default:false | Whether email is verified. Google OAuth pre-verifies emails. |
 | CreatedAt | time.Time | autoCreateTime | Record creation timestamp |
 | UpdatedAt | time.Time | autoUpdateTime | Last update timestamp |
 
 **Validation rules** (`Validate()`):
 - Email: required, must match regex `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
 - Name: required, max 100 chars
-- PasswordHash: required
+- PasswordHash: required only when AuthProvider is "email" (not required for Google OAuth users)
 - Rating: 0-5
 - TotalTasksCompleted, TotalTasksPosted: >= 0
 - TotalEarnings: >= 0
 - If IsTasker: TaskerBio max 500 chars, TaskerSkills max 10 items
+- AuthProvider: must be "email" or "google"
 
 **GORM Hooks:** `BeforeCreate`, `BeforeUpdate` -- both call `Validate()`
 
@@ -890,7 +900,7 @@ const (
 
 | Model | BeforeCreate | BeforeUpdate | Notes |
 |-------|:---:|:---:|-------|
-| User | Validate() | Validate() | Validates email format, name, password hash, rating range, tasker fields |
+| User | Validate() | Validate() | Validates email format, name, password hash (required only for email auth), auth provider, rating range, tasker fields |
 | Category | Validate() | Validate() | Validates name and name_vi |
 | Task | Validate() | Validate() | Validates all required fields, status, image count |
 | TaskApplication | Validate() | Validate() | Validates IDs, proposed_price, message length, status |
@@ -914,6 +924,7 @@ All models use auto-incrementing primary keys. Most use `int64`; Conversation an
 | Table | Column(s) | Purpose |
 |-------|-----------|---------|
 | users | email | One account per email |
+| users | google_id | One account per Google ID (nullable unique) |
 | wallets | user_id | One wallet per user |
 | transactions | payos_order_code | Unique PayOS order codes |
 
@@ -922,6 +933,7 @@ All models use auto-incrementing primary keys. Most use `int64`; Conversation an
 | Table | Column | Type | Purpose |
 |-------|--------|------|---------|
 | users | email | UNIQUE | Auth lookups |
+| users | google_id | UNIQUE | Google OAuth lookups |
 | tasks | requester_id | INDEX | Filter tasks by poster |
 | tasks | tasker_id | INDEX | Filter tasks by worker |
 | tasks | category_id | INDEX | Filter tasks by category |
@@ -1027,7 +1039,7 @@ func IsStrongPassword(password string) bool
 
 ## Key Design Patterns
 
-1. **Email-based auth**: Users authenticate with email + bcrypt password (no Zalo/OAuth)
+1. **Dual auth**: Users authenticate via email + bcrypt password or Google OAuth. `AuthProvider` distinguishes the method; `PasswordHash` is nullable for Google OAuth users.
 2. **Single user table**: Both requesters and taskers share the same User model; `is_tasker` flag controls task acceptance
 3. **GORM hooks for validation**: All domain validation runs in BeforeCreate/BeforeUpdate hooks
 4. **Immutable ledger**: WalletTransaction has no BeforeUpdate hook -- entries are append-only

@@ -1,6 +1,6 @@
 # System Design - Viecz
 
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-16
 
 ---
 
@@ -28,8 +28,8 @@ graph TD
         OkHttp["OkHttp - WebSocket"]
     end
 
-    subgraph Nginx["Nginx (reverse proxy)"]
-        NginxProxy["HTTPS / WSS"]
+    subgraph CloudflareTunnelSubgraph["Cloudflare Tunnel"]
+        CloudflareTunnel["HTTPS / WSS"]
     end
 
     subgraph GoServer["Go Server (Gin)"]
@@ -51,10 +51,10 @@ graph TD
 
     PayOS["PayOS (payment gateway)"]
 
-    Retrofit -->|HTTPS| NginxProxy
-    OkHttp -->|WSS| NginxProxy
-    NginxProxy --> Handlers
-    NginxProxy --> WebSocketHub
+    Retrofit -->|HTTPS| CloudflareTunnel
+    OkHttp -->|WSS| CloudflareTunnel
+    CloudflareTunnel --> Handlers
+    CloudflareTunnel --> WebSocketHub
     GORM --> PostgreSQL
     GORM --> PostgreSQLTest
     GORM -.->|external| PayOS
@@ -70,13 +70,14 @@ graph TD
 | Android DI   | Hilt (Dagger)                                           |
 | Android Net  | Retrofit + Moshi, OkHttp (HTTP + WebSocket)             |
 | Android DB   | Room (local cache for tasks, categories, notifications) |
-| Server       | Go 1.21+, Gin web framework                             |
+| Server       | Go 1.25+, Gin web framework                             |
 | ORM          | GORM (PostgreSQL driver for prod + test)                |
 | Auth         | JWT (HS256) via golang-jwt/jwt v5                       |
 | WebSocket    | Gorilla WebSocket                                       |
 | Payments     | PayOS (Vietnamese payment gateway)                      |
 | Database     | PostgreSQL 15+ (prod :5432), PostgreSQL (test :5433, Docker tmpfs) |
 | Config       | godotenv (.env) + OS environment variables              |
+| Firebase     | Analytics, App Distribution                             |
 
 ---
 
@@ -98,6 +99,8 @@ server/
 │   ├── models/                # Domain models + GORM tags + validation
 │   ├── repository/            # Data access interfaces + GORM implementations
 │   ├── services/              # Business logic
+│   ├── logger/                # Logging utilities
+│   ├── testutil/              # Test helpers, mocks, fixtures
 │   └── websocket/             # Hub + Client (real-time chat)
 ```
 
@@ -128,6 +131,7 @@ All routes are under `/api/v1`.
 | POST   | /auth/register                | Register new user          |
 | POST   | /auth/login                   | Login, returns JWT pair    |
 | POST   | /auth/refresh                 | Refresh access token       |
+| POST   | /auth/google                  | Google ID token verification |
 | GET    | /categories                   | List task categories       |
 | GET    | /users/:id                    | Get user profile           |
 | POST   | /payment/webhook              | PayOS webhook callback     |
@@ -161,8 +165,8 @@ All routes are under `/api/v1`.
 | GET    | /conversations/:id/messages   | Get message history             |
 | GET    | /notifications                | List notifications              |
 | GET    | /notifications/unread-count   | Get unread count                |
-| PUT    | /notifications/:id/read       | Mark as read                    |
-| PUT    | /notifications/read-all       | Mark all as read                |
+| POST   | /notifications/:id/read       | Mark as read                    |
+| POST   | /notifications/read-all       | Mark all as read                |
 | DELETE | /notifications/:id            | Delete notification             |
 
 ### 4.4 Authentication Flow
@@ -288,12 +292,9 @@ erDiagram
         string type "NotificationType"
         string title
         string message
-        int64 related_id "nullable"
-        string related_type "nullable"
+        int64 task_id FK "nullable"
         bool is_read "default false"
         datetime created_at
-        datetime updated_at
-        datetime deleted_at
     }
 
     Task ||--o| Conversation : "has"

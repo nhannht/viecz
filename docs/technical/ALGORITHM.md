@@ -2,7 +2,7 @@
 
 > Technical reference for algorithms implemented in the Viecz Go backend.
 >
-> Last updated: 2026-02-15
+> Last updated: 2026-02-16
 
 ## Table of Contents
 
@@ -14,6 +14,7 @@
 6. [Platform Fee Calculation](#6-platform-fee-calculation)
 7. [Wallet Balance Management](#7-wallet-balance-management)
 8. [WebSocket Message Routing](#8-websocket-message-routing)
+9. [Notification System](#9-notification-system)
 
 ---
 
@@ -84,7 +85,7 @@ Register(email, password, name):
   2. Validate password strength (see below)
   3. Check email uniqueness in DB
   4. Hash password: bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
-  5. Create User record (default university: "DHQG-HCM")
+  5. Create User record (default university: "ĐHQG-HCM")
   6. Return user
 ```
 
@@ -573,6 +574,65 @@ Conversations are 1:1 between poster and tasker, scoped to a single task.
 
 ---
 
+## 9. Notification System
+
+**Source:** `server/internal/services/notification.go`, `server/internal/handlers/notification.go`, `server/internal/websocket/hub.go`
+
+### Notification Types
+
+| Type | Triggered By | Recipient |
+|---|---|---|
+| `task_created` | `CreateTask` | Task creator (confirmation) |
+| `application_received` | `ApplyForTask` | Task requester |
+| `application_sent` | `ApplyForTask` | Applicant (confirmation) |
+| `application_accepted` | `AcceptApplication` | Accepted tasker |
+| `task_completed` | `CompleteTask` | Both requester and tasker |
+| `payment_received` | `ReleasePayment` | Tasker (payee) |
+| `task_cancelled` | `DeleteTask` | Rejected applicants |
+
+### Dispatch Points
+
+```
+CreateTask       → task_created (to requester)
+ApplyForTask     → application_received (to requester)
+                 → application_sent (to applicant)
+AcceptApplication → application_accepted (to tasker)
+CompleteTask     → task_completed (to requester and tasker)
+DeleteTask       → task_cancelled (to all rejected applicants)
+ReleasePayment   → payment_received (to tasker)
+```
+
+### Delivery Channels
+
+Notifications are delivered through two channels:
+
+1. **REST API** -- `GET /notifications` returns paginated notification history for the authenticated user
+2. **Real-time WebSocket** -- notifications are broadcast via the WebSocket `Hub.Broadcast` channel to connected clients
+
+### Failure Handling
+
+All notification dispatches are **non-critical**. If a notification fails to create or deliver:
+
+- The error is **logged** for debugging
+- The main operation (task creation, payment release, etc.) is **NOT blocked or rolled back**
+- This follows the same pattern as user statistics updates (`IncrementTasksPosted`, `IncrementTasksCompleted`)
+
+```
+// Pseudocode for non-critical notification dispatch
+result, err := mainOperation(...)
+if err != nil:
+  return err  // main operation failure IS critical
+
+notifyErr := notificationService.Create(notification)
+if notifyErr != nil:
+  log.Printf("failed to send notification: %v", notifyErr)
+  // do NOT return error — main operation already succeeded
+
+return result
+```
+
+---
+
 ## Transaction Status State Machine
 
 ```
@@ -612,5 +672,5 @@ All models enforce validation on create and update via GORM hooks:
 ---
 
 **Document Version:** 2.1
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-16
 **Source of Truth:** Go source code in `server/internal/`

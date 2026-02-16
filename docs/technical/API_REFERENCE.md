@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-15 (Notifications added)
+**Last Updated:** 2026-02-16 (Google OAuth endpoint added)
 
 ---
 
@@ -76,6 +76,8 @@ Create a new user account.
     "total_tasks_posted": 0,
     "total_earnings": 0,
     "is_tasker": false,
+    "auth_provider": "email",
+    "email_verified": false,
     "created_at": "2026-02-14T10:00:00Z",
     "updated_at": "2026-02-14T10:00:00Z"
   }
@@ -121,7 +123,45 @@ Authenticate with email and password.
 
 ---
 
-### 1.3. Refresh Token
+### 1.3. Google OAuth Login
+
+Authenticate or register using a Google ID token. If the user does not exist, a new account is created automatically using the Google profile (email, name, avatar).
+
+**Endpoint:** `POST /api/v1/auth/google`
+**Auth:** None
+
+#### Request Body
+
+```json
+{
+  "id_token": "eyJhbGciOi..."
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id_token` | string | Yes | Google JWT ID token obtained from Google Sign-In |
+
+#### Response: 200 OK
+
+```json
+{
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "eyJhbGciOi...",
+  "user": { ... }
+}
+```
+
+Same format as Login (section 1.2).
+
+#### Errors
+
+- `400` - Missing or invalid ID token
+- `401` - Google token verification failed
+
+---
+
+### 1.4. Refresh Token
 
 Get a new access token using a refresh token.
 
@@ -176,6 +216,8 @@ Get any user's profile by ID.
   "total_tasks_posted": 5,
   "total_earnings": 500000,
   "is_tasker": true,
+  "auth_provider": "email",
+  "email_verified": true,
   "tasker_bio": "Experienced in delivery",
   "tasker_skills": ["Giao hang", "Day hoc"],
   "created_at": "2026-01-01T00:00:00Z",
@@ -688,7 +730,7 @@ Get current user's wallet information.
 
 | Field | Description |
 |-------|-------------|
-| `balance` | Available balance (VND) |
+| `balance` | Wallet balance (VND) -- includes funds reserved for open tasks |
 | `escrow_balance` | Amount held in escrow for active tasks |
 | `available_balance` | Spendable balance after accounting for escrow and open task prices |
 | `total_deposited` | Lifetime total deposited |
@@ -1554,6 +1596,7 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 | GET | `/api/v1/health` | No | Health check |
 | POST | `/api/v1/auth/register` | No | Register |
 | POST | `/api/v1/auth/login` | No | Login |
+| POST | `/api/v1/auth/google` | No | Google OAuth login |
 | POST | `/api/v1/auth/refresh` | No | Refresh token |
 | GET | `/api/v1/categories` | No | List categories |
 | GET | `/api/v1/users/:id` | No | Get user profile |

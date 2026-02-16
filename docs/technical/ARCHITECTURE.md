@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
 **Version:** 2.0
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-16
 
 ---
 
@@ -49,10 +49,10 @@ graph TD
         WebSocketClient --> Retrofit
     end
 
-    NGINX["NGINX<br/>(SSL + Reverse Proxy)"]
+    CLOUDFLARE["Cloudflare Tunnel<br/>(SSL + Routing)"]
 
-    Retrofit -- "HTTPS / WSS" --> NGINX
-    WebSocketClient -- "WSS" --> NGINX
+    Retrofit -- "HTTPS / WSS" --> CLOUDFLARE
+    WebSocketClient -- "WSS" --> CLOUDFLARE
 
     subgraph GO_BACKEND["GO BACKEND (Gin)"]
         AuthMW["Auth Middleware<br/>(JWT)"]
@@ -66,7 +66,7 @@ graph TD
         Services --> Repository
     end
 
-    NGINX --> Handlers
+    CLOUDFLARE --> Handlers
 
     DB[("PostgreSQL (Production :5432)<br/>PostgreSQL (Test :5433)")]
     PayOS(("PayOS<br/>(Payments)"))
@@ -80,7 +80,7 @@ graph TD
 ```mermaid
 graph TD
     A["Android App"]
-    B["Nginx<br/>(SSL termination,<br/>rate limiting)"]
+    B["Cloudflare Tunnel<br/>(SSL termination)"]
     C["Gin Router"]
     D["CORS Middleware"]
     E["Auth Middleware<br/>(JWT validation -> sets<br/>user_id in context)"]
@@ -107,7 +107,7 @@ graph TD
 
 | Component        | Technology              | Version |
 |------------------|-------------------------|---------|
-| Language         | Go                      | 1.25    |
+| Language         | Go                      | 1.25.5  |
 | HTTP Framework   | Gin                     | 1.11    |
 | ORM              | GORM                    | 1.31    |
 | Database (prod)  | PostgreSQL (via pgx)    | -       |
@@ -171,7 +171,7 @@ server/
 │   │   ├── wallet.go            # GetWallet, Deposit, GetTransactionHistory
 │   │   ├── webhook.go           # PayOS webhook handler
 │   │   ├── return.go            # PayOS return URL handler
-│   │   ├── websocket.go         # WebSocket upgrade + message handler
+│   │   ├── websocket.go         # WebSocket upgrade + MessageHandler (REST conversation endpoints)
 │   │   └── *_test.go            # Handler tests
 │   │
 │   ├── services/                # Business logic
@@ -264,6 +264,14 @@ func NewUserGormRepository(db *gorm.DB) UserRepository { ... }
 
 **Service Layer**: Services encapsulate business logic and depend on repository interfaces, not concrete implementations. Services are injected into handlers.
 
+**MessageHandler** (defined in `handlers/websocket.go`): Handles REST conversation endpoints. Depends on `MessageService`.
+
+| Method                   | Route                              | Description                       |
+|--------------------------|------------------------------------|-----------------------------------|
+| `GetConversations()`     | `GET /api/v1/conversations`        | List user's conversations         |
+| `CreateConversation()`   | `POST /api/v1/conversations`       | Create a new conversation         |
+| `GetConversationMessages()` | `GET /api/v1/conversations/:id/messages` | Get message history for a conversation |
+
 **Model Validation Hooks**: GORM models implement `BeforeCreate` and `BeforeUpdate` hooks that call `Validate()`, enforcing data integrity at the ORM level.
 
 **Dependency Wiring** (in `cmd/server/main.go`):
@@ -276,6 +284,7 @@ Config → Database → Repositories → Services → Handlers → Gin Router
 - `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, and `NotificationService`
 - `NotificationService` depends on `NotificationRepository` and `WebSocket Hub`
 - `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, and `*gorm.DB`
+- `MessageService` depends on `MessageRepository`, `ConversationRepository`, and `WebSocket Hub`
 
 ---
 
@@ -481,6 +490,9 @@ erDiagram
         string university
         string student_id
         bool is_verified
+        bool email_verified
+        string auth_provider
+        string google_id
         float rating
         bool is_tasker
         string tasker_bio
@@ -504,7 +516,7 @@ erDiagram
         int category_id FK
         string title
         string description
-        float price
+        int64 price
         string location
         float lat
         float lng
@@ -518,7 +530,7 @@ erDiagram
         int id PK
         int task_id FK
         int tasker_id FK
-        float proposed_price
+        int64 proposed_price
         string message
         string status
     }
@@ -526,8 +538,8 @@ erDiagram
     Wallet {
         int id PK
         int user_id FK
-        float balance
-        float escrow_balance
+        int64 balance
+        int64 escrow_balance
     }
 
     WalletTransaction {
@@ -536,17 +548,17 @@ erDiagram
         int transaction_id
         int task_id
         string type
-        float amount
-        float balance_before
-        float balance_after
-        float escrow_before
-        float escrow_after
+        int64 amount
+        int64 balance_before
+        int64 balance_after
+        int64 escrow_before
+        int64 escrow_after
         string description
         int reference_user_id
     }
 
     Conversation {
-        int id PK
+        uint id PK
         int task_id FK
         int poster_id
         int tasker_id
@@ -554,8 +566,8 @@ erDiagram
     }
 
     Message {
-        int id PK
-        int conversation_id FK
+        uint id PK
+        uint conversation_id FK
         int sender_id
         string content
         bool is_read
@@ -566,9 +578,9 @@ erDiagram
         int task_id FK
         int payer_id FK
         int payee_id FK
-        float amount
-        float platform_fee
-        float net_amount
+        int64 amount
+        int64 platform_fee
+        int64 net_amount
         string type "escrow | release | refund | deposit | withdrawal | platform_fee"
         string status "pending | success | failed | cancelled"
         string payos_order_code
@@ -814,6 +826,7 @@ All routes are prefixed with `/api/v1/`.
 | POST   | `/auth/register`          | Register new user          |
 | POST   | `/auth/login`             | Login (email + password)   |
 | POST   | `/auth/refresh`           | Refresh JWT token          |
+| POST   | `/auth/google`            | Google OAuth login         |
 | GET    | `/categories`             | List all categories        |
 | GET    | `/users/:id`              | Get public user profile    |
 | POST   | `/payment/webhook`        | PayOS webhook callback     |
@@ -864,13 +877,13 @@ Production runs on a dedicated bare metal server. Infrastructure details (IP, ho
 ```mermaid
 graph LR
     Internet(("Internet"))
-    Nginx["Nginx<br/>(SSL/443)"]
+    Cloudflare["Cloudflare Tunnel<br/>(SSL)"]
     GoBinary["Go Binary<br/>(:8080)"]
     PostgreSQL[("PostgreSQL<br/>(:5432)")]
     PayOS(("PayOS API"))
 
-    Internet --> Nginx
-    Nginx --> GoBinary
+    Internet --> Cloudflare
+    Cloudflare --> GoBinary
     GoBinary --> PostgreSQL
     GoBinary --> PayOS
 ```
