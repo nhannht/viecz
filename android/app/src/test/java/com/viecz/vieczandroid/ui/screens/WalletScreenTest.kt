@@ -117,10 +117,11 @@ class WalletScreenTest {
 
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Available Balance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total Balance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Available").assertIsDisplayed()
         composeTestRule.onNodeWithText("In Escrow").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total Earned").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total Spent").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Earned").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Spent").assertIsDisplayed()
     }
 
     @Test
@@ -133,7 +134,9 @@ class WalletScreenTest {
 
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Transaction History").assertIsDisplayed()
+        composeTestRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("Transaction History"))
+        composeTestRule.onNodeWithText("Transaction History").assertExists()
     }
 
     @Test

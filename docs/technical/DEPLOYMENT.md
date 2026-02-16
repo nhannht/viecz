@@ -9,7 +9,8 @@
 1. [Architecture Overview](#1-architecture-overview)
 2. [Docker Compose Services](#2-docker-compose-services)
 3. [Environment Variables](#3-environment-variables)
-4. [Production Deployment](#4-production-deployment)
+4. [Production Deployment (Beta Phase)](#4-production-deployment-beta-phase)
+4b. [Production Deployment (Full Docker — Future)](#4b-production-deployment-full-docker--future)
 5. [Test Server (Development / E2E)](#5-test-server-development--e2e)
 6. [Android Versioning (CalVer)](#6-android-versioning-calver)
 7. [Android Build Flavors](#7-android-build-flavors)
@@ -29,7 +30,7 @@
 | Android app (dev) | Kotlin / Jetpack Compose | Room (local) | N/A |
 | Android app (prod) | Kotlin / Jetpack Compose | Room (local) | N/A |
 
-**Production stack**: Docker Compose with three services (PostgreSQL, Go server, Cloudflare Tunnel). The Go server connects to PostgreSQL via GORM. External HTTPS is handled by Cloudflare Tunnel (no Nginx or Certbot needed).
+**Production stack (beta)**: Go server runs as a native binary on the host. PostgreSQL and Cloudflare Tunnel run in Docker containers. The Go server connects to PostgreSQL at `127.0.0.1:5432` via GORM. External HTTPS is handled by Cloudflare Tunnel (no Nginx or Certbot needed). See [Section 4](#4-production-deployment-beta-phase) for deployment steps.
 
 **Test stack**: Go binary with PostgreSQL test container (port 5433, Docker tmpfs for RAM-backed storage) and mock PayOS. Requires test PostgreSQL container (`docker-compose.testdb.yml`).
 
@@ -192,7 +193,117 @@ Key points:
 
 ---
 
-## 4. Production Deployment
+## 4. Production Deployment (Beta Phase)
+
+**Current approach**: The Go server runs as a **native binary** on the host, while PostgreSQL and Cloudflare Tunnel run in **Docker containers**. This enables fast iteration — no Docker rebuild (~90s saved per deploy), just cross-compile + rsync + restart.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────┐
+│  Production Server (sg)                 │
+│                                         │
+│  ┌──────────────┐   ┌───────────────┐   │
+│  │ server-linux  │──▶│  PostgreSQL    │   │
+│  │ (native bin)  │   │  (Docker)     │   │
+│  │ :8080         │   │  :5432        │   │
+│  └──────┬───────┘   └───────────────┘   │
+│         │                               │
+│  ┌──────▼───────┐                       │
+│  │ cloudflared   │                       │
+│  │ (Docker)      │                       │
+│  └──────────────┘                       │
+└─────────────────────────────────────────┘
+```
+
+- **Go server**: Native binary on host, connects to PostgreSQL at `127.0.0.1:5432`
+- **PostgreSQL**: Docker container (`docker-compose.yml`), data persisted in `postgres_data` volume
+- **Cloudflare Tunnel**: Docker container, routes `viecz-api.fishcmus.io.vn` → `http://host.docker.internal:8080` (or `http://172.17.0.1:8080`)
+
+### Prerequisites
+
+- Docker and Docker Compose (for PostgreSQL + Cloudflare Tunnel)
+- Go 1.21+ on the development machine (for cross-compilation)
+- SSH access to the production server (see `sg` in global CLAUDE.md)
+
+### Initial Setup (One-Time)
+
+```bash
+# 1. On the production server: start PostgreSQL
+docker compose -f docker-compose.yml up -d
+
+# 2. Create .env in the project root
+cp .env.production.example .env
+# Edit: set DB_HOST=127.0.0.1, DB_PASSWORD, JWT_SECRET, PayOS keys
+
+# 3. Start Cloudflare Tunnel (configure to point to host:8080)
+docker compose -f docker-compose.cloudflared.yml up -d
+```
+
+### Deploy / Update (Fast Iteration)
+
+Run from the **local development machine**:
+
+```bash
+# 1. Cross-compile for Linux
+cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/server-linux ./cmd/server
+
+# 2. Rsync binary to production server
+rsync -avz bin/server-linux baremetal-sg-ks3:~/nhannht-projects/viecz/server/bin/
+
+# 3. Restart the server (no sudo, no systemctl)
+ssh baremetal-sg-ks3 "pkill -f server-linux || true"
+ssh -f baremetal-sg-ks3 "cd ~/nhannht-projects/viecz && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &"
+
+# 4. Verify
+ssh baremetal-sg-ks3 "curl -s http://localhost:8080/api/v1/health"
+```
+
+Typical deploy time: **~15s** (build ~5s + rsync ~5s + restart ~5s).
+
+### Database Access
+
+PostgreSQL runs in Docker, so use `docker exec` to access `psql`:
+
+```bash
+# On the production server (requires sudo for docker)
+sudo docker exec -it viecz-postgres psql -U postgres -d viecz
+
+# Run a one-off query
+sudo docker exec viecz-postgres psql -U postgres -d viecz -c "SELECT id, email FROM users;"
+
+# Backup
+sudo docker exec viecz-postgres pg_dump -U postgres viecz > backup_$(date +%Y%m%d).sql
+
+# Restore
+sudo docker exec -i viecz-postgres psql -U postgres viecz < backup_20260216.sql
+```
+
+### Server Logs
+
+```bash
+# Live logs
+ssh baremetal-sg-ks3 "tail -f /tmp/viecz-server.log"
+
+# Last 50 lines
+ssh baremetal-sg-ks3 "tail -50 /tmp/viecz-server.log"
+```
+
+The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, 2 test users) via `database.SeedData`.
+
+### Why Native Binary Over Full Docker
+
+| | Native binary | Full Docker |
+|---|---|---|
+| Deploy time | ~15s | ~90s+ (rebuild image) |
+| Debugging | Direct log file, easy to attach | Must exec into container |
+| DB access | `docker exec` into PostgreSQL container | Same |
+| Rollback | Rsync previous binary | Rebuild previous image |
+| Complexity | Low (just a binary + .env) | Higher (Dockerfile, compose networking) |
+
+**Note**: The full Docker Compose deployment (Section 2) remains available for future production hardening. The beta phase prioritizes iteration speed.
+
+## 4b. Production Deployment (Full Docker — Future)
 
 ### Prerequisites
 
@@ -464,20 +575,26 @@ The script `scripts/run-full-e2e.sh` automates the full E2E flow:
 
 ## 10. Verify Deployment
 
-### Production
+### Production (Beta Phase)
 
 ```bash
 # Health check
 curl https://viecz-api.fishcmus.io.vn/api/v1/health
 
-# Docker status
-docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml ps
+# Server process
+ssh baremetal-sg-ks3 "pgrep -la server-linux"
 
 # Server logs
-docker logs viecz-server --tail 50
+ssh baremetal-sg-ks3 "tail -50 /tmp/viecz-server.log"
+
+# Docker status (PostgreSQL + Cloudflare Tunnel)
+ssh baremetal-sg-ks3 "sudo docker ps"
 
 # PostgreSQL logs
-docker logs viecz-postgres --tail 20
+ssh baremetal-sg-ks3 "sudo docker logs viecz-postgres --tail 20"
+
+# Database query
+ssh baremetal-sg-ks3 "sudo docker exec viecz-postgres psql -U postgres -d viecz -c 'SELECT id, email FROM users;'"
 ```
 
 ### Test server
@@ -491,13 +608,13 @@ curl http://localhost:9999/api/v1/categories
 
 ## 11. Maintenance
 
-### Logs
+### Logs (Beta Phase)
 
 | Log | Command |
 |---|---|
-| Server (production) | `docker logs viecz-server -f` |
-| PostgreSQL | `docker logs viecz-postgres -f` |
-| Cloudflared | `docker logs viecz-cloudflared -f` |
+| Server (production) | `ssh baremetal-sg-ks3 "tail -f /tmp/viecz-server.log"` |
+| PostgreSQL | `ssh baremetal-sg-ks3 "sudo docker logs viecz-postgres -f"` |
+| Cloudflared | `ssh baremetal-sg-ks3 "sudo docker logs viecz-cloudflared -f"` |
 | Test server | Check terminal output or `/tmp/testserver.log` |
 | Android app | `adb logcat --pid=$(adb shell pidof com.viecz.vieczandroid.dev)` |
 
@@ -505,25 +622,24 @@ curl http://localhost:9999/api/v1/categories
 
 ```bash
 # Dump PostgreSQL from container
-docker exec viecz-postgres pg_dump -U postgres viecz > backup_$(date +%Y%m%d).sql
+ssh baremetal-sg-ks3 "sudo docker exec viecz-postgres pg_dump -U postgres viecz" > backup_$(date +%Y%m%d).sql
 
 # Restore
-docker exec -i viecz-postgres psql -U postgres viecz < backup_20260214.sql
+cat backup_20260216.sql | ssh baremetal-sg-ks3 "sudo docker exec -i viecz-postgres psql -U postgres viecz"
 ```
 
-### Restart services
+### Restart server (Beta Phase)
 
 ```bash
-# Restart server only (DB persists)
-docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml restart server
+# Restart server only (cross-compile + rsync + restart)
+cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/server-linux ./cmd/server
+rsync -avz bin/server-linux baremetal-sg-ks3:~/nhannht-projects/viecz/server/bin/
+ssh baremetal-sg-ks3 "pkill -f server-linux || true"
+ssh -f baremetal-sg-ks3 "cd ~/nhannht-projects/viecz && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &"
 
-# Full restart
-docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml down
-docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml up -d
-```
+# Restart PostgreSQL only
+ssh baremetal-sg-ks3 "sudo docker restart viecz-postgres"
 
-### Rebuild server after code changes
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.server.yml -f docker-compose.cloudflared.yml up -d --build server
+# Restart Cloudflare Tunnel only
+ssh baremetal-sg-ks3 "sudo docker restart viecz-cloudflared"
 ```

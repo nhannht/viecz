@@ -662,7 +662,8 @@ class ComponentsTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Available Balance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total Balance").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Available").assertIsDisplayed()
     }
 
     @Test
@@ -680,8 +681,8 @@ class ComponentsTest {
         }
 
         composeTestRule.onNodeWithText("In Escrow").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total Earned").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total Spent").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Earned").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Spent").assertIsDisplayed()
     }
 
     // ===== TransactionItem Tests =====
