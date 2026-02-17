@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.MailOutline
@@ -42,6 +43,7 @@ fun TaskDetailScreen(
     onNavigateToApply: (Long, Long) -> Unit,
     onNavigateToChat: (Long) -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
+    onNavigateToEdit: (Long) -> Unit = {},
     viewModel: TaskDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -108,6 +110,12 @@ fun TaskDetailScreen(
                 },
                 actions = {
                     if (uiState.isOwnTask && uiState.task?.status == TaskStatus.OPEN) {
+                        IconButton(onClick = { onNavigateToEdit(taskId) }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit Task"
+                            )
+                        }
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(
                                 Icons.Default.Delete,

@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-16 (Google OAuth endpoint added)
+**Last Updated:** 2026-02-18 (Edit task Android UI notes added)
 
 ---
 
@@ -533,18 +533,22 @@ Get single task details. Includes `user_has_applied` field for the authenticated
 
 ### 4.4. Update Task
 
-Update a task. Only the requester can update their own task.
+Update a task. Only the requester can update their own task. Task must be in `open` status.
 
 **Endpoint:** `PUT /api/v1/tasks/:id`
 **Auth:** Required (must be requester)
 
 #### Request Body
 
-Same format as Create Task (section 4.1).
+Same format as Create Task (section 4.1). All fields are sent (full replacement).
 
 #### Response: 200 OK
 
 Returns updated task.
+
+#### Android UI
+
+The Android app reuses `CreateTaskScreen` in edit mode (route: `edit_task/{taskId}`). The edit button (pencil icon) appears in `TaskDetailScreen`'s top bar only for the task owner when the task status is `open`. Fields are pre-populated from the existing task via `CreateTaskViewModel.loadTaskForEdit()`.
 
 #### Errors
 

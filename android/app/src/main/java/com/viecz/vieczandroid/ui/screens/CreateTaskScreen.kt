@@ -28,6 +28,7 @@ import java.util.Calendar
 fun CreateTaskScreen(
     onNavigateBack: () -> Unit,
     onTaskCreated: (Long) -> Unit,
+    taskId: Long? = null,
     createTaskViewModel: CreateTaskViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
@@ -38,8 +39,21 @@ fun CreateTaskScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDateMillis by remember { mutableLongStateOf(0L) }
 
+    LaunchedEffect(taskId) {
+        if (taskId != null) {
+            createTaskViewModel.loadTaskForEdit(taskId)
+        }
+    }
+
     LaunchedEffect(uiState.createdTask) {
         uiState.createdTask?.let { task ->
+            onTaskCreated(task.id)
+            createTaskViewModel.resetForm()
+        }
+    }
+
+    LaunchedEffect(uiState.updatedTask) {
+        uiState.updatedTask?.let { task ->
             onTaskCreated(task.id)
             createTaskViewModel.resetForm()
         }
@@ -48,7 +62,7 @@ fun CreateTaskScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create New Task") },
+                title = { Text(if (uiState.isEditMode) "Edit Task" else "Create New Task") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -66,7 +80,8 @@ fun CreateTaskScreen(
         ) {
             item {
                 Text(
-                    text = "Post a new task and find skilled taskers",
+                    text = if (uiState.isEditMode) "Update your task details"
+                           else "Post a new task and find skilled taskers",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -286,12 +301,12 @@ fun CreateTaskScreen(
                 }
             }
 
-            // Create button
+            // Submit button
             item {
                 val priceValue = uiState.price.toLongOrNull() ?: 0L
                 val isInsufficient = uiState.availableBalance != null && priceValue > uiState.availableBalance!!
                 Button(
-                    onClick = { createTaskViewModel.createTask() },
+                    onClick = { createTaskViewModel.submitTask() },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading && !isInsufficient
                 ) {
@@ -301,7 +316,7 @@ fun CreateTaskScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Create Task")
+                        Text(if (uiState.isEditMode) "Save Changes" else "Create Task")
                     }
                 }
             }

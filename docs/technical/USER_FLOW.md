@@ -12,17 +12,18 @@
 2. [Main Screen & Navigation](#2-main-screen--navigation)
 3. [Browse & Search Tasks](#3-browse--search-tasks)
 4. [Create Task (Requester)](#4-create-task-requester)
-5. [Apply for Task (Tasker)](#5-apply-for-task-tasker)
-6. [Accept Application & Escrow Payment](#6-accept-application--escrow-payment)
-7. [Task Completion & Payment Release](#7-task-completion--payment-release)
-8. [Task Deletion / Cancellation](#8-task-deletion--cancellation)
-9. [Chat Messaging](#9-chat-messaging)
-10. [Wallet & Deposits](#10-wallet--deposits)
-11. [Profile & Become Tasker](#11-profile--become-tasker)
-12. [Notifications](#12-notifications)
-13. [My Jobs](#13-my-jobs)
-14. [Full Job Lifecycle (End-to-End)](#14-full-job-lifecycle-end-to-end)
-15. [State Machines](#15-state-machines)
+5. [Edit Task (Requester)](#5-edit-task-requester)
+6. [Apply for Task (Tasker)](#6-apply-for-task-tasker)
+7. [Accept Application & Escrow Payment](#7-accept-application--escrow-payment)
+8. [Task Completion & Payment Release](#8-task-completion--payment-release)
+9. [Task Deletion / Cancellation](#9-task-deletion--cancellation)
+10. [Chat Messaging](#10-chat-messaging)
+11. [Wallet & Deposits](#11-wallet--deposits)
+12. [Profile & Become Tasker](#12-profile--become-tasker)
+13. [Notifications](#13-notifications)
+14. [My Jobs](#14-my-jobs)
+15. [Full Job Lifecycle (End-to-End)](#15-full-job-lifecycle-end-to-end)
+16. [State Machines](#16-state-machines)
 
 ---
 
@@ -182,7 +183,7 @@ main -----------> (tabs: HomeContent, ProfileContent, ConversationListContent, W
 
 From MainScreen:
   create_task ------------> task_detail/{taskId}
-  task_detail/{taskId} ---> apply_task/{taskId}/{price} | chat/{conversationId}
+  task_detail/{taskId} ---> apply_task/{taskId}/{price} | edit_task/{taskId} | chat/{conversationId}
   profile (standalone) ---> my_jobs/{mode}
   notifications ----------> task_detail/{taskId}
   chat/{conversationId}
@@ -253,7 +254,45 @@ Navigate to TaskDetailScreen (new task)
 
 ---
 
-## 5. Apply for Task (Tasker)
+## 5. Edit Task (Requester)
+
+```
+TaskDetailScreen (requester view, task status == OPEN)
+    |
+    v
+Top bar shows pencil icon (edit button) next to trash icon
+    Visible only when: isOwnTask == true && task.status == "open"
+    |
+    v
+Tap pencil icon
+    |
+    v
+Navigate to CreateTaskScreen in edit mode (edit_task/{taskId})
+    |
+    v
+CreateTaskScreen (edit mode):
+    - TopAppBar title: "Edit Task"
+    - All fields pre-populated from existing task data
+    - Submit button text: "Save Changes"
+    |
+    v
+Tap "Save Changes"
+    |
+    v
+PUT /api/v1/tasks/:id
+    |
+    v
+Navigate back to TaskDetailScreen (task refreshed)
+```
+
+**Screen:** `CreateTaskScreen.kt` (reused with `taskId` parameter)
+**Route:** `edit_task/{taskId}`
+**API:** `PUT /api/v1/tasks/:id` -- `{ title, description, category_id, price, location, deadline }`
+**Conditions:** Only the task owner can edit; task must be in OPEN status
+
+---
+
+## 6. Apply for Task (Tasker)
 
 ```
 TaskDetailScreen (task with status OPEN)
@@ -288,7 +327,7 @@ TaskDetailScreen (task with status OPEN)
 
 ---
 
-## 6. Accept Application & Escrow Payment
+## 7. Accept Application & Escrow Payment
 
 This is triggered by the task requester (poster) on the TaskDetailScreen.
 
@@ -336,7 +375,7 @@ TaskDetailScreen refreshes (shows IN_PROGRESS status)
 
 ---
 
-## 7. Task Completion & Payment Release
+## 8. Task Completion & Payment Release
 
 ```
 TaskDetailScreen (task IN_PROGRESS, requester view)
@@ -365,7 +404,7 @@ Task status badge shows "Completed"
 
 ---
 
-## 8. Task Deletion / Cancellation
+## 9. Task Deletion / Cancellation
 
 The task requester can delete (soft-cancel) their own open task from the TaskDetailScreen.
 
@@ -406,7 +445,7 @@ Navigate back to marketplace (HomeContent)
 
 ---
 
-## 9. Chat Messaging
+## 10. Chat Messaging
 
 ### 9.1 Opening a Chat
 
@@ -490,7 +529,7 @@ Tap card --> ChatScreen (chat/{conversationId})
 
 ---
 
-## 10. Wallet & Deposits
+## 11. Wallet & Deposits
 
 ### 10.1 Viewing Wallet
 
@@ -565,7 +604,7 @@ Return to app (lifecycle RESUMED triggers refresh)
 
 ---
 
-## 11. Profile & Become Tasker
+## 12. Profile & Become Tasker
 
 ### 11.1 Profile View
 
@@ -613,7 +652,7 @@ Snackbar: "You are now registered as a tasker!"
 
 ---
 
-## 12. Notifications
+## 13. Notifications
 
 ```
 MainScreen > Tap notification bell in top bar
@@ -645,7 +684,7 @@ Tap notification --> Mark as read + navigate to task_detail/{taskId}
 
 ---
 
-## 13. My Jobs
+## 14. My Jobs
 
 ```
 Profile > Tap "My Posted Jobs" / "My Applied Jobs" / "My Completed Jobs"
@@ -667,7 +706,7 @@ Task list (paginated, pull-to-refresh)
 
 ---
 
-## 14. Full Job Lifecycle (End-to-End)
+## 15. Full Job Lifecycle (End-to-End)
 
 This is the complete happy-path flow tested by `S13_FullJobLifecycleE2ETest`:
 
@@ -707,9 +746,9 @@ When Bob proposes 90k instead of the task price 100k:
 
 ---
 
-## 15. State Machines
+## 16. State Machines
 
-### 15.1 Task Status
+### 16.1 Task Status
 
 ```
 OPEN ---[accept application + escrow payment]--> IN_PROGRESS ---[complete]--> COMPLETED
@@ -727,7 +766,7 @@ OPEN ---[accept application + escrow payment]--> IN_PROGRESS ---[complete]--> CO
 | CANCELLED    | `DELETE /api/v1/tasks/:id` (soft delete, from OPEN) | Pending apps rejected, applicants notified                 |
 | CANCELLED    | `POST /payments/refund` (from IN_PROGRESS)        | Escrow refunded to requester                                |
 
-### 15.2 Application Status
+### 16.2 Application Status
 
 ```
 PENDING ---[requester accepts]--> ACCEPTED
@@ -735,7 +774,7 @@ PENDING ---[requester accepts]--> ACCEPTED
     +---[other app accepted]---> REJECTED
 ```
 
-### 15.3 Escrow Transaction Flow
+### 16.3 Escrow Transaction Flow
 
 ```
 Deposit (PayOS webhook) --> Wallet credited
@@ -767,6 +806,7 @@ Task cancelled --> ESCROW_REFUND (escrow returned to requester)
 | WalletContent             | `WalletScreen.kt`             | Tab 3 of `main`             |
 | TaskDetailScreen          | `TaskDetailScreen.kt`         | `task_detail/{taskId}`      |
 | CreateTaskScreen          | `CreateTaskScreen.kt`         | `create_task`               |
+| EditTaskScreen (reuses CreateTaskScreen) | `CreateTaskScreen.kt` | `edit_task/{taskId}`        |
 | ApplyTaskScreen           | `ApplyTaskScreen.kt`          | `apply_task/{taskId}/{price}` |
 | ChatScreen                | `ChatScreen.kt`               | `chat/{conversationId}`     |
 | NotificationScreen        | `NotificationScreen.kt`       | `notifications`             |
@@ -799,5 +839,5 @@ Scenario docs: `android/e2escenarios/`
 
 ---
 
-**Last Updated:** 2026-02-17
-**Version:** 2.4
+**Last Updated:** 2026-02-18
+**Version:** 2.5

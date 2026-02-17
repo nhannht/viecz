@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
-**Version:** 2.2
-**Last Updated:** 2026-02-17
+**Version:** 2.3
+**Last Updated:** 2026-02-18
 
 ---
 
@@ -500,6 +500,7 @@ DataModule (@Singleton)
 | `main`                   | MainScreen (bottom tabs) | Yes           |
 | `task_detail/{taskId}`   | TaskDetailScreen         | Yes           |
 | `create_task`            | CreateTaskScreen         | Yes           |
+| `edit_task/{taskId}`     | CreateTaskScreen (edit mode) | Yes       |
 | `apply_task/{taskId}/{price}` | ApplyTaskScreen     | Yes           |
 | `profile`                | ProfileScreen            | Yes           |
 | `wallet`                 | WalletScreen             | Yes           |

@@ -26,11 +26,13 @@ object NavigationRoutes {
     const val CHAT = "chat/{conversationId}"
     const val NOTIFICATIONS = "notifications"
     const val MY_JOBS = "my_jobs/{mode}"
+    const val EDIT_TASK = "edit_task/{taskId}"
     const val FIRST_SCREEN = "first_screen"
     const val SECOND_SCREEN = "second_screen"
     const val PAYMENT_SCREEN = "payment_screen"
 
     fun taskDetail(taskId: Long) = "task_detail/$taskId"
+    fun editTask(taskId: Long) = "edit_task/$taskId"
     fun applyTask(taskId: Long, price: Long) = "apply_task/$taskId/$price"
     fun chat(conversationId: Long) = "chat/$conversationId"
     fun myJobs(mode: String) = "my_jobs/$mode"
@@ -156,6 +158,9 @@ fun VieczNavHost(
                 },
                 onNavigateToProfile = {
                     navController.navigate(NavigationRoutes.PROFILE)
+                },
+                onNavigateToEdit = { taskId ->
+                    navController.navigate(NavigationRoutes.editTask(taskId))
                 }
             )
         }
@@ -172,6 +177,22 @@ fun VieczNavHost(
                         popUpTo(NavigationRoutes.MAIN)
                     }
                 }
+            )
+        }
+
+        // Edit task screen
+        composable(
+            route = NavigationRoutes.EDIT_TASK,
+            arguments = listOf(navArgument("taskId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val editTaskId = backStackEntry.arguments?.getLong("taskId") ?: return@composable
+            CreateTaskScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onTaskCreated = { taskId ->
+                    // Pop back to task detail and refresh
+                    navController.popBackStack()
+                },
+                taskId = editTaskId
             )
         }
 

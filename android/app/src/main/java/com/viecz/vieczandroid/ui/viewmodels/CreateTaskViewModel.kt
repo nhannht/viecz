@@ -36,7 +36,10 @@ data class CreateTaskUiState(
     val isLoadingBalance: Boolean = false,
     val deadlineMillis: Long? = null,
     val deadlineDisplayText: String = "",
-    val deadlineError: String? = null
+    val deadlineError: String? = null,
+    val isEditMode: Boolean = false,
+    val editTaskId: Long? = null,
+    val updatedTask: Task? = null
 )
 
 @HiltViewModel
@@ -194,7 +197,51 @@ class CreateTaskViewModel @Inject constructor(
                locationError == null && deadlineError == null
     }
 
-    fun createTask() {
+    fun loadTaskForEdit(taskId: Long) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            repository.getTask(taskId).fold(
+                onSuccess = { task ->
+                    val deadlineMillis = task.deadline?.let { dl ->
+                        try { Instant.parse(dl).toEpochMilli() } catch (_: Exception) { null }
+                    }
+                    val deadlineDisplay = deadlineMillis?.let { millis ->
+                        ZonedDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                    } ?: ""
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isEditMode = true,
+                        editTaskId = taskId,
+                        title = task.title,
+                        description = task.description,
+                        categoryId = task.categoryId,
+                        price = task.price.toString(),
+                        location = task.location,
+                        deadlineMillis = deadlineMillis,
+                        deadlineDisplayText = deadlineDisplay
+                    )
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to load task for edit", error)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Failed to load task"
+                    )
+                }
+            )
+        }
+    }
+
+    fun submitTask() {
+        if (_uiState.value.isEditMode) {
+            updateTask()
+        } else {
+            createTask()
+        }
+    }
+
+    private fun createTask() {
         if (!validateForm()) {
             Log.d(TAG, "Form validation failed")
             return
@@ -230,6 +277,49 @@ class CreateTaskViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = error.message ?: "Failed to create task"
+                    )
+                }
+            )
+        }
+    }
+
+    private fun updateTask() {
+        if (!validateForm()) {
+            Log.d(TAG, "Form validation failed")
+            return
+        }
+
+        val taskId = _uiState.value.editTaskId ?: return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            val deadlineRfc3339 = _uiState.value.deadlineMillis?.let { millis ->
+                Instant.ofEpochMilli(millis).toString()
+            }
+            val request = CreateTaskRequest(
+                title = _uiState.value.title,
+                description = _uiState.value.description,
+                categoryId = _uiState.value.categoryId!!,
+                price = _uiState.value.price.toLong(),
+                location = _uiState.value.location,
+                deadline = deadlineRfc3339
+            )
+
+            repository.updateTask(taskId, request).fold(
+                onSuccess = { task ->
+                    Log.d(TAG, "Task updated successfully: ${task.id}")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        updatedTask = task,
+                        error = null
+                    )
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to update task", error)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Failed to update task"
                     )
                 }
             )
