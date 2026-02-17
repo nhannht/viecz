@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -12,7 +13,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.viecz.vieczandroid.data.models.Task
+import com.viecz.vieczandroid.data.models.computeIsOverdue
 import java.text.NumberFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @Composable
@@ -104,6 +109,44 @@ fun TaskCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
+            }
+
+            // Deadline row
+            if (task.deadline != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                val overdue = task.computeIsOverdue()
+                val formattedDeadline = try {
+                    val instant = Instant.parse(task.deadline)
+                    instant.atZone(ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                } catch (_: Exception) {
+                    task.deadline
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (overdue) MaterialTheme.colorScheme.error
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = formattedDeadline,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (overdue) MaterialTheme.colorScheme.error
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (overdue) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "OVERDUE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }

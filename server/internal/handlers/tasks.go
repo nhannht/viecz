@@ -28,6 +28,7 @@ func NewTaskHandler(taskService *services.TaskService, applicationRepo repositor
 type TaskResponse struct {
 	*models.Task
 	UserHasApplied bool `json:"user_has_applied"`
+	IsOverdue      bool `json:"is_overdue"`
 }
 
 // CreateTask handles POST /api/v1/tasks
@@ -79,6 +80,7 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 	response := TaskResponse{
 		Task:           task,
 		UserHasApplied: userHasApplied,
+		IsOverdue:      task.IsOverdue(),
 	}
 
 	c.JSON(http.StatusOK, response)

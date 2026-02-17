@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 data class CreateTaskUiState(
@@ -29,7 +33,10 @@ data class CreateTaskUiState(
     val priceError: String? = null,
     val locationError: String? = null,
     val availableBalance: Long? = null,
-    val isLoadingBalance: Boolean = false
+    val isLoadingBalance: Boolean = false,
+    val deadlineMillis: Long? = null,
+    val deadlineDisplayText: String = "",
+    val deadlineError: String? = null
 )
 
 @HiltViewModel
@@ -102,6 +109,27 @@ class CreateTaskViewModel @Inject constructor(
         )
     }
 
+    fun updateDeadline(millis: Long) {
+        val instant = Instant.ofEpochMilli(millis)
+        val hoursUntil = java.time.Duration.between(Instant.now(), instant).toHours()
+        val error = if (hoursUntil < 1) "Deadline must be at least 1 hour in the future" else null
+        val displayText = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+        _uiState.value = _uiState.value.copy(
+            deadlineMillis = millis,
+            deadlineDisplayText = displayText,
+            deadlineError = error
+        )
+    }
+
+    fun clearDeadline() {
+        _uiState.value = _uiState.value.copy(
+            deadlineMillis = null,
+            deadlineDisplayText = "",
+            deadlineError = null
+        )
+    }
+
     private fun validateTitle(title: String): String? {
         return when {
             title.isBlank() -> "Title is required"
@@ -151,6 +179,7 @@ class CreateTaskViewModel @Inject constructor(
         val categoryError = if (_uiState.value.categoryId == null) "Category is required" else null
         val priceError = validatePrice(_uiState.value.price)
         val locationError = validateLocation(_uiState.value.location)
+        val deadlineError = _uiState.value.deadlineError
 
         _uiState.value = _uiState.value.copy(
             titleError = titleError,
@@ -161,7 +190,8 @@ class CreateTaskViewModel @Inject constructor(
         )
 
         return titleError == null && descriptionError == null &&
-               categoryError == null && priceError == null && locationError == null
+               categoryError == null && priceError == null &&
+               locationError == null && deadlineError == null
     }
 
     fun createTask() {
@@ -173,12 +203,16 @@ class CreateTaskViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
+            val deadlineRfc3339 = _uiState.value.deadlineMillis?.let { millis ->
+                Instant.ofEpochMilli(millis).toString()
+            }
             val request = CreateTaskRequest(
                 title = _uiState.value.title,
                 description = _uiState.value.description,
                 categoryId = _uiState.value.categoryId!!,
                 price = _uiState.value.price.toLong(),
-                location = _uiState.value.location
+                location = _uiState.value.location,
+                deadline = deadlineRfc3339
             )
 
             val result = repository.createTask(request)

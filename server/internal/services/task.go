@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
@@ -57,7 +58,7 @@ type CreateTaskInput struct {
 	Location     string   `json:"location"`
 	Latitude     *float64 `json:"latitude,omitempty"`
 	Longitude    *float64 `json:"longitude,omitempty"`
-	ScheduledFor *string  `json:"scheduled_for,omitempty"`
+	Deadline     *string  `json:"deadline,omitempty"`
 	ImageURLs    []string `json:"image_urls,omitempty"`
 }
 
@@ -104,6 +105,18 @@ func (s *TaskService) CreateTask(ctx context.Context, requesterID int64, input *
 
 	if input.Longitude != nil {
 		task.Longitude = input.Longitude
+	}
+
+	// Parse and validate deadline
+	if input.Deadline != nil {
+		deadline, err := time.Parse(time.RFC3339, *input.Deadline)
+		if err != nil {
+			return nil, fmt.Errorf("invalid deadline format (use RFC3339): %w", err)
+		}
+		if time.Until(deadline) < time.Hour {
+			return nil, fmt.Errorf("deadline must be at least 1 hour in the future")
+		}
+		task.Deadline = &deadline
 	}
 
 	if err := s.taskRepo.Create(ctx, task); err != nil {
@@ -185,6 +198,20 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID, requesterID int64,
 
 	if input.Longitude != nil {
 		task.Longitude = input.Longitude
+	}
+
+	// Parse and validate deadline (nil clears it)
+	if input.Deadline != nil {
+		deadline, err := time.Parse(time.RFC3339, *input.Deadline)
+		if err != nil {
+			return nil, fmt.Errorf("invalid deadline format (use RFC3339): %w", err)
+		}
+		if time.Until(deadline) < time.Hour {
+			return nil, fmt.Errorf("deadline must be at least 1 hour in the future")
+		}
+		task.Deadline = &deadline
+	} else {
+		task.Deadline = nil
 	}
 
 	if err := s.taskRepo.Update(ctx, task); err != nil {
@@ -411,6 +438,11 @@ func (s *TaskService) ApplyForTask(ctx context.Context, taskID, taskerID int64, 
 
 	if task.Status != models.TaskStatusOpen {
 		return nil, fmt.Errorf("task is not open for applications")
+	}
+
+	// Block applications on overdue tasks
+	if task.IsOverdue() {
+		return nil, fmt.Errorf("deadline has passed, applications are closed")
 	}
 
 	// Can't apply to own task

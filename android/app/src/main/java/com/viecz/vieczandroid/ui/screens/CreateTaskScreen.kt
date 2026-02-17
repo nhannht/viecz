@@ -7,6 +7,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +21,7 @@ import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.CreateTaskViewModel
 import com.viecz.vieczandroid.utils.formatCurrency
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +34,9 @@ fun CreateTaskScreen(
     val uiState by createTaskViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
     var showCategoryDialog by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var selectedDateMillis by remember { mutableLongStateOf(0L) }
 
     LaunchedEffect(uiState.createdTask) {
         uiState.createdTask?.let { task ->
@@ -218,6 +224,50 @@ fun CreateTaskScreen(
                 )
             }
 
+            // Deadline picker (optional)
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showDatePicker = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Default.DateRange,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (uiState.deadlineDisplayText.isNotEmpty())
+                                uiState.deadlineDisplayText
+                            else
+                                "Set Deadline (Optional)"
+                        )
+                    }
+                    if (uiState.deadlineMillis != null) {
+                        IconButton(onClick = { createTaskViewModel.clearDeadline() }) {
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = "Clear deadline",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+                uiState.deadlineError?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
+            }
+
             // Error message
             uiState.error?.let { error ->
                 item {
@@ -266,6 +316,58 @@ fun CreateTaskScreen(
             onCategorySelected = { category ->
                 createTaskViewModel.updateCategory(category.id.toLong())
                 showCategoryDialog = false
+            }
+        )
+    }
+
+    // Date picker dialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            selectedDateMillis = millis
+                            showDatePicker = false
+                            showTimePicker = true
+                        }
+                    }
+                ) { Text("Next") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // Time picker dialog
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState()
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Select Time") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val cal = Calendar.getInstance().apply {
+                            timeInMillis = selectedDateMillis
+                            set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                            set(Calendar.MINUTE, timePickerState.minute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        createTaskViewModel.updateDeadline(cal.timeInMillis)
+                        showTimePicker = false
+                    }
+                ) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
             }
         )
     }

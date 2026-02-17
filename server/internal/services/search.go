@@ -80,7 +80,7 @@ func NewMeilisearchService(url, apiKey string) (*MeilisearchService, error) {
 		return nil, fmt.Errorf("failed waiting for searchable attributes: %w", err)
 	}
 
-	filterableAttrs := []interface{}{"category_id", "status", "price"}
+	filterableAttrs := []interface{}{"category_id", "status", "price", "deadline"}
 	taskInfo, err = index.UpdateFilterableAttributes(&filterableAttrs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update filterable attributes: %w", err)
@@ -89,7 +89,7 @@ func NewMeilisearchService(url, apiKey string) (*MeilisearchService, error) {
 		return nil, fmt.Errorf("failed waiting for filterable attributes: %w", err)
 	}
 
-	taskInfo, err = index.UpdateSortableAttributes(&[]string{"price", "created_at"})
+	taskInfo, err = index.UpdateSortableAttributes(&[]string{"price", "created_at", "deadline"})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update sortable attributes: %w", err)
 	}
@@ -104,7 +104,7 @@ func NewMeilisearchService(url, apiKey string) (*MeilisearchService, error) {
 
 // taskToDocument converts a Task model to a flat map for indexing.
 func taskToDocument(task *models.Task) map[string]interface{} {
-	return map[string]interface{}{
+	doc := map[string]interface{}{
 		"id":          task.ID,
 		"title":       task.Title,
 		"description": task.Description,
@@ -114,6 +114,10 @@ func taskToDocument(task *models.Task) map[string]interface{} {
 		"location":    task.Location,
 		"created_at":  task.CreatedAt.Unix(),
 	}
+	if task.Deadline != nil {
+		doc["deadline"] = task.Deadline.Unix()
+	}
+	return doc
 }
 
 func primaryKeyOpt() *meilisearch.DocumentOptions {

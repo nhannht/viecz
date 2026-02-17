@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -29,6 +30,9 @@ import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.ui.viewmodels.TaskDetailViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
 import java.text.NumberFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +48,7 @@ fun TaskDetailScreen(
     val context = LocalContext.current
     var showAcceptDialog by remember { mutableStateOf<TaskApplication?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCancelOverdueDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(taskId) {
@@ -155,6 +160,7 @@ fun TaskDetailScreen(
                             showAcceptDialog = application
                         },
                         onCompleteTask = { viewModel.completeTask(taskId) },
+                        onCancelOverdue = { showCancelOverdueDialog = true },
                         onMessageClick = {
                             // Get or create conversation, then navigate
                             if (uiState.conversationId != null) {
@@ -250,6 +256,35 @@ fun TaskDetailScreen(
             }
         )
     }
+
+    // Cancel overdue task confirmation dialog
+    if (showCancelOverdueDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelOverdueDialog = false },
+            title = { Text("Cancel Overdue Task & Get Refund") },
+            text = {
+                Text("The deadline has passed. Cancel this task and get a full escrow refund? The tasker will not receive payment.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.cancelOverdueTask(taskId)
+                        showCancelOverdueDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Cancel & Refund")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelOverdueDialog = false }) {
+                    Text("Keep Task")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -263,6 +298,7 @@ fun TaskDetailContent(
     onNavigateToProfile: () -> Unit = {},
     onAcceptApplication: (TaskApplication) -> Unit,
     onCompleteTask: () -> Unit,
+    onCancelOverdue: () -> Unit = {},
     onMessageClick: () -> Unit
 ) {
     LazyColumn(
@@ -354,8 +390,113 @@ fun TaskDetailContent(
             }
         }
 
+        // Deadline card
+        if (task.deadline != null) {
+            item {
+                val isOverdue = task.isOverdue
+                val formattedDeadline = try {
+                    val instant = Instant.parse(task.deadline)
+                    ZoneId.systemDefault().let { zone ->
+                        instant.atZone(zone).format(
+                            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                        )
+                    }
+                } catch (_: Exception) {
+                    task.deadline
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isOverdue)
+                            MaterialTheme.colorScheme.errorContainer
+                        else
+                            MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = null,
+                            tint = if (isOverdue)
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.primary
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Deadline",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = formattedDeadline,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isOverdue)
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        if (isOverdue) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.error,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = "OVERDUE",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onError,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Cancel & refund button for own overdue in_progress tasks
+        if (isOwnTask && task.status == TaskStatus.IN_PROGRESS && task.isOverdue) {
+            item {
+                Button(
+                    onClick = onCancelOverdue,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Cancel & Get Refund (Overdue)")
+                }
+            }
+        }
+
         // Apply button or status (only if task is open and not own task)
-        if (task.status == TaskStatus.OPEN && !isOwnTask) {
+        if (task.status == TaskStatus.OPEN && !isOwnTask && task.isOverdue) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = "Applications closed — deadline has passed",
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        } else if (task.status == TaskStatus.OPEN && !isOwnTask) {
             item {
                 if (!isCurrentUserTasker) {
                     // Non-tasker CTA: suggest registering as a tasker

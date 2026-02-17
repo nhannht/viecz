@@ -241,6 +241,30 @@ class TaskDetailViewModel @Inject constructor(
         }
     }
 
+    fun cancelOverdueTask(taskId: Long) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            paymentRepository.refundPayment(taskId, "Task overdue - requester cancelled").fold(
+                onSuccess = {
+                    Log.d(TAG, "Overdue task refund successful for task: $taskId")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        deleteSuccess = true,
+                        error = null
+                    )
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to refund overdue task", error)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Failed to cancel and refund task"
+                    )
+                }
+            )
+        }
+    }
+
     fun deleteTask(taskId: Long) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)

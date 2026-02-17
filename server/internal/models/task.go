@@ -30,7 +30,7 @@ type Task struct {
 	Latitude          *float64   `gorm:"type:decimal(10,8)" json:"latitude,omitempty"`
 	Longitude         *float64   `gorm:"type:decimal(11,8)" json:"longitude,omitempty"`
 	Status            TaskStatus `gorm:"type:varchar(20);default:'open';index" json:"status"`
-	ScheduledFor      *time.Time `json:"scheduled_for,omitempty"`
+	Deadline          *time.Time `gorm:"column:deadline" json:"deadline,omitempty"`
 	CompletedAt       *time.Time `json:"completed_at,omitempty"`
 	ImageURLs         []string   `gorm:"type:text[]" json:"image_urls,omitempty"`
 	RequesterRatingID *int64     `json:"requester_rating_id,omitempty"`
@@ -107,4 +107,9 @@ func (t *Task) BeforeCreate(tx *gorm.DB) error {
 // BeforeUpdate hook is called before updating a task
 func (t *Task) BeforeUpdate(tx *gorm.DB) error {
 	return t.Validate()
+}
+
+// IsOverdue returns true if the task has a deadline that has passed.
+func (t *Task) IsOverdue() bool {
+	return t.Deadline != nil && time.Now().After(*t.Deadline)
 }

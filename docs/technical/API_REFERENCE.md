@@ -396,7 +396,7 @@ All task endpoints require authentication.
   "location": "Cafeteria near main gate",
   "latitude": 10.762622,
   "longitude": 106.660172,
-  "scheduled_for": "2026-02-15T12:00:00Z",
+  "deadline": "2026-02-15T12:00:00Z",
   "image_urls": ["https://example.com/photo1.jpg"]
 }
 ```
@@ -410,7 +410,7 @@ All task endpoints require authentication.
 | `location` | string | Yes | Max 255 chars | Location |
 | `latitude` | float64 | No | - | GPS latitude |
 | `longitude` | float64 | No | - | GPS longitude |
-| `scheduled_for` | string | No | ISO 8601 | Scheduled time |
+| `deadline` | string | No | RFC3339, >=1h future | Optional deadline (blocks applications when overdue) |
 | `image_urls` | []string | No | Max 5 items | Image URLs |
 
 #### Response: 201 Created
@@ -427,7 +427,7 @@ All task endpoints require authentication.
   "latitude": 10.762622,
   "longitude": 106.660172,
   "status": "open",
-  "scheduled_for": "2026-02-15T12:00:00Z",
+  "deadline": "2026-02-15T12:00:00Z",
   "image_urls": ["https://example.com/photo1.jpg"],
   "created_at": "2026-02-14T10:00:00Z",
   "updated_at": "2026-02-14T10:00:00Z"
@@ -511,13 +511,19 @@ Get single task details. Includes `user_has_applied` field for the authenticated
   "latitude": 10.762622,
   "longitude": 106.660172,
   "status": "open",
-  "scheduled_for": "2026-02-15T12:00:00Z",
+  "deadline": "2026-02-15T12:00:00Z",
   "image_urls": ["https://example.com/photo1.jpg"],
   "created_at": "2026-02-14T10:00:00Z",
   "updated_at": "2026-02-14T10:00:00Z",
-  "user_has_applied": false
+  "user_has_applied": false,
+  "is_overdue": false
 }
 ```
+
+| Extra Field | Type | Description |
+|-------------|------|-------------|
+| `user_has_applied` | bool | Whether the requesting user has applied |
+| `is_overdue` | bool | Whether the task's deadline has passed |
 
 #### Errors
 

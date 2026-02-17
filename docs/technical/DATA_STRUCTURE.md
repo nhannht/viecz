@@ -302,7 +302,7 @@ type Task struct {
     Latitude          *float64   `gorm:"type:decimal(10,8)" json:"latitude,omitempty"`
     Longitude         *float64   `gorm:"type:decimal(11,8)" json:"longitude,omitempty"`
     Status            TaskStatus `gorm:"type:varchar(20);default:'open';index" json:"status"`
-    ScheduledFor      *time.Time `json:"scheduled_for,omitempty"`
+    Deadline          *time.Time `gorm:"column:deadline" json:"deadline,omitempty"`
     CompletedAt       *time.Time `json:"completed_at,omitempty"`
     ImageURLs         []string   `gorm:"type:text[]" json:"image_urls,omitempty"`
     RequesterRatingID *int64     `json:"requester_rating_id,omitempty"`
@@ -330,7 +330,7 @@ type Task struct {
 | Latitude | *float64 | type:decimal(10,8) | GPS latitude (nullable) |
 | Longitude | *float64 | type:decimal(11,8) | GPS longitude (nullable) |
 | Status | TaskStatus | type:varchar(20), default:'open', index | Current status |
-| ScheduledFor | *time.Time | -- | When the task should be done (nullable) |
+| Deadline | *time.Time | column:deadline | Optional deadline; `IsOverdue()` returns true when past (nullable) |
 | CompletedAt | *time.Time | -- | Completion timestamp (nullable) |
 | ImageURLs | []string | type:text[] | Up to 5 image URLs |
 | RequesterRatingID | *int64 | -- | Rating given by requester (nullable) |

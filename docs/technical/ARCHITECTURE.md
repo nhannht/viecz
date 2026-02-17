@@ -572,7 +572,7 @@ erDiagram
         float lat
         float lng
         string status
-        timestamp scheduled_for
+        timestamp deadline
         timestamp completed_at
         string image_urls
     }

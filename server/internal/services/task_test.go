@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
@@ -1553,6 +1554,186 @@ func TestTaskService_CompleteTask_IncrementsTasksCompleted(t *testing.T) {
 
 	if userRepo.users[1].TotalTasksCompleted != 1 {
 		t.Errorf("Expected TotalTasksCompleted to be 1, got %d", userRepo.users[1].TotalTasksCompleted)
+	}
+}
+
+func TestTaskService_CreateTask_Deadline(t *testing.T) {
+	tests := []struct {
+		name        string
+		deadline    *string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "valid deadline - 2 hours in future",
+			deadline: func() *string {
+				d := time.Now().Add(2 * time.Hour).Format(time.RFC3339)
+				return &d
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "past deadline rejected",
+			deadline: func() *string {
+				d := time.Now().Add(-1 * time.Hour).Format(time.RFC3339)
+				return &d
+			}(),
+			wantErr:     true,
+			errContains: "deadline must be at least 1 hour in the future",
+		},
+		{
+			name: "deadline too soon - 30 min",
+			deadline: func() *string {
+				d := time.Now().Add(30 * time.Minute).Format(time.RFC3339)
+				return &d
+			}(),
+			wantErr:     true,
+			errContains: "deadline must be at least 1 hour in the future",
+		},
+		{
+			name: "invalid format rejected",
+			deadline: func() *string {
+				d := "not-a-date"
+				return &d
+			}(),
+			wantErr:     true,
+			errContains: "invalid deadline format",
+		},
+		{
+			name:     "nil deadline allowed",
+			deadline: nil,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			taskRepo := newMockTaskRepository()
+			appRepo := newMockApplicationRepository()
+			catRepo := newMockCategoryRepository()
+			userRepo := newMockUserRepository()
+
+			catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
+			userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			ctx := context.Background()
+
+			input := &CreateTaskInput{
+				Title:       "Deadline Task",
+				Description: "Test Description",
+				CategoryID:  1,
+				Price:       10000,
+				Location:    "HCMUS",
+				Deadline:    tt.deadline,
+			}
+
+			task, err := service.CreateTask(ctx, 1, input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errContains)
+				} else if !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if task == nil {
+					t.Error("Expected task to be created, got nil")
+				}
+				if tt.deadline != nil && task != nil && task.Deadline == nil {
+					t.Error("Expected task to have deadline set")
+				}
+				if tt.deadline == nil && task != nil && task.Deadline != nil {
+					t.Error("Expected task to have no deadline")
+				}
+			}
+		})
+	}
+}
+
+func TestTaskService_ApplyForTask_Overdue(t *testing.T) {
+	t.Run("apply for overdue task blocked", func(t *testing.T) {
+		taskRepo := newMockTaskRepository()
+		appRepo := newMockApplicationRepository()
+		catRepo := newMockCategoryRepository()
+		userRepo := newMockUserRepository()
+
+		pastDeadline := time.Now().Add(-1 * time.Hour)
+		taskRepo.tasks[1] = &models.Task{
+			ID:          1,
+			RequesterID: 1,
+			Status:      models.TaskStatusOpen,
+			Deadline:    &pastDeadline,
+		}
+		userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
+
+		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+		ctx := context.Background()
+
+		_, err := service.ApplyForTask(ctx, 1, 2, &ApplyForTaskInput{Message: "I can help"})
+
+		if err == nil {
+			t.Error("Expected error for overdue task, got nil")
+		} else if !contains(err.Error(), "deadline has passed") {
+			t.Errorf("Expected error containing 'deadline has passed', got '%s'", err.Error())
+		}
+	})
+
+	t.Run("apply for task with future deadline allowed", func(t *testing.T) {
+		taskRepo := newMockTaskRepository()
+		appRepo := newMockApplicationRepository()
+		catRepo := newMockCategoryRepository()
+		userRepo := newMockUserRepository()
+
+		futureDeadline := time.Now().Add(2 * time.Hour)
+		taskRepo.tasks[1] = &models.Task{
+			ID:          1,
+			RequesterID: 1,
+			Status:      models.TaskStatusOpen,
+			Deadline:    &futureDeadline,
+		}
+		userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
+
+		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+		ctx := context.Background()
+
+		app, err := service.ApplyForTask(ctx, 1, 2, &ApplyForTaskInput{Message: "I can help"})
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if app == nil {
+			t.Error("Expected application to be created, got nil")
+		}
+	})
+}
+
+func TestTaskService_CompleteTask_OverdueStillWorks(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+	taskerID := int64(2)
+	pastDeadline := time.Now().Add(-1 * time.Hour)
+	taskRepo.tasks[1] = &models.Task{
+		ID:          1,
+		RequesterID: 1,
+		TaskerID:    &taskerID,
+		Status:      models.TaskStatusInProgress,
+		Deadline:    &pastDeadline,
+	}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+	ctx := context.Background()
+
+	err := service.CompleteTask(ctx, 1, 1)
+	if err != nil {
+		t.Errorf("Expected overdue in_progress task to still be completable, got error: %v", err)
 	}
 }
 

@@ -59,7 +59,7 @@ func (r *taskRepository) Create(ctx context.Context, task *models.Task) error {
 	query := `
 		INSERT INTO tasks (
 			requester_id, category_id, title, description, price,
-			location, latitude, longitude, status, scheduled_for, image_urls
+			location, latitude, longitude, status, deadline, image_urls
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, created_at, updated_at
 	`
@@ -67,7 +67,7 @@ func (r *taskRepository) Create(ctx context.Context, task *models.Task) error {
 	err := r.db.QueryRowContext(
 		ctx, query,
 		task.RequesterID, task.CategoryID, task.Title, task.Description, task.Price,
-		task.Location, task.Latitude, task.Longitude, task.Status, task.ScheduledFor, task.ImageURLs,
+		task.Location, task.Latitude, task.Longitude, task.Status, task.Deadline, task.ImageURLs,
 	).Scan(&task.ID, &task.CreatedAt, &task.UpdatedAt)
 
 	if err != nil {
@@ -85,7 +85,7 @@ func (r *taskRepository) GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id i
 func (r *taskRepository) GetByID(ctx context.Context, id int64) (*models.Task, error) {
 	query := `
 		SELECT id, requester_id, tasker_id, category_id, title, description,
-			   price, location, latitude, longitude, status, scheduled_for,
+			   price, location, latitude, longitude, status, deadline,
 			   completed_at, image_urls, requester_rating_id, tasker_rating_id,
 			   created_at, updated_at
 		FROM tasks
@@ -96,7 +96,7 @@ func (r *taskRepository) GetByID(ctx context.Context, id int64) (*models.Task, e
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&task.ID, &task.RequesterID, &task.TaskerID, &task.CategoryID,
 		&task.Title, &task.Description, &task.Price, &task.Location,
-		&task.Latitude, &task.Longitude, &task.Status, &task.ScheduledFor,
+		&task.Latitude, &task.Longitude, &task.Status, &task.Deadline,
 		&task.CompletedAt, &task.ImageURLs, &task.RequesterRatingID,
 		&task.TaskerRatingID, &task.CreatedAt, &task.UpdatedAt,
 	)
@@ -120,7 +120,7 @@ func (r *taskRepository) Update(ctx context.Context, task *models.Task) error {
 	query := `
 		UPDATE tasks SET
 			title = $1, description = $2, price = $3, location = $4,
-			latitude = $5, longitude = $6, status = $7, scheduled_for = $8,
+			latitude = $5, longitude = $6, status = $7, deadline = $8,
 			image_urls = $9, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $10
 		RETURNING updated_at
@@ -129,7 +129,7 @@ func (r *taskRepository) Update(ctx context.Context, task *models.Task) error {
 	err := r.db.QueryRowContext(
 		ctx, query,
 		task.Title, task.Description, task.Price, task.Location,
-		task.Latitude, task.Longitude, task.Status, task.ScheduledFor,
+		task.Latitude, task.Longitude, task.Status, task.Deadline,
 		task.ImageURLs, task.ID,
 	).Scan(&task.UpdatedAt)
 
@@ -167,7 +167,7 @@ func (r *taskRepository) Delete(ctx context.Context, id int64) error {
 func (r *taskRepository) List(ctx context.Context, filters TaskFilters) ([]*models.Task, error) {
 	query := `
 		SELECT id, requester_id, tasker_id, category_id, title, description,
-			   price, location, latitude, longitude, status, scheduled_for,
+			   price, location, latitude, longitude, status, deadline,
 			   completed_at, image_urls, requester_rating_id, tasker_rating_id,
 			   created_at, updated_at
 		FROM tasks
@@ -255,7 +255,7 @@ func (r *taskRepository) List(ctx context.Context, filters TaskFilters) ([]*mode
 		err := rows.Scan(
 			&task.ID, &task.RequesterID, &task.TaskerID, &task.CategoryID,
 			&task.Title, &task.Description, &task.Price, &task.Location,
-			&task.Latitude, &task.Longitude, &task.Status, &task.ScheduledFor,
+			&task.Latitude, &task.Longitude, &task.Status, &task.Deadline,
 			&task.CompletedAt, &task.ImageURLs, &task.RequesterRatingID,
 			&task.TaskerRatingID, &task.CreatedAt, &task.UpdatedAt,
 		)
@@ -388,7 +388,7 @@ func (r *taskRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.T
 
 	query := fmt.Sprintf(`
 		SELECT id, requester_id, tasker_id, category_id, title, description,
-			   price, location, latitude, longitude, status, scheduled_for,
+			   price, location, latitude, longitude, status, deadline,
 			   completed_at, image_urls, requester_rating_id, tasker_rating_id,
 			   created_at, updated_at
 		FROM tasks
@@ -407,7 +407,7 @@ func (r *taskRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.T
 		err := rows.Scan(
 			&task.ID, &task.RequesterID, &task.TaskerID, &task.CategoryID,
 			&task.Title, &task.Description, &task.Price, &task.Location,
-			&task.Latitude, &task.Longitude, &task.Status, &task.ScheduledFor,
+			&task.Latitude, &task.Longitude, &task.Status, &task.Deadline,
 			&task.CompletedAt, &task.ImageURLs, &task.RequesterRatingID,
 			&task.TaskerRatingID, &task.CreatedAt, &task.UpdatedAt,
 		)
