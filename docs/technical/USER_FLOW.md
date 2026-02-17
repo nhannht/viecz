@@ -2,7 +2,7 @@
 
 > **Viecz** -- P2P task marketplace for university students (Android native).
 >
-> Last updated: 2026-02-16
+> Last updated: 2026-02-17
 
 ---
 
@@ -218,6 +218,8 @@ Tap TaskCard --> navigate to task_detail/{taskId}
 **API:** `GET /api/v1/tasks?page=N&category_id=X&search=Q`
 **Features:** Infinite scroll (`loadMore()`), pull-to-refresh, shimmer loading, own-task indicator
 
+**Auto-refresh:** The marketplace uses `repeatOnLifecycle(Lifecycle.State.RESUMED)` to automatically refresh the task list whenever the user returns to the Marketplace tab (e.g., after navigating back from task detail). This ensures that tasks whose status changed (e.g., moved to `in_progress` after accepting an application) disappear from the marketplace list without manual refresh.
+
 ---
 
 ## 4. Create Task (Requester)
@@ -264,7 +266,7 @@ TaskDetailScreen (task with status OPEN)
     +-- Task NOT yet applied: "Apply for this Task" button
     |   |
     |   v
-    |   ApplyTaskScreen
+    |   Navigate to ApplyTaskScreen with (taskId, task.price)
     |     Fields:
     |       - Proposed Price (optional, defaults to task price)
     |       - Message (optional, max 500 chars)
@@ -280,6 +282,7 @@ TaskDetailScreen (task with status OPEN)
 ```
 
 **Screens:** `TaskDetailScreen.kt`, `ApplyTaskScreen.kt`
+**Navigation:** `TaskDetailScreen` passes `(taskId, task.price)` to `Navigation.kt`, which routes to `apply_task/{taskId}/{price}`. The price is used as the default value for the Proposed Price field.
 **API:** `POST /api/v1/tasks/{id}/applications` -- `{ proposed_price?, message? }`
 **Condition:** User must be a tasker (`user.isTasker == true`)
 
@@ -796,5 +799,5 @@ Scenario docs: `android/e2escenarios/`
 
 ---
 
-**Last Updated:** 2026-02-16
-**Version:** 2.3
+**Last Updated:** 2026-02-17
+**Version:** 2.4

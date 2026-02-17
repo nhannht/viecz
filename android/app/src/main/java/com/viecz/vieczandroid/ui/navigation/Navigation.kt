@@ -148,9 +148,8 @@ fun VieczNavHost(
             TaskDetailScreen(
                 taskId = taskId,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToApply = { taskId ->
-                    // Get task price from somewhere, for now use 0
-                    navController.navigate(NavigationRoutes.applyTask(taskId, 0))
+                onNavigateToApply = { taskId, price ->
+                    navController.navigate(NavigationRoutes.applyTask(taskId, price))
                 },
                 onNavigateToChat = { conversationId ->
                     navController.navigate(NavigationRoutes.chat(conversationId))

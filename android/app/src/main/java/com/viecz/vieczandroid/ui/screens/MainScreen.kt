@@ -36,6 +36,7 @@ fun MainScreen(
     var showSearchBar by remember { mutableStateOf(false) }
 
     // ViewModels scoped to MainScreen
+    val taskListViewModel: TaskListViewModel = hiltViewModel()
     val notificationViewModel: NotificationViewModel = hiltViewModel()
     val notificationUiState by notificationViewModel.uiState.collectAsState()
     val walletViewModel: WalletViewModel = hiltViewModel()
@@ -49,6 +50,15 @@ fun MainScreen(
     // Load profile on first composition
     LaunchedEffect(Unit) {
         profileViewModel.loadProfile()
+    }
+
+    // Auto-refresh marketplace when returning from task detail/other screens
+    LaunchedEffect(lifecycleOwner, currentTab) {
+        if (currentTab == 0) {
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                taskListViewModel.refresh()
+            }
+        }
     }
 
     // Auto-refresh wallet when on wallet tab and returning from browser
@@ -73,7 +83,6 @@ fun MainScreen(
     }
 
     // Handle refresh trigger from CreateTask
-    val taskListViewModel: TaskListViewModel = hiltViewModel()
     LaunchedEffect(refreshTrigger) {
         if (refreshTrigger) {
             taskListViewModel.refresh()

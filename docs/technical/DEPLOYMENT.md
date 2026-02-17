@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-17
 
 ---
 
@@ -289,7 +289,7 @@ ssh baremetal-sg-ks3 "tail -f /tmp/viecz-server.log"
 ssh baremetal-sg-ks3 "tail -50 /tmp/viecz-server.log"
 ```
 
-The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, 2 test users) via `database.SeedData`.
+The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, 2 test users, wallets, 10 sample tasks) via `database.SeedData`.
 
 ### Why Native Binary Over Full Docker
 
@@ -332,7 +332,7 @@ docker compose ps
 curl -s http://localhost:8080/api/v1/health
 ```
 
-The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, 2 test users) via `database.SeedData`.
+The server auto-migrates tables on startup via GORM `AutoMigrate` and seeds initial data (categories, 2 test users, wallets, 10 sample tasks) via `database.SeedData`.
 
 ### Updating
 
@@ -359,7 +359,7 @@ The test server (`server/cmd/testserver/main.go`) is a binary for local developm
 | Database | PostgreSQL (port 5433, Docker tmpfs -- drops all tables on startup for fresh state) |
 | JWT Secret | `e2e-test-secret-key` (hardcoded) |
 | PayOS | Mock -- `CreatePaymentLink` auto-fires webhook after 100ms to credit wallet |
-| Seed data | Categories + 2 test users (`nhan1@gmail.com`, `nhan2@gmail.com` / `Password123`) |
+| Seed data | Categories + 2 test users (`nhan1@gmail.com`, `nhan2@gmail.com` / `Password123`) + wallets with 10,000,000 VND each + 10 sample tasks |
 | Health check | `GET /api/v1/health` |
 
 ### Build and run

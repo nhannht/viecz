@@ -1587,6 +1587,8 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 - JWT secret: `e2e-test-secret-key`
 - Max wallet balance: 200,000 VND
 - Seeded test users: `nhan1@gmail.com` / `Password123` and `nhan2@gmail.com` / `Password123` (both taskers)
+- Seeded wallets: 10,000,000 VND each for test users
+- Seeded tasks: 10 sample tasks in Vietnamese across various categories
 - Port: 9999
 
 ### H. Route Summary

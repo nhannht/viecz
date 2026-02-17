@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
-**Version:** 2.0
-**Last Updated:** 2026-02-16
+**Version:** 2.1
+**Last Updated:** 2026-02-17
 
 ---
 
@@ -401,9 +401,36 @@ android/app/src/main/java/com/viecz/vieczandroid/
 │
 └── utils/
     ├── FormatUtils.kt               # Currency/date formatting
-    ├── HttpErrorParser.kt           # Parse error responses
+    ├── HttpErrorParser.kt           # Parse error responses (parseErrorMessage extension)
     └── ValidationUtils.kt           # Input validation
 ```
+
+### Android Error Handling Pattern
+
+All repository classes (`TaskRepository`, `PaymentRepository`, etc.) use a consistent error handling pattern with `HttpErrorParser.parseErrorMessage()`:
+
+```kotlin
+suspend fun someApiCall(): Result<T> {
+    return try {
+        val response = api.call()
+        Result.success(response)
+    } catch (e: HttpException) {
+        val errorMessage = e.parseErrorMessage()  // Extracts server error message from JSON body
+        Result.failure(Exception(errorMessage))
+    } catch (e: IOException) {
+        Result.failure(Exception("Network error. Please check your connection."))
+    }
+}
+```
+
+`parseErrorMessage()` (in `HttpErrorParser.kt`) parses the JSON error body `{"error": "..."}` from server responses to extract user-friendly messages (e.g., "insufficient available balance: have 0, need 100000") instead of showing raw HTTP status codes (e.g., "HTTP 500 Internal Server Error").
+
+### Lifecycle-Aware Auto-Refresh
+
+`MainScreen.kt` uses `repeatOnLifecycle(Lifecycle.State.RESUMED)` to auto-refresh data when the user navigates back to a tab:
+
+- **Marketplace tab (tab 0)**: Refreshes the task list via `taskListViewModel.refresh()` on every `RESUMED` lifecycle event. This ensures tasks that moved to `in_progress` or `completed` disappear from the marketplace without manual pull-to-refresh.
+- **Wallet tab (tab 3)**: Refreshes wallet balance and transaction history on `RESUMED`, so deposits completed in the browser are reflected when the user returns to the app.
 
 ### MVVM Data Flow
 
@@ -620,7 +647,7 @@ erDiagram
 | Database        | PostgreSQL (via GORM driver)  | PostgreSQL (Docker tmpfs, port 5433) |
 | Connection      | `database.NewGORM()` + options| `database.NewGORM()` + test DB options |
 | Migrations      | AutoMigrate + golang-migrate  | AutoMigrate only                 |
-| Seed Data       | Categories + test users       | Categories + 2 test users        |
+| Seed Data       | Categories + test users       | Categories + 2 test users + wallets (10M VND) + 10 sample tasks |
 | PayOS           | Real PayOS SDK                | Mock (auto-fires webhook)        |
 | Port            | Configurable (default 8080)   | 9999 (hardcoded)                 |
 | JWT Secret      | From env var                  | `e2e-test-secret-key`            |

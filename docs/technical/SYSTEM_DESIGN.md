@@ -1,6 +1,6 @@
 # System Design - Viecz
 
-**Last Updated:** 2026-02-16
+**Last Updated:** 2026-02-17
 
 ---
 
@@ -589,7 +589,7 @@ Both flavors can coexist on the same device.
 - **Mock PayOS** -- `CreatePaymentLink` auto-fires a webhook after 100ms to
   instantly credit the wallet
 - **Port 9999** (hardcoded), JWT secret `e2e-test-secret-key`
-- **Seed data** -- 11 categories + 2 test users (tasker-enabled)
+- **Seed data** -- 11 categories + 2 test users (tasker-enabled) + wallets with 10,000,000 VND each + 10 sample tasks (Vietnamese, various categories)
 - **Mock escrow** -- `PAYMENT_MOCK_MODE=true` for wallet-based escrow operations
 
 **Prerequisite:** Start the test DB container: `docker compose -f docker-compose.testdb.yml up -d`

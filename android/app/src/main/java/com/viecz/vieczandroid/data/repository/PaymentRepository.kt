@@ -3,6 +3,9 @@ package com.viecz.vieczandroid.data.repository
 import android.util.Log
 import com.viecz.vieczandroid.data.api.PaymentApi
 import com.viecz.vieczandroid.data.models.*
+import com.viecz.vieczandroid.utils.parseErrorMessage
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,17 +20,18 @@ class PaymentRepository @Inject constructor(
     suspend fun createPayment(amount: Int, description: String): Result<PaymentResponse> {
         return try {
             Log.d(TAG, "Making API call to create payment")
-            Log.d(TAG, "Request: amount=$amount, description=$description")
-
             val response = api.createPayment(PaymentRequest(amount, description))
-
             Log.d(TAG, "API call successful")
-            Log.d(TAG, "Response: $response")
             Result.success(response)
+        } catch (e: HttpException) {
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error creating payment: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error creating payment", e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
-            Log.e(TAG, "API call failed", e)
-            Log.e(TAG, "Exception type: ${e.javaClass.simpleName}")
-            Log.e(TAG, "Exception message: ${e.message}")
+            Log.e(TAG, "Unknown error creating payment", e)
             Result.failure(e)
         }
     }
@@ -38,8 +42,15 @@ class PaymentRepository @Inject constructor(
             val response = api.createEscrowPayment(CreateEscrowPaymentRequest(taskId))
             Log.d(TAG, "Escrow payment created successfully")
             Result.success(response)
+        } catch (e: HttpException) {
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error creating escrow: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error creating escrow", e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create escrow payment", e)
+            Log.e(TAG, "Unknown error creating escrow", e)
             Result.failure(e)
         }
     }
@@ -50,8 +61,15 @@ class PaymentRepository @Inject constructor(
             val response = api.releasePayment(ReleasePaymentRequest(taskId))
             Log.d(TAG, "Payment released successfully")
             Result.success(response.message)
+        } catch (e: HttpException) {
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error releasing payment: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error releasing payment", e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to release payment", e)
+            Log.e(TAG, "Unknown error releasing payment", e)
             Result.failure(e)
         }
     }
@@ -62,8 +80,15 @@ class PaymentRepository @Inject constructor(
             val response = api.refundPayment(RefundPaymentRequest(taskId, reason))
             Log.d(TAG, "Payment refunded successfully")
             Result.success(response.message)
+        } catch (e: HttpException) {
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error refunding payment: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error refunding payment", e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to refund payment", e)
+            Log.e(TAG, "Unknown error refunding payment", e)
             Result.failure(e)
         }
     }
@@ -74,8 +99,15 @@ class PaymentRepository @Inject constructor(
             val transactions = api.getTransactionsByTask(taskId)
             Log.d(TAG, "Fetched ${transactions.size} transactions")
             Result.success(transactions)
+        } catch (e: HttpException) {
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error fetching transactions: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error fetching transactions", e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch transactions", e)
+            Log.e(TAG, "Unknown error fetching transactions", e)
             Result.failure(e)
         }
     }

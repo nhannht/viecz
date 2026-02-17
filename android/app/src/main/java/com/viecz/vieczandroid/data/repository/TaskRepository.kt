@@ -159,11 +159,12 @@ class TaskRepository(
             Log.d(TAG, "Task deleted successfully")
             Result.success(Unit)
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error deleting task: ${e.code()}", e)
-            Result.failure(e)
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error deleting task: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
         } catch (e: IOException) {
             Log.e(TAG, "Network error deleting task", e)
-            Result.failure(e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error deleting task", e)
             Result.failure(e)
@@ -196,14 +197,12 @@ class TaskRepository(
             Log.d(TAG, "Applications fetched successfully: ${applications.size} applications")
             Result.success(applications)
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error fetching applications: ${e.code()}", e)
-            Result.failure(e)
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error fetching applications: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
         } catch (e: IOException) {
             Log.e(TAG, "Network error fetching applications", e)
-            Result.failure(e)
-        } catch (e: IOException) {
-            Log.e(TAG, "Network error fetching applications", e)
-            Result.failure(e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error fetching applications", e)
             Result.failure(e)
@@ -217,11 +216,12 @@ class TaskRepository(
             Log.d(TAG, "Task completed successfully")
             Result.success(Unit)
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error completing task: ${e.code()}", e)
-            Result.failure(e)
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error completing task: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
         } catch (e: IOException) {
             Log.e(TAG, "Network error completing task", e)
-            Result.failure(e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error completing task", e)
             Result.failure(e)
@@ -235,11 +235,12 @@ class TaskRepository(
             Log.d(TAG, "Application accepted successfully")
             Result.success(response)
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error accepting application: ${e.code()}", e)
-            Result.failure(e)
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error accepting application: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
         } catch (e: IOException) {
             Log.e(TAG, "Network error accepting application", e)
-            Result.failure(e)
+            Result.failure(Exception("Network error. Please check your connection."))
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error accepting application", e)
             Result.failure(e)

@@ -35,7 +35,7 @@ import java.text.NumberFormat
 fun TaskDetailScreen(
     taskId: Long,
     onNavigateBack: () -> Unit,
-    onNavigateToApply: (Long) -> Unit,
+    onNavigateToApply: (Long, Long) -> Unit,
     onNavigateToChat: (Long) -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     viewModel: TaskDetailViewModel = hiltViewModel()
@@ -149,7 +149,7 @@ fun TaskDetailScreen(
                         conversationId = uiState.conversationId,
                         isOwnTask = uiState.isOwnTask,
                         isCurrentUserTasker = uiState.isCurrentUserTasker,
-                        onApply = { onNavigateToApply(taskId) },
+                        onApply = { onNavigateToApply(taskId, uiState.task!!.price) },
                         onNavigateToProfile = onNavigateToProfile,
                         onAcceptApplication = { application ->
                             showAcceptDialog = application
