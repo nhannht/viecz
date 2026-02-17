@@ -336,6 +336,16 @@ func (m *MockTaskRepository) AssignTasker(ctx context.Context, taskID, taskerID 
 	return nil
 }
 
+func (m *MockTaskRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.Task, error) {
+	var tasks []*models.Task
+	for _, id := range ids {
+		if task, exists := m.Tasks[id]; exists {
+			tasks = append(tasks, task)
+		}
+	}
+	return tasks, nil
+}
+
 // MockTaskApplicationRepository is a mock implementation of repository.TaskApplicationRepository
 type MockTaskApplicationRepository struct {
 	Applications map[int64]*models.TaskApplication

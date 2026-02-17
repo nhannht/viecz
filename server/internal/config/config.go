@@ -29,6 +29,9 @@ type Config struct {
 	// Google OAuth
 	GoogleClientID     string
 	GoogleClientSecret string
+	// Meilisearch (optional — empty = disabled, falls back to PostgreSQL LIKE)
+	MeilisearchURL    string
+	MeilisearchAPIKey string
 	// Platform
 	PlatformFeeRate  float64 // e.g. 0.10 for 10%, 0 for beta
 	MaxWalletBalance int64   // max balance per wallet in VND (e.g. 200000)
@@ -65,6 +68,10 @@ func Load() (*Config, error) {
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	}
+
+	// Meilisearch (optional)
+	cfg.MeilisearchURL = os.Getenv("MEILISEARCH_URL")
+	cfg.MeilisearchAPIKey = os.Getenv("MEILISEARCH_API_KEY")
 
 	// Parse platform fee rate (default 0 for beta)
 	platformFeeRate, err := strconv.ParseFloat(getEnv("PLATFORM_FEE_RATE", "0"), 64)

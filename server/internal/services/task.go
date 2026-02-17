@@ -19,6 +19,7 @@ type TaskService struct {
 	walletService       *WalletService
 	notificationService *NotificationService
 	db                  *gorm.DB
+	searchService       SearchServicer
 }
 
 // NewTaskService creates a new TaskService
@@ -30,7 +31,11 @@ func NewTaskService(
 	walletService *WalletService,
 	notificationService *NotificationService,
 	db *gorm.DB,
+	searchService SearchServicer,
 ) *TaskService {
+	if searchService == nil {
+		searchService = &NoOpSearchService{}
+	}
 	return &TaskService{
 		taskRepo:            taskRepo,
 		applicationRepo:     applicationRepo,
@@ -39,6 +44,7 @@ func NewTaskService(
 		walletService:       walletService,
 		notificationService: notificationService,
 		db:                  db,
+		searchService:       searchService,
 	}
 }
 
@@ -118,6 +124,11 @@ func (s *TaskService) CreateTask(ctx context.Context, requesterID int64, input *
 		}
 	}
 
+	// Index in search engine (non-critical — log and continue on failure)
+	if err := s.searchService.IndexTask(ctx, task); err != nil {
+		log.Printf("[TaskService] failed to index task %d in search: %v", task.ID, err)
+	}
+
 	return task, nil
 }
 
@@ -178,6 +189,11 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID, requesterID int64,
 
 	if err := s.taskRepo.Update(ctx, task); err != nil {
 		return nil, fmt.Errorf("failed to update task: %w", err)
+	}
+
+	// Re-index in search engine (non-critical)
+	if err := s.searchService.IndexTask(ctx, task); err != nil {
+		log.Printf("[TaskService] failed to re-index task %d in search: %v", task.ID, err)
 	}
 
 	return task, nil
@@ -260,6 +276,11 @@ func (s *TaskService) DeleteTask(ctx context.Context, taskID, requesterID int64)
 		}
 	}
 
+	// Remove from search index (non-critical)
+	if delErr := s.searchService.DeleteTask(ctx, taskID); delErr != nil {
+		log.Printf("[TaskService] failed to delete task %d from search index: %v", taskID, delErr)
+	}
+
 	return nil
 }
 
@@ -317,11 +338,50 @@ func (s *TaskService) deleteTaskSimple(ctx context.Context, taskID, requesterID 
 		}
 	}
 
+	// Remove from search index (non-critical)
+	if err := s.searchService.DeleteTask(ctx, taskID); err != nil {
+		log.Printf("[TaskService] failed to delete task %d from search index: %v", taskID, err)
+	}
+
 	return nil
 }
 
-// ListTasks lists tasks with filters
+// ListTasks lists tasks with filters. When a search query is present and
+// Meilisearch is configured, it delegates to the search engine for relevance-
+// ranked results. Falls back to PostgreSQL LIKE on error or when Meilisearch
+// is not available.
 func (s *TaskService) ListTasks(ctx context.Context, filters repository.TaskFilters) ([]*models.Task, int, error) {
+	// Try Meilisearch first if a search query is present
+	if filters.Search != nil && *filters.Search != "" {
+		searchFilters := SearchFilters{
+			CategoryID: filters.CategoryID,
+			Status:     filters.Status,
+			MinPrice:   filters.MinPrice,
+			MaxPrice:   filters.MaxPrice,
+			Limit:      filters.Limit,
+			Offset:     filters.Offset,
+		}
+		taskIDs, total, err := s.searchService.SearchTasks(ctx, *filters.Search, searchFilters)
+		if err != nil {
+			log.Printf("[TaskService] Meilisearch error, falling back to DB: %v", err)
+			// Fall through to PostgreSQL LIKE
+		} else if len(taskIDs) > 0 {
+			tasks, err := s.taskRepo.GetByIDs(ctx, taskIDs)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to fetch tasks by IDs: %w", err)
+			}
+			return tasks, total, nil
+		} else if total == 0 && err == nil {
+			// Meilisearch returned 0 results (genuinely no matches)
+			// But NoOpSearchService also returns (nil, 0, nil) — distinguish:
+			// if the underlying service is NoOp, fall through to LIKE.
+			if _, isNoOp := s.searchService.(*NoOpSearchService); !isNoOp {
+				return []*models.Task{}, 0, nil
+			}
+		}
+	}
+
+	// Fallback: existing PostgreSQL LIKE query
 	tasks, err := s.taskRepo.List(ctx, filters)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
@@ -517,6 +577,11 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID, requesterID int6
 				log.Printf("[TaskService] failed to send task_completed notification to tasker: %v", err)
 			}
 		}
+	}
+
+	// Remove from search index (non-critical — completed tasks shouldn't appear in search)
+	if err := s.searchService.DeleteTask(ctx, taskID); err != nil {
+		log.Printf("[TaskService] failed to delete completed task %d from search index: %v", taskID, err)
 	}
 
 	return nil

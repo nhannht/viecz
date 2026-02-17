@@ -1,6 +1,6 @@
 # Technical Architecture - Viecz
 
-**Version:** 2.1
+**Version:** 2.2
 **Last Updated:** 2026-02-17
 
 ---
@@ -29,6 +29,7 @@ Viecz is a P2P marketplace connecting university students for small services. Th
 - **Native Android app** (Kotlin + Jetpack Compose) with MVVM architecture
 - **PostgreSQL** (production, port 5432) / **PostgreSQL** (test server, port 5433, Docker tmpfs) for persistence
 - **PayOS** for payment processing (deposit via payment links, escrow via wallet)
+- **Meilisearch** (optional) for full-text task search with relevance ranking; falls back to PostgreSQL LIKE when not configured
 
 ---
 
@@ -70,9 +71,11 @@ graph TD
 
     DB[("PostgreSQL (Production :5432)<br/>PostgreSQL (Test :5433)")]
     PayOS(("PayOS<br/>(Payments)"))
+    Meilisearch[("Meilisearch<br/>(Search, optional)")]
 
     Repository --> DB
     Repository --> PayOS
+    Services --> Meilisearch
 ```
 
 ### Request Flow
@@ -118,6 +121,7 @@ graph TD
 | Config           | godotenv                | 1.5     |
 | Logging          | zerolog                 | 1.34    |
 | Crypto           | golang.org/x/crypto     | -       |
+| Search (optional)| Meilisearch (meilisearch-go) | v1.16 |
 
 ### Android
 
@@ -181,6 +185,7 @@ server/
 │   │   ├── wallet.go            # WalletService (deposit, escrow, release, refund)
 │   │   ├── payment.go           # PaymentService (orchestrates transactions + wallet)
 │   │   ├── payos.go             # PayOSService (PayOSServicer interface + SDK wrapper)
+│   │   ├── search.go            # SearchServicer interface + MeilisearchService + NoOpSearchService
 │   │   ├── message.go           # MessageService (conversations + messages + WS broadcast)
 │   │   └── *_test.go            # Service tests
 │   │
@@ -262,6 +267,12 @@ func NewUserGormRepository(db *gorm.DB) UserRepository { ... }
 
 **TaskRepository Interface**: Includes `GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error)` which executes `SELECT ... FOR UPDATE` within a GORM transaction for row-level locking. Used by `TaskService.DeleteTask` to prevent concurrent modifications during task deletion.
 
+**SearchServicer Interface Pattern** (same as PayOSServicer): `SearchServicer` is defined in `services/search.go` with two implementations:
+- `MeilisearchService` -- real search engine backed by Meilisearch
+- `NoOpSearchService` -- returns empty results, signalling the caller to fall back to PostgreSQL LIKE
+
+The wiring logic in `cmd/server/main.go` and `cmd/testserver/main.go` checks `MEILISEARCH_URL`: if set, creates `MeilisearchService`; otherwise uses `NoOpSearchService`. `TaskService` receives the `SearchServicer` via constructor injection.
+
 **Service Layer**: Services encapsulate business logic and depend on repository interfaces, not concrete implementations. Services are injected into handlers.
 
 **MessageHandler** (defined in `handlers/websocket.go`): Handles REST conversation endpoints. Depends on `MessageService`.
@@ -280,7 +291,7 @@ Config → Database → Repositories → Services → Handlers → Gin Router
 ```
 
 **Service Dependencies:**
-- `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, `NotificationService`, and `*gorm.DB` (used for DB transactions with `SELECT ... FOR UPDATE` row locking in `DeleteTask`)
+- `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, `NotificationService`, `SearchServicer`, and `*gorm.DB` (used for DB transactions with `SELECT ... FOR UPDATE` row locking in `DeleteTask`)
 - `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, and `NotificationService`
 - `NotificationService` depends on `NotificationRepository` and `WebSocket Hub`
 - `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, and `*gorm.DB`
@@ -431,6 +442,19 @@ suspend fun someApiCall(): Result<T> {
 
 - **Marketplace tab (tab 0)**: Refreshes the task list via `taskListViewModel.refresh()` on every `RESUMED` lifecycle event. This ensures tasks that moved to `in_progress` or `completed` disappear from the marketplace without manual pull-to-refresh.
 - **Wallet tab (tab 3)**: Refreshes wallet balance and transaction history on `RESUMED`, so deposits completed in the browser are reflected when the user returns to the app.
+
+### Debounced Search Pattern
+
+`TaskListViewModel` implements debounced auto-search using `Flow.debounce(1000ms)`:
+
+```
+User types → _searchQueryText (MutableStateFlow)
+  → .drop(1).debounce(1000).distinctUntilChanged()
+  → updates uiState.searchQuery → loadTasks(refresh=true)
+  → GET /api/v1/tasks?search=<query>
+```
+
+The search bar (`HomeScreen.kt`) includes a clear (X) button. Clearing resets the query and restores the full task list. Server-side search uses Meilisearch for relevance-ranked full-text search when configured, falling back to case-insensitive PostgreSQL `LIKE` matching on task title and description.
 
 ### MVVM Data Flow
 
@@ -909,10 +933,13 @@ graph LR
     PostgreSQL[("PostgreSQL<br/>(:5432)")]
     PayOS(("PayOS API"))
 
+    Meilisearch[("Meilisearch<br/>(optional)")]
+
     Internet --> Cloudflare
     Cloudflare --> GoBinary
     GoBinary --> PostgreSQL
     GoBinary --> PayOS
+    GoBinary -.-> Meilisearch
 ```
 
 ### Test Server Stack
@@ -924,9 +951,12 @@ graph LR
     PostgreSQLTest[("PostgreSQL<br/>(:5433 tmpfs)")]
     MockPayOS["Mock PayOS<br/>(auto-webhook)"]
 
+    Meilisearch[("Meilisearch<br/>(:7700, optional)")]
+
     Device --> GoBinary
     GoBinary --> PostgreSQLTest
     GoBinary --> MockPayOS
+    GoBinary -.-> Meilisearch
 ```
 
 ---

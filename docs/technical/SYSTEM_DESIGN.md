@@ -16,6 +16,7 @@ The system is a monolithic client-server architecture:
 - **Server** -- Go REST API + WebSocket (Gin framework)
 - **Database** -- PostgreSQL (production, port 5432) / PostgreSQL (test server, port 5433, Docker tmpfs)
 - **Payments** -- PayOS integration for deposits; wallet-based escrow for task payments
+- **Search** -- Meilisearch (optional) for full-text task search; falls back to PostgreSQL LIKE
 
 ---
 
@@ -50,6 +51,7 @@ graph TD
     end
 
     PayOS["PayOS (payment gateway)"]
+    Meilisearch["Meilisearch (optional)"]
 
     Retrofit -->|HTTPS| CloudflareTunnel
     OkHttp -->|WSS| CloudflareTunnel
@@ -58,6 +60,7 @@ graph TD
     GORM --> PostgreSQL
     GORM --> PostgreSQLTest
     GORM -.->|external| PayOS
+    Services -.->|search| Meilisearch
 ```
 
 ---
@@ -75,6 +78,7 @@ graph TD
 | Auth         | JWT (HS256) via golang-jwt/jwt v5                       |
 | WebSocket    | Gorilla WebSocket                                       |
 | Payments     | PayOS (Vietnamese payment gateway)                      |
+| Search       | Meilisearch v1.16 (optional; falls back to PostgreSQL LIKE) |
 | Database     | PostgreSQL 15+ (prod :5432), PostgreSQL (test :5433, Docker tmpfs) |
 | Config       | godotenv (.env) + OS environment variables              |
 | Firebase     | Analytics, App Distribution                             |
@@ -98,7 +102,7 @@ server/
 │   ├── middleware/             # CORS
 │   ├── models/                # Domain models + GORM tags + validation
 │   ├── repository/            # Data access interfaces + GORM implementations
-│   ├── services/              # Business logic
+│   ├── services/              # Business logic (incl. search.go: SearchServicer interface)
 │   ├── logger/                # Logging utilities
 │   ├── testutil/              # Test helpers, mocks, fixtures
 │   └── websocket/             # Hub + Client (real-time chat)
@@ -592,7 +596,7 @@ Both flavors can coexist on the same device.
 - **Seed data** -- 11 categories + 2 test users (tasker-enabled) + wallets with 10,000,000 VND each + 10 sample tasks (Vietnamese, various categories)
 - **Mock escrow** -- `PAYMENT_MOCK_MODE=true` for wallet-based escrow operations
 
-**Prerequisite:** Start the test DB container: `docker compose -f docker-compose.testdb.yml up -d`
+**Prerequisite:** Start the test containers: `docker compose -f docker-compose.testdb.yml up -d` (starts PostgreSQL on port 5433 and Meilisearch on port 7700)
 
 Used for: local Android development, E2E instrumented tests, manual API testing.
 
@@ -612,3 +616,4 @@ Used for: local Android development, E2E instrumented tests, manual API testing.
 | **Single-activity Compose** | Modern Android navigation; no fragment complexity |
 | **PayOS for Vietnam** | Native VND support; QR code payments popular with students |
 | **Max wallet balance** | Risk mitigation; configurable via `MAX_WALLET_BALANCE` env var |
+| **Meilisearch (optional)** | Relevance-ranked full-text search with typo tolerance; interface pattern (`SearchServicer`) allows graceful fallback to PostgreSQL LIKE when not configured |

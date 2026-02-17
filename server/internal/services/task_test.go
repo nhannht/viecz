@@ -92,6 +92,16 @@ func (m *mockTaskRepository) SumOpenTaskPricesByRequester(ctx context.Context, r
 	return total, nil
 }
 
+func (m *mockTaskRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.Task, error) {
+	var tasks []*models.Task
+	for _, id := range ids {
+		if task, exists := m.tasks[id]; exists {
+			tasks = append(tasks, task)
+		}
+	}
+	return tasks, nil
+}
+
 func (m *mockTaskRepository) UpdateStatus(ctx context.Context, taskID int64, status models.TaskStatus) error {
 	task, exists := m.tasks[taskID]
 	if !exists {
@@ -409,7 +419,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 				tt.setupRepo(catRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -546,7 +556,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -633,7 +643,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -755,7 +765,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			app, err := service.ApplyForTask(ctx, tt.taskID, tt.taskerID, tt.input)
@@ -870,7 +880,7 @@ func TestTaskService_AcceptApplication(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.AcceptApplication(ctx, tt.applicationID, tt.requesterID)
@@ -931,7 +941,7 @@ func TestTaskService_GetTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.GetTask(ctx, tt.taskID)
@@ -1037,7 +1047,7 @@ func TestTaskService_UpdateTask(t *testing.T) {
 				tt.setupRepo(taskRepo, catRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -1196,7 +1206,7 @@ func TestTaskService_DeleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.DeleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1257,7 +1267,7 @@ func TestTaskService_ListTasks(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			tasks, total, err := service.ListTasks(ctx, tt.filters)
@@ -1356,7 +1366,7 @@ func TestTaskService_CompleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.CompleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1451,7 +1461,7 @@ func TestTaskService_GetTaskApplications(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			apps, err := service.GetTaskApplications(ctx, tt.taskID, tt.requesterID)
@@ -1483,7 +1493,7 @@ func TestTaskService_CreateTask_IncrementsTasksPosted(t *testing.T) {
 	catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
 	userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com", TotalTasksPosted: 0}
 
-	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 	ctx := context.Background()
 
 	_, err := service.CreateTask(ctx, 1, &CreateTaskInput{
@@ -1533,7 +1543,7 @@ func TestTaskService_CompleteTask_IncrementsTasksCompleted(t *testing.T) {
 		Status:      models.TaskStatusInProgress,
 	}
 
-	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil)
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
 	ctx := context.Background()
 
 	err := service.CompleteTask(ctx, 1, 1)

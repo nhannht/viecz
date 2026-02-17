@@ -27,6 +27,7 @@
 |---|---|---|---|
 | Production server | Go (Gin) | PostgreSQL 15 | 8080 (default) |
 | Test server | Go (Gin) | PostgreSQL (Docker tmpfs, port 5433) | 9999 |
+| Meilisearch (optional) | getmeili/meilisearch:v1.16 | tmpfs | 7700 |
 | Android app (dev) | Kotlin / Jetpack Compose | Room (local) | N/A |
 | Android app (prod) | Kotlin / Jetpack Compose | Room (local) | N/A |
 
@@ -183,6 +184,8 @@ Key points:
 | `PAYOS_CHECKSUM_KEY` | (empty) | PayOS credentials |
 | `PLATFORM_FEE_RATE` | `0` | Platform fee as decimal (e.g. `0.10` = 10%) |
 | `MAX_WALLET_BALANCE` | `200000` | Max wallet balance per user in VND |
+| `MEILISEARCH_URL` | (empty) | Meilisearch URL (e.g., `http://localhost:7700`). Empty = PostgreSQL LIKE fallback |
+| `MEILISEARCH_API_KEY` | (empty) | Meilisearch API key. Empty = no auth |
 
 ### Docker-specific variables
 
@@ -357,6 +360,7 @@ The test server (`server/cmd/testserver/main.go`) is a binary for local developm
 |---|---|
 | Port | `9999` (hardcoded) |
 | Database | PostgreSQL (port 5433, Docker tmpfs -- drops all tables on startup for fresh state) |
+| Search | Meilisearch (port 7700, Docker tmpfs -- optional, via `docker-compose.testdb.yml`) |
 | JWT Secret | `e2e-test-secret-key` (hardcoded) |
 | PayOS | Mock -- `CreatePaymentLink` auto-fires webhook after 100ms to credit wallet |
 | Seed data | Categories + 2 test users (`nhan1@gmail.com`, `nhan2@gmail.com` / `Password123`) + wallets with 10,000,000 VND each + 10 sample tasks |
@@ -375,6 +379,8 @@ go build -o bin/testserver ./cmd/testserver
 ```
 
 The test server connects to PostgreSQL on port 5433 (database `viecz_test`, user `postgres`, password `testpass`). The container uses tmpfs for RAM-backed storage, making it fast and ephemeral.
+
+`docker-compose.testdb.yml` also includes a Meilisearch container (`getmeili/meilisearch:v1.16`) on port 7700 with tmpfs storage. The test server auto-connects if `MEILISEARCH_URL=http://localhost:7700` is set; otherwise falls back to PostgreSQL LIKE search.
 
 ### Routes
 

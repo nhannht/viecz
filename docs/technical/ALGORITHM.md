@@ -15,6 +15,8 @@
 7. [Wallet Balance Management](#7-wallet-balance-management)
 8. [WebSocket Message Routing](#8-websocket-message-routing)
 9. [Notification System](#9-notification-system)
+10. [Debounced Marketplace Search](#10-debounced-marketplace-search)
+11. [Meilisearch Integration](#11-meilisearch-integration)
 
 ---
 
@@ -633,6 +635,53 @@ return result
 
 ---
 
+## 10. Debounced Marketplace Search
+
+**Source:** `android/.../viewmodels/TaskListViewModel.kt`, `android/.../screens/HomeScreen.kt`, `server/internal/repository/task_gorm.go`
+
+### Client-Side Debounce (Android)
+
+Search input is debounced in the ViewModel using Kotlin `Flow.debounce()`:
+
+```
+_searchQueryText (MutableStateFlow<String>)
+  |
+  .drop(1)              -- skip initial empty value (avoids duplicate load on init)
+  .debounce(1000)       -- wait 1 second after last keystroke
+  .distinctUntilChanged() -- skip if query hasn't actually changed
+  .collect { query ->
+    uiState.searchQuery = query.ifBlank { null }
+    loadTasks(refresh = true)
+  }
+```
+
+**Key behaviors:**
+- User types → each keystroke updates `_searchQueryText`
+- Timer resets on every keystroke — API only fires after 1 second of silence
+- Empty/blank query → `searchQuery = null` → loads all tasks (no filter)
+- Clear button sets `_searchQueryText = ""` → flows through pipeline → restores full list
+
+### Server-Side Search (Meilisearch with PostgreSQL Fallback)
+
+```
+ListTasks(filters):
+  if filters.Search is present:
+    1. Try searchService.SearchTasks(query, filters)
+       - If Meilisearch configured and returns results → GetByIDs(taskIDs) with relevance order preserved
+       - If Meilisearch errors → log, fall through to PostgreSQL LIKE
+       - If NoOpSearchService → fall through to PostgreSQL LIKE
+    2. Fallback: PostgreSQL LIKE
+       searchPattern = "%" + LOWER(search) + "%"
+       WHERE LOWER(title) LIKE searchPattern OR LOWER(description) LIKE searchPattern
+```
+
+- When Meilisearch is configured: full-text relevance-ranked search with typo tolerance
+- When not configured or on error: case-insensitive substring match via PostgreSQL `LIKE`
+- Compatible with all other filters (category, status, price range, pagination)
+- See [Section 11: Meilisearch Integration](#11-meilisearch-integration) for details
+
+---
+
 ## Transaction Status State Machine
 
 ```
@@ -671,6 +720,91 @@ All models enforce validation on create and update via GORM hooks:
 
 ---
 
-**Document Version:** 2.1
-**Last Updated:** 2026-02-16
+## 11. Meilisearch Integration
+
+**Source:** `server/internal/services/search.go`, `server/internal/services/task.go`, `server/internal/repository/task_gorm.go`
+
+### Interface Pattern
+
+`SearchServicer` follows the same pattern as `PayOSServicer`:
+
+```go
+type SearchServicer interface {
+    IndexTask(ctx, task) error
+    DeleteTask(ctx, taskID) error
+    SearchTasks(ctx, query, filters) (taskIDs []int64, total int, err error)
+    BulkIndexTasks(ctx, tasks) error
+}
+```
+
+Two implementations:
+- `MeilisearchService` -- connects to Meilisearch, configures index on init
+- `NoOpSearchService` -- returns `(nil, 0, nil)` for all methods; signals caller to use LIKE fallback
+
+### Index Configuration
+
+Index UID: `tasks`
+
+| Attribute Type | Fields |
+|---|---|
+| Searchable | `title`, `description` |
+| Filterable | `category_id`, `status`, `price` |
+| Sortable | `price`, `created_at` |
+
+Document schema: `{id, title, description, category_id, status, price, location, created_at}`.
+
+### Sync Hooks
+
+| Event | Hook | Method |
+|---|---|---|
+| Task created | After `taskRepo.Create` | `searchService.IndexTask(task)` |
+| Task updated | After `taskRepo.Update` | `searchService.IndexTask(task)` |
+| Task cancelled/completed | After status change | `searchService.DeleteTask(taskID)` |
+| Task deleted (soft) | After `DeleteTask` | `searchService.DeleteTask(taskID)` |
+
+All sync hooks are **non-critical** -- errors are logged but do not block the main operation.
+
+### Search Flow
+
+```
+SearchTasks(query, filters):
+  1. Build Meilisearch filter string from filters (category_id, status, price range)
+  2. Execute search with query, filter, limit, offset
+  3. Extract task IDs from hits (preserves relevance order)
+  4. Return (taskIDs, estimatedTotalHits, nil)
+```
+
+### Relevance Order Preservation
+
+`GetByIDs` in `TaskGormRepository` preserves the caller's ordering:
+
+```
+GetByIDs(ids):
+  1. SELECT * FROM tasks WHERE id IN (ids)  -- unordered
+  2. Build idOrder map: id → position from input slice
+  3. Sort results by idOrder to match Meilisearch relevance ranking
+```
+
+### Fallback Logic in ListTasks
+
+```
+if search query present:
+  result = searchService.SearchTasks(query, filters)
+  if error → log, fall through to PostgreSQL LIKE
+  if results > 0 → GetByIDs(taskIDs), return with relevance order
+  if results == 0 AND not NoOp → return empty (genuine no-match)
+  if NoOp → fall through to PostgreSQL LIKE
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `MEILISEARCH_URL` | No | Meilisearch URL (e.g., `http://localhost:7700`). Empty = NoOp fallback |
+| `MEILISEARCH_API_KEY` | No | Meilisearch API key. Empty = no auth |
+
+---
+
+**Document Version:** 2.3
+**Last Updated:** 2026-02-17
 **Source of Truth:** Go source code in `server/internal/`

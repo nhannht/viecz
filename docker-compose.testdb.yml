@@ -16,3 +16,14 @@ services:
     restart: unless-stopped
     tmpfs:
       - /var/lib/postgresql/data
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.16
+    container_name: viecz-meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+    tmpfs:
+      - /meili_data
+    restart: unless-stopped

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,7 @@ import (
 	"viecz.vieczserver/internal/database"
 	"viecz.vieczserver/internal/handlers"
 	"viecz.vieczserver/internal/middleware"
+	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/services"
 	"viecz.vieczserver/internal/websocket"
@@ -163,7 +165,33 @@ func main() {
 	notificationRepo := repository.NewNotificationGormRepository(db)
 	notificationService := services.NewNotificationService(notificationRepo, hub)
 
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db)
+	// Initialize search service (optional for test server)
+	var searchService services.SearchServicer
+	meilisearchURL := os.Getenv("MEILISEARCH_URL")
+	if meilisearchURL == "" {
+		meilisearchURL = "http://localhost:7700"
+	}
+	ms, msErr := services.NewMeilisearchService(meilisearchURL, "")
+	if msErr != nil {
+		log.Printf("Meilisearch not available, using DB search: %v", msErr)
+		searchService = &services.NoOpSearchService{}
+	} else {
+		searchService = ms
+		log.Println("Meilisearch enabled for test server")
+
+		// Bulk index seed tasks
+		var seedTasks []*models.Task
+		db.Where("status = ?", "open").Find(&seedTasks)
+		if len(seedTasks) > 0 {
+			if err := searchService.BulkIndexTasks(context.Background(), seedTasks); err != nil {
+				log.Printf("Failed to bulk index seed tasks: %v", err)
+			} else {
+				log.Printf("Bulk indexed %d seed tasks into Meilisearch", len(seedTasks))
+			}
+		}
+	}
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db, searchService)
 
 	mockPayOS := &mockPayOS{}
 

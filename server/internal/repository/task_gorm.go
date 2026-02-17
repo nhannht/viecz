@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
@@ -180,6 +181,28 @@ func (r *taskGormRepository) SumOpenTaskPricesByRequester(ctx context.Context, r
 		return 0, nil
 	}
 	return *total, nil
+}
+
+func (r *taskGormRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.Task, error) {
+	if len(ids) == 0 {
+		return []*models.Task{}, nil
+	}
+
+	var tasks []*models.Task
+	if err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&tasks).Error; err != nil {
+		return nil, fmt.Errorf("failed to get tasks by IDs: %w", err)
+	}
+
+	// Preserve caller's ordering (Meilisearch relevance)
+	idOrder := make(map[int64]int, len(ids))
+	for i, id := range ids {
+		idOrder[id] = i
+	}
+	sort.Slice(tasks, func(i, j int) bool {
+		return idOrder[tasks[i].ID] < idOrder[tasks[j].ID]
+	})
+
+	return tasks, nil
 }
 
 func (r *taskGormRepository) AssignTasker(ctx context.Context, taskID, taskerID int64) error {

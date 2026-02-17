@@ -22,6 +22,7 @@ type TaskRepository interface {
 	UpdateStatus(ctx context.Context, id int64, status models.TaskStatus) error
 	AssignTasker(ctx context.Context, taskID, taskerID int64) error
 	SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error)
+	GetByIDs(ctx context.Context, ids []int64) ([]*models.Task, error)
 }
 
 // TaskFilters represents filters for listing tasks
@@ -367,6 +368,66 @@ func (r *taskRepository) SumOpenTaskPricesByRequester(ctx context.Context, reque
 		return 0, fmt.Errorf("failed to sum open task prices: %w", err)
 	}
 	return total, nil
+}
+
+func (r *taskRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.Task, error) {
+	if len(ids) == 0 {
+		return []*models.Task{}, nil
+	}
+
+	// Build IN clause: $1, $2, ...
+	placeholders := ""
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		if i > 0 {
+			placeholders += ", "
+		}
+		placeholders += fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, requester_id, tasker_id, category_id, title, description,
+			   price, location, latitude, longitude, status, scheduled_for,
+			   completed_at, image_urls, requester_rating_id, tasker_rating_id,
+			   created_at, updated_at
+		FROM tasks
+		WHERE id IN (%s)
+	`, placeholders)
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tasks by IDs: %w", err)
+	}
+	defer rows.Close()
+
+	taskMap := make(map[int64]*models.Task, len(ids))
+	for rows.Next() {
+		task := &models.Task{}
+		err := rows.Scan(
+			&task.ID, &task.RequesterID, &task.TaskerID, &task.CategoryID,
+			&task.Title, &task.Description, &task.Price, &task.Location,
+			&task.Latitude, &task.Longitude, &task.Status, &task.ScheduledFor,
+			&task.CompletedAt, &task.ImageURLs, &task.RequesterRatingID,
+			&task.TaskerRatingID, &task.CreatedAt, &task.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan task: %w", err)
+		}
+		taskMap[task.ID] = task
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating tasks: %w", err)
+	}
+
+	// Preserve caller's ordering (Meilisearch relevance)
+	result := make([]*models.Task, 0, len(ids))
+	for _, id := range ids {
+		if task, ok := taskMap[id]; ok {
+			result = append(result, task)
+		}
+	}
+	return result, nil
 }
 
 func (r *taskRepository) AssignTasker(ctx context.Context, taskID, taskerID int64) error {

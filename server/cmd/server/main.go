@@ -89,7 +89,22 @@ func main() {
 	notificationRepo := repository.NewNotificationGormRepository(db)
 	notificationService := services.NewNotificationService(notificationRepo, hub)
 
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db)
+	// Initialize search service (optional — falls back to LIKE if not configured)
+	var searchService services.SearchServicer
+	if cfg.MeilisearchURL != "" {
+		ms, err := services.NewMeilisearchService(cfg.MeilisearchURL, cfg.MeilisearchAPIKey)
+		if err != nil {
+			log.Printf("WARNING: Meilisearch init failed, falling back to DB search: %v", err)
+			searchService = &services.NoOpSearchService{}
+		} else {
+			searchService = ms
+			log.Printf("Meilisearch enabled: %s", cfg.MeilisearchURL)
+		}
+	} else {
+		searchService = &services.NoOpSearchService{}
+	}
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db, searchService)
 
 	// Initialize PayOS service
 	payosService, err := services.NewPayOSService(
