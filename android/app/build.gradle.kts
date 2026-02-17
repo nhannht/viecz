@@ -277,6 +277,9 @@ dependencies {
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Image loading
+    implementation(libs.coil.compose)
+
     // Testing - Unit tests (JVM)
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)

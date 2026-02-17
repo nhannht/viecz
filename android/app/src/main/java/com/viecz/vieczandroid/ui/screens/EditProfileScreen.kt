@@ -1,18 +1,29 @@
 package com.viecz.vieczandroid.ui.screens
 
+import android.app.Application
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil.compose.AsyncImage
 import com.viecz.vieczandroid.data.api.UpdateProfileRequest
 import com.viecz.vieczandroid.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,15 +37,19 @@ data class EditProfileUiState(
     val name: String = "",
     val bio: String = "",
     val phone: String = "",
+    val avatarUrl: String? = null,
+    val selectedImageUri: Uri? = null,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
+    val isUploadingAvatar: Boolean = false,
     val error: String? = null,
     val updateSuccess: Boolean = false
 )
 
 @HiltViewModel
 class EditProfileViewModel @Inject constructor(
-    private val repository: UserRepository
+    private val repository: UserRepository,
+    private val application: Application
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EditProfileUiState())
@@ -50,6 +65,7 @@ class EditProfileViewModel @Inject constructor(
                         name = user.name,
                         bio = user.bio ?: "",
                         phone = user.phone ?: "",
+                        avatarUrl = user.avatarUrl,
                         isLoading = false
                     )
                 },
@@ -77,6 +93,10 @@ class EditProfileViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(phone = phone)
     }
 
+    fun onImageSelected(uri: Uri?) {
+        _uiState.value = _uiState.value.copy(selectedImageUri = uri)
+    }
+
     fun saveProfile() {
         val state = _uiState.value
         if (state.name.isBlank()) {
@@ -86,10 +106,39 @@ class EditProfileViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+
+            // Upload avatar first if a new image was selected
+            val selectedUri = state.selectedImageUri
+            if (selectedUri != null) {
+                _uiState.value = _uiState.value.copy(isUploadingAvatar = true)
+                val uploadResult = repository.uploadAvatar(
+                    application.contentResolver,
+                    selectedUri
+                )
+                uploadResult.fold(
+                    onSuccess = { user ->
+                        _uiState.value = _uiState.value.copy(
+                            avatarUrl = user.avatarUrl,
+                            selectedImageUri = null,
+                            isUploadingAvatar = false
+                        )
+                    },
+                    onFailure = { error ->
+                        _uiState.value = _uiState.value.copy(
+                            isSaving = false,
+                            isUploadingAvatar = false,
+                            error = error.message ?: "Failed to upload avatar"
+                        )
+                        return@launch
+                    }
+                )
+            }
+
+            // Then update profile fields
             val request = UpdateProfileRequest(
-                name = state.name,
-                bio = state.bio.ifBlank { null },
-                phone = state.phone.ifBlank { null }
+                name = _uiState.value.name,
+                bio = _uiState.value.bio.ifBlank { null },
+                phone = _uiState.value.phone.ifBlank { null }
             )
             val result = repository.updateProfile(request)
             result.fold(
@@ -117,6 +166,12 @@ fun EditProfileScreen(
     viewModel: EditProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        viewModel.onImageSelected(uri)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
@@ -165,6 +220,88 @@ fun EditProfileScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Avatar section
+                        item {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            photoPickerLauncher.launch(
+                                                PickVisualMediaRequest(
+                                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                                )
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    when {
+                                        // Show selected image preview
+                                        uiState.selectedImageUri != null -> {
+                                            AsyncImage(
+                                                model = uiState.selectedImageUri,
+                                                contentDescription = "Selected photo",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
+                                            )
+                                        }
+                                        // Show current avatar
+                                        !uiState.avatarUrl.isNullOrBlank() -> {
+                                            AsyncImage(
+                                                model = resolveAvatarUrl(uiState.avatarUrl!!),
+                                                contentDescription = "Current avatar",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
+                                            )
+                                        }
+                                        // Show camera icon placeholder
+                                        else -> {
+                                            Surface(
+                                                modifier = Modifier.fillMaxSize(),
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.surfaceVariant
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.CameraAlt,
+                                                    contentDescription = null,
+                                                    modifier = Modifier
+                                                        .padding(24.dp),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                TextButton(
+                                    onClick = {
+                                        photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(
+                                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                                            )
+                                        )
+                                    }
+                                ) {
+                                    Text("Change Photo")
+                                }
+
+                                if (uiState.isUploadingAvatar) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    LinearProgressIndicator(modifier = Modifier.width(100.dp))
+                                }
+                            }
+                        }
+
                         item {
                             OutlinedTextField(
                                 value = uiState.name,

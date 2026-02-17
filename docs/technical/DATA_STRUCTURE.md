@@ -212,7 +212,7 @@ type User struct {
 | Email | string | unique, size:255, not null | User login email (unique) |
 | PasswordHash | *string | size:255 | bcrypt hash, never exposed in JSON (`json:"-"`). Nullable for Google OAuth users who don't have a password. |
 | Name | string | size:100, not null | Display name |
-| AvatarURL | *string | type:text | Profile image URL (nullable) |
+| AvatarURL | *string | type:text | Profile image URL (nullable). See Avatar File Storage below. |
 | Phone | *string | size:20 | Phone number (nullable) |
 | Bio | *string | size:500 | User bio/description (nullable, max 500 chars) |
 | University | string | size:255, not null, default:'ĐHQG-HCM' | University affiliation |
@@ -230,6 +230,12 @@ type User struct {
 | EmailVerified | bool | default:false | Whether email is verified. Google OAuth pre-verifies emails. |
 | CreatedAt | time.Time | autoCreateTime | Record creation timestamp |
 | UpdatedAt | time.Time | autoUpdateTime | Last update timestamp |
+
+**Avatar File Storage:**
+- Location: `./uploads/avatars/` (relative to server working directory)
+- Naming: UUID v4 + extension (e.g., `550e8400-e29b-41d4-a716-446655440000.jpg`)
+- Served at: `/uploads/avatars/<filename>` (static file serving)
+- 1 file per user; old file deleted on new upload
 
 **Validation rules** (`Validate()`):
 - Email: required, must match regex `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`

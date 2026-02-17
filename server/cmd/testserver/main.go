@@ -212,11 +212,20 @@ func main() {
 	walletHandler := handlers.NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, serverURL)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, jwtSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
+	uploadHandler := handlers.NewUploadHandler("./uploads", userService)
+
+	// Ensure upload directories exist
+	if err := os.MkdirAll("./uploads/avatars", 0755); err != nil {
+		log.Printf("Warning: failed to create uploads directory: %v", err)
+	}
 
 	// 7. Gin router (mirrors cmd/server/main.go routes exactly)
 	gin.SetMode(gin.DebugMode)
 	router := gin.Default()
 	router.Use(middleware.CORS("*"))
+
+	// Serve uploaded files (avatars, etc.)
+	router.Static("/uploads", "./uploads")
 
 	api := router.Group("/api/v1")
 	{
@@ -252,6 +261,7 @@ func main() {
 			{
 				protected.GET("/me", userHandler.GetMyProfile)
 				protected.PUT("/me", userHandler.UpdateProfile)
+				protected.POST("/me/avatar", uploadHandler.UploadAvatar)
 				protected.POST("/become-tasker", userHandler.BecomeTasker)
 			}
 		}

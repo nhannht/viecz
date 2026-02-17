@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -141,6 +142,12 @@ func main() {
 	walletHandler := handlers.NewWalletHandler(walletService, payosService, transactionRepo, taskRepo, cfg.ServerURL)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, cfg.JWTSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
+	uploadHandler := handlers.NewUploadHandler("./uploads", userService)
+
+	// Ensure upload directories exist
+	if err := os.MkdirAll("./uploads/avatars", 0755); err != nil {
+		log.Printf("Warning: failed to create uploads directory: %v", err)
+	}
 
 	// Set Gin mode based on environment
 	if cfg.Env == "production" {
@@ -155,6 +162,9 @@ func main() {
 
 	// Serve .well-known for Android App Links (deep link verification)
 	router.Static("/.well-known", "./static/.well-known")
+
+	// Serve uploaded files (avatars, etc.)
+	router.Static("/uploads", "./uploads")
 
 	// Serve privacy policy
 	router.StaticFile("/privacy-policy", "./static/privacy-policy.html")
@@ -198,6 +208,7 @@ func main() {
 			{
 				protected.GET("/me", userHandler.GetMyProfile)
 				protected.PUT("/me", userHandler.UpdateProfile)
+				protected.POST("/me/avatar", uploadHandler.UploadAvatar)
 				protected.POST("/become-tasker", userHandler.BecomeTasker)
 			}
 		}

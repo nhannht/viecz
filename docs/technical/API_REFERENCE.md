@@ -277,7 +277,49 @@ Returns updated user profile.
 
 ---
 
-### 2.4. Become Tasker
+### 2.4. Upload Avatar
+
+**Endpoint:** `POST /api/v1/users/me/avatar`
+
+Upload a profile picture. Accepts multipart/form-data with a single file field `avatar`.
+
+**Auth:** Required (Bearer token)
+
+**Request:** `multipart/form-data`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| avatar | file | Yes | Image file (JPEG, PNG, or WebP). Max 5MB. |
+
+**Security:**
+- 5MB max file size (rejected before full body read)
+- UUID filenames (user-provided filenames are ignored)
+- MIME whitelist: `image/jpeg`, `image/png`, `image/webp`
+- Magic byte validation (checks file header bytes)
+- Old avatar file is deleted on new upload
+
+#### Response: 200 OK
+
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "User",
+  "avatar_url": "/uploads/avatars/550e8400-e29b-41d4-a716-446655440000.jpg",
+  ...
+}
+```
+
+#### Errors
+
+| Code | Description |
+|------|-------------|
+| 400 | File too large, invalid image type, missing avatar field |
+| 401 | Unauthorized |
+
+---
+
+### 2.5. Become Tasker
 
 Register current user as a tasker (service provider). No request body required.
 
@@ -1616,6 +1658,7 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 | GET | `/api/v1/users/:id` | No | Get user profile |
 | GET | `/api/v1/users/me` | Yes | Get my profile |
 | PUT | `/api/v1/users/me` | Yes | Update my profile |
+| POST | `/api/v1/users/me/avatar` | Yes | Upload avatar |
 | POST | `/api/v1/users/become-tasker` | Yes | Become tasker |
 | POST | `/api/v1/tasks` | Yes | Create task |
 | GET | `/api/v1/tasks` | Yes | List tasks |

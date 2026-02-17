@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.data.api
 import com.viecz.vieczandroid.data.models.User
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
+import okhttp3.MultipartBody
 import retrofit2.http.*
 
 interface UserApi {
@@ -14,6 +15,10 @@ interface UserApi {
 
     @PUT("users/me")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): User
+
+    @Multipart
+    @POST("users/me/avatar")
+    suspend fun uploadAvatar(@Part avatar: MultipartBody.Part): User
 
     @POST("users/become-tasker")
     suspend fun becomeTasker(): User

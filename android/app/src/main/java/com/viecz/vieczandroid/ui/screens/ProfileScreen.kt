@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -11,11 +12,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil.compose.AsyncImage
+import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.User
 import com.viecz.vieczandroid.data.repository.UserRepository
@@ -97,6 +102,18 @@ class ProfileViewModel @Inject constructor(
     fun clearBecomeTaskerSuccess() {
         _uiState.value = _uiState.value.copy(becomeTaskerSuccess = false)
     }
+}
+
+/**
+ * Resolves a relative avatar URL (e.g. "/uploads/avatars/uuid.jpg") to an absolute URL
+ * using the server base URL derived from BuildConfig.API_BASE_URL.
+ */
+fun resolveAvatarUrl(relativeUrl: String): String {
+    val serverBase = BuildConfig.API_BASE_URL
+        .removeSuffix("/")
+        .removeSuffix("api/v1")
+        .removeSuffix("/")
+    return serverBase + relativeUrl
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -282,11 +299,9 @@ fun ProfileContent(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                    ProfileAvatar(
+                        avatarUrl = user.avatarUrl,
+                        size = 80
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
@@ -484,6 +499,35 @@ fun ProfileContent(
                 }
             }
         }
+    }
+}
+
+/**
+ * Displays a user's avatar. Shows Coil AsyncImage if avatarUrl is set,
+ * otherwise shows a default person icon.
+ */
+@Composable
+fun ProfileAvatar(
+    avatarUrl: String?,
+    size: Int,
+    modifier: Modifier = Modifier
+) {
+    if (!avatarUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = resolveAvatarUrl(avatarUrl),
+            contentDescription = "Profile picture",
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+                .size(size.dp)
+                .clip(CircleShape)
+        )
+    } else {
+        Icon(
+            imageVector = Icons.Default.Person,
+            contentDescription = null,
+            modifier = modifier.size(size.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
     }
 }
 

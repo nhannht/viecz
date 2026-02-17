@@ -17,7 +17,8 @@
 7. [Payment Security](#7-payment-security)
 8. [WebSocket Security](#8-websocket-security)
 9. [Token Storage (Android)](#9-token-storage-android)
-10. [Known Limitations](#10-known-limitations)
+10. [File Upload Security](#10-file-upload-security)
+11. [Known Limitations](#11-known-limitations)
 
 ---
 
@@ -684,33 +685,51 @@ On receiving a 401 response (except for `/auth/login` and `/auth/register` endpo
 
 ---
 
-## 10. Known Limitations
+## 10. File Upload Security
 
-### 10.1 WebSocket Origin Check Disabled
+Avatar upload endpoint (`POST /api/v1/users/me/avatar`) implements multiple defense layers:
+
+| Layer | Implementation |
+|-------|---------------|
+| Size limit | `http.MaxBytesReader` limits body to 5MB before reading |
+| UUID filenames | User-provided filenames discarded; UUID v4 generated |
+| MIME whitelist | Only `image/jpeg`, `image/png`, `image/webp` accepted |
+| Magic byte validation | Checks first bytes: `FF D8 FF` (JPEG), `89 50 4E 47` (PNG), `RIFF...WEBP` (WebP) |
+| No SVG/GIF | Blocks XSS via SVG and image bombs via GIF |
+| Storage hygiene | Old avatar deleted on new upload (1 avatar per user) |
+| Correct Content-Type | Served by Gin `router.Static` with automatic type detection |
+
+**Deferred:** EXIF stripping, image re-encoding, CDN separation, rate limiting.
+
+---
+
+## 11. Known Limitations
+
+### 11.1 WebSocket Origin Check Disabled
 
 The WebSocket upgrader accepts all origins. Should be restricted to known origins in production.
 
-### 10.2 No Rate Limiting
+### 11.2 No Rate Limiting
 
 No rate limiting is implemented on any endpoint. Auth endpoints (login, register) are vulnerable to brute-force attacks.
 
-### 10.3 Refresh Token Not Rotated
+### 11.3 Refresh Token Not Rotated
 
 The `/auth/refresh` endpoint issues a new access token but does not rotate the refresh token. A stolen refresh token remains valid for its full 7-day lifetime.
 
-### 10.4 Refresh Token Uses Stale Claims
+### 11.4 Refresh Token Uses Stale Claims
 
 The refresh handler reconstructs a user from token claims instead of fetching fresh data from the database. Role changes (e.g., becoming a tasker) are not reflected in new access tokens until the user logs in again.
 
-### 10.5 JWT Secret Shared Between Access and Refresh Tokens
+### 11.5 JWT Secret Shared Between Access and Refresh Tokens
 
 Both token types use the same secret and same signing algorithm. There is no `type` claim to distinguish them. A refresh token could theoretically be used as an access token if the claims overlap sufficiently.
 
-### 10.6 Webhook Endpoint Is Public
+### 11.6 Webhook Endpoint Is Public
 
 `POST /api/v1/payment/webhook` has no auth middleware (by design -- PayOS must reach it). Security relies entirely on the PayOS SDK signature verification.
 
-### 10.7 Token in WebSocket Query String
+### 11.7 Token in WebSocket Query String
 
 JWT tokens passed via `?token=` are visible in server access logs and proxy logs. Mitigated by short (30-minute) token lifetime.
 
