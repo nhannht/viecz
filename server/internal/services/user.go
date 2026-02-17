@@ -25,6 +25,7 @@ type UpdateProfileInput struct {
 	Name      *string `json:"name,omitempty"`
 	AvatarURL *string `json:"avatar_url,omitempty"`
 	Phone     *string `json:"phone,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
 }
 
 // UpdateProfile updates user profile information
@@ -43,6 +44,9 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, input *Up
 	}
 	if input.Phone != nil {
 		user.Phone = input.Phone
+	}
+	if input.Bio != nil {
+		user.Bio = input.Bio
 	}
 
 	if err := s.userRepo.Update(ctx, user); err != nil {

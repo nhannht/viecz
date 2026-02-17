@@ -23,5 +23,6 @@ interface UserApi {
 data class UpdateProfileRequest(
     @Json(name = "name") val name: String? = null,
     @Json(name = "avatar_url") val avatarUrl: String? = null,
-    @Json(name = "phone") val phone: String? = null
+    @Json(name = "phone") val phone: String? = null,
+    @Json(name = "bio") val bio: String? = null
 )

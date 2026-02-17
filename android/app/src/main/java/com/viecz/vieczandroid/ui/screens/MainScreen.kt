@@ -101,7 +101,10 @@ fun MainScreen(
                 onNotifications = {
                     navController.navigate(NavigationRoutes.NOTIFICATIONS)
                 },
-                onSearchToggle = { showSearchBar = !showSearchBar }
+                onSearchToggle = { showSearchBar = !showSearchBar },
+                onEditProfile = {
+                    navController.navigate(NavigationRoutes.EDIT_PROFILE)
+                }
             )
         },
         bottomBar = {
@@ -168,6 +171,9 @@ fun MainScreen(
                                     },
                                     onNavigateToMyCompletedJobs = {
                                         navController.navigate(NavigationRoutes.myJobs("completed"))
+                                    },
+                                    onNavigateToEditProfile = {
+                                        navController.navigate(NavigationRoutes.EDIT_PROFILE)
                                     },
                                     onLogout = { showLogoutDialog = true }
                                 )
@@ -266,7 +272,8 @@ fun VieczTopBar(
     onAddJob: () -> Unit,
     onDeposit: () -> Unit,
     onNotifications: () -> Unit,
-    onSearchToggle: () -> Unit = {}
+    onSearchToggle: () -> Unit = {},
+    onEditProfile: () -> Unit = {}
 ) {
     TopAppBar(
         title = {
@@ -284,6 +291,11 @@ fun VieczTopBar(
                     }
                     IconButton(onClick = onAddJob) {
                         Icon(Icons.Default.Add, contentDescription = "Add Job")
+                    }
+                }
+                1 -> {
+                    IconButton(onClick = onEditProfile) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
                     }
                 }
                 3 -> {

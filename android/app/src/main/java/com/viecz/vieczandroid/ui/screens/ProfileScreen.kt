@@ -107,6 +107,7 @@ fun ProfileScreen(
     onNavigateToMyPostedJobs: () -> Unit = {},
     onNavigateToMyAppliedJobs: () -> Unit = {},
     onNavigateToMyCompletedJobs: () -> Unit = {},
+    onNavigateToEditProfile: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -148,6 +149,9 @@ fun ProfileScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToEditProfile) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
+                    }
                     IconButton(onClick = { showLogoutDialog = true }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                     }
@@ -256,6 +260,7 @@ fun ProfileContent(
     onNavigateToMyPostedJobs: () -> Unit = {},
     onNavigateToMyAppliedJobs: () -> Unit = {},
     onNavigateToMyCompletedJobs: () -> Unit = {},
+    onNavigateToEditProfile: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null
 ) {
     LazyColumn(
@@ -294,6 +299,32 @@ fun ProfileContent(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (!user.bio.isNullOrBlank()) {
+                        Text(
+                            text = user.bio,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    } else {
+                        Text(
+                            text = "No bio yet",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                        )
+                    }
+                    if (onNavigateToEditProfile != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(onClick = onNavigateToEditProfile) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Edit Profile")
+                        }
+                    }
                     if (user.isTasker) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Surface(

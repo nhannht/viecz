@@ -90,6 +90,58 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			},
 		},
 		{
+			name:   "update only bio",
+			userID: 1,
+			input: &UpdateProfileInput{
+				Bio: strPtr("Hello, I'm a student looking for freelance work."),
+			},
+			setupRepo: func(repo *mockUserRepository) {
+				repo.users[1] = &models.User{
+					ID:    1,
+					Email: "test@example.com",
+					Name:  "Test User",
+				}
+			},
+			wantErr: false,
+			checkUser: func(t *testing.T, user *models.User) {
+				if user.Bio == nil || *user.Bio != "Hello, I'm a student looking for freelance work." {
+					t.Errorf("Expected bio to be set, got %v", user.Bio)
+				}
+				if user.Name != "Test User" {
+					t.Errorf("Expected name unchanged, got '%s'", user.Name)
+				}
+			},
+		},
+		{
+			name:   "update bio with other fields",
+			userID: 1,
+			input: &UpdateProfileInput{
+				Name: &name,
+				Bio:  strPtr("My bio text"),
+			},
+			setupRepo: func(repo *mockUserRepository) {
+				existingPhone := "+9876543210"
+				repo.users[1] = &models.User{
+					ID:    1,
+					Email: "test@example.com",
+					Name:  "Old Name",
+					Phone: &existingPhone,
+				}
+			},
+			wantErr: false,
+			checkUser: func(t *testing.T, user *models.User) {
+				if user.Name != name {
+					t.Errorf("Expected name '%s', got '%s'", name, user.Name)
+				}
+				if user.Bio == nil || *user.Bio != "My bio text" {
+					t.Errorf("Expected bio 'My bio text', got %v", user.Bio)
+				}
+				if user.Phone == nil || *user.Phone != "+9876543210" {
+					t.Errorf("Expected phone unchanged, got %v", user.Phone)
+				}
+			},
+		},
+		{
 			name:        "user not found",
 			userID:      999,
 			input:       &UpdateProfileInput{Name: &name},
@@ -225,6 +277,10 @@ func TestUserService_BecomeTasker(t *testing.T) {
 			}
 		})
 	}
+}
+
+func strPtr(s string) *string {
+	return &s
 }
 
 func TestUserService_GetProfile(t *testing.T) {

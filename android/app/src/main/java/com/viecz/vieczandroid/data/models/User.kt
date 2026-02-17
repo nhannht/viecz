@@ -10,6 +10,7 @@ data class User(
     @Json(name = "name") val name: String,
     @Json(name = "avatar_url") val avatarUrl: String? = null,
     @Json(name = "phone") val phone: String? = null,
+    @Json(name = "bio") val bio: String? = null,
     @Json(name = "university") val university: String,
     @Json(name = "student_id") val studentId: String? = null,
     @Json(name = "is_verified") val isVerified: Boolean,

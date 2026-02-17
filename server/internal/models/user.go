@@ -17,6 +17,7 @@ type User struct {
 	Name                string    `gorm:"size:100;not null" json:"name"`
 	AvatarURL           *string   `gorm:"type:text" json:"avatar_url,omitempty"`
 	Phone               *string   `gorm:"size:20" json:"phone,omitempty"`
+	Bio                 *string   `gorm:"size:500" json:"bio,omitempty"`
 	University          string    `gorm:"size:255;not null;default:'ĐHQG-HCM'" json:"university"`
 	StudentID           *string   `gorm:"size:50" json:"student_id,omitempty"`
 	IsVerified          bool      `gorm:"default:false" json:"is_verified"`
@@ -86,6 +87,10 @@ func (u *User) Validate() error {
 
 	if u.TotalEarnings < 0 {
 		return fmt.Errorf("total earnings cannot be negative")
+	}
+
+	if u.Bio != nil && len(*u.Bio) > 500 {
+		return fmt.Errorf("bio must be less than 500 characters")
 	}
 
 	if u.IsTasker {

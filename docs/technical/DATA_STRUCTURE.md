@@ -64,6 +64,7 @@ erDiagram
         string email UK
         nullable_string password_hash
         string name
+        nullable_string bio
         string university
         float64 rating
         bool is_tasker
@@ -186,6 +187,7 @@ type User struct {
     Name                string         `gorm:"size:100;not null" json:"name"`
     AvatarURL           *string        `gorm:"type:text" json:"avatar_url,omitempty"`
     Phone               *string        `gorm:"size:20" json:"phone,omitempty"`
+    Bio                 *string        `gorm:"size:500" json:"bio,omitempty"`
     University          string         `gorm:"size:255;not null;default:'ĐHQG-HCM'" json:"university"`
     StudentID           *string        `gorm:"size:50" json:"student_id,omitempty"`
     IsVerified          bool           `gorm:"default:false" json:"is_verified"`
@@ -212,6 +214,7 @@ type User struct {
 | Name | string | size:100, not null | Display name |
 | AvatarURL | *string | type:text | Profile image URL (nullable) |
 | Phone | *string | size:20 | Phone number (nullable) |
+| Bio | *string | size:500 | User bio/description (nullable, max 500 chars) |
 | University | string | size:255, not null, default:'ĐHQG-HCM' | University affiliation |
 | StudentID | *string | size:50 | Student ID (nullable) |
 | IsVerified | bool | default:false | Student verification status |

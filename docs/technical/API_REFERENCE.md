@@ -259,7 +259,8 @@ All fields optional:
 {
   "name": "Updated Name",
   "avatar_url": "https://example.com/new-avatar.jpg",
-  "phone": "0987654321"
+  "phone": "0987654321",
+  "bio": "Student at HCMUS, looking for freelance work"
 }
 ```
 
@@ -268,6 +269,7 @@ All fields optional:
 | `name` | string | No | Display name |
 | `avatar_url` | string | No | Avatar URL |
 | `phone` | string | No | Phone number |
+| `bio` | string | No | User bio/description (max 500 chars) |
 
 #### Response: 200 OK
 

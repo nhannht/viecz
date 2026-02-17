@@ -27,6 +27,7 @@ object NavigationRoutes {
     const val NOTIFICATIONS = "notifications"
     const val MY_JOBS = "my_jobs/{mode}"
     const val EDIT_TASK = "edit_task/{taskId}"
+    const val EDIT_PROFILE = "edit_profile"
     const val FIRST_SCREEN = "first_screen"
     const val SECOND_SCREEN = "second_screen"
     const val PAYMENT_SCREEN = "payment_screen"
@@ -231,7 +232,17 @@ fun VieczNavHost(
                 },
                 onNavigateToMyCompletedJobs = {
                     navController.navigate(NavigationRoutes.myJobs("completed"))
+                },
+                onNavigateToEditProfile = {
+                    navController.navigate(NavigationRoutes.EDIT_PROFILE)
                 }
+            )
+        }
+
+        // Edit profile screen
+        composable(NavigationRoutes.EDIT_PROFILE) {
+            EditProfileScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
