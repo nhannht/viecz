@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -108,10 +109,9 @@ fun HomeContent(
 ) {
     val taskUiState by taskListViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
+    val searchQuery by taskListViewModel.searchQueryText.collectAsState()
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
-
-    var searchQuery by remember { mutableStateOf("") }
 
     // Load more when reaching end of list
     LaunchedEffect(listState.layoutInfo.visibleItemsInfo) {
@@ -130,12 +130,13 @@ fun HomeContent(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Search bar
+            // Search bar with debounced auto-search
             if (showSearchBar) {
                 SearchBar(
                     query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onSearch = { taskListViewModel.searchTasks(searchQuery) },
+                    onQueryChange = { taskListViewModel.updateSearchQuery(it) },
+                    onClear = { taskListViewModel.clearSearch() },
+                    isSearching = taskUiState.isLoading && taskUiState.searchQuery != null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -255,12 +256,12 @@ fun CategoryFilterRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    onSearch: () -> Unit,
+    onClear: () -> Unit,
+    isSearching: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
@@ -269,6 +270,13 @@ fun SearchBar(
         modifier = modifier,
         placeholder = { Text("Search tasks...") },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = onClear) {
+                    Icon(Icons.Default.Close, contentDescription = "Clear search")
+                }
+            }
+        },
         singleLine = true,
         shape = MaterialTheme.shapes.medium,
         colors = OutlinedTextFieldDefaults.colors()

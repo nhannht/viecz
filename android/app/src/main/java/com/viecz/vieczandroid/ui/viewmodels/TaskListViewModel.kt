@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.Task
-import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,6 +29,7 @@ data class TaskListUiState(
     val currentUserId: Long? = null
 )
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
     private val repository: TaskRepository,
@@ -34,6 +38,9 @@ class TaskListViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TaskListUiState())
     val uiState: StateFlow<TaskListUiState> = _uiState.asStateFlow()
+
+    private val _searchQueryText = MutableStateFlow("")
+    val searchQueryText: StateFlow<String> = _searchQueryText.asStateFlow()
 
     companion object {
         private const val TAG = "TaskListViewModel"
@@ -46,6 +53,19 @@ class TaskListViewModel @Inject constructor(
             )
         }
         loadTasks()
+
+        // Debounced auto-search: fires 1 second after user stops typing
+        viewModelScope.launch {
+            _searchQueryText
+                .drop(1) // Skip initial empty value to avoid duplicate load
+                .debounce(1000)
+                .distinctUntilChanged()
+                .collect { query ->
+                    val searchValue = query.ifBlank { null }
+                    _uiState.value = _uiState.value.copy(searchQuery = searchValue)
+                    loadTasks(refresh = true)
+                }
+        }
     }
 
     fun loadTasks(refresh: Boolean = false) {
@@ -101,9 +121,12 @@ class TaskListViewModel @Inject constructor(
         loadTasks(refresh = true)
     }
 
-    fun searchTasks(query: String?) {
-        _uiState.value = _uiState.value.copy(searchQuery = query)
-        loadTasks(refresh = true)
+    fun updateSearchQuery(query: String) {
+        _searchQueryText.value = query
+    }
+
+    fun clearSearch() {
+        _searchQueryText.value = ""
     }
 
     fun refresh() {

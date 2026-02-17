@@ -425,15 +425,16 @@ android/E2E_TESTING_GUIDE.md
 - When creating new E2E tests, assign the next available scenario number
 
 **MANDATORY — Dev Server & Log Checking**:
-- **Always start the test PostgreSQL and Go test server** before running E2E tests:
+- **Always start test PostgreSQL, Meilisearch, and the Go test server** before running E2E tests:
   ```bash
-  # 1. Start test PostgreSQL (port 5433, tmpfs — RAM-backed, fresh on container restart)
+  # 1. Start test PostgreSQL (port 5433) + Meilisearch (port 7700), both tmpfs/RAM-backed
   docker compose -f docker-compose.testdb.yml up -d
 
   # 2. Build and start the test server
   cd server && go build -o bin/testserver ./cmd/testserver && ./bin/testserver
   ```
   Verify it's running: `curl -s http://localhost:9999/api/v1/health`
+  Verify Meilisearch: `curl -s http://localhost:7700/health`
 - The test server drops all tables on startup — restart it between test runs for a fresh DB
 - **When a test fails or a bug occurs**, ALWAYS check logs from **both** sides:
   1. **Server logs**: `cat /tmp/testserver.log` or check the terminal running the test server — look for 500 errors, panics, SQL errors, WebSocket failures
@@ -571,10 +572,10 @@ go tool cover -html=coverage.out
 
 #### Test Server (Development/E2E)
 
-A standalone test server for local development and E2E testing. Uses PostgreSQL (same engine as production) with mock PayOS (auto-completes deposits via internal webhook).
+A standalone test server for local development and E2E testing. Uses PostgreSQL (same engine as production) with mock PayOS (auto-completes deposits via internal webhook) and Meilisearch for full-text search.
 
 ```bash
-# 1. Start the test PostgreSQL container (port 5433, RAM-backed via tmpfs)
+# 1. Start test PostgreSQL (port 5433) + Meilisearch (port 7700), both RAM-backed via tmpfs
 docker compose -f docker-compose.testdb.yml up -d
 
 # 2. Build and run the test server
@@ -588,6 +589,7 @@ go build -o bin/testserver ./cmd/testserver
 - **Port**: 9999 (hardcoded)
 - **URL**: `http://localhost:9999`
 - **Database**: PostgreSQL on port 5433 (`docker-compose.testdb.yml`), tmpfs-backed (RAM), drops all tables on startup
+- **Search**: Meilisearch on port 7700, auto-connects on startup, bulk indexes seed tasks
 - **JWT Secret**: `e2e-test-secret-key` (hardcoded)
 - **PayOS**: Mock mode — `CreatePaymentLink` auto-fires webhook to credit wallet after 100ms
 - **Seed data**: Categories + test user (see `database/seed.go`)
@@ -595,9 +597,16 @@ go build -o bin/testserver ./cmd/testserver
 - **Routes**: Mirrors all production routes from `cmd/server/main.go`
 - **Use case**: Local Android development, E2E tests (`scripts/run-full-e2e.sh`), manual API testing
 
+**MANDATORY — Meilisearch must always be running for testing:**
+- `docker compose -f docker-compose.testdb.yml up -d` starts both PostgreSQL AND Meilisearch
+- The test server auto-connects to Meilisearch at `localhost:7700` on startup
+- Verify Meilisearch is healthy: `curl -s http://localhost:7700/health`
+- If Meilisearch is not running, the test server falls back to PostgreSQL LIKE (but this defeats the purpose of testing search)
+- **Always ensure Meilisearch is running** before starting the test server or running E2E tests
+
 **When to use which server:**
-- **Production server** (`cmd/server/main.go`): Requires PostgreSQL (port 5432), real PayOS keys, `.env` file
-- **Test server** (`cmd/testserver/main.go`): Requires test PostgreSQL (`docker compose -f docker-compose.testdb.yml up -d`), mock PayOS, drops/recreates tables on each start
+- **Production server** (`cmd/server/main.go`): Requires PostgreSQL (port 5432), real PayOS keys, `.env` file. Meilisearch optional via `MEILISEARCH_URL` env var
+- **Test server** (`cmd/testserver/main.go`): Requires test PostgreSQL + Meilisearch (`docker compose -f docker-compose.testdb.yml up -d`), mock PayOS, drops/recreates tables on each start
 
 ### Shared UI Components (Not Yet Implemented)
 - Planned location: `packages/ui/`
