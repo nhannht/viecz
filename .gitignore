@@ -61,3 +61,6 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 postgres_data/
+
+# Uploads (runtime data)
+server/uploads/
