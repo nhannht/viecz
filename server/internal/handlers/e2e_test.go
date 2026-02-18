@@ -89,7 +89,7 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 
 	// 5. Real services
 	authService := auth.NewAuthService(userRepo)
-	userService := services.NewUserService(userRepo)
+	userService := services.NewUserService(userRepo, taskRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, nil, nil, nil)
 

@@ -77,7 +77,7 @@ func main() {
 		log.Fatalf("Failed to initialize Google OAuth service: %v", err)
 	}
 
-	userService := services.NewUserService(userRepo)
+	userService := services.NewUserService(userRepo, taskRepo)
 	// Initialize wallet and payment services (Phase 3)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, cfg.MaxWalletBalance)
 

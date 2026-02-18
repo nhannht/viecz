@@ -176,7 +176,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 				tt.setupRepo(repo)
 			}
 
-			service := NewUserService(repo)
+			service := NewUserService(repo, nil)
 			ctx := context.Background()
 
 			user, err := service.UpdateProfile(ctx, tt.userID, tt.input)
@@ -253,7 +253,7 @@ func TestUserService_BecomeTasker(t *testing.T) {
 				tt.setupRepo(repo)
 			}
 
-			service := NewUserService(repo)
+			service := NewUserService(repo, nil)
 			ctx := context.Background()
 
 			user, err := service.BecomeTasker(ctx, tt.userID)
@@ -329,7 +329,7 @@ func TestUserService_GetProfile(t *testing.T) {
 				tt.setupRepo(repo)
 			}
 
-			service := NewUserService(repo)
+			service := NewUserService(repo, nil)
 			ctx := context.Background()
 
 			user, err := service.GetProfile(ctx, tt.userID)

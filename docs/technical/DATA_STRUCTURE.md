@@ -219,8 +219,8 @@ type User struct {
 | StudentID | *string | size:50 | Student ID (nullable) |
 | IsVerified | bool | default:false | Student verification status |
 | Rating | float64 | type:decimal(3,2), default:0 | Average rating 0-5 |
-| TotalTasksCompleted | int | default:0 | Denormalized completed task count |
-| TotalTasksPosted | int | default:0 | Denormalized posted task count |
+| TotalTasksCompleted | int | default:0 | Computed dynamically from tasks table in GetProfile() |
+| TotalTasksPosted | int | default:0 | Computed dynamically from tasks table in GetProfile() |
 | TotalEarnings | int64 | default:0 | Denormalized lifetime earnings (VND) |
 | IsTasker | bool | default:false | Whether user can accept tasks |
 | TaskerBio | *string | size:500 | Tasker biography (nullable) |
@@ -1057,7 +1057,7 @@ func IsStrongPassword(password string) bool
 7. **Soft delete**: Task deletion is a logical soft delete (status set to 'cancelled') at the service layer; Conversation and Message use GORM's built-in soft delete mechanism (`gorm.DeletedAt`); all other deletes are hard deletes
 8. **PayOS integration**: Transaction stores PayOSOrderCode (unique) and PayOSPaymentID for payment gateway tracking
 9. **PostgreSQL arrays**: User.TaskerSkills and Task.ImageURLs use `text[]` PostgreSQL array type via `pq.StringArray`/`[]string`
-10. **Denormalized counters**: User stores TotalTasksCompleted, TotalTasksPosted, TotalEarnings for fast reads
+10. **Computed statistics**: TotalTasksPosted and TotalTasksCompleted are computed dynamically from the tasks table in `UserService.GetProfile()` — not stored as denormalized counters. TotalEarnings remains a denormalized counter incremented during payment release
 
 ---
 

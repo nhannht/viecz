@@ -280,7 +280,7 @@ func TestUploadHandler_UploadAvatar(t *testing.T) {
 				tt.setupMock(mockRepo)
 			}
 
-			userService := services.NewUserService(mockRepo)
+			userService := services.NewUserService(mockRepo, nil)
 			handler := NewUploadHandler(uploadDir, userService)
 
 			// Build request

@@ -154,7 +154,7 @@ func main() {
 		// Continue without Google OAuth - the endpoint will return 401 if used
 	}
 
-	userService := services.NewUserService(userRepo)
+	userService := services.NewUserService(userRepo, taskRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
 
 	// WebSocket Hub

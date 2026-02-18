@@ -123,11 +123,6 @@ func (s *TaskService) CreateTask(ctx context.Context, requesterID int64, input *
 		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
-	// Increment posted tasks count (non-critical — log and continue on failure)
-	if err := s.userRepo.IncrementTasksPosted(ctx, requesterID); err != nil {
-		log.Printf("[TaskService] failed to increment tasks posted for user %d: %v", requesterID, err)
-	}
-
 	// Notify creator (non-critical — log and continue on failure)
 	if s.notificationService != nil {
 		if err := s.notificationService.CreateNotification(ctx, requesterID,
@@ -587,11 +582,6 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID, requesterID int6
 	// Update status
 	if err := s.taskRepo.UpdateStatus(ctx, taskID, models.TaskStatusCompleted); err != nil {
 		return fmt.Errorf("failed to complete task: %w", err)
-	}
-
-	// Increment completed tasks count for requester (non-critical — log and continue on failure)
-	if err := s.userRepo.IncrementTasksCompleted(ctx, requesterID); err != nil {
-		log.Printf("[TaskService] failed to increment tasks completed for user %d: %v", requesterID, err)
 	}
 
 	// Notify both parties (non-critical — log and continue on failure)

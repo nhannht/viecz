@@ -84,7 +84,7 @@ func TestUserHandler_GetProfile(t *testing.T) {
 				tt.setupMock(mockRepo)
 			}
 
-			userService := services.NewUserService(mockRepo)
+			userService := services.NewUserService(mockRepo, nil)
 			handler := NewUserHandler(userService)
 
 			// Create request and response recorder
@@ -173,7 +173,7 @@ func TestUserHandler_GetMyProfile(t *testing.T) {
 				tt.setupMock(mockRepo)
 			}
 
-			userService := services.NewUserService(mockRepo)
+			userService := services.NewUserService(mockRepo, nil)
 			handler := NewUserHandler(userService)
 
 			// Create request and response recorder
@@ -280,7 +280,7 @@ func TestUserHandler_UpdateProfile(t *testing.T) {
 				tt.setupMock(mockRepo)
 			}
 
-			userService := services.NewUserService(mockRepo)
+			userService := services.NewUserService(mockRepo, nil)
 			handler := NewUserHandler(userService)
 
 			// Create request body
@@ -392,7 +392,7 @@ func TestUserHandler_BecomeTasker(t *testing.T) {
 				tt.setupMock(mockRepo)
 			}
 
-			userService := services.NewUserService(mockRepo)
+			userService := services.NewUserService(mockRepo, nil)
 			handler := NewUserHandler(userService)
 
 			// Create request and response recorder

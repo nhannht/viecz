@@ -175,14 +175,19 @@ DeleteTask(taskID, requesterID):
 
 **Update constraint:** Only open tasks can be edited (title, description, price, etc.).
 
-**Side effects on user statistics:**
+**User statistics computation:**
 
-| Event | Side Effect |
-|---|---|
-| `CreateTask` succeeds | `userRepo.IncrementTasksPosted(requesterID)` — increments `total_tasks_posted` |
-| `CompleteTask` succeeds | `userRepo.IncrementTasksCompleted(requesterID)` — increments `total_tasks_completed` |
+`TotalTasksPosted` and `TotalTasksCompleted` are **computed dynamically** from the tasks table when `GetProfile()` is called — not stored as denormalized counters. This avoids stale data when tasks are inserted outside the service layer (e.g., seed data, admin tools).
 
-Both are non-critical — logged on failure but do not block the main operation.
+```
+UserService.GetProfile(userID):
+  1. Fetch user from DB
+  2. COUNT tasks WHERE requester_id = userID              → TotalTasksPosted
+  3. COUNT tasks WHERE requester_id = userID AND status = 'completed' → TotalTasksCompleted
+  4. Return user with computed stats
+```
+
+Both counts are non-critical — logged on failure but do not block the profile response.
 
 ### Application Status State Machine
 
@@ -617,7 +622,7 @@ All notification dispatches are **non-critical**. If a notification fails to cre
 
 - The error is **logged** for debugging
 - The main operation (task creation, payment release, etc.) is **NOT blocked or rolled back**
-- This follows the same pattern as user statistics updates (`IncrementTasksPosted`, `IncrementTasksCompleted`)
+- This follows the same non-critical pattern as user statistics computation (logged on failure, does not block)
 
 ```
 // Pseudocode for non-critical notification dispatch
