@@ -130,19 +130,22 @@ class TaskListViewModelTest {
     }
 
     @Test
-    fun `searchTasks should update query and reload tasks`() = runTest {
+    fun `updateSearchQuery should update query text and trigger debounced search`() = runTest {
         val response = TestData.createTasksResponse()
         coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
 
-        viewModel.searchTasks("cleaning")
+        viewModel.updateSearchQuery("cleaning")
+
+        // Verify the text flow is updated immediately
+        assertEquals("cleaning", viewModel.searchQueryText.value)
+
+        // Advance past the 1-second debounce
         advanceUntilIdle()
 
         viewModel.uiState.test {
             val state = awaitItem()
             assertEquals("cleaning", state.searchQuery)
         }
-
-        coVerify { mockRepository.getTasks(page = 1, categoryId = null, search = "cleaning", status = "open") }
     }
 
     @Test

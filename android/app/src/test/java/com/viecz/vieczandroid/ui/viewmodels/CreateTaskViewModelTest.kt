@@ -174,7 +174,7 @@ class CreateTaskViewModelTest {
         viewModel.updatePrice("50000")
         viewModel.updateLocation("Ho Chi Minh City")
 
-        viewModel.createTask()
+        viewModel.submitTask()
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -187,7 +187,7 @@ class CreateTaskViewModelTest {
 
     @Test
     fun `createTask with empty form should show validation errors`() = runTest {
-        viewModel.createTask()
+        viewModel.submitTask()
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -213,7 +213,7 @@ class CreateTaskViewModelTest {
         viewModel.updatePrice("50000")
         viewModel.updateLocation("Ho Chi Minh City")
 
-        viewModel.createTask()
+        viewModel.submitTask()
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -232,7 +232,7 @@ class CreateTaskViewModelTest {
         viewModel.updateCategory(1)
         viewModel.updatePrice("50000")
         viewModel.updateLocation("Ho Chi Minh City")
-        viewModel.createTask()
+        viewModel.submitTask()
         advanceUntilIdle()
 
         viewModel.clearError()

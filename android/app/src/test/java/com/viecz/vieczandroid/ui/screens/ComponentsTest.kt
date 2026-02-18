@@ -193,7 +193,7 @@ class ComponentsTest {
     fun `SearchBar displays placeholder text`() {
         composeTestRule.setContent {
             MaterialTheme {
-                SearchBar(query = "", onQueryChange = {}, onSearch = {})
+                SearchBar(query = "", onQueryChange = {}, onClear = {})
             }
         }
 
@@ -204,7 +204,7 @@ class ComponentsTest {
     fun `SearchBar displays current query`() {
         composeTestRule.setContent {
             MaterialTheme {
-                SearchBar(query = "cleaning", onQueryChange = {}, onSearch = {})
+                SearchBar(query = "cleaning", onQueryChange = {}, onClear = {})
             }
         }
 
@@ -426,6 +426,7 @@ class ComponentsTest {
                     task = task,
                     applications = emptyList(),
                     conversationId = null,
+                    isCurrentUserTasker = true,
                     onApply = {},
                     onAcceptApplication = {},
                     onCompleteTask = {},
@@ -447,6 +448,7 @@ class ComponentsTest {
                     task = task,
                     applications = emptyList(),
                     conversationId = null,
+                    isCurrentUserTasker = true,
                     onApply = {},
                     onAcceptApplication = {},
                     onCompleteTask = {},
@@ -644,9 +646,13 @@ class ComponentsTest {
             }
         }
 
+        composeTestRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("Account Information"))
         composeTestRule.onNodeWithText("Account Information").assertExists()
         // Email appears in both header and account info section
         composeTestRule.onAllNodesWithText("user@uni.edu").onFirst().assertExists()
+        composeTestRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasText("HCMUS"))
         composeTestRule.onNodeWithText("HCMUS").assertExists()
     }
 
