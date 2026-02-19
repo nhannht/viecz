@@ -1,0 +1,81 @@
+import { Injectable, signal, computed, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { tap } from 'rxjs';
+import { User, AuthResponse } from './models';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private platformId = inject(PLATFORM_ID);
+
+  currentUser = signal<User | null>(null);
+  isAuthenticated = computed(() => !!this.getAccessToken());
+
+  constructor() {
+    if (isPlatformBrowser(this.platformId)) {
+      const stored = localStorage.getItem('viecz_user');
+      if (stored) {
+        try {
+          this.currentUser.set(JSON.parse(stored));
+        } catch { /* ignore */ }
+      }
+    }
+  }
+
+  login(email: string, password: string) {
+    return this.http
+      .post<AuthResponse>('/api/v1/auth/login', { email, password })
+      .pipe(tap(res => this.storeAuth(res)));
+  }
+
+  register(email: string, password: string, name: string) {
+    return this.http
+      .post<AuthResponse>('/api/v1/auth/register', { email, password, name })
+      .pipe(tap(res => this.storeAuth(res)));
+  }
+
+  refresh() {
+    const token = this.getRefreshToken();
+    return this.http
+      .post<{ access_token: string }>('/api/v1/auth/refresh', { refresh_token: token })
+      .pipe(
+        tap(res => {
+          if (isPlatformBrowser(this.platformId)) {
+            localStorage.setItem('viecz_access_token', res.access_token);
+          }
+        }),
+      );
+  }
+
+  logout() {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('viecz_access_token');
+      localStorage.removeItem('viecz_refresh_token');
+      localStorage.removeItem('viecz_user');
+    }
+    this.currentUser.set(null);
+    this.router.navigate(['/login']);
+  }
+
+  getAccessToken(): string | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    return localStorage.getItem('viecz_access_token');
+  }
+
+  getRefreshToken(): string | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    return localStorage.getItem('viecz_refresh_token');
+  }
+
+  private storeAuth(res: AuthResponse) {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('viecz_access_token', res.access_token);
+      localStorage.setItem('viecz_refresh_token', res.refresh_token);
+      localStorage.setItem('viecz_user', JSON.stringify(res.user));
+    }
+    this.currentUser.set(res.user);
+  }
+}
