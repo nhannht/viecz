@@ -1,4 +1,9 @@
-import { Component, inject, OnInit, signal, HostListener, PLATFORM_ID } from '@angular/core';
+import { Component, inject, OnInit, signal, HostListener, PLATFORM_ID, InjectionToken } from '@angular/core';
+
+export const MINIMUM_LOADING_MS = new InjectionToken<number>('MINIMUM_LOADING_MS', {
+  providedIn: 'root',
+  factory: () => 300,
+});
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -122,6 +127,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 })
 export class MarketplaceComponent implements OnInit {
   private taskService = inject(TaskService);
+  private minLoadMs = inject(MINIMUM_LOADING_MS);
 
   tasks = signal<Task[]>([]);
   total = signal(0);
@@ -172,6 +178,7 @@ export class MarketplaceComponent implements OnInit {
 
   private loadTasks() {
     this.loading.set(true);
+    const loadStart = Date.now();
     this.taskService
       .list({
         search: this.search || undefined,
@@ -181,12 +188,20 @@ export class MarketplaceComponent implements OnInit {
       })
       .subscribe({
         next: res => {
-          this.tasks.set(res.data || []);
-          this.total.set(res.total);
-          this.hasMore.set((res.data?.length || 0) >= this.pageSize);
-          this.loading.set(false);
+          const apply = () => {
+            this.tasks.set(res.data || []);
+            this.total.set(res.total);
+            this.hasMore.set((res.data?.length || 0) >= this.pageSize);
+            this.loading.set(false);
+          };
+          const remaining = Math.max(0, this.minLoadMs - (Date.now() - loadStart));
+          remaining > 0 ? setTimeout(apply, remaining) : apply();
         },
-        error: () => { this.loading.set(false); this.error.set(true); },
+        error: () => {
+          const apply = () => { this.loading.set(false); this.error.set(true); };
+          const remaining = Math.max(0, this.minLoadMs - (Date.now() - loadStart));
+          remaining > 0 ? setTimeout(apply, remaining) : apply();
+        },
       });
   }
 

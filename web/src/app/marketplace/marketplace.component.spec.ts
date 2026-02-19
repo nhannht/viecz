@@ -4,7 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { MarketplaceComponent } from './marketplace.component';
+import { MarketplaceComponent, MINIMUM_LOADING_MS } from './marketplace.component';
 import { Task, TaskListResponse } from '../core/models';
 
 const mockTask: Task = {
@@ -41,6 +41,7 @@ describe('MarketplaceComponent', () => {
         provideHttpClientTesting(),
         provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
+        { provide: MINIMUM_LOADING_MS, useValue: 0 },
       ],
     }).compileComponents();
 
@@ -58,9 +59,8 @@ describe('MarketplaceComponent', () => {
   });
 
   it('should load tasks on init', () => {
-    fixture.detectChanges(); // triggers ngOnInit
+    fixture.detectChanges();
 
-    // categories load
     const catReq = httpTesting.match('/api/v1/categories');
     catReq.forEach(r => r.flush([]));
 
@@ -130,7 +130,6 @@ describe('MarketplaceComponent', () => {
     fixture.detectChanges();
     httpTesting.match('/api/v1/categories').forEach(r => r.flush([]));
 
-    // Less than pageSize = no more
     httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush({
       data: [mockTask],
       total: 1,
