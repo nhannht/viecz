@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { DatePipe } from '@angular/common';
 import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
 import { MatButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
@@ -14,7 +13,6 @@ import { TimeAgoPipe } from '../core/pipes';
   selector: 'app-notification-list',
   standalone: true,
   imports: [
-    DatePipe,
     MatCard,
     MatCardContent,
     MatCardHeader,

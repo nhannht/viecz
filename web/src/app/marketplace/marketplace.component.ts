@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal, HostListener } from '@angular/core';
+import { Component, inject, OnInit, signal, HostListener, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
@@ -10,6 +11,8 @@ import { TaskService } from '../core/task.service';
 import { Task } from '../core/models';
 import { CategoryChipsComponent } from '../shared/components/category-chips.component';
 import { TaskCardComponent } from '../shared/components/task-card.component';
+import { LoadingSkeletonComponent } from '../shared/components/loading-skeleton.component';
+import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
 
 @Component({
   selector: 'app-marketplace',
@@ -25,6 +28,8 @@ import { TaskCardComponent } from '../shared/components/task-card.component';
     MatProgressSpinner,
     CategoryChipsComponent,
     TaskCardComponent,
+    LoadingSkeletonComponent,
+    ErrorFallbackComponent,
   ],
   template: `
     <div class="marketplace">
@@ -41,10 +46,13 @@ import { TaskCardComponent } from '../shared/components/task-card.component';
 
       <app-category-chips (categorySelected)="onCategoryChange($event)" />
 
-      @if (loading() && tasks().length === 0) {
-        <div class="loading-container">
-          <mat-spinner diameter="40"></mat-spinner>
-        </div>
+      @if (error()) {
+        <app-error-fallback
+          title="Failed to load tasks"
+          message="Could not load the task list. Please try again."
+          [retryFn]="retryLoad" />
+      } @else if (loading() && tasks().length === 0) {
+        <app-loading-skeleton variant="card" [count]="6" />
       } @else if (tasks().length === 0) {
         <div class="empty-state">
           <mat-icon class="empty-icon">assignment</mat-icon>
@@ -121,9 +129,12 @@ export class MarketplaceComponent implements OnInit {
   loading = signal(false);
   loadingMore = signal(false);
   hasMore = signal(true);
+  error = signal(false);
   search = '';
   selectedCategory = 0;
+  retryLoad = () => this.resetAndLoad();
 
+  private platformId = inject(PLATFORM_ID);
   private readonly pageSize = 20;
 
   ngOnInit() {
@@ -141,6 +152,7 @@ export class MarketplaceComponent implements OnInit {
 
   @HostListener('window:scroll')
   onScroll() {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (this.loadingMore() || !this.hasMore()) return;
     const threshold = 200;
     const position = window.innerHeight + window.scrollY;
@@ -154,6 +166,7 @@ export class MarketplaceComponent implements OnInit {
     this.page.set(1);
     this.tasks.set([]);
     this.hasMore.set(true);
+    this.error.set(false);
     this.loadTasks();
   }
 
@@ -173,7 +186,7 @@ export class MarketplaceComponent implements OnInit {
           this.hasMore.set((res.data?.length || 0) >= this.pageSize);
           this.loading.set(false);
         },
-        error: () => this.loading.set(false),
+        error: () => { this.loading.set(false); this.error.set(true); },
       });
   }
 

@@ -53,7 +53,7 @@ import { VndPipe } from '../core/pipes';
               @if (submitting()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
-                <mat-icon>send</mat-icon> Submit Application
+                <ng-container><mat-icon>send</mat-icon></ng-container> Submit Application
               }
             </button>
           </mat-card-actions>

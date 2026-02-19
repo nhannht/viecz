@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, input, effect } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatTabGroup, MatTab } from '@angular/material/tabs';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatIcon } from '@angular/material/icon';
@@ -11,7 +11,7 @@ import { TaskCardComponent } from '../shared/components/task-card.component';
 @Component({
   selector: 'app-my-jobs',
   standalone: true,
-  imports: [RouterLink, MatTabGroup, MatTab, MatProgressSpinner, MatIcon, TaskCardComponent],
+  imports: [MatTabGroup, MatTab, MatProgressSpinner, MatIcon, TaskCardComponent],
   template: `
     <div class="my-jobs-page">
       <h2>My Jobs</h2>
