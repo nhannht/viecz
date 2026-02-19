@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatCard, MatCardContent, MatCardHeader, MatCardTitle, MatCardActions } from '@angular/material/card';
-import { MatButton } from '@angular/material/button';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatDivider } from '@angular/material/divider';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
@@ -10,11 +10,13 @@ import { MatInput } from '@angular/material/input';
 import { MatList, MatListItem } from '@angular/material/list';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TaskService } from '../core/task.service';
 import { WalletService } from '../core/wallet.service';
 import { AuthService } from '../core/auth.service';
 import { Task, TaskApplication } from '../core/models';
 import { VndPipe, TimeAgoPipe } from '../core/pipes';
+import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
 
 @Component({
   selector: 'app-task-detail',
@@ -28,6 +30,7 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
     MatCardTitle,
     MatCardActions,
     MatButton,
+    MatIconButton,
     MatIcon,
     MatDivider,
     MatFormField,
@@ -36,6 +39,7 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
     MatList,
     MatListItem,
     MatProgressSpinner,
+    MatDialogModule,
     VndPipe,
     TimeAgoPipe,
   ],
@@ -48,6 +52,18 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
           <mat-card>
             <mat-card-header>
               <mat-card-title>{{ task()!.title }}</mat-card-title>
+              @if (isRequester() && task()!.status === 'open') {
+                <span class="header-actions">
+                  <button mat-icon-button [routerLink]="['/tasks', task()!.id, 'edit']"
+                          aria-label="Edit Task">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="confirmDelete()"
+                          aria-label="Delete Task">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </span>
+              }
             </mat-card-header>
             <mat-card-content>
               <div class="detail-meta">
@@ -92,11 +108,6 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
             </mat-card-content>
             <mat-card-actions>
               @if (isRequester()) {
-                @if (task()!.status === 'open') {
-                  <button mat-button color="warn" (click)="deleteTask()">
-                    <mat-icon>delete</mat-icon> Cancel Task
-                  </button>
-                }
                 @if (task()!.status === 'in_progress') {
                   <button mat-raised-button (click)="completeTask()">
                     <mat-icon>check_circle</mat-icon> Mark Complete
@@ -184,6 +195,15 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
     @media (min-width: 960px) {
       .detail-page { grid-template-columns: 2fr 1fr; }
     }
+    mat-card-header {
+      display: flex;
+      align-items: center;
+    }
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
     .detail-meta {
       display: flex;
       justify-content: space-between;
@@ -224,6 +244,20 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
     .app-tasker { font-weight: 500; }
     .app-price { color: var(--mat-sys-primary); font-weight: 500; }
     .app-message { font-size: 0.875rem; color: var(--mat-sys-on-surface-variant); }
+    .status-chip {
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+    .status-chip.open { background: #e8f5e9; color: #2e7d32; }
+    .status-chip.in_progress { background: #fff3e0; color: #e65100; }
+    .status-chip.completed { background: #e3f2fd; color: #1565c0; }
+    .status-chip.cancelled { background: #fbe9e7; color: #bf360c; }
+    .status-chip.pending { background: #fff8e1; color: #f57f17; }
+    .status-chip.accepted { background: #e8f5e9; color: #2e7d32; }
+    .status-chip.rejected { background: #fbe9e7; color: #bf360c; }
   `,
 })
 export class TaskDetailComponent implements OnInit {
@@ -234,6 +268,7 @@ export class TaskDetailComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   task = signal<Task | null>(null);
   applications = signal<TaskApplication[]>([]);
@@ -263,6 +298,28 @@ export class TaskDetailComponent implements OnInit {
         this.snackBar.open('Task not found', 'Close', { duration: 3000 });
         this.router.navigate(['/']);
       },
+    });
+  }
+
+  confirmDelete() {
+    const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
+      data: { taskTitle: this.task()!.title },
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.deleteTask();
+      }
+    });
+  }
+
+  private deleteTask() {
+    this.taskService.delete(this.task()!.id).subscribe({
+      next: () => {
+        this.snackBar.open('Task cancelled', 'Close', { duration: 3000 });
+        this.router.navigate(['/']);
+      },
+      error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
     });
   }
 
@@ -305,17 +362,6 @@ export class TaskDetailComponent implements OnInit {
           next: () => this.snackBar.open('Payment released', 'Close', { duration: 3000 }),
         });
         this.ngOnInit();
-      },
-      error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
-    });
-  }
-
-  deleteTask() {
-    if (!confirm('Cancel this task?')) return;
-    this.taskService.delete(this.task()!.id).subscribe({
-      next: () => {
-        this.snackBar.open('Task cancelled', 'Close', { duration: 3000 });
-        this.router.navigate(['/']);
       },
       error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
     });

@@ -21,6 +21,16 @@ export const routes: Routes = [
           import('./marketplace/marketplace.component').then(m => m.MarketplaceComponent),
       },
       {
+        path: 'tasks/new',
+        loadComponent: () =>
+          import('./task-form/task-form.component').then(m => m.TaskFormComponent),
+      },
+      {
+        path: 'tasks/:id/edit',
+        loadComponent: () =>
+          import('./task-form/task-form.component').then(m => m.TaskFormComponent),
+      },
+      {
         path: 'tasks/:id',
         loadComponent: () =>
           import('./task-detail/task-detail.component').then(m => m.TaskDetailComponent),

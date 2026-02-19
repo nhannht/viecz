@@ -1,19 +1,15 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, HostListener } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCard, MatCardContent, MatCardActions } from '@angular/material/card';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { MatButton } from '@angular/material/button';
+import { MatFabButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
-import { MatChipListbox, MatChipOption } from '@angular/material/chips';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { SlicePipe } from '@angular/common';
 import { TaskService } from '../core/task.service';
-import { CategoryService } from '../core/category.service';
-import { Task, Category } from '../core/models';
-import { VndPipe, TimeAgoPipe } from '../core/pipes';
+import { Task } from '../core/models';
+import { CategoryChipsComponent } from '../shared/components/category-chips.component';
+import { TaskCardComponent } from '../shared/components/task-card.component';
 
 @Component({
   selector: 'app-marketplace',
@@ -21,47 +17,31 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
   imports: [
     RouterLink,
     FormsModule,
-    MatCard,
-    MatCardContent,
-    MatCardActions,
     MatFormField,
     MatLabel,
     MatInput,
-    MatButton,
+    MatFabButton,
     MatIcon,
-    MatChipListbox,
-    MatChipOption,
-    MatPaginator,
     MatProgressSpinner,
-    VndPipe,
-    TimeAgoPipe,
-    SlicePipe,
+    CategoryChipsComponent,
+    TaskCardComponent,
   ],
   template: `
     <div class="marketplace">
       <div class="search-bar">
         <mat-form-field appearance="outline" class="search-field">
           <mat-label>Search tasks</mat-label>
-          <input matInput [(ngModel)]="search" (keyup.enter)="loadTasks()"
+          <input matInput [(ngModel)]="search" (keyup.enter)="onSearch()"
                  placeholder="What do you need help with?">
-          <button matSuffix mat-icon-button (click)="loadTasks()">
+          <button matSuffix mat-icon-button (click)="onSearch()">
             <mat-icon>search</mat-icon>
           </button>
         </mat-form-field>
       </div>
 
-      <div class="category-filters">
-        <mat-chip-listbox (change)="onCategoryChange($event.value)">
-          <mat-chip-option [value]="0" [selected]="selectedCategory === 0">All</mat-chip-option>
-          @for (cat of categories(); track cat.id) {
-            <mat-chip-option [value]="cat.id" [selected]="selectedCategory === cat.id">
-              {{ cat.name }}
-            </mat-chip-option>
-          }
-        </mat-chip-listbox>
-      </div>
+      <app-category-chips (categorySelected)="onCategoryChange($event)" />
 
-      @if (loading()) {
+      @if (loading() && tasks().length === 0) {
         <div class="loading-container">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
@@ -74,56 +54,28 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
       } @else {
         <div class="task-grid">
           @for (task of tasks(); track task.id) {
-            <mat-card class="task-card" [routerLink]="['/tasks', task.id]">
-              <mat-card-content>
-                <div class="task-header">
-                  <span class="status-chip" [class]="task.status">{{ task.status }}</span>
-                  <span class="task-price">{{ task.price | vnd }}</span>
-                </div>
-                <h3 class="task-title">{{ task.title }}</h3>
-                <p class="task-desc">{{ task.description | slice:0:120 }}{{ task.description.length > 120 ? '...' : '' }}</p>
-                <div class="task-meta">
-                  <span class="meta-item">
-                    <mat-icon>location_on</mat-icon>
-                    {{ task.location }}
-                  </span>
-                  @if (task.deadline) {
-                    <span class="meta-item">
-                      <mat-icon>schedule</mat-icon>
-                      {{ task.deadline | timeAgo }}
-                    </span>
-                  }
-                </div>
-              </mat-card-content>
-              <mat-card-actions>
-                <button mat-button color="primary">
-                  <mat-icon>visibility</mat-icon> View Details
-                </button>
-              </mat-card-actions>
-            </mat-card>
+            <app-task-card [task]="task" />
           }
         </div>
-
-        <mat-paginator
-          [length]="total()"
-          [pageSize]="pageSize"
-          [pageIndex]="page() - 1"
-          [pageSizeOptions]="[10, 20, 50]"
-          (page)="onPage($event)"
-          showFirstLastButtons>
-        </mat-paginator>
+        @if (loadingMore()) {
+          <div class="loading-more">
+            <mat-spinner diameter="32"></mat-spinner>
+          </div>
+        }
+        @if (!hasMore()) {
+          <p class="end-of-list">No more tasks</p>
+        }
       }
+
+      <a mat-fab routerLink="/tasks/new" class="create-fab" aria-label="Create Task">
+        <mat-icon>add</mat-icon>
+      </a>
     </div>
   `,
   styles: `
-    .marketplace { padding: 8px 0; }
+    .marketplace { padding: 8px 0; position: relative; min-height: 60vh; }
     .search-bar { margin-bottom: 16px; }
     .search-field { width: 100%; }
-    .category-filters {
-      margin-bottom: 16px;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
     .loading-container {
       display: flex; justify-content: center; padding: 64px 0;
     }
@@ -136,54 +88,22 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 16px;
-      margin-bottom: 16px;
+      margin: 16px 0;
     }
-    .task-card {
-      cursor: pointer;
-      transition: box-shadow 0.2s;
+    .loading-more {
+      display: flex; justify-content: center; padding: 24px 0;
     }
-    .task-card:hover {
-      box-shadow: var(--mat-sys-level3);
-    }
-    .task-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .task-price {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--mat-sys-primary);
-    }
-    .task-title {
-      font-size: 1rem;
-      font-weight: 500;
-      margin: 0 0 8px;
-      line-height: 1.3;
-    }
-    .task-desc {
+    .end-of-list {
+      text-align: center;
+      color: var(--mat-sys-on-surface-variant);
+      padding: 16px 0;
       font-size: 0.875rem;
-      color: var(--mat-sys-on-surface-variant);
-      margin: 0 0 12px;
-      line-height: 1.4;
     }
-    .task-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      font-size: 0.8rem;
-      color: var(--mat-sys-on-surface-variant);
-    }
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .meta-item mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+    .create-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
     }
     @media (max-width: 600px) {
       .task-grid {
@@ -194,25 +114,50 @@ import { VndPipe, TimeAgoPipe } from '../core/pipes';
 })
 export class MarketplaceComponent implements OnInit {
   private taskService = inject(TaskService);
-  private categoryService = inject(CategoryService);
 
   tasks = signal<Task[]>([]);
-  categories = signal<Category[]>([]);
   total = signal(0);
   page = signal(1);
-  pageSize = 20;
   loading = signal(false);
+  loadingMore = signal(false);
+  hasMore = signal(true);
   search = '';
   selectedCategory = 0;
 
+  private readonly pageSize = 20;
+
   ngOnInit() {
-    this.categoryService.list().subscribe({
-      next: cats => this.categories.set(cats),
-    });
     this.loadTasks();
   }
 
-  loadTasks() {
+  onSearch() {
+    this.resetAndLoad();
+  }
+
+  onCategoryChange(catId: number) {
+    this.selectedCategory = catId;
+    this.resetAndLoad();
+  }
+
+  @HostListener('window:scroll')
+  onScroll() {
+    if (this.loadingMore() || !this.hasMore()) return;
+    const threshold = 200;
+    const position = window.innerHeight + window.scrollY;
+    const height = document.documentElement.scrollHeight;
+    if (position >= height - threshold) {
+      this.loadMore();
+    }
+  }
+
+  private resetAndLoad() {
+    this.page.set(1);
+    this.tasks.set([]);
+    this.hasMore.set(true);
+    this.loadTasks();
+  }
+
+  private loadTasks() {
     this.loading.set(true);
     this.taskService
       .list({
@@ -225,21 +170,32 @@ export class MarketplaceComponent implements OnInit {
         next: res => {
           this.tasks.set(res.data || []);
           this.total.set(res.total);
+          this.hasMore.set((res.data?.length || 0) >= this.pageSize);
           this.loading.set(false);
         },
         error: () => this.loading.set(false),
       });
   }
 
-  onCategoryChange(catId: number) {
-    this.selectedCategory = catId;
-    this.page.set(1);
-    this.loadTasks();
-  }
-
-  onPage(event: PageEvent) {
-    this.page.set(event.pageIndex + 1);
-    this.pageSize = event.pageSize;
-    this.loadTasks();
+  private loadMore() {
+    this.loadingMore.set(true);
+    const nextPage = this.page() + 1;
+    this.taskService
+      .list({
+        search: this.search || undefined,
+        category_id: this.selectedCategory || undefined,
+        page: nextPage,
+        limit: this.pageSize,
+      })
+      .subscribe({
+        next: res => {
+          const newTasks = res.data || [];
+          this.tasks.update(existing => [...existing, ...newTasks]);
+          this.page.set(nextPage);
+          this.hasMore.set(newTasks.length >= this.pageSize);
+          this.loadingMore.set(false);
+        },
+        error: () => this.loadingMore.set(false),
+      });
   }
 }
