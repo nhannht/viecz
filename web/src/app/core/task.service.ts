@@ -8,6 +8,8 @@ export class TaskService {
 
   list(params?: {
     category_id?: number;
+    requester_id?: number;
+    tasker_id?: number;
     status?: string;
     search?: string;
     min_price?: number;

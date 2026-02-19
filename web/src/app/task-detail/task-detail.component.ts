@@ -1,29 +1,27 @@
 import { Component, inject, OnInit, signal, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { MatCard, MatCardContent, MatCardHeader, MatCardTitle, MatCardActions } from '@angular/material/card';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatDivider } from '@angular/material/divider';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
-import { MatList, MatListItem } from '@angular/material/list';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TaskService } from '../core/task.service';
-import { WalletService } from '../core/wallet.service';
+import { ApplicationService } from '../core/application.service';
+import { PaymentService } from '../core/payment.service';
 import { AuthService } from '../core/auth.service';
 import { Task, TaskApplication } from '../core/models';
 import { VndPipe, TimeAgoPipe } from '../core/pipes';
+import { ApplicationCardComponent } from '../shared/components/application-card.component';
 import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
+import { ConfirmEscrowDialogComponent } from './confirm-escrow-dialog.component';
 
 @Component({
   selector: 'app-task-detail',
   standalone: true,
   imports: [
     RouterLink,
-    FormsModule,
     MatCard,
     MatCardContent,
     MatCardHeader,
@@ -33,15 +31,11 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component'
     MatIconButton,
     MatIcon,
     MatDivider,
-    MatFormField,
-    MatLabel,
-    MatInput,
-    MatList,
-    MatListItem,
     MatProgressSpinner,
     MatDialogModule,
     VndPipe,
     TimeAgoPipe,
+    ApplicationCardComponent,
   ],
   template: `
     @if (loading()) {
@@ -114,7 +108,7 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component'
                   </button>
                 }
               } @else if (task()!.status === 'open' && !task()!.user_has_applied && !task()!.is_overdue) {
-                <button mat-raised-button (click)="showApplyForm.set(true)">
+                <button mat-raised-button [routerLink]="['/tasks', task()!.id, 'apply']">
                   <mat-icon>send</mat-icon> Apply
                 </button>
               } @else if (task()!.user_has_applied) {
@@ -124,27 +118,6 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component'
               }
             </mat-card-actions>
           </mat-card>
-
-          @if (showApplyForm()) {
-            <mat-card class="apply-card">
-              <mat-card-content>
-                <h4>Apply for this task</h4>
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Proposed Price (VND)</mat-label>
-                  <input matInput type="number" [(ngModel)]="proposedPrice">
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Message</mat-label>
-                  <input matInput [(ngModel)]="applicationMessage"
-                         placeholder="Why are you a good fit?">
-                </mat-form-field>
-                <div class="apply-actions">
-                  <button mat-button (click)="showApplyForm.set(false)">Cancel</button>
-                  <button mat-raised-button (click)="submitApplication()">Submit</button>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          }
         </div>
 
         @if (isRequester() && applications().length > 0) {
@@ -154,30 +127,13 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component'
                 <mat-card-title>Applications ({{ applications().length }})</mat-card-title>
               </mat-card-header>
               <mat-card-content>
-                <mat-list>
-                  @for (app of applications(); track app.id) {
-                    <mat-list-item class="application-item">
-                      <div class="app-info">
-                        <span class="app-tasker">
-                          <a [routerLink]="['/profile', app.tasker_id]">Tasker #{{ app.tasker_id }}</a>
-                        </span>
-                        @if (app.proposed_price) {
-                          <span class="app-price">{{ app.proposed_price | vnd }}</span>
-                        }
-                        @if (app.message) {
-                          <span class="app-message">{{ app.message }}</span>
-                        }
-                        <span class="app-status status-chip" [class]="app.status">{{ app.status }}</span>
-                      </div>
-                      @if (app.status === 'pending' && task()!.status === 'open') {
-                        <button mat-button (click)="acceptApp(app.id)">
-                          <mat-icon>check</mat-icon> Accept
-                        </button>
-                      }
-                    </mat-list-item>
-                    <mat-divider></mat-divider>
-                  }
-                </mat-list>
+                @for (app of applications(); track app.id) {
+                  <app-application-card
+                    [application]="app"
+                    [showAccept]="task()!.status === 'open'"
+                    (acceptClick)="acceptApp($event)"
+                  />
+                }
               </mat-card-content>
             </mat-card>
           </div>
@@ -234,16 +190,6 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component'
       display: flex; align-items: center; gap: 4px;
       color: #2e7d32; font-weight: 500;
     }
-    .apply-card { margin-top: 16px; }
-    .full-width { width: 100%; }
-    .apply-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .application-item { height: auto !important; padding: 12px 0 !important; }
-    .app-info {
-      display: flex; flex-direction: column; gap: 4px; width: 100%;
-    }
-    .app-tasker { font-weight: 500; }
-    .app-price { color: var(--mat-sys-primary); font-weight: 500; }
-    .app-message { font-size: 0.875rem; color: var(--mat-sys-on-surface-variant); }
     .status-chip {
       padding: 2px 10px;
       border-radius: 12px;
@@ -255,16 +201,14 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component'
     .status-chip.in_progress { background: #fff3e0; color: #e65100; }
     .status-chip.completed { background: #e3f2fd; color: #1565c0; }
     .status-chip.cancelled { background: #fbe9e7; color: #bf360c; }
-    .status-chip.pending { background: #fff8e1; color: #f57f17; }
-    .status-chip.accepted { background: #e8f5e9; color: #2e7d32; }
-    .status-chip.rejected { background: #fbe9e7; color: #bf360c; }
   `,
 })
 export class TaskDetailComponent implements OnInit {
   id = input.required<string>();
 
   private taskService = inject(TaskService);
-  private walletService = inject(WalletService);
+  private applicationService = inject(ApplicationService);
+  private paymentService = inject(PaymentService);
   private auth = inject(AuthService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
@@ -273,9 +217,6 @@ export class TaskDetailComponent implements OnInit {
   task = signal<Task | null>(null);
   applications = signal<TaskApplication[]>([]);
   loading = signal(true);
-  showApplyForm = signal(false);
-  proposedPrice: number | null = null;
-  applicationMessage = '';
 
   get isRequester() {
     return () => this.task()?.requester_id === this.auth.currentUser()?.id;
@@ -288,7 +229,7 @@ export class TaskDetailComponent implements OnInit {
         this.task.set(task);
         this.loading.set(false);
         if (task.requester_id === this.auth.currentUser()?.id) {
-          this.taskService.getApplications(taskId).subscribe({
+          this.applicationService.getForTask(taskId).subscribe({
             next: apps => this.applications.set(apps),
           });
         }
@@ -323,34 +264,28 @@ export class TaskDetailComponent implements OnInit {
     });
   }
 
-  submitApplication() {
-    const body: { proposed_price?: number; message?: string } = {};
-    if (this.proposedPrice) body.proposed_price = this.proposedPrice;
-    if (this.applicationMessage) body.message = this.applicationMessage;
-    this.taskService.apply(this.task()!.id, body).subscribe({
-      next: () => {
-        this.showApplyForm.set(false);
-        this.task.update(t => t ? { ...t, user_has_applied: true } : t);
-        this.snackBar.open('Application submitted!', 'Close', { duration: 3000 });
-      },
-      error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
-    });
-  }
-
   acceptApp(appId: number) {
-    this.taskService.acceptApplication(appId).subscribe({
-      next: () => {
-        this.snackBar.open('Application accepted', 'Close', { duration: 3000 });
-        this.walletService.createEscrow(this.task()!.id).subscribe({
+    const dialogRef = this.dialog.open(ConfirmEscrowDialogComponent, {
+      data: { amount: this.task()!.price },
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.applicationService.accept(appId).subscribe({
           next: () => {
-            this.snackBar.open('Escrow created', 'Close', { duration: 3000 });
-            this.ngOnInit();
+            this.snackBar.open('Application accepted', 'Close', { duration: 3000 });
+            this.paymentService.createEscrow(this.task()!.id).subscribe({
+              next: () => {
+                this.snackBar.open('Escrow created', 'Close', { duration: 3000 });
+                this.ngOnInit();
+              },
+              error: err =>
+                this.snackBar.open(err.error?.error || 'Escrow failed', 'Close', { duration: 3000 }),
+            });
           },
-          error: err =>
-            this.snackBar.open(err.error?.error || 'Escrow failed', 'Close', { duration: 3000 }),
+          error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
         });
-      },
-      error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
+      }
     });
   }
 
@@ -358,7 +293,7 @@ export class TaskDetailComponent implements OnInit {
     this.taskService.complete(this.task()!.id).subscribe({
       next: () => {
         this.snackBar.open('Task completed!', 'Close', { duration: 3000 });
-        this.walletService.releasePayment(this.task()!.id).subscribe({
+        this.paymentService.release(this.task()!.id).subscribe({
           next: () => this.snackBar.open('Payment released', 'Close', { duration: 3000 }),
         });
         this.ngOnInit();

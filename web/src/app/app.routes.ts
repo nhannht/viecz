@@ -31,6 +31,11 @@ export const routes: Routes = [
           import('./task-form/task-form.component').then(m => m.TaskFormComponent),
       },
       {
+        path: 'tasks/:id/apply',
+        loadComponent: () =>
+          import('./apply-task/apply-task.component').then(m => m.ApplyTaskComponent),
+      },
+      {
         path: 'tasks/:id',
         loadComponent: () =>
           import('./task-detail/task-detail.component').then(m => m.TaskDetailComponent),
@@ -42,6 +47,10 @@ export const routes: Routes = [
       {
         path: 'chat',
         loadComponent: () => import('./chat/chat.component').then(m => m.ChatComponent),
+      },
+      {
+        path: 'my-jobs/:mode',
+        loadComponent: () => import('./my-jobs/my-jobs.component').then(m => m.MyJobsComponent),
       },
       {
         path: 'profile/:id',
