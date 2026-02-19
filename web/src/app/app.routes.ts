@@ -49,6 +49,15 @@ export const routes: Routes = [
         loadComponent: () => import('./chat/chat.component').then(m => m.ChatComponent),
       },
       {
+        path: 'messages',
+        loadComponent: () =>
+          import('./chat/conversation-list.component').then(m => m.ConversationListComponent),
+      },
+      {
+        path: 'messages/:conversationId',
+        loadComponent: () => import('./chat/chat.component').then(m => m.ChatComponent),
+      },
+      {
         path: 'my-jobs/:mode',
         loadComponent: () => import('./my-jobs/my-jobs.component').then(m => m.MyJobsComponent),
       },
