@@ -10,6 +10,7 @@ import { MatChipSet, MatChip } from '@angular/material/chips';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { UserService } from '../core/user.service';
 import { AuthService } from '../core/auth.service';
 import { User } from '../core/models';
@@ -36,6 +37,7 @@ import { VndPipe } from '../core/pipes';
     MatProgressSpinner,
     VndPipe,
     DecimalPipe,
+    RouterLink,
   ],
   template: `
     @if (loading()) {
@@ -133,6 +135,15 @@ import { VndPipe } from '../core/pipes';
                   <mat-icon>handyman</mat-icon> Become Tasker
                 </button>
               }
+              <a mat-button routerLink="/my-jobs/posted">
+                <mat-icon>post_add</mat-icon> My Posted Jobs
+              </a>
+              <a mat-button routerLink="/my-jobs/applied">
+                <mat-icon>work</mat-icon> My Applied Jobs
+              </a>
+              <button mat-button color="warn" (click)="logout()">
+                <mat-icon>logout</mat-icon> Logout
+              </button>
             </mat-card-actions>
           }
         </mat-card>
@@ -300,6 +311,10 @@ export class ProfileComponent implements OnInit {
       error: err =>
         this.snackBar.open(err.error?.error || 'Upload failed', 'Close', { duration: 3000 }),
     });
+  }
+
+  logout() {
+    this.auth.logout();
   }
 
   becomeTasker() {

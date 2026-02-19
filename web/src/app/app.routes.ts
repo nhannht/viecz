@@ -62,6 +62,13 @@ export const routes: Routes = [
         loadComponent: () => import('./my-jobs/my-jobs.component').then(m => m.MyJobsComponent),
       },
       {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./notifications/notification-list.component').then(
+            m => m.NotificationListComponent,
+          ),
+      },
+      {
         path: 'profile/:id',
         loadComponent: () => import('./profile/profile.component').then(m => m.ProfileComponent),
       },

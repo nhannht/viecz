@@ -5,6 +5,7 @@ import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { MatBadge } from '@angular/material/badge';
+import { MatDivider } from '@angular/material/divider';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
@@ -24,6 +25,7 @@ import { WebSocketService } from '../core/websocket.service';
     MatMenuItem,
     MatMenuTrigger,
     MatBadge,
+    MatDivider,
   ],
   template: `
     <mat-toolbar class="navbar">
@@ -61,6 +63,10 @@ import { WebSocketService } from '../core/websocket.service';
             <span class="notif-msg">{{ n.message }}</span>
           </button>
         }
+        <mat-divider></mat-divider>
+        <a mat-menu-item routerLink="/notifications">
+          <mat-icon>list</mat-icon> View all notifications
+        </a>
       </mat-menu>
       <button mat-icon-button [matMenuTriggerFor]="userMenu">
         <mat-icon>account_circle</mat-icon>
