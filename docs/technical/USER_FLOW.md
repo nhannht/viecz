@@ -1,8 +1,25 @@
 # USER_FLOW.md - User Journey Documentation
 
-> **Viecz** -- P2P task marketplace for university students (Android native).
+> **Viecz** -- P2P task marketplace for university students.
 >
-> Last updated: 2026-02-17
+> Last updated: 2026-02-20
+
+### Platform Note
+
+Viecz has two clients that share the same Go backend API:
+
+| Platform | Technology | Navigation | Token Storage |
+|----------|-----------|------------|---------------|
+| **Android** | Kotlin + Jetpack Compose | Bottom tabs + NavHost | EncryptedSharedPreferences |
+| **Web** | Angular 21 + Material 3 | Sticky navbar + Router | localStorage |
+
+All user flows below apply to **both platforms** unless noted otherwise. The flows reference Android screen names (e.g., `LoginScreen.kt`); the web equivalents are Angular components in `web/src/app/` (e.g., `auth/login.component.ts`).
+
+**Key differences:**
+- **App launch**: Android has `SplashScreen` → token check. Web loads directly to `/login` or the last route (auth guard handles redirect).
+- **Navigation**: Android uses bottom tabs (Home, Chat, Profile). Web uses a sticky top navbar (Marketplace, Wallet, Chat) with notifications menu and user menu.
+- **Deep links**: Android uses `task_detail/{taskId}`. Web uses `/tasks/:id`.
+- **Offline**: Android caches data in Room. Web has no offline support.
 
 ---
 

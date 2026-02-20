@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Last Updated:** 2026-02-17
+**Last Updated:** 2026-02-20
 
 ---
 
@@ -30,6 +30,8 @@
 | Meilisearch (optional) | getmeili/meilisearch:v1.16 | tmpfs | 7700 |
 | Android app (dev) | Kotlin / Jetpack Compose | Room (local) | N/A |
 | Android app (prod) | Kotlin / Jetpack Compose | Room (local) | N/A |
+| Web client (dev) | Angular 21 + SSR | N/A | 4200 (ng serve) |
+| Web client (prod) | Angular 21 + SSR (Express 5) | N/A | Served via Cloudflare or Node |
 
 **Production stack (beta)**: Go server runs as a native binary on the host. PostgreSQL and Cloudflare Tunnel run in Docker containers. The Go server connects to PostgreSQL at `127.0.0.1:5432` via GORM. External HTTPS is handled by Cloudflare Tunnel (no Nginx or Certbot needed). See [Section 4](#4-production-deployment-beta-phase) for deployment steps.
 
@@ -515,6 +517,63 @@ Emulators reach `10.0.2.2:9999` natively (Android emulator loopback to host). Ph
 adb reverse tcp:9999 tcp:9999
 # Verify: adb reverse --list
 ```
+
+---
+
+## 7b. Web Client Build & Deployment
+
+### Prerequisites
+
+- Node.js 18+ and npm (or yarn)
+
+### Development
+
+```bash
+cd web
+npm install            # Install dependencies
+npm start              # Start dev server at http://localhost:4200
+```
+
+The dev server uses `proxy.conf.json` to proxy `/api/v1` requests to the Go backend (default: `http://localhost:9999`).
+
+### Production Build
+
+```bash
+cd web
+npm run build          # Produces dist/web/ with SSR artifacts
+```
+
+Output:
+- `dist/web/browser/` — Static assets (HTML, JS, CSS)
+- `dist/web/server/server.mjs` — SSR Node.js server
+
+### Running SSR in Production
+
+```bash
+npm run serve:ssr:web  # Starts Express SSR server from dist/web/server/server.mjs
+```
+
+### Testing
+
+```bash
+npm test               # Run Vitest unit tests
+```
+
+### Environment Configuration
+
+Environment files at `web/src/app/environments/`:
+
+| File | API URL | Notes |
+|------|---------|-------|
+| `environment.ts` | `http://localhost:9999/api/v1` | Local dev against test server |
+| `environment.prod.ts` | `/api/v1` (relative) | Same-origin in production |
+
+### Bundle Budgets
+
+| Type | Warning | Error |
+|------|---------|-------|
+| Initial bundle | 500 kB | 1 MB |
+| Component styles | 4 kB | 8 kB |
 
 ---
 

@@ -2,7 +2,7 @@
 
 > Technical reference for algorithms implemented in the Viecz Go backend.
 >
-> Last updated: 2026-02-16
+> Last updated: 2026-02-18
 
 ## Table of Contents
 

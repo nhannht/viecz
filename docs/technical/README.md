@@ -1,8 +1,8 @@
 # Technical Documentation
 
 **Project:** Viecz - Dịch Vụ Nhỏ Cho Sinh Viên
-**Last Updated:** 2026-02-15
-**Stack:** Go (Gin) backend + Native Kotlin/Jetpack Compose Android app
+**Last Updated:** 2026-02-20
+**Stack:** Go (Gin) backend + Native Kotlin/Jetpack Compose Android app + Angular 21 web client
 
 ---
 
@@ -12,8 +12,8 @@
 |----------|-------------|------------|
 | **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** | System architecture & design | High-level architecture, tech stack, patterns |
 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Package structure & patterns | Go backend layers, Android MVVM, ER diagram |
-| **[DATA_STRUCTURE.md](./DATA_STRUCTURE.md)** | Data models | 9 GORM models, schemas, relationships |
-| **[API_REFERENCE.md](./API_REFERENCE.md)** | API endpoint reference | 32 REST endpoints + WebSocket, request/response examples |
+| **[DATA_STRUCTURE.md](./DATA_STRUCTURE.md)** | Data models | 10 GORM models, schemas, relationships |
+| **[API_REFERENCE.md](./API_REFERENCE.md)** | API endpoint reference | 39 REST endpoints + WebSocket, request/response examples |
 | **[USER_FLOW.md](./USER_FLOW.md)** | User journey documentation | Auth, task, payment, chat flows |
 | **[ALGORITHM.md](./ALGORITHM.md)** | Core algorithms & complexity | JWT, escrow, WebSocket routing, wallet management |
 | **[SECURITY.md](./SECURITY.md)** | Security measures | JWT auth, bcrypt, CORS, PayOS webhook verification |
@@ -45,6 +45,14 @@ Read in this order:
 2. **[API_REFERENCE.md](./API_REFERENCE.md)** - Backend API contracts
 3. **[DATA_STRUCTURE.md](./DATA_STRUCTURE.md)** - Models
 4. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Android MVVM architecture
+
+### For Web Developers
+
+1. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Web client architecture (Section 6)
+2. **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** - Web client overview (Section 8b)
+3. **[API_REFERENCE.md](./API_REFERENCE.md)** - Backend API contracts (shared with Android)
+4. **[SECURITY.md](./SECURITY.md)** - Web token storage, auth interceptor (Section 10)
+5. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Web build & deployment (Section 7b)
 
 ### For DevOps
 
@@ -124,5 +132,5 @@ graph TD
 
 ---
 
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-20
 **Maintained By:** Development Team

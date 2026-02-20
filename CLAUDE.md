@@ -75,8 +75,9 @@ Viecz is a multi-package project containing:
 
 - **@viecz/android** (`android/`) - Native Kotlin Android application using Jetpack Compose
 - **@viecz/server** (`server/`) - Go backend with comprehensive test coverage
+- **@viecz/web** (`web/`) - Angular 21 web client with SSR and Material Design 3
 
-**Current Status**: Active development on Go backend and Android app
+**Current Status**: Active development on Go backend, Android app, and web client
 
 ## Technical Documentation (CRITICAL - ALWAYS FOLLOW)
 
@@ -105,14 +106,14 @@ Viecz is a multi-package project containing:
 
 | Document | Content |
 |----------|---------|
-| `SYSTEM_DESIGN.md` | High-level architecture, tech stack, patterns |
-| `ARCHITECTURE.md` | Go backend layers, Android MVVM, ER diagram, service dependencies |
+| `SYSTEM_DESIGN.md` | High-level architecture, tech stack, patterns, web client overview |
+| `ARCHITECTURE.md` | Go backend layers, Android MVVM, Angular web client, ER diagram, service dependencies |
 | `DATA_STRUCTURE.md` | 10 GORM models, schemas, relationships |
-| `API_REFERENCE.md` | 38 REST endpoints + WebSocket |
-| `USER_FLOW.md` | Auth, task, payment, chat flows |
+| `API_REFERENCE.md` | 39 REST endpoints + WebSocket |
+| `USER_FLOW.md` | Auth, task, payment, chat flows (Android + Web) |
 | `ALGORITHM.md` | JWT, escrow, WebSocket routing, wallet, available balance validation |
-| `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification |
-| `DEPLOYMENT.md` | Docker Compose, Cloudflare tunnel, Android flavors |
+| `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification, web client token storage |
+| `DEPLOYMENT.md` | Docker Compose, Cloudflare tunnel, Android flavors, web client build |
 | `FIREBASE_DISTRIBUTION.md` | Firebase App Distribution workflow, tester management |
 | `README.md` | Index and navigation guide |
 
@@ -193,10 +194,7 @@ HTTP requests and checks for the presence of a JWT token... [500 words]
 ```
 
 ### Other Available Projects:
-- **FISHcmus (FIS)** - Team project
-- **personal management (PM)** - Personal tasks
-- **gothel (IT)** - IT project
-- **financial (FIN)** - Financial tracking
+> Don't expose other project in youtrack except this one
 
 ## Project Structure
 
@@ -216,6 +214,13 @@ viecz/
 │   │   └── middleware/   # HTTP middleware
 │   ├── go.mod
 │   └── go.sum
+├── web/                  # Angular web client
+│   ├── src/app/          # Angular components, services, routes
+│   │   ├── core/         # Singleton services (auth, task, wallet, chat, etc.)
+│   │   ├── shared/       # Reusable UI components
+│   │   └── environments/ # Dev/prod environment configs
+│   ├── angular.json
+│   └── package.json
 └── CLAUDE.md
 ```
 
@@ -700,9 +705,15 @@ ssh -f <ssh-alias> "cd <remote-project-path> && nohup ./server/bin/server-linux 
   - Task management system
   - Real-time messaging (WebSocket)
   - User profiles & categories
+- ✅ **Web client** - Angular 21 with SSR, Material Design 3, full feature parity with Android
+  - Auth (login, register, token refresh)
+  - Marketplace (browse, search, create/edit tasks)
+  - Task applications and escrow flow
+  - Wallet (balance, deposit, transaction history)
+  - Real-time chat (WebSocket)
+  - Profile and notifications
 - ⏳ **Shared UI component library** - Planned, not yet implemented
-- ❌ **iOS app** - Not planned (Android-only)
-- ❌ **Web app** - Not planned (Android-only)
+- ❌ **iOS app** - Not planned
 
 ## Claudtest - ADB-Based Device Interaction Testing (CRITICAL - ALWAYS FOLLOW)
 
@@ -810,4 +821,5 @@ adb exec-out screencap -p > /tmp/home.png
 - **Check logcat** when interactions don't produce expected results
 - **Report results** with screenshots so the user can see what happened
 - Claudtest is for **verification and debugging**, not a replacement for unit tests
+
 

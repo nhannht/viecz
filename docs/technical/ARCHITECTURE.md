@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
-**Version:** 2.3
-**Last Updated:** 2026-02-18
+**Version:** 2.4
+**Last Updated:** 2026-02-20
 
 ---
 
@@ -12,12 +12,13 @@
 3. [Technology Stack](#3-technology-stack)
 4. [Go Backend Architecture](#4-go-backend-architecture)
 5. [Android App Architecture](#5-android-app-architecture)
-6. [Database Layer](#6-database-layer)
-7. [WebSocket Architecture](#7-websocket-architecture)
-8. [Payment & Wallet System](#8-payment--wallet-system)
-9. [Authentication](#9-authentication)
-10. [API Routes](#10-api-routes)
-11. [Deployment](#11-deployment)
+6. [Web Client Architecture](#6-web-client-architecture)
+7. [Database Layer](#7-database-layer)
+8. [WebSocket Architecture](#8-websocket-architecture)
+9. [Payment & Wallet System](#9-payment--wallet-system)
+10. [Authentication](#10-authentication)
+11. [API Routes](#11-api-routes)
+12. [Deployment](#12-deployment)
 
 ---
 
@@ -27,6 +28,7 @@ Viecz is a P2P marketplace connecting university students for small services. Th
 
 - **Go backend** (Gin + GORM) serving REST and WebSocket APIs
 - **Native Android app** (Kotlin + Jetpack Compose) with MVVM architecture
+- **Angular web client** (Angular 21 + Material Design 3) with SSR support
 - **PostgreSQL** (production, port 5432) / **PostgreSQL** (test server, port 5433, Docker tmpfs) for persistence
 - **PayOS** for payment processing (deposit via payment links, escrow via wallet)
 - **Meilisearch** (optional) for full-text task search with relevance ranking; falls back to PostgreSQL LIKE when not configured
@@ -50,10 +52,23 @@ graph TD
         WebSocketClient --> Retrofit
     end
 
+    subgraph WEB_CLIENT["WEB CLIENT (Angular 21)"]
+        AngularComponents["Components<br/>(Material 3)"]
+        AngularServices["Services<br/>(RxJS + Signals)"]
+        HttpClient["HttpClient<br/>+ Interceptors"]
+        WsService["WebSocket<br/>Service"]
+
+        AngularComponents --> AngularServices
+        AngularServices --> HttpClient
+        AngularServices --> WsService
+    end
+
     CLOUDFLARE["Cloudflare Tunnel<br/>(SSL + Routing)"]
 
     Retrofit -- "HTTPS / WSS" --> CLOUDFLARE
     WebSocketClient -- "WSS" --> CLOUDFLARE
+    HttpClient -- "HTTPS" --> CLOUDFLARE
+    WsService -- "WSS" --> CLOUDFLARE
 
     subgraph GO_BACKEND["GO BACKEND (Gin)"]
         AuthMW["Auth Middleware<br/>(JWT)"]
@@ -82,7 +97,7 @@ graph TD
 
 ```mermaid
 graph TD
-    A["Android App"]
+    A["Client<br/>(Android / Web)"]
     B["Cloudflare Tunnel<br/>(SSL termination)"]
     C["Gin Router"]
     D["CORS Middleware"]
@@ -93,6 +108,7 @@ graph TD
     I["Response<br/>(JSON -> Android)"]
 
     A -- "POST /api/v1/tasks<br/>Authorization: Bearer JWT" --> B
+    Note["Both Android (Retrofit) and<br/>Web (Angular HttpClient)<br/>follow this same flow"]
     B -- "proxy_pass localhost:8080" --> C
     C --> D
     D --> E
@@ -137,6 +153,20 @@ graph TD
 | State            | ViewModel + StateFlow   | 2.8       |
 | WebSocket        | OkHttp WebSocket        | 4.12      |
 | Token Storage    | EncryptedSharedPrefs    | 1.0       |
+
+### Web Client
+
+| Component        | Technology              | Version   |
+|------------------|-------------------------|-----------|
+| Language         | TypeScript              | 5.9       |
+| Framework        | Angular                 | 21.1      |
+| UI Framework     | Angular Material (M3)   | 21.1      |
+| State            | Angular Signals + RxJS  | 7.8       |
+| HTTP Client      | Angular HttpClient      | 21.1      |
+| WebSocket        | Native WebSocket (via WebSocketService) | -  |
+| SSR              | Angular SSR (@angular/ssr) | 21.1   |
+| Testing          | Vitest + jsdom          | 4.0       |
+| Token Storage    | localStorage            | -         |
 
 ---
 
@@ -291,6 +321,7 @@ Config → Database → Repositories → Services → Handlers → Gin Router
 ```
 
 **Service Dependencies:**
+- `UserService` depends on `UserRepository` and `TaskRepository` (for computing dynamic user stats via `CountByFilters`)
 - `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, `NotificationService`, `SearchServicer`, and `*gorm.DB` (used for DB transactions with `SELECT ... FOR UPDATE` row locking in `DeleteTask`)
 - `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, and `NotificationService`
 - `NotificationService` depends on `NotificationRepository` and `WebSocket Hub`
@@ -517,7 +548,121 @@ DataModule (@Singleton)
 
 ---
 
-## 6. Database Layer
+## 6. Web Client Architecture
+
+### Package Structure
+
+```
+web/src/app/
+├── app.routes.ts                # Route definitions (lazy-loaded)
+├── app.config.ts                # Provider configuration (HttpClient, Router, Material)
+├── app.config.server.ts         # SSR server config
+├── app.ts                       # Root component
+│
+├── core/                        # Singleton services and utilities
+│   ├── auth.service.ts          # Login, register, token management (localStorage)
+│   ├── auth.guard.ts            # Route protection (functional CanActivateFn)
+│   ├── auth.interceptor.ts      # JWT Bearer injection + 401 refresh with rotation
+│   ├── error.interceptor.ts     # Global error handler (MatSnackBar)
+│   ├── task.service.ts          # Task CRUD, applications, completion
+│   ├── wallet.service.ts        # Balance, transactions, deposit
+│   ├── payment.service.ts       # Escrow creation, release, refund
+│   ├── user.service.ts          # Profile retrieval/update, avatar upload
+│   ├── chat.service.ts          # Conversations and messages
+│   ├── notification.service.ts  # Notifications list, mark read, unread count
+│   ├── category.service.ts      # Cached category list (signal-based)
+│   ├── application.service.ts   # Task applications
+│   ├── websocket.service.ts     # WebSocket with exponential backoff reconnect
+│   ├── models.ts                # TypeScript interfaces (User, Task, Wallet, etc.)
+│   └── pipes.ts                 # Custom template pipes
+│
+├── auth/                        # Auth screens (public)
+│   ├── login.component.ts
+│   └── register.component.ts
+│
+├── layout/
+│   └── shell.component.ts       # Navbar + router-outlet (protected shell)
+│
+├── marketplace/                 # Task browsing (default route)
+├── task-form/                   # Create/edit task
+├── task-detail/                 # Task details + delete/escrow dialogs
+├── apply-task/                  # Application form
+├── wallet/                      # Wallet balance + deposit dialog + transactions
+├── chat/                        # Real-time messaging
+├── my-jobs/                     # Posted & applied tasks
+├── notifications/               # Notification center
+├── profile/                     # User profile + redirect component
+│
+├── shared/components/           # Reusable UI components
+│   ├── task-card.component.ts
+│   ├── application-card.component.ts
+│   ├── message-bubble.component.ts
+│   ├── empty-state.component.ts
+│   ├── error-fallback.component.ts
+│   ├── loading-skeleton.component.ts
+│   └── category-chips.component.ts
+│
+└── environments/                # Environment configs
+    ├── environment.ts           # Dev: localhost:9999
+    └── environment.prod.ts      # Prod: relative URLs (same origin)
+```
+
+### Key Patterns
+
+**Standalone Components**: All components are standalone (no NgModules). Routes use lazy-loaded imports for code splitting.
+
+**Signal-Based State**: Services use Angular Signals for reactive state (e.g., `currentUser`, `categories`, `unreadCount`). Components read signals directly in templates.
+
+**Functional Interceptors**: HTTP interceptors use the `HttpInterceptorFn` pattern:
+- `authInterceptor` — Attaches `Authorization: Bearer <token>`, handles 401 with token refresh and retry
+- `errorInterceptor` — Catches non-401 errors, shows MatSnackBar notifications
+
+**Token Storage**: JWT tokens stored in `localStorage` with keys `viecz_access_token`, `viecz_refresh_token`, `viecz_user`. Checks `isPlatformBrowser()` for SSR safety.
+
+**WebSocket**: Connects to `/api/v1/ws?token=<jwt>`. Auto-selects `ws:` or `wss:` based on page protocol. Exponential backoff reconnect (max 5 retries, max 30s delay).
+
+### Routes
+
+| Path | Component | Auth Required |
+|------|-----------|---------------|
+| `/login` | LoginComponent | No |
+| `/register` | RegisterComponent | No |
+| `/` (root) | ShellComponent (layout) | Yes (authGuard) |
+| `` (default child) | MarketplaceComponent | Yes |
+| `/tasks/new` | TaskFormComponent | Yes |
+| `/tasks/:id/edit` | TaskFormComponent | Yes |
+| `/tasks/:id/apply` | ApplyTaskComponent | Yes |
+| `/tasks/:id` | TaskDetailComponent | Yes |
+| `/wallet` | WalletComponent | Yes |
+| `/chat` | ChatComponent | Yes |
+| `/messages` | ConversationListComponent | Yes |
+| `/messages/:conversationId` | ChatComponent | Yes |
+| `/my-jobs/:mode` | MyJobsComponent | Yes |
+| `/notifications` | NotificationListComponent | Yes |
+| `/profile` | ProfileRedirectComponent | Yes |
+| `/profile/:id` | ProfileComponent | Yes |
+
+### Navigation
+
+Sticky Material toolbar with: Logo, nav links (Marketplace, Wallet, Chat), notifications menu with badge, user menu (Profile, Logout). Responsive — hides nav labels on mobile (<600px).
+
+### SSR (Server-Side Rendering)
+
+- **Builder**: `@angular/build:application` with `outputMode: "server"`
+- **Server entry**: `src/server.ts` (Express 5)
+- **Hydration**: `provideClientHydration(withEventReplay())`
+- **Run**: `npm run serve:ssr:web` → `node dist/web/server/server.mjs`
+
+### Environment Config
+
+| Environment | API URL | WebSocket URL |
+|-------------|---------|---------------|
+| Development | `http://localhost:9999/api/v1` | `ws://localhost:9999/api/v1/ws` |
+| Production | `/api/v1` (relative, same origin) | `/api/v1/ws` (relative) |
+
+---
+
+## 7. Database Layer
 
 ### GORM Models (AutoMigrate)
 
@@ -689,7 +834,7 @@ Room is used for offline caching on the Android side:
 
 ---
 
-## 7. WebSocket Architecture
+## 8. WebSocket Architecture
 
 ### Server-Side (Gorilla WebSocket)
 
@@ -759,7 +904,7 @@ The Android `WebSocketClient` is a `@Singleton` injected via Hilt. It:
 
 ---
 
-## 8. Payment & Wallet System
+## 9. Payment & Wallet System
 
 ### Wallet-Based Escrow Flow
 
@@ -816,7 +961,7 @@ Configurable via `MAX_WALLET_BALANCE` env var (default: 200,000 VND). Deposits t
 
 ---
 
-## 9. Authentication
+## 10. Authentication
 
 ### Flow
 
@@ -866,7 +1011,7 @@ type Claims struct {
 
 ---
 
-## 10. API Routes
+## 11. API Routes
 
 All routes are prefixed with `/api/v1/`.
 
@@ -918,7 +1063,7 @@ All routes are prefixed with `/api/v1/`.
 
 ---
 
-## 11. Deployment
+## 12. Deployment
 
 ### Server Infrastructure
 

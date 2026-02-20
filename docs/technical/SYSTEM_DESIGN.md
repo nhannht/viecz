@@ -1,6 +1,6 @@
 # System Design - Viecz
 
-**Last Updated:** 2026-02-17
+**Last Updated:** 2026-02-20
 
 ---
 
@@ -10,9 +10,10 @@ Viecz is a peer-to-peer task marketplace for university students. A **requester*
 a small job (delivery, tutoring, cleaning, etc.), a **tasker** applies, and the platform
 handles escrow payments and real-time chat between the two parties.
 
-The system is a monolithic client-server architecture:
+The system is a multi-client architecture with a shared backend:
 
-- **Client** -- Native Android app (Kotlin / Jetpack Compose)
+- **Android client** -- Native Android app (Kotlin / Jetpack Compose)
+- **Web client** -- Angular 21 SPA with SSR (Material Design 3)
 - **Server** -- Go REST API + WebSocket (Gin framework)
 - **Database** -- PostgreSQL (production, port 5432) / PostgreSQL (test server, port 5433, Docker tmpfs)
 - **Payments** -- PayOS integration for deposits; wallet-based escrow for task payments
@@ -27,6 +28,11 @@ graph TD
     subgraph AndroidApp["Android App (Kotlin/Compose)"]
         Retrofit["Retrofit - HTTP"]
         OkHttp["OkHttp - WebSocket"]
+    end
+
+    subgraph WebApp["Web Client (Angular 21)"]
+        HttpClient["HttpClient + Interceptors"]
+        WsService["WebSocket Service"]
     end
 
     subgraph CloudflareTunnelSubgraph["Cloudflare Tunnel"]
@@ -55,6 +61,8 @@ graph TD
 
     Retrofit -->|HTTPS| CloudflareTunnel
     OkHttp -->|WSS| CloudflareTunnel
+    HttpClient -->|HTTPS| CloudflareTunnel
+    WsService -->|WSS| CloudflareTunnel
     CloudflareTunnel --> Handlers
     CloudflareTunnel --> WebSocketHub
     GORM --> PostgreSQL
@@ -73,6 +81,11 @@ graph TD
 | Android DI   | Hilt (Dagger)                                           |
 | Android Net  | Retrofit + Moshi, OkHttp (HTTP + WebSocket)             |
 | Android DB   | Room (local cache for tasks, categories, notifications) |
+| Web UI       | Angular 21, Angular Material (M3), TypeScript 5.9       |
+| Web State    | Angular Signals + RxJS 7.8                              |
+| Web HTTP     | Angular HttpClient + functional interceptors            |
+| Web SSR      | @angular/ssr + Express 5                                |
+| Web Test     | Vitest 4.0 + jsdom                                      |
 | Server       | Go 1.25+, Gin web framework                             |
 | ORM          | GORM (PostgreSQL driver for prod + test)                |
 | Auth         | JWT (HS256) via golang-jwt/jwt v5                       |
@@ -432,8 +445,8 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    A["Client A<br/>(OkHttp WS)"] <-->|WebSocket| Hub["Hub<br/>clients / convos / broadcast"]
-    Hub <-->|WebSocket| B["Client B<br/>(OkHttp WS)"]
+    A["Client A<br/>(Android OkHttp / Web WebSocket)"] <-->|WebSocket| Hub["Hub<br/>clients / convos / broadcast"]
+    Hub <-->|WebSocket| B["Client B<br/>(Android OkHttp / Web WebSocket)"]
 ```
 
 The **Hub** is a central goroutine that:
@@ -585,6 +598,45 @@ Both flavors can coexist on the same device.
 
 ---
 
+## 8b. Web Client Architecture
+
+### Overview
+
+The Angular web client provides browser-based access to all Viecz features. It shares the same Go backend API as the Android app.
+
+### Architecture
+
+- **Framework**: Angular 21 with standalone components (no NgModules)
+- **UI**: Angular Material Design 3
+- **State**: Angular Signals for reactive state, RxJS for async streams
+- **HTTP**: Angular `HttpClient` with functional interceptors (`authInterceptor`, `errorInterceptor`)
+- **WebSocket**: Native WebSocket via `WebSocketService` with exponential backoff reconnect
+- **SSR**: Server-side rendering via `@angular/ssr` + Express 5
+- **Auth**: JWT stored in `localStorage`, `authGuard` protects routes, `authInterceptor` handles 401 token refresh
+
+### Navigation
+
+Single-page application with `ShellComponent` as the protected layout (sticky navbar + `router-outlet`). Public routes (`/login`, `/register`) bypass the shell. All feature routes are lazy-loaded.
+
+### Environment Configuration
+
+| Environment | API URL | WebSocket URL |
+|-------------|---------|---------------|
+| Development | `http://localhost:9999/api/v1` | `ws://localhost:9999/api/v1/ws` |
+| Production  | `/api/v1` (relative, same origin) | `/api/v1/ws` (relative) |
+
+### Build & Run
+
+```bash
+cd web
+npm start              # Dev server (port 4200, proxy to backend)
+npm run build          # Production build with SSR
+npm run serve:ssr:web  # Run SSR server
+npm test               # Run Vitest tests
+```
+
+---
+
 ## 9. Test Server
 
 `server/cmd/testserver/main.go` provides a dev server that requires only a test PostgreSQL container:
@@ -617,3 +669,6 @@ Used for: local Android development, E2E instrumented tests, manual API testing.
 | **PayOS for Vietnam** | Native VND support; QR code payments popular with students |
 | **Max wallet balance** | Risk mitigation; configurable via `MAX_WALLET_BALANCE` env var |
 | **Meilisearch (optional)** | Relevance-ranked full-text search with typo tolerance; interface pattern (`SearchServicer`) allows graceful fallback to PostgreSQL LIKE when not configured |
+| **Angular web client** | Browser access for users without Android; same API, no backend changes needed |
+| **Angular SSR** | SEO and initial load performance; Express 5 server for production |
+| **localStorage for web tokens** | Simple browser storage; SSR-safe via `isPlatformBrowser()` check |
