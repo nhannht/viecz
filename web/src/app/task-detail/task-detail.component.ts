@@ -101,10 +101,24 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
 
             <div class="mt-6 flex gap-4">
               @if (!auth.isAuthenticated()) {
-                <div class="border-2 border-fg p-6 w-full text-center">
-                  <h4 class="font-display text-[12px] tracking-[2px] mb-2">INTERESTED?</h4>
-                  <p class="font-body text-[13px] text-muted mb-4">Create an account to apply for this task.</p>
-                  <div class="flex justify-center gap-4 items-center">
+                <div class="border-2 border-fg p-6 w-full">
+                  <h4 class="font-display text-[12px] tracking-[2px] mb-3">WANT TO APPLY FOR THIS TASK?</h4>
+                  <p class="font-body text-[13px] text-muted mb-3">Create a free account to:</p>
+                  <ul class="list-none p-0 m-0 mb-4 flex flex-col gap-2">
+                    <li class="flex items-center gap-2 font-body text-[13px]">
+                      <nhannht-metro-icon name="check" [size]="16" />
+                      Apply with your proposed price
+                    </li>
+                    <li class="flex items-center gap-2 font-body text-[13px]">
+                      <nhannht-metro-icon name="check" [size]="16" />
+                      Chat directly with the requester
+                    </li>
+                    <li class="flex items-center gap-2 font-body text-[13px]">
+                      <nhannht-metro-icon name="check" [size]="16" />
+                      Get paid via secure escrow
+                    </li>
+                  </ul>
+                  <div class="flex gap-4 items-center">
                     <a routerLink="/register">
                       <nhannht-metro-button variant="primary" label="Register to Apply" />
                     </a>

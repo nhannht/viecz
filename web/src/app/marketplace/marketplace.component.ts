@@ -37,9 +37,48 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
   template: `
     <div class="py-2 relative min-h-[60vh]">
       @if (!auth.isAuthenticated()) {
-        <div class="border-2 border-fg p-8 mb-6 text-center">
-          <h1 class="font-display text-[16px] tracking-[3px] mb-2">STUDENT MICRO-TASK MARKETPLACE</h1>
-          <p class="font-body text-[14px] text-muted mb-6">Post tasks, find help, earn money.</p>
+        <div class="border-2 border-fg p-8 mb-6">
+          <div class="text-center mb-6">
+            <h1 class="font-display text-[16px] tracking-[3px] mb-2">STUDENT MICRO-TASK MARKETPLACE</h1>
+            <p class="font-body text-[14px] text-muted">Post tasks. Find help. Earn money.</p>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4 mb-6 max-w-[480px] mx-auto">
+            <div class="border border-fg p-4 text-center">
+              <span class="font-display text-[18px] block">{{ total() }}+</span>
+              <span class="font-display text-[9px] tracking-[1px] text-muted">TASKS POSTED</span>
+            </div>
+            <div class="border border-fg p-4 text-center">
+              <span class="font-display text-[18px] block">11</span>
+              <span class="font-display text-[9px] tracking-[1px] text-muted">CATEGORIES</span>
+            </div>
+            <div class="border border-fg p-4 text-center">
+              <span class="font-display text-[18px] block">0%</span>
+              <span class="font-display text-[9px] tracking-[1px] text-muted">PLATFORM FEE</span>
+            </div>
+          </div>
+
+          <div class="mb-6 max-w-[540px] mx-auto">
+            <h4 class="font-display text-[10px] tracking-[2px] text-muted mb-4 text-center">HOW IT WORKS</h4>
+            <div class="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">1</span>
+                <p class="font-display text-[10px] tracking-[1px]">POST</p>
+                <p class="font-body text-[11px] text-muted mt-1">Describe your task</p>
+              </div>
+              <div>
+                <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">2</span>
+                <p class="font-display text-[10px] tracking-[1px]">MATCH</p>
+                <p class="font-body text-[11px] text-muted mt-1">Taskers apply</p>
+              </div>
+              <div>
+                <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">3</span>
+                <p class="font-display text-[10px] tracking-[1px]">PAY</p>
+                <p class="font-body text-[11px] text-muted mt-1">Secure escrow</p>
+              </div>
+            </div>
+          </div>
+
           <div class="flex justify-center gap-4 items-center">
             <a routerLink="/register">
               <nhannht-metro-button variant="primary" label="Get Started" />

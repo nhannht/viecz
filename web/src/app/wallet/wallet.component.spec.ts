@@ -150,6 +150,7 @@ describe('WalletComponent', () => {
   it('should handle deposit error without message', () => {
     fixture.detectChanges();
     walletServiceMock.deposit.mockReturnValue(throwError(() => ({ error: {} })));
+    component.depositAmount = 5000;
     component.deposit();
     expect(snackbarMock.show).toHaveBeenCalledWith('Deposit failed', undefined, { duration: 3000 });
   });
