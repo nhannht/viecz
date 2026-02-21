@@ -749,6 +749,15 @@ ssh -f <ssh-alias> "cd <remote-project-path> && nohup ./server/bin/server-linux 
 - **Compodoc JSDoc placement**: JSDoc must go **before** `@Component()` decorator, not between `})` and `export class`, for compodoc to extract class descriptions
 - **Compodoc builder args bug**: The `@storybook/angular` builder's `compodocArgs` in angular.json may not pass arguments correctly. Workaround: set `compodoc: false` in angular.json and run compodoc manually via npm script (`"storybook": "yarn compodoc && ng run web:storybook"`)
 - **Don't chase Node.js ESM bugs before checking package versions** — Node v24 has real ESM issues with Storybook (tracked in storybookjs/storybook#31434), but a version mismatch between Storybook packages is far more common and should be ruled out first
+- **`@angular/platform-browser-dynamic` is REQUIRED for Storybook Angular** — Without it, components show an infinite loading spinner in the iframe. Webpack builds successfully, sidebar loads, but Angular can't bootstrap any component. This is a runtime dependency, not a build-time one, so the build gives zero hints.
+
+### Debugging Discipline (Learned from Mistakes)
+
+- **Read terminal warnings during `yarn install` / `npm install`** — "unmet peer dependency" warnings are often the root cause of runtime failures, not just noise. The missing `@angular/platform-browser-dynamic` was printed in every `yarn install` output but was ignored repeatedly.
+- **Browser DevTools FIRST for rendering failures** — Storybook's webpack log only shows build/compile errors. If the build succeeds (100%) but components don't render, the error is a **runtime JavaScript error** visible only in the browser console. Always open DevTools before guessing.
+- **Correlation is not causation** — "I added package X and it broke" does NOT mean package X broke it. The breakage may have existed before and only became visible. Verify the actual error before reverting changes.
+- **Stop guessing, start reading** — Every "quick fix" attempt that fails (clear cache, kill process, revert file, remove package) costs more time than the 30 seconds of reading the actual error message. The debugging loop should be: **observe error → research → understand → fix**, not: **guess → try → fail → guess again**.
+- **Never revert working code without understanding why it broke** — Reverting compodoc/addon-docs was wrong because they weren't the cause. The revert wasted multiple cycles and had to be re-applied afterward.
 
 ## Project Status
 
