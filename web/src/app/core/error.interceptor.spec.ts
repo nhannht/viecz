@@ -1,27 +1,26 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { errorInterceptor } from './error.interceptor';
 
 describe('errorInterceptor', () => {
   let http: HttpClient;
   let httpTesting: HttpTestingController;
-  let snackBarSpy: { open: ReturnType<typeof vi.fn> };
+  let snackbarService: NhannhtMetroSnackbarService;
 
   beforeEach(() => {
-    snackBarSpy = { open: vi.fn() };
-
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
-        { provide: MatSnackBar, useValue: snackBarSpy },
       ],
     });
 
     http = TestBed.inject(HttpClient);
     httpTesting = TestBed.inject(HttpTestingController);
+    snackbarService = TestBed.inject(NhannhtMetroSnackbarService);
+    vi.spyOn(snackbarService, 'show');
   });
 
   afterEach(() => {
@@ -34,10 +33,7 @@ describe('errorInterceptor', () => {
     const req = httpTesting.expectOne('/api/v1/tasks');
     req.flush({ error: 'Validation error' }, { status: 400, statusText: 'Bad Request' });
 
-    expect(snackBarSpy.open).toHaveBeenCalledWith('Validation error', 'Close', {
-      duration: 4000,
-      panelClass: 'error-snackbar',
-    });
+    expect(snackbarService.show).toHaveBeenCalledWith('Validation error', 'Close', { duration: 4000 });
   });
 
   it('should show snackbar on 500 error', () => {
@@ -46,10 +42,7 @@ describe('errorInterceptor', () => {
     const req = httpTesting.expectOne('/api/v1/tasks');
     req.flush({ error: 'Internal server error' }, { status: 500, statusText: 'Server Error' });
 
-    expect(snackBarSpy.open).toHaveBeenCalledWith('Internal server error', 'Close', {
-      duration: 4000,
-      panelClass: 'error-snackbar',
-    });
+    expect(snackbarService.show).toHaveBeenCalledWith('Internal server error', 'Close', { duration: 4000 });
   });
 
   it('should NOT show snackbar on 401 error (handled by auth interceptor)', () => {
@@ -58,7 +51,7 @@ describe('errorInterceptor', () => {
     const req = httpTesting.expectOne('/api/v1/tasks');
     req.flush({ error: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
-    expect(snackBarSpy.open).not.toHaveBeenCalled();
+    expect(snackbarService.show).not.toHaveBeenCalled();
   });
 
   it('should use message field as fallback', () => {
@@ -67,10 +60,7 @@ describe('errorInterceptor', () => {
     const req = httpTesting.expectOne('/api/v1/tasks');
     req.flush({ message: 'Something went wrong' }, { status: 404, statusText: 'Not Found' });
 
-    expect(snackBarSpy.open).toHaveBeenCalledWith('Something went wrong', 'Close', {
-      duration: 4000,
-      panelClass: 'error-snackbar',
-    });
+    expect(snackbarService.show).toHaveBeenCalledWith('Something went wrong', 'Close', { duration: 4000 });
   });
 
   it('should show generic message when no error details', () => {
@@ -79,10 +69,7 @@ describe('errorInterceptor', () => {
     const req = httpTesting.expectOne('/api/v1/tasks');
     req.flush({}, { status: 500, statusText: 'Server Error' });
 
-    expect(snackBarSpy.open).toHaveBeenCalledWith('An error occurred', 'Close', {
-      duration: 4000,
-      panelClass: 'error-snackbar',
-    });
+    expect(snackbarService.show).toHaveBeenCalledWith('An error occurred', 'Close', { duration: 4000 });
   });
 
   it('should not show snackbar on success', () => {
@@ -91,6 +78,6 @@ describe('errorInterceptor', () => {
     const req = httpTesting.expectOne('/api/v1/tasks');
     req.flush([]);
 
-    expect(snackBarSpy.open).not.toHaveBeenCalled();
+    expect(snackbarService.show).not.toHaveBeenCalled();
   });
 });

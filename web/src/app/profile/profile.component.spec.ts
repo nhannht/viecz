@@ -2,13 +2,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { PLATFORM_ID, signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { ProfileComponent } from './profile.component';
 import { UserService } from '../core/user.service';
 import { AuthService } from '../core/auth.service';
 import { User } from '../core/models';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { ComponentRef } from '@angular/core';
 
 const mockUser: User = {
@@ -36,6 +36,7 @@ describe('ProfileComponent', () => {
   let componentRef: ComponentRef<ProfileComponent>;
   let userSpy: any;
   let authSpy: any;
+  let snackbarSpy: any;
 
   beforeEach(async () => {
     userSpy = {
@@ -49,6 +50,7 @@ describe('ProfileComponent', () => {
       currentUser: signal({ id: 1, name: 'Test User' }),
       logout: vi.fn(),
     };
+    snackbarSpy = { show: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [ProfileComponent],
@@ -56,10 +58,10 @@ describe('ProfileComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: UserService, useValue: userSpy },
         { provide: AuthService, useValue: authSpy },
+        { provide: NhannhtMetroSnackbarService, useValue: snackbarSpy },
       ],
     }).compileComponents();
 

@@ -1,13 +1,11 @@
 import { Component, inject, OnInit, signal, input } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCard, MatCardContent, MatCardHeader, MatCardTitle, MatCardActions } from '@angular/material/card';
-import { MatButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
+import { NhannhtMetroTextareaComponent } from '../shared/components/nhannht-metro-textarea.component';
+import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
+import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { TaskService } from '../core/task.service';
 import { ApplicationService } from '../core/application.service';
 import { Task } from '../core/models';
@@ -18,60 +16,58 @@ import { VndPipe } from '../core/pipes';
   standalone: true,
   imports: [
     FormsModule,
-    MatCard, MatCardContent, MatCardHeader, MatCardTitle, MatCardActions,
-    MatButton, MatIcon, MatFormField, MatLabel, MatInput, MatProgressSpinner,
+    NhannhtMetroInputComponent,
+    NhannhtMetroTextareaComponent,
+    NhannhtMetroButtonComponent,
+    NhannhtMetroSpinnerComponent,
     VndPipe,
   ],
   template: `
     @if (loading()) {
-      <div class="loading"><mat-spinner diameter="40"></mat-spinner></div>
+      <div class="flex justify-center py-16">
+        <nhannht-metro-spinner [size]="40" />
+      </div>
     } @else if (task()) {
-      <div class="apply-page">
-        <mat-card>
-          <mat-card-header>
-            <mat-card-title>Apply for: {{ task()!.title }}</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="task-summary">
-              <span class="task-price">Task price: {{ task()!.price | vnd }}</span>
+      <div class="max-w-[600px] mx-auto">
+        <div class="bg-card border border-border">
+          <div class="px-6 py-4 border-b border-border">
+            <h2 class="font-display text-[11px] tracking-[1px] text-fg m-0">
+              APPLY FOR: {{ task()!.title }}
+            </h2>
+          </div>
+
+          <div class="px-6 py-4 flex flex-col gap-4">
+            <div class="bg-bg border border-border px-4 py-3">
+              <span class="font-body text-[13px] font-bold text-fg">Task price: {{ task()!.price | vnd }}</span>
             </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Proposed Price (VND)</mat-label>
-              <input matInput type="number" [(ngModel)]="proposedPrice" min="1">
-            </mat-form-field>
+            <nhannht-metro-input
+              label="PROPOSED PRICE (VND)"
+              type="number"
+              [(ngModel)]="proposedPrice"
+              name="proposedPrice"
+            />
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Message</mat-label>
-              <textarea matInput [(ngModel)]="message" rows="4"
-                        placeholder="Why are you a good fit for this task?"></textarea>
-            </mat-form-field>
-          </mat-card-content>
-          <mat-card-actions align="end">
-            <button mat-button (click)="cancel()">Cancel</button>
-            <button mat-raised-button (click)="submit()" [disabled]="submitting()">
-              @if (submitting()) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                <ng-container><mat-icon>send</mat-icon></ng-container> Submit Application
-              }
-            </button>
-          </mat-card-actions>
-        </mat-card>
+            <nhannht-metro-textarea
+              label="MESSAGE"
+              placeholder="Why are you a good fit for this task?"
+              [rows]="4"
+              [(ngModel)]="message"
+              name="message"
+            />
+          </div>
+
+          <div class="flex justify-end gap-3 px-6 py-4 border-t border-border">
+            <nhannht-metro-button variant="secondary" label="Cancel" (clicked)="cancel()" />
+            @if (submitting()) {
+              <nhannht-metro-spinner [size]="20" />
+            } @else {
+              <nhannht-metro-button variant="primary" label="Submit Application" (clicked)="submit()" />
+            }
+          </div>
+        </div>
       </div>
     }
-  `,
-  styles: `
-    .loading { display: flex; justify-content: center; padding: 64px 0; }
-    .apply-page { max-width: 600px; margin: 0 auto; }
-    .task-summary {
-      margin-bottom: 16px;
-      padding: 12px;
-      background: var(--mat-sys-surface-variant, #f5f5f5);
-      border-radius: 8px;
-    }
-    .task-price { font-weight: 500; color: var(--mat-sys-primary); }
-    .full-width { width: 100%; }
   `,
 })
 export class ApplyTaskComponent implements OnInit {
@@ -80,7 +76,7 @@ export class ApplyTaskComponent implements OnInit {
   private taskService = inject(TaskService);
   private applicationService = inject(ApplicationService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private snackbar = inject(NhannhtMetroSnackbarService);
 
   task = signal<Task | null>(null);
   loading = signal(true);
@@ -98,7 +94,7 @@ export class ApplyTaskComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Task not found', 'Close', { duration: 3000 });
+        this.snackbar.show('Task not found', 'Close', { duration: 3000 });
         this.router.navigate(['/']);
       },
     });
@@ -112,12 +108,12 @@ export class ApplyTaskComponent implements OnInit {
     this.submitting.set(true);
     this.applicationService.apply(this.task()!.id, body).subscribe({
       next: () => {
-        this.snackBar.open('Application submitted!', 'Close', { duration: 3000 });
+        this.snackbar.show('Application submitted!', 'Close', { duration: 3000 });
         this.router.navigate(['/tasks', this.task()!.id]);
       },
       error: err => {
         this.submitting.set(false);
-        this.snackBar.open(err.error?.error || 'Failed to submit application', 'Close', { duration: 3000 });
+        this.snackbar.show(err.error?.error || 'Failed to submit application', 'Close', { duration: 3000 });
       },
     });
   }

@@ -1,12 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
-import { MatButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
+import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
+import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { AuthService } from '../core/auth.service';
 
 @Component({
@@ -15,114 +13,75 @@ import { AuthService } from '../core/auth.service';
   imports: [
     FormsModule,
     RouterLink,
-    MatCard,
-    MatCardContent,
-    MatCardHeader,
-    MatCardTitle,
-    MatFormField,
-    MatLabel,
-    MatInput,
-    MatButton,
-    MatIcon,
-    MatProgressSpinner,
+    NhannhtMetroInputComponent,
+    NhannhtMetroButtonComponent,
+    NhannhtMetroIconComponent,
+    NhannhtMetroSpinnerComponent,
   ],
   template: `
-    <div class="auth-container">
-      <mat-card class="auth-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon class="auth-logo">work</mat-icon>
-            <span>Viecz</span>
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <h2>Sign In</h2>
-          @if (error()) {
-            <div class="error-banner">{{ error() }}</div>
-          }
-          <form (ngSubmit)="onLogin()" class="auth-form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Email</mat-label>
-              <input matInput type="email" [(ngModel)]="email" name="email"
-                     required autocomplete="email">
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
-              <input matInput [type]="showPassword() ? 'text' : 'password'"
-                     [(ngModel)]="password" name="password" required
-                     autocomplete="current-password">
-              <button matSuffix mat-icon-button type="button"
-                      (click)="showPassword.set(!showPassword())">
-                <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-            </mat-form-field>
-            <button mat-raised-button class="full-width submit-btn"
-                    type="submit" [disabled]="loading()">
-              @if (loading()) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                Sign In
-              }
+    <div class="flex justify-center items-center min-h-screen bg-bg px-4">
+      <div class="w-full max-w-[420px] bg-card border border-border p-8">
+        <div class="flex items-center justify-center gap-2 mb-2">
+          <nhannht-metro-icon name="work" [size]="28" />
+          <span class="font-display text-[16px] text-fg tracking-[2px]">Viecz</span>
+        </div>
+
+        <h2 class="font-display text-[13px] text-fg text-center tracking-[2px] mb-1">SIGN IN</h2>
+        <p class="font-body text-[13px] text-muted text-center mb-6">Sign in to your account</p>
+
+        @if (error()) {
+          <div class="bg-fg/20 text-fg font-body text-[13px] px-4 py-3 border border-fg mb-4">
+            {{ error() }}
+          </div>
+        }
+
+        <form (ngSubmit)="onLogin()" class="flex flex-col gap-4">
+          <nhannht-metro-input
+            label="EMAIL"
+            type="email"
+            placeholder="you@example.com"
+            [(ngModel)]="email"
+            name="email"
+          />
+
+          <div class="relative">
+            <nhannht-metro-input
+              label="PASSWORD"
+              [type]="showPassword() ? 'text' : 'password'"
+              placeholder="Enter password"
+              [(ngModel)]="password"
+              name="password"
+            />
+            <button type="button"
+                    class="absolute right-3 bottom-2 bg-transparent border-none cursor-pointer text-muted hover:text-fg transition-colors"
+                    (click)="showPassword.set(!showPassword())">
+              <nhannht-metro-icon [name]="showPassword() ? 'visibility_off' : 'visibility'" [size]="20" />
             </button>
-          </form>
-          <p class="auth-link">
-            Don't have an account? <a routerLink="/register">Register</a>
-          </p>
-        </mat-card-content>
-      </mat-card>
+          </div>
+
+          <div class="mt-2">
+            @if (loading()) {
+              <div class="flex justify-center py-3">
+                <nhannht-metro-spinner [size]="20" />
+              </div>
+            } @else {
+              <nhannht-metro-button
+                variant="primary"
+                label="Sign In"
+                type="submit"
+                [fullWidth]="true"
+                [disabled]="loading()"
+              />
+            }
+          </div>
+        </form>
+
+        <p class="font-body text-[13px] text-muted text-center mt-6">
+          Don't have an account?
+          <a routerLink="/register" class="text-fg font-bold hover:text-muted transition-colors">Register</a>
+        </p>
+      </div>
     </div>
-  `,
-  styles: `
-    .auth-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: var(--mat-sys-surface-container-low);
-      padding: 16px;
-    }
-    .auth-card {
-      width: 100%;
-      max-width: 420px;
-      padding: 24px;
-    }
-    mat-card-header {
-      justify-content: center;
-      margin-bottom: 8px;
-    }
-    mat-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-    .auth-logo { color: var(--mat-sys-primary); font-size: 2rem; width: 2rem; height: 2rem; }
-    h2 { text-align: center; margin: 16px 0; }
-    .auth-form { display: flex; flex-direction: column; gap: 4px; }
-    .full-width { width: 100%; }
-    .submit-btn {
-      height: 48px;
-      font-size: 1rem;
-      margin-top: 8px;
-      --mdc-filled-button-container-color: var(--mat-sys-primary);
-      --mdc-filled-button-label-text-color: var(--mat-sys-on-primary);
-    }
-    .error-banner {
-      background: var(--mat-sys-error-container);
-      color: var(--mat-sys-on-error-container);
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      font-size: 0.875rem;
-    }
-    .auth-link {
-      text-align: center;
-      margin-top: 16px;
-      color: var(--mat-sys-on-surface-variant);
-    }
-    .auth-link a { color: var(--mat-sys-primary); text-decoration: none; font-weight: 500; }
-    mat-spinner { margin: 0 auto; }
   `,
 })
 export class LoginComponent {

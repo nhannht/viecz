@@ -3,11 +3,8 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatIconButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatFormField } from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { Subscription } from 'rxjs';
 import { ChatService } from '../core/chat.service';
 import { WebSocketService, WsMessage } from '../core/websocket.service';
@@ -19,54 +16,68 @@ import { MessageBubbleComponent } from '../shared/components/message-bubble.comp
   selector: 'app-chat',
   standalone: true,
   imports: [
-    FormsModule, MatIconButton, MatIcon, MatFormField, MatInput,
-    MatProgressSpinner, MessageBubbleComponent,
+    FormsModule, NhannhtMetroIconComponent,
+    NhannhtMetroSpinnerComponent, MessageBubbleComponent,
   ],
   template: `
-    <div class="chat-page">
-      <div class="chat-header">
-        <button mat-icon-button (click)="goBack()">
-          <mat-icon>arrow_back</mat-icon>
+    <div class="flex flex-col h-[calc(100vh-96px)] border border-border overflow-hidden bg-card">
+      <div class="chat-header flex items-center gap-2 px-4 py-2 border-b border-border">
+        <button class="bg-transparent border-none cursor-pointer text-fg p-1 hover:opacity-70 transition-opacity"
+                (click)="goBack()">
+          <nhannht-metro-icon name="arrow_back" [size]="20" />
         </button>
-        <span class="chat-title">Conversation #{{ conversationId() }}</span>
-        <span class="connection-status" [class]="wsService.connectionStatus()">
+        <span class="chat-title flex-1 font-display text-[11px] tracking-[1px] text-fg">
+          Conversation #{{ conversationId() }}
+        </span>
+        <span class="connection-status font-body text-[10px] px-2 py-0.5 border"
+              [class]="wsService.connectionStatus()">
           {{ connectionLabel() }}
         </span>
       </div>
 
       @if (chatClosed()) {
-        <div class="chat-closed-banner">
-          <mat-icon>lock</mat-icon>
+        <div class="flex items-center gap-2 px-4 py-2 bg-bg border-b border-border font-body text-[13px] text-muted">
+          <nhannht-metro-icon name="lock" [size]="16" />
           <span>This chat is closed</span>
         </div>
       }
 
       @if (loading()) {
-        <div class="center"><mat-spinner diameter="30"></mat-spinner></div>
+        <div class="flex items-center justify-center flex-1">
+          <nhannht-metro-spinner [size]="30" />
+        </div>
       } @else {
-        <div class="msg-list" #messageList>
+        <div class="msg-list flex-1 overflow-y-auto p-4 flex flex-col gap-2" #messageList>
           @if (messages().length === 0) {
-            <div class="center empty">
-              <mat-icon>chat</mat-icon>
-              <p>No messages yet. Say hello!</p>
+            <div class="flex flex-col items-center justify-center flex-1 gap-2 text-muted">
+              <nhannht-metro-icon name="chat" [size]="48" />
+              <p class="font-body text-[13px]">No messages yet. Say hello!</p>
             </div>
           }
           @for (msg of messages(); track msg.id) {
             <app-message-bubble [message]="msg" [isMine]="msg.sender_id === myId()" />
           }
           @if (isTyping()) {
-            <div class="typing-indicator">Typing...</div>
+            <div class="typing-indicator font-body text-[12px] text-muted italic py-1">Typing...</div>
           }
         </div>
 
         @if (!chatClosed()) {
-          <div class="msg-input">
-            <mat-form-field appearance="outline" class="msg-field">
-              <input matInput [(ngModel)]="newMessage" placeholder="Type a message..."
-                     (keyup.enter)="sendMessage()" (input)="onTyping()">
-            </mat-form-field>
-            <button mat-icon-button (click)="sendMessage()" [disabled]="!newMessage.trim()">
-              <mat-icon>send</mat-icon>
+          <div class="flex items-center gap-2 px-4 py-2 border-t border-border">
+            <div class="flex-1">
+              <input class="w-full px-4 py-3 bg-card border border-border font-body text-[13px] text-fg
+                            placeholder:text-muted focus:border-fg focus:outline-none transition-colors duration-200"
+                     [(ngModel)]="newMessage"
+                     placeholder="Type a message..."
+                     (keyup.enter)="sendMessage()"
+                     (input)="onTyping()">
+            </div>
+            <button class="bg-fg text-bg border-2 border-fg p-2 cursor-pointer
+                           hover:bg-transparent hover:text-fg transition-all duration-200
+                           disabled:opacity-40 disabled:cursor-not-allowed"
+                    (click)="sendMessage()"
+                    [disabled]="!newMessage.trim()">
+              <nhannht-metro-icon name="send" [size]="20" />
             </button>
           </div>
         }
@@ -74,52 +85,9 @@ import { MessageBubbleComponent } from '../shared/components/message-bubble.comp
     </div>
   `,
   styles: `
-    .chat-page {
-      display: flex; flex-direction: column;
-      height: calc(100vh - 96px);
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: 12px;
-      overflow: hidden;
-      background: var(--mat-sys-surface);
-    }
-    .chat-header {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px;
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
-      font-weight: 500;
-    }
-    .chat-title { flex: 1; }
-    .connection-status {
-      font-size: 0.7rem; padding: 2px 8px; border-radius: 10px;
-    }
-    .connection-status.connected { background: #c8e6c9; color: #2e7d32; }
-    .connection-status.connecting, .connection-status.reconnecting { background: #fff9c4; color: #f57f17; }
-    .connection-status.disconnected { background: #ffcdd2; color: #c62828; }
-    .chat-closed-banner {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px; background: var(--mat-sys-surface-variant);
-      color: var(--mat-sys-on-surface-variant); font-size: 0.85rem;
-    }
-    .center {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; flex: 1; gap: 8px;
-      color: var(--mat-sys-on-surface-variant);
-    }
-    .empty mat-icon { font-size: 48px; width: 48px; height: 48px; opacity: 0.5; }
-    .msg-list {
-      flex: 1; overflow-y: auto; padding: 16px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .typing-indicator {
-      font-size: 0.8rem; color: var(--mat-sys-on-surface-variant);
-      font-style: italic; padding: 4px 0;
-    }
-    .msg-input {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px;
-      border-top: 1px solid var(--mat-sys-outline-variant);
-    }
-    .msg-field { flex: 1; margin-bottom: -22px; }
+    .connection-status.connected { background: #c8e6c9; color: #2e7d32; border-color: #2e7d32; }
+    .connection-status.connecting, .connection-status.reconnecting { background: #fff9c4; color: #f57f17; border-color: #f57f17; }
+    .connection-status.disconnected { background: #ffcdd2; color: #c62828; border-color: #c62828; }
   `,
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {

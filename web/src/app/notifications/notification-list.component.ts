@@ -1,99 +1,83 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
-import { MatButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { MatDivider } from '@angular/material/divider';
+import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
+import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { NotificationService } from '../core/notification.service';
 import { Notification } from '../core/models';
 import { TimeAgoPipe } from '../core/pipes';
+import { EmptyStateComponent } from '../shared/components/empty-state.component';
+import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
 
 @Component({
   selector: 'app-notification-list',
   standalone: true,
   imports: [
-    MatCard,
-    MatCardContent,
-    MatCardHeader,
-    MatCardTitle,
-    MatButton,
-    MatIcon,
-    MatProgressSpinner,
-    MatDivider,
+    NhannhtMetroIconComponent,
+    NhannhtMetroSpinnerComponent,
+    NhannhtMetroDividerComponent,
+    NhannhtMetroButtonComponent,
     TimeAgoPipe,
+    EmptyStateComponent,
+    ErrorFallbackComponent,
   ],
   template: `
-    <div class="notif-page">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>Notifications</mat-card-title>
+    <div class="max-w-[700px] mx-auto">
+      <div class="bg-card border border-border">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 class="font-display text-[13px] tracking-[2px] text-fg m-0">NOTIFICATIONS</h2>
           @if (notifications().length > 0) {
-            <button mat-button (click)="markAllRead()" class="mark-all-btn">
-              <mat-icon>done_all</mat-icon> Mark all read
+            <button class="flex items-center gap-1 bg-transparent border-none cursor-pointer
+                           font-body text-[13px] text-muted hover:text-fg transition-colors"
+                    (click)="markAllRead()">
+              <nhannht-metro-icon name="done_all" [size]="16" /> Mark all read
             </button>
           }
-        </mat-card-header>
-        <mat-card-content>
-          @if (loading()) {
-            <div class="loading"><mat-spinner diameter="40"></mat-spinner></div>
-          } @else if (notifications().length === 0) {
-            <div class="empty">
-              <mat-icon>notifications_off</mat-icon>
-              <p>No notifications yet</p>
-            </div>
-          } @else {
-            @for (n of notifications(); track n.id) {
-              <div class="notif-item" [class.unread]="!n.is_read"
-                   (click)="onNotificationClick(n)">
-                <mat-icon class="notif-type-icon">{{ getTypeIcon(n.type) }}</mat-icon>
-                <div class="notif-content">
-                  <span class="notif-title">{{ n.title }}</span>
-                  <span class="notif-message">{{ n.message }}</span>
-                  <span class="notif-time">{{ n.created_at | timeAgo }}</span>
-                </div>
-                <button mat-icon-button (click)="deleteNotification($event, n.id)"
-                        class="delete-btn">
-                  <mat-icon>close</mat-icon>
-                </button>
+        </div>
+
+        @if (loading()) {
+          <div class="flex justify-center py-8">
+            <nhannht-metro-spinner [size]="40" />
+          </div>
+        } @else if (error()) {
+          <app-error-fallback title="Failed to load notifications"
+            message="Please try again later." [retryFn]="retryLoad" />
+        } @else if (notifications().length === 0) {
+          <app-empty-state icon="notifications_off" title="No notifications yet"
+            message="You'll be notified about task updates" />
+        } @else {
+          @for (n of notifications(); track n.id) {
+            <div class="notif-item flex items-start gap-3 px-6 py-3 cursor-pointer
+                        hover:bg-bg transition-colors duration-150"
+                 [class.unread]="!n.is_read"
+                 (click)="onNotificationClick(n)">
+              <nhannht-metro-icon [name]="getTypeIcon(n.type)" [size]="20" />
+              <div class="flex-1 flex flex-col gap-0.5">
+                <span class="notif-title font-body text-[13px] text-fg"
+                      [class.font-bold]="!n.is_read">{{ n.title }}</span>
+                <span class="font-body text-[12px] text-muted">{{ n.message }}</span>
+                <span class="font-body text-[11px] text-muted">{{ n.created_at | timeAgo }}</span>
               </div>
-              <mat-divider></mat-divider>
-            }
-            @if (hasMore()) {
-              <button mat-button (click)="loadMore()" class="load-more">
-                Load more
+              <button class="delete-btn bg-transparent border-none cursor-pointer text-muted
+                             opacity-50 hover:opacity-100 transition-opacity p-1"
+                      (click)="deleteNotification($event, n.id)">
+                <nhannht-metro-icon name="close" [size]="16" />
               </button>
-            }
+            </div>
+            <nhannht-metro-divider />
           }
-        </mat-card-content>
-      </mat-card>
+          @if (hasMore()) {
+            <div class="px-6 py-3">
+              <nhannht-metro-button variant="secondary" label="Load more" [fullWidth]="true" (clicked)="loadMore()" />
+            </div>
+          }
+        }
+      </div>
     </div>
   `,
   styles: `
-    .notif-page { max-width: 700px; margin: 0 auto; }
-    mat-card-header { display: flex; align-items: center; }
-    .mark-all-btn { margin-left: auto; }
-    .loading { display: flex; justify-content: center; padding: 32px; }
-    .empty {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 48px 0; color: var(--mat-sys-on-surface-variant);
-    }
-    .empty mat-icon { font-size: 48px; width: 48px; height: 48px; margin-bottom: 8px; }
-    .notif-item {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 12px 0; cursor: pointer; transition: background 0.15s;
-    }
-    .notif-item:hover { background: var(--mat-sys-surface-variant); }
-    .notif-item.unread { background: rgba(var(--mat-sys-primary-rgb, 103, 80, 164), 0.08); }
-    .notif-item.unread .notif-title { font-weight: 700; }
-    .notif-type-icon { color: var(--mat-sys-primary); margin-top: 2px; }
-    .notif-content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .notif-title { font-size: 0.875rem; font-weight: 500; }
-    .notif-message { font-size: 0.8rem; color: var(--mat-sys-on-surface-variant); }
-    .notif-time { font-size: 0.7rem; color: var(--mat-sys-on-surface-variant); }
-    .delete-btn { opacity: 0.5; }
-    .delete-btn:hover { opacity: 1; }
-    .load-more { width: 100%; margin-top: 8px; }
+    .notif-item.unread { background-color: rgba(26, 26, 26, 0.04); }
   `,
 })
 export class NotificationListComponent implements OnInit {
@@ -102,6 +86,7 @@ export class NotificationListComponent implements OnInit {
 
   notifications = signal<Notification[]>([]);
   loading = signal(true);
+  error = signal(false);
   total = signal(0);
   offset = 0;
   readonly limit = 20;
@@ -114,8 +99,14 @@ export class NotificationListComponent implements OnInit {
     this.load();
   }
 
+  retryLoad = () => {
+    this.offset = 0;
+    this.load();
+  };
+
   load() {
     this.loading.set(true);
+    this.error.set(false);
     this.notifService.list(this.limit, this.offset).subscribe({
       next: res => {
         this.notifications.set(
@@ -124,7 +115,10 @@ export class NotificationListComponent implements OnInit {
         this.total.set(res.total);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.loading.set(false);
+        this.error.set(true);
+      },
     });
   }
 

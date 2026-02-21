@@ -7,11 +7,9 @@ export const MINIMUM_LOADING_MS = new InjectionToken<number>('MINIMUM_LOADING_MS
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
-import { MatFabButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
+import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { TaskService } from '../core/task.service';
 import { Task } from '../core/models';
 import { CategoryChipsComponent } from '../shared/components/category-chips.component';
@@ -25,28 +23,29 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
   imports: [
     RouterLink,
     FormsModule,
-    MatFormField,
-    MatLabel,
-    MatInput,
-    MatFabButton,
-    MatIcon,
-    MatProgressSpinner,
+    NhannhtMetroInputComponent,
+    NhannhtMetroIconComponent,
+    NhannhtMetroSpinnerComponent,
     CategoryChipsComponent,
     TaskCardComponent,
     LoadingSkeletonComponent,
     ErrorFallbackComponent,
   ],
   template: `
-    <div class="marketplace">
-      <div class="search-bar">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search tasks</mat-label>
-          <input matInput [(ngModel)]="search" (keyup.enter)="onSearch()"
-                 placeholder="What do you need help with?">
-          <button matSuffix mat-icon-button (click)="onSearch()">
-            <mat-icon>search</mat-icon>
-          </button>
-        </mat-form-field>
+    <div class="py-2 relative min-h-[60vh]">
+      <div class="mb-4 flex gap-2 items-end">
+        <div class="flex-1">
+          <nhannht-metro-input
+            label="SEARCH TASKS"
+            placeholder="What do you need help with?"
+            [(ngModel)]="search"
+            (keyup.enter)="onSearch()"
+          />
+        </div>
+        <button class="bg-fg text-bg border-2 border-fg px-4 py-3 cursor-pointer hover:bg-transparent hover:text-fg transition-all duration-200"
+                (click)="onSearch()">
+          <nhannht-metro-icon name="search" [size]="20" />
+        </button>
       </div>
 
       <app-category-chips (categorySelected)="onCategoryChange($event)" />
@@ -59,70 +58,35 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
       } @else if (loading() && tasks().length === 0) {
         <app-loading-skeleton variant="card" [count]="6" />
       } @else if (tasks().length === 0) {
-        <div class="empty-state">
-          <mat-icon class="empty-icon">assignment</mat-icon>
-          <h3>No tasks found</h3>
-          <p>Try adjusting your search or filters</p>
+        <div class="flex flex-col items-center py-16 px-4 text-center">
+          <nhannht-metro-icon name="assignment" [size]="64" />
+          <h3 class="font-display text-[11px] tracking-[1px] text-fg mt-3 mb-1">No tasks found</h3>
+          <p class="font-body text-[13px] text-muted">Try adjusting your search or filters</p>
         </div>
       } @else {
-        <div class="task-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4 my-4">
           @for (task of tasks(); track task.id) {
             <app-task-card [task]="task" />
           }
         </div>
         @if (loadingMore()) {
-          <div class="loading-more">
-            <mat-spinner diameter="32"></mat-spinner>
+          <div class="flex justify-center py-6">
+            <nhannht-metro-spinner [size]="32" />
           </div>
         }
         @if (!hasMore()) {
-          <p class="end-of-list">No more tasks</p>
+          <p class="text-center font-body text-[13px] text-muted py-4">No more tasks</p>
         }
       }
 
-      <a mat-fab routerLink="/tasks/new" class="create-fab" aria-label="Create Task">
-        <mat-icon>add</mat-icon>
+      <a routerLink="/tasks/new"
+         class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-fg text-bg border-2 border-fg
+                flex items-center justify-center cursor-pointer
+                hover:bg-transparent hover:text-fg transition-all duration-200"
+         aria-label="Create Task">
+        <nhannht-metro-icon name="add" [size]="28" />
       </a>
     </div>
-  `,
-  styles: `
-    .marketplace { padding: 8px 0; position: relative; min-height: 60vh; }
-    .search-bar { margin-bottom: 16px; }
-    .search-field { width: 100%; }
-    .loading-container {
-      display: flex; justify-content: center; padding: 64px 0;
-    }
-    .empty-state {
-      text-align: center; padding: 64px 16px;
-      color: var(--mat-sys-on-surface-variant);
-    }
-    .empty-icon { font-size: 64px; width: 64px; height: 64px; opacity: 0.5; }
-    .task-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-      margin: 16px 0;
-    }
-    .loading-more {
-      display: flex; justify-content: center; padding: 24px 0;
-    }
-    .end-of-list {
-      text-align: center;
-      color: var(--mat-sys-on-surface-variant);
-      padding: 16px 0;
-      font-size: 0.875rem;
-    }
-    .create-fab {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 100;
-    }
-    @media (max-width: 600px) {
-      .task-grid {
-        grid-template-columns: 1fr;
-      }
-    }
   `,
 })
 export class MarketplaceComponent implements OnInit {

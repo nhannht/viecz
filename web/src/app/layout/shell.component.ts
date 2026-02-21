@@ -1,11 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { MatToolbar } from '@angular/material/toolbar';
-import { MatButton, MatIconButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-import { MatBadge } from '@angular/material/badge';
-import { MatDivider } from '@angular/material/divider';
+import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { NhannhtMetroMenuComponent } from '../shared/components/nhannht-metro-menu.component';
+import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
+import { NhannhtMetroSnackbarComponent } from '../shared/components/nhannht-metro-snackbar.component';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
@@ -17,106 +16,89 @@ import { WebSocketService } from '../core/websocket.service';
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
-    MatToolbar,
-    MatButton,
-    MatIconButton,
-    MatIcon,
-    MatMenu,
-    MatMenuItem,
-    MatMenuTrigger,
-    MatBadge,
-    MatDivider,
+    NhannhtMetroIconComponent,
+    NhannhtMetroMenuComponent,
+    NhannhtMetroDividerComponent,
+    NhannhtMetroSnackbarComponent,
   ],
   template: `
-    <mat-toolbar class="navbar">
-      <a routerLink="/" class="logo">Viecz</a>
-      <span class="spacer"></span>
-      <nav class="nav-links">
-        <a mat-button routerLink="/" routerLinkActive="active-link"
-           [routerLinkActiveOptions]="{ exact: true }">
-          <mat-icon>storefront</mat-icon>
+    <nav class="navbar sticky top-0 z-50 flex items-center gap-2 px-6 py-3 bg-fg text-bg border-b border-fg">
+      <a routerLink="/" class="logo font-display text-[14px] tracking-[2px] text-bg no-underline">Viecz</a>
+      <span class="flex-1"></span>
+      <div class="nav-links flex gap-1">
+        <a routerLink="/" routerLinkActive="active-link"
+           [routerLinkActiveOptions]="{ exact: true }"
+           class="flex items-center gap-1 px-3 py-2 text-bg no-underline font-body text-[13px] hover:opacity-80 transition-opacity">
+          <nhannht-metro-icon name="storefront" [size]="20" />
           <span class="nav-label">Marketplace</span>
         </a>
-        <a mat-button routerLink="/wallet" routerLinkActive="active-link">
-          <mat-icon>account_balance_wallet</mat-icon>
+        <a routerLink="/wallet" routerLinkActive="active-link"
+           class="flex items-center gap-1 px-3 py-2 text-bg no-underline font-body text-[13px] hover:opacity-80 transition-opacity">
+          <nhannht-metro-icon name="account_balance_wallet" [size]="20" />
           <span class="nav-label">Wallet</span>
         </a>
-        <a mat-button routerLink="/chat" routerLinkActive="active-link">
-          <mat-icon>chat</mat-icon>
+        <a routerLink="/chat" routerLinkActive="active-link"
+           class="flex items-center gap-1 px-3 py-2 text-bg no-underline font-body text-[13px] hover:opacity-80 transition-opacity">
+          <nhannht-metro-icon name="chat" [size]="20" />
           <span class="nav-label">Chat</span>
         </a>
-      </nav>
-      <button mat-icon-button (click)="loadNotifications()"
-              [matMenuTriggerFor]="notifMenu">
-        <mat-icon [matBadge]="unreadCount() > 0 ? unreadCount() : null"
-                  matBadgeColor="warn" matBadgeSize="small">
-          notifications
-        </mat-icon>
-      </button>
-      <mat-menu #notifMenu="matMenu" class="notif-menu">
-        @if (notifications().length === 0) {
-          <div class="notif-empty">No notifications</div>
-        }
-        @for (n of notifications(); track n.id) {
-          <button mat-menu-item class="notif-item">
-            <span class="notif-title">{{ n.title }}</span>
-            <span class="notif-msg">{{ n.message }}</span>
-          </button>
-        }
-        <mat-divider></mat-divider>
-        <a mat-menu-item routerLink="/notifications">
-          <mat-icon>list</mat-icon> View all notifications
-        </a>
-      </mat-menu>
-      <button mat-icon-button [matMenuTriggerFor]="userMenu">
-        <mat-icon>account_circle</mat-icon>
-      </button>
-      <mat-menu #userMenu="matMenu">
-        <a mat-menu-item [routerLink]="['/profile', auth.currentUser()?.id]">
-          <mat-icon>person</mat-icon> Profile
-        </a>
-        <button mat-menu-item (click)="auth.logout()">
-          <mat-icon>logout</mat-icon> Logout
+      </div>
+
+      <!-- Notification bell -->
+      <div class="relative">
+        <button class="bg-transparent border-none cursor-pointer text-bg p-1 hover:opacity-80 transition-opacity relative"
+                (click)="toggleNotifMenu()">
+          <nhannht-metro-icon name="notifications" [size]="24" />
+          @if (unreadCount() > 0) {
+            <span class="absolute -top-1 -right-1 bg-bg text-fg font-display text-[8px] w-4 h-4 flex items-center justify-center border border-fg">
+              {{ unreadCount() }}
+            </span>
+          }
         </button>
-      </mat-menu>
-    </mat-toolbar>
-    <main class="shell-content">
+        <nhannht-metro-menu [open]="notifMenuOpen()" (closed)="notifMenuOpen.set(false)">
+          @if (notifications().length === 0) {
+            <div class="px-4 py-3 font-body text-[13px] text-muted">No notifications</div>
+          }
+          @for (n of notifications(); track n.id) {
+            <div class="nhannht-metro-menu-item flex flex-col items-start gap-0.5">
+              <span class="font-body text-[13px] font-bold">{{ n.title }}</span>
+              <span class="font-body text-[11px] text-muted">{{ n.message }}</span>
+            </div>
+          }
+          <nhannht-metro-divider />
+          <a routerLink="/notifications" class="nhannht-metro-menu-item flex items-center gap-2"
+             (click)="notifMenuOpen.set(false)">
+            <nhannht-metro-icon name="list" [size]="16" /> View all notifications
+          </a>
+        </nhannht-metro-menu>
+      </div>
+
+      <!-- User menu -->
+      <div class="relative">
+        <button class="bg-transparent border-none cursor-pointer text-bg p-1 hover:opacity-80 transition-opacity"
+                (click)="toggleUserMenu()">
+          <nhannht-metro-icon name="account_circle" [size]="24" />
+        </button>
+        <nhannht-metro-menu [open]="userMenuOpen()" (closed)="userMenuOpen.set(false)">
+          <a [routerLink]="['/profile', auth.currentUser()?.id]"
+             class="nhannht-metro-menu-item flex items-center gap-2"
+             (click)="userMenuOpen.set(false)">
+            <nhannht-metro-icon name="person" [size]="16" /> Profile
+          </a>
+          <button class="nhannht-metro-menu-item flex items-center gap-2"
+                  (click)="auth.logout(); userMenuOpen.set(false)">
+            <nhannht-metro-icon name="logout" [size]="16" /> Logout
+          </button>
+        </nhannht-metro-menu>
+      </div>
+    </nav>
+    <main class="shell-content max-w-[1200px] mx-auto p-4 min-h-[calc(100vh-64px)]">
       <router-outlet />
     </main>
+    <nhannht-metro-snackbar [visible]="snackbarService.visible()" [message]="snackbarService.message()" />
   `,
   styles: `
-    .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
-      gap: 8px;
-    }
-    .logo {
-      font-size: 1.4rem;
-      font-weight: 700;
-      text-decoration: none;
-      color: inherit;
-      letter-spacing: -0.5px;
-    }
-    .spacer { flex: 1; }
-    .nav-links { display: flex; gap: 4px; }
-    .nav-links a {
-      color: inherit;
-      --mdc-text-button-label-text-color: var(--mat-sys-on-primary);
-    }
     .active-link { opacity: 1; font-weight: 600; }
-    .shell-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 16px;
-      min-height: calc(100vh - 64px);
-    }
-    .notif-empty { padding: 16px; color: var(--mat-sys-on-surface-variant); }
-    .notif-item { display: flex; flex-direction: column; align-items: flex-start; }
-    .notif-title { font-weight: 500; font-size: 0.875rem; }
-    .notif-msg { font-size: 0.75rem; color: var(--mat-sys-on-surface-variant); }
     @media (max-width: 600px) {
       .nav-label { display: none; }
       .shell-content { padding: 8px; }
@@ -125,17 +107,33 @@ import { WebSocketService } from '../core/websocket.service';
 })
 export class ShellComponent implements OnInit {
   auth = inject(AuthService);
+  snackbarService = inject(NhannhtMetroSnackbarService);
   private notifService = inject(NotificationService);
   private wsService = inject(WebSocketService);
 
   unreadCount = signal(0);
   notifications = signal<{ id: number; title: string; message: string }[]>([]);
+  notifMenuOpen = signal(false);
+  userMenuOpen = signal(false);
 
   ngOnInit() {
     this.wsService.connect();
     this.notifService.getUnreadCount().subscribe({
       next: res => this.unreadCount.set(res.unread_count),
     });
+  }
+
+  toggleNotifMenu() {
+    this.userMenuOpen.set(false);
+    this.notifMenuOpen.update(v => !v);
+    if (this.notifMenuOpen()) {
+      this.loadNotifications();
+    }
+  }
+
+  toggleUserMenu() {
+    this.notifMenuOpen.set(false);
+    this.userMenuOpen.update(v => !v);
   }
 
   loadNotifications() {

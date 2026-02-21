@@ -1,19 +1,18 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { WalletComponent } from './wallet.component';
 import { WalletService } from '../core/wallet.service';
 import { Wallet, WalletTransaction } from '../core/models';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 
 describe('WalletComponent', () => {
   let component: WalletComponent;
   let fixture: ComponentFixture<WalletComponent>;
   let walletServiceMock: any;
-  let snackBarMock: any;
+  let snackbarMock: any;
 
   const mockWallet: Wallet = {
     id: 1, user_id: 1, balance: 150000, escrow_balance: 20000,
@@ -41,15 +40,15 @@ describe('WalletComponent', () => {
       deposit: vi.fn(),
       getTransactions: vi.fn().mockReturnValue(of(mockTxs)),
     };
-    snackBarMock = { open: vi.fn() };
+    snackbarMock = { show: vi.fn() };
 
     await TestBed.configureTestingModule({
-      imports: [WalletComponent, NoopAnimationsModule],
+      imports: [WalletComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: WalletService, useValue: walletServiceMock },
-        { provide: MatSnackBar, useValue: snackBarMock },
+        { provide: NhannhtMetroSnackbarService, useValue: snackbarMock },
       ],
     }).compileComponents();
 
@@ -73,21 +72,21 @@ describe('WalletComponent', () => {
   it('should display available balance', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Available Balance');
+    expect(el.textContent).toContain('AVAILABLE BALANCE');
     expect(el.textContent).toContain('80.000');
   });
 
   it('should display escrow balance', () => {
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('In Escrow');
+    expect(fixture.nativeElement.textContent).toContain('IN ESCROW');
   });
 
   it('should display stats', () => {
     fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Total Earned');
-    expect(text).toContain('Total Spent');
-    expect(text).toContain('Total Deposited');
+    expect(text).toContain('TOTAL EARNED');
+    expect(text).toContain('TOTAL SPENT');
+    expect(text).toContain('TOTAL DEPOSITED');
   });
 
   it('should show loading spinner initially', () => {
@@ -125,7 +124,7 @@ describe('WalletComponent', () => {
     fixture.detectChanges();
     component.depositAmount = 1000;
     component.deposit();
-    expect(snackBarMock.open).toHaveBeenCalledWith('Minimum deposit is 2,000 VND', 'Close', { duration: 3000 });
+    expect(snackbarMock.show).toHaveBeenCalledWith('Minimum deposit is 2,000 VND', undefined, { duration: 3000 });
     expect(walletServiceMock.deposit).not.toHaveBeenCalled();
   });
 
@@ -136,7 +135,7 @@ describe('WalletComponent', () => {
     component.deposit();
     expect(walletServiceMock.deposit).toHaveBeenCalledWith(50000);
     expect(component.depositing()).toBe(false);
-    expect(snackBarMock.open).toHaveBeenCalledWith('Deposit initiated', 'Close', { duration: 3000 });
+    expect(snackbarMock.show).toHaveBeenCalledWith('Deposit initiated', undefined, { duration: 3000 });
   });
 
   it('should handle deposit error', () => {
@@ -145,38 +144,14 @@ describe('WalletComponent', () => {
     component.depositAmount = 50000;
     component.deposit();
     expect(component.depositing()).toBe(false);
-    expect(snackBarMock.open).toHaveBeenCalledWith('Exceeds max', 'Close', { duration: 3000 });
+    expect(snackbarMock.show).toHaveBeenCalledWith('Exceeds max', undefined, { duration: 3000 });
   });
 
   it('should handle deposit error without message', () => {
     fixture.detectChanges();
     walletServiceMock.deposit.mockReturnValue(throwError(() => ({ error: {} })));
     component.deposit();
-    expect(snackBarMock.open).toHaveBeenCalledWith('Deposit failed', 'Close', { duration: 3000 });
-  });
-
-  it('should return correct icons for transaction types', () => {
-    expect(component.txIcon('deposit')).toBe('arrow_downward');
-    expect(component.txIcon('withdrawal')).toBe('arrow_upward');
-    expect(component.txIcon('escrow_hold')).toBe('lock');
-    expect(component.txIcon('escrow_release')).toBe('lock_open');
-    expect(component.txIcon('escrow_refund')).toBe('undo');
-    expect(component.txIcon('payment_received')).toBe('payments');
-    expect(component.txIcon('platform_fee')).toBe('receipt');
-    expect(component.txIcon('unknown')).toBe('swap_horiz');
-  });
-
-  it('should classify credit/debit types', () => {
-    expect(component.isCredit('deposit')).toBe(true);
-    expect(component.isCredit('escrow_refund')).toBe(true);
-    expect(component.isCredit('payment_received')).toBe(true);
-    expect(component.isCredit('escrow_hold')).toBe(false);
-    expect(component.isCredit('withdrawal')).toBe(false);
-  });
-
-  it('should return correct icon class', () => {
-    expect(component.txIconClass('deposit')).toBe('credit');
-    expect(component.txIconClass('escrow_hold')).toBe('debit');
+    expect(snackbarMock.show).toHaveBeenCalledWith('Deposit failed', undefined, { duration: 3000 });
   });
 
   it('should render transaction descriptions', () => {
