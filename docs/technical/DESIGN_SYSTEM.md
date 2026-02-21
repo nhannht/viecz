@@ -359,39 +359,47 @@ Usage in Tailwind classes:
 
 ## 6. Storybook Component Catalog
 
-Each component in Section 2 maps to a Storybook story:
+All 13 implemented components have Storybook stories with `autodocs` tags. Run with `yarn storybook` (port 6006).
+
+**Tier 1 — Atomic:**
 
 | Story | Component | Variants |
 |-------|-----------|----------|
-| `Nav` | Navigation bar | Default, Mobile |
-| `Button` | Action buttons | Primary, Secondary, Primary (hover), Full-width |
-| `FeatureCard` | Feature showcase | Default, Hover |
-| `Step` | Numbered step | Default (with step number) |
-| `PriceCard` | Pricing tier | Default, Featured (with badge) |
-| `SectionHeader` | Section title | Default |
-| `Footer` | Page footer | Default |
-| `ScrollIndicator` | Scroll prompt | Default (animated) |
+| `Button` | `nhannht-metro-button` | Primary, Secondary, Full Width, Disabled |
+| `Spinner` | `nhannht-metro-spinner` | Default |
+| `Icon` | `nhannht-metro-icon` | Default |
+| `Divider` | `nhannht-metro-divider` | Default |
+| `Badge` | `nhannht-metro-badge` | Open, In Progress, Completed, Cancelled |
 
-Additional components needed for Viecz app (to be designed during migration):
+**Tier 2 — Form elements:**
 
-| Story | Purpose | Notes |
-|-------|---------|-------|
-| `FormField` | Text input, textarea | Not in MEOW reference — needs design |
-| `Select` | Dropdown select | Not in MEOW reference — needs design |
-| `Dialog` | Modal dialog | Not in MEOW reference — needs design |
-| `Badge` | Status indicator | Not in MEOW reference — needs design |
-| `Avatar` | User avatar | Not in MEOW reference — needs design |
-| `ChatBubble` | Message bubble | Not in MEOW reference — needs design |
-| `TransactionRow` | Wallet history | Not in MEOW reference — needs design |
-| `TaskCard` | Marketplace card | Adapt from FeatureCard |
-| `Snackbar` | Toast notification | Not in MEOW reference — needs design |
+| Story | Component | Variants |
+|-------|-----------|----------|
+| `Input` | `nhannht-metro-input` | Default, With Error |
+| `Textarea` | `nhannht-metro-textarea` | Default |
+| `Select` | `nhannht-metro-select` | Default |
+| `Datepicker` | `nhannht-metro-datepicker` | Default |
 
-These missing components must be designed to match the nhannht-metro aesthetic before implementation.
+**Tier 3 — Layout & containers:**
+
+| Story | Component | Variants |
+|-------|-----------|----------|
+| `Card` | `nhannht-metro-card` | Default, Featured, Clickable |
+| `Dialog` | `nhannht-metro-dialog` | Default |
+| `Snackbar` | `nhannht-metro-snackbar` | Default |
+| `Tabs` | `nhannht-metro-tabs` | Default |
+
+**Not yet implemented** (planned for future phases):
+
+| Component | Purpose |
+|-----------|---------|
+| `NhannhtMetroNavComponent` | Top navigation bar, replaces MatToolbar |
+| `NhannhtMetroMenuComponent` | Dropdown menu, replaces MatMenu |
 
 **Naming convention:** All components use the `NhannhtMetro` prefix.
 - Class: `NhannhtMetroButtonComponent`
 - Selector: `nhannht-metro-button`
-- Directory: `src/app/shared/components/nhannht-metro-button/`
+- File: `src/app/shared/components/nhannht-metro-button.component.ts`
 - Story title: `nhannht-metro/Button`
 
 ---

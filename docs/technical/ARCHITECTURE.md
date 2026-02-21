@@ -161,11 +161,14 @@ graph TD
 | Language         | TypeScript              | 5.9       |
 | Framework        | Angular                 | 21.1      |
 | UI Framework     | Angular Material (M3)   | 21.1      |
+| Design System    | nhannht-metro-meow (13 components) | -  |
+| CSS Framework    | Tailwind CSS 4          | 4.2       |
 | State            | Angular Signals + RxJS  | 7.8       |
 | HTTP Client      | Angular HttpClient      | 21.1      |
 | WebSocket        | Native WebSocket (via WebSocketService) | -  |
 | SSR              | Angular SSR (@angular/ssr) | 21.1   |
 | Testing          | Vitest + jsdom          | 4.0       |
+| Component Docs   | Storybook 9 + Compodoc  | 9.1       |
 | Token Storage    | localStorage            | -         |
 
 ---
@@ -415,6 +418,7 @@ android/app/src/main/java/com/viecz/vieczandroid/
 │   │   ├── ApplyTaskScreen.kt
 │   │   ├── MyJobsScreen.kt         # Posted / Applied / Completed jobs
 │   │   ├── ProfileScreen.kt
+│   │   ├── EditProfileScreen.kt    # Edit profile + avatar upload
 │   │   ├── WalletScreen.kt         # Balance, deposit, transaction history
 │   │   ├── ChatScreen.kt           # Real-time chat (WebSocket)
 │   │   ├── ConversationListScreen.kt
@@ -600,7 +604,20 @@ web/src/app/
 │   ├── empty-state.component.ts
 │   ├── error-fallback.component.ts
 │   ├── loading-skeleton.component.ts
-│   └── category-chips.component.ts
+│   ├── category-chips.component.ts
+│   ├── nhannht-metro-button.component.ts    # Design system components (13)
+│   ├── nhannht-metro-input.component.ts
+│   ├── nhannht-metro-textarea.component.ts
+│   ├── nhannht-metro-select.component.ts
+│   ├── nhannht-metro-datepicker.component.ts
+│   ├── nhannht-metro-card.component.ts
+│   ├── nhannht-metro-dialog.component.ts
+│   ├── nhannht-metro-badge.component.ts
+│   ├── nhannht-metro-icon.component.ts
+│   ├── nhannht-metro-spinner.component.ts
+│   ├── nhannht-metro-divider.component.ts
+│   ├── nhannht-metro-snackbar.component.ts
+│   └── nhannht-metro-tabs.component.ts
 │
 └── environments/                # Environment configs
     ├── environment.ts           # Dev: localhost:9999

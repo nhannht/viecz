@@ -118,21 +118,18 @@ Add to `angular.json` styles array:
 
 Component inline styles can use Tailwind's `@apply` directive in CSS. Keep `scss` for now — existing components still use it. Switch to `css` after full migration.
 
-### 3.4 Install Storybook with AnalogJS (Vite-based)
+### 3.4 Install Storybook with @storybook/angular (Webpack-based)
 
-Official `@storybook/angular` supports Angular >= 18 < 21. Our project is Angular 21.
-Use [`@analogjs/storybook-angular`](https://analogjs.org/docs/integrations/storybook) — Vite-based builder that works with Angular 21.
+Using `@storybook/angular` ^9.0.0 with the Webpack 5 builder. Angular 21 works despite peer dep warnings.
 
-**Step 1: Install packages (manual — skip `npx storybook init` to avoid Angular 21 peer dep failures)**
+**Step 1: Install packages**
 
 ```bash
 cd web
-yarn add -D storybook @storybook/addon-essentials @storybook/addon-interactions \
-  @analogjs/storybook-angular
+yarn add -D storybook @storybook/angular @storybook/addon-docs @compodoc/compodoc
 ```
 
-Compatibility: `@analogjs/storybook-angular` ^2.0.0 works with Storybook ^10.0.0.
-Use `--legacy-peer-deps` or `resolutions` in package.json if peer dep warnings appear.
+Compatibility: All `@storybook/*` packages must be on the same major version (v9). Mixing v9 with v10 causes ESM/CJS loading errors.
 
 **Step 2: Create `.storybook/` directory manually**
 
@@ -142,63 +139,72 @@ mkdir -p web/.storybook
 
 **Step 3: Configure `.storybook/main.ts`**
 
-Create `.storybook/main.ts` with AnalogJS Vite-based framework:
-
 ```typescript
-import type { StorybookConfig } from '@analogjs/storybook-angular';
+import type { StorybookConfig } from '@storybook/angular';
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],
-  framework: {
-    name: '@analogjs/storybook-angular',
-    options: {},
-  },
+  addons: ['@storybook/addon-docs'],
+  framework: '@storybook/angular',
   docs: {},
 };
 
 export default config;
 ```
 
-**Step 4: Update `angular.json` targets (optional)**
+**Step 4: Update `angular.json` targets**
 
-If you want to run Storybook via `ng run web:storybook`:
+Run Storybook via `ng run web:storybook`. Set `compodoc: false` — the builder's `compodocArgs` don't pass correctly; run compodoc manually via npm script instead.
 
 ```json
 {
   "storybook": {
-    "builder": "@analogjs/storybook-angular:start-storybook",
+    "builder": "@storybook/angular:start-storybook",
     "options": {
-      "browserTarget": "web:build",
-      "port": 6006
+      "browserTarget": "web:build:development",
+      "configDir": ".storybook",
+      "port": 6006,
+      "compodoc": false,
+      "tsConfig": ".storybook/tsconfig.json",
+      "styles": [".storybook/tailwind-built.css"]
     }
   },
   "build-storybook": {
-    "builder": "@analogjs/storybook-angular:build-storybook",
+    "builder": "@storybook/angular:build-storybook",
     "options": {
-      "browserTarget": "web:build"
+      "browserTarget": "web:build:development",
+      "configDir": ".storybook",
+      "compodoc": false,
+      "tsConfig": ".storybook/tsconfig.json",
+      "styles": [".storybook/tailwind-built.css"]
     }
   }
 }
 ```
 
-Or run directly via npx:
-```bash
-npx storybook dev -p 6006    # dev server
-npx storybook build           # static build
+**Step 5: Add npm scripts** in `package.json`:
+```json
+"compodoc": "compodoc -p .storybook/tsconfig.json -e json -d .storybook",
+"storybook": "yarn compodoc && ng run web:storybook",
+"build-storybook": "yarn compodoc && ng run web:build-storybook"
 ```
 
-### 3.5 Configure Storybook with Tailwind
+### 3.5 Configure Storybook with Tailwind + Compodoc
 
 `.storybook/preview.ts`:
 ```typescript
-import '../src/tailwind.css';
+import type { Preview } from '@storybook/angular';
+import { setCompodocJson } from '@storybook/addon-docs/angular';
+import docJson from './documentation.json';
 
-const preview = {
+setCompodocJson(docJson);
+
+const preview: Preview = {
   parameters: {
     backgrounds: {
-      default: 'meow',
+      default: 'nhannht-metro',
       values: [
-        { name: 'meow', value: '#f0ede8' },
+        { name: 'nhannht-metro', value: '#f0ede8' },
         { name: 'white', value: '#ffffff' },
         { name: 'dark', value: '#1a1a1a' },
       ],
@@ -253,9 +259,9 @@ Build in dependency order — leaf components first, composite components later.
 10. `NhannhtMetroCardComponent` — Replaces MatCard (feature card style)
 11. `NhannhtMetroDialogComponent` — Modal, replaces MatDialog
 12. `NhannhtMetroSnackbarComponent` — Toast notification, replaces MatSnackBar
-13. `NhannhtMetroNavComponent` — Top navigation bar, replaces MatToolbar
-14. `NhannhtMetroMenuComponent` — Dropdown menu, replaces MatMenu
-15. `NhannhtMetroTabsComponent` — Tab navigation, replaces MatTabGroup
+13. `NhannhtMetroTabsComponent` — Tab navigation, replaces MatTabGroup
+14. ~~`NhannhtMetroNavComponent`~~ — **Not yet implemented** (top navigation bar)
+15. ~~`NhannhtMetroMenuComponent`~~ — **Not yet implemented** (dropdown menu)
 
 **Tier 4 — Domain-specific:**
 16. `NhannhtMetroTaskCardComponent` — Marketplace task card
