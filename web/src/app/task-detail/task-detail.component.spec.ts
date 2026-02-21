@@ -3,10 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID, signal, Component } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { MatDialog } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
-import { of } from 'rxjs';
 import { TaskDetailComponent } from './task-detail.component';
 import { AuthService } from '../core/auth.service';
 import { Task, User, TaskApplication } from '../core/models';
@@ -68,7 +65,6 @@ describe('TaskDetailComponent', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let httpTesting: HttpTestingController;
   let authService: { currentUser: ReturnType<typeof signal<User | null>>; getAccessToken: () => string | null };
-  let dialog: MatDialog;
   let router: Router;
 
   beforeEach(async () => {
@@ -83,7 +79,6 @@ describe('TaskDetailComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authService },
       ],
@@ -92,7 +87,6 @@ describe('TaskDetailComponent', () => {
     fixture = TestBed.createComponent(TestHostComponent);
     httpTesting = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
-    dialog = TestBed.inject(MatDialog);
     vi.spyOn(router, 'navigate').mockResolvedValue(true);
   });
 
@@ -179,19 +173,18 @@ describe('TaskDetailComponent', () => {
   it('should display applications list for requester', () => {
     initComponent(mockTask, [mockApplication]);
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Applications (1)');
+    expect(el.textContent).toContain('APPLICATIONS (1)');
     expect(el.textContent).toContain('Tasker #2');
     expect(el.textContent).toContain('18.000');
   });
 
-  it('should open confirm dialog on delete', () => {
+  it('should set showDeleteDialog to true on confirmDelete', () => {
     initComponent();
     const detailDebugEl = fixture.debugElement.query(By.directive(TaskDetailComponent));
     const detailComp = detailDebugEl.componentInstance as TaskDetailComponent;
-    const compDialog = (detailComp as any).dialog as MatDialog;
-    const openSpy = vi.spyOn(compDialog, 'open').mockReturnValue({ afterClosed: () => of(false) } as any);
+    expect(detailComp.showDeleteDialog()).toBe(false);
     detailComp.confirmDelete();
-    expect(openSpy).toHaveBeenCalled();
+    expect(detailComp.showDeleteDialog()).toBe(true);
   });
 
   it('should navigate home on error loading task', () => {

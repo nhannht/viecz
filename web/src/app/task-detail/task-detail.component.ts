@@ -1,206 +1,160 @@
 import { Component, inject, OnInit, signal, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { MatCard, MatCardContent, MatCardHeader, MatCardTitle, MatCardActions } from '@angular/material/card';
-import { MatButton, MatIconButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatDivider } from '@angular/material/divider';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TaskService } from '../core/task.service';
 import { ApplicationService } from '../core/application.service';
 import { PaymentService } from '../core/payment.service';
 import { AuthService } from '../core/auth.service';
 import { Task, TaskApplication } from '../core/models';
 import { VndPipe, TimeAgoPipe } from '../core/pipes';
-import { ApplicationCardComponent } from '../shared/components/application-card.component';
-import { ConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
-import { ConfirmEscrowDialogComponent } from './confirm-escrow-dialog.component';
+import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
+import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
+import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
+import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { NhannhtMetroDialogComponent } from '../shared/components/nhannht-metro-dialog.component';
+import { NhannhtMetroBadgeComponent } from '../shared/components/nhannht-metro-badge.component';
+import { NhannhtMetroApplicationCardComponent } from '../shared/components/nhannht-metro-application-card.component';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 
 @Component({
   selector: 'app-task-detail',
   standalone: true,
   imports: [
     RouterLink,
-    MatCard,
-    MatCardContent,
-    MatCardHeader,
-    MatCardTitle,
-    MatCardActions,
-    MatButton,
-    MatIconButton,
-    MatIcon,
-    MatDivider,
-    MatProgressSpinner,
-    MatDialogModule,
     VndPipe,
     TimeAgoPipe,
-    ApplicationCardComponent,
+    NhannhtMetroCardComponent,
+    NhannhtMetroButtonComponent,
+    NhannhtMetroIconComponent,
+    NhannhtMetroDividerComponent,
+    NhannhtMetroSpinnerComponent,
+    NhannhtMetroDialogComponent,
+    NhannhtMetroBadgeComponent,
+    NhannhtMetroApplicationCardComponent,
   ],
   template: `
     @if (loading()) {
-      <div class="loading"><mat-spinner diameter="40"></mat-spinner></div>
+      <div class="flex justify-center py-16">
+        <nhannht-metro-spinner [size]="40" />
+      </div>
     } @else if (task()) {
-      <div class="detail-page">
-        <div class="detail-main">
-          <mat-card>
-            <mat-card-header>
-              <mat-card-title>{{ task()!.title }}</mat-card-title>
+      <div class="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
+        <div>
+          <nhannht-metro-card>
+            <div class="flex items-center mb-4">
+              <h2 class="font-display text-[13px] tracking-[1px]">{{ task()!.title }}</h2>
               @if (isRequester() && task()!.status === 'open') {
-                <span class="header-actions">
-                  <button mat-icon-button [routerLink]="['/tasks', task()!.id, 'edit']"
+                <span class="ml-auto flex gap-1">
+                  <button class="text-muted hover:text-fg transition-colors duration-200"
+                          [routerLink]="['/tasks', task()!.id, 'edit']"
                           aria-label="Edit Task">
-                    <mat-icon>edit</mat-icon>
+                    <nhannht-metro-icon name="edit" [size]="20" />
                   </button>
-                  <button mat-icon-button color="warn" (click)="confirmDelete()"
+                  <button class="text-muted hover:text-fg transition-colors duration-200"
+                          (click)="confirmDelete()"
                           aria-label="Delete Task">
-                    <mat-icon>delete</mat-icon>
+                    <nhannht-metro-icon name="delete" [size]="20" />
                   </button>
                 </span>
               }
-            </mat-card-header>
-            <mat-card-content>
-              <div class="detail-meta">
-                <span class="status-chip" [class]="task()!.status">{{ task()!.status }}</span>
-                <span class="detail-price">{{ task()!.price | vnd }}</span>
+            </div>
+
+            <div class="flex justify-between items-center mb-4">
+              <nhannht-metro-badge [label]="task()!.status.toUpperCase()" [status]="badgeStatus()" />
+              <span class="text-2xl font-bold font-body">{{ task()!.price | vnd }}</span>
+            </div>
+
+            <nhannht-metro-divider />
+
+            <div class="my-4">
+              <h4 class="font-display text-[11px] tracking-[1px] text-muted mb-2">DESCRIPTION</h4>
+              <p class="font-body text-[13px] leading-[1.7] whitespace-pre-wrap">{{ task()!.description }}</p>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-4">
+              <div class="flex items-center gap-2 text-[13px] text-muted">
+                <nhannht-metro-icon name="location_on" [size]="18" />
+                <span>{{ task()!.location }}</span>
               </div>
-
-              <mat-divider></mat-divider>
-
-              <div class="detail-section">
-                <h4>Description</h4>
-                <p class="description">{{ task()!.description }}</p>
-              </div>
-
-              <div class="detail-info">
-                <div class="info-row">
-                  <mat-icon>location_on</mat-icon>
-                  <span>{{ task()!.location }}</span>
-                </div>
-                @if (task()!.deadline) {
-                  <div class="info-row">
-                    <mat-icon>schedule</mat-icon>
-                    <span>Deadline: {{ task()!.deadline | timeAgo }}</span>
-                    @if (task()!.is_overdue) {
-                      <span class="overdue-badge">OVERDUE</span>
-                    }
-                  </div>
-                }
-                <div class="info-row">
-                  <mat-icon>calendar_today</mat-icon>
-                  <span>Posted {{ task()!.created_at | timeAgo }}</span>
-                </div>
-              </div>
-
-              @if (task()!.image_urls?.length) {
-                <div class="images">
-                  @for (url of task()!.image_urls; track url) {
-                    <img [src]="url" alt="Task image" class="task-image">
+              @if (task()!.deadline) {
+                <div class="flex items-center gap-2 text-[13px] text-muted">
+                  <nhannht-metro-icon name="schedule" [size]="18" />
+                  <span>Deadline: {{ task()!.deadline | timeAgo }}</span>
+                  @if (task()!.is_overdue) {
+                    <nhannht-metro-badge label="OVERDUE" status="cancelled" />
                   }
                 </div>
               }
-            </mat-card-content>
-            <mat-card-actions>
+              <div class="flex items-center gap-2 text-[13px] text-muted">
+                <nhannht-metro-icon name="calendar_today" [size]="18" />
+                <span>Posted {{ task()!.created_at | timeAgo }}</span>
+              </div>
+            </div>
+
+            @if (task()!.image_urls?.length) {
+              <div class="flex gap-2 flex-wrap mt-4">
+                @for (url of task()!.image_urls; track url) {
+                  <img [src]="url" alt="Task image" class="w-[200px] h-[150px] object-cover border border-border">
+                }
+              </div>
+            }
+
+            <div class="mt-6 flex gap-4">
               @if (isRequester()) {
                 @if (task()!.status === 'in_progress') {
-                  <button mat-raised-button (click)="completeTask()">
-                    <mat-icon>check_circle</mat-icon> Mark Complete
-                  </button>
+                  <nhannht-metro-button variant="primary" label="Mark Complete" (clicked)="completeTask()" />
                 }
               } @else if (task()!.status === 'open' && !task()!.user_has_applied && !task()!.is_overdue) {
-                <button mat-raised-button [routerLink]="['/tasks', task()!.id, 'apply']">
-                  <mat-icon>send</mat-icon> Apply
-                </button>
+                <nhannht-metro-button variant="primary" label="Apply" (clicked)="navigateToApply()" />
               } @else if (task()!.user_has_applied) {
-                <span class="applied-badge">
-                  <mat-icon>check</mat-icon> Applied
+                <span class="flex items-center gap-1 text-[13px] text-muted font-bold">
+                  <nhannht-metro-icon name="check" [size]="18" /> Applied
                 </span>
               }
-            </mat-card-actions>
-          </mat-card>
+            </div>
+          </nhannht-metro-card>
         </div>
 
         @if (isRequester() && applications().length > 0) {
-          <div class="detail-sidebar">
-            <mat-card>
-              <mat-card-header>
-                <mat-card-title>Applications ({{ applications().length }})</mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
+          <div>
+            <nhannht-metro-card>
+              <h3 class="font-display text-[11px] tracking-[1px] mb-4">APPLICATIONS ({{ applications().length }})</h3>
+              <div class="flex flex-col gap-3">
                 @for (app of applications(); track app.id) {
-                  <app-application-card
+                  <nhannht-metro-application-card
                     [application]="app"
                     [showAccept]="task()!.status === 'open'"
                     (acceptClick)="acceptApp($event)"
                   />
                 }
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </nhannht-metro-card>
           </div>
         }
       </div>
+
+      <!-- Delete confirmation dialog -->
+      <nhannht-metro-dialog [open]="showDeleteDialog()" title="CANCEL TASK"
+        confirmLabel="Yes, Cancel Task" cancelLabel="No, Keep It"
+        (confirmed)="deleteTask(); showDeleteDialog.set(false)"
+        (cancelled)="showDeleteDialog.set(false)">
+        <p>Are you sure you want to cancel <strong>{{ task()!.title }}</strong>?</p>
+        <p class="text-[13px] text-red-700 mt-2">This will reject all pending applications.</p>
+      </nhannht-metro-dialog>
+
+      <!-- Escrow confirmation dialog -->
+      <nhannht-metro-dialog [open]="showEscrowDialog()" title="CONFIRM ESCROW PAYMENT"
+        confirmLabel="Confirm & Pay" cancelLabel="Cancel"
+        (confirmed)="executeAcceptApp(); showEscrowDialog.set(false)"
+        (cancelled)="showEscrowDialog.set(false)">
+        <p>Accept this application and create an escrow payment?</p>
+        <div class="flex justify-between items-center p-4 bg-card border border-border my-3">
+          <span class="font-bold text-[13px]">Escrow amount:</span>
+          <span class="text-[16px] font-bold">{{ task()!.price | vnd }}</span>
+        </div>
+        <p class="text-[13px] text-muted">This amount will be held in escrow until the task is completed.</p>
+      </nhannht-metro-dialog>
     }
-  `,
-  styles: `
-    .loading { display: flex; justify-content: center; padding: 64px 0; }
-    .detail-page {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-    @media (min-width: 960px) {
-      .detail-page { grid-template-columns: 2fr 1fr; }
-    }
-    mat-card-header {
-      display: flex;
-      align-items: center;
-    }
-    .header-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 4px;
-    }
-    .detail-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .detail-price {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--mat-sys-primary);
-    }
-    .detail-section { margin: 16px 0; }
-    .detail-section h4 { margin: 0 0 8px; color: var(--mat-sys-on-surface-variant); }
-    .description { white-space: pre-wrap; line-height: 1.6; }
-    .detail-info { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-    .info-row {
-      display: flex; align-items: center; gap: 8px;
-      color: var(--mat-sys-on-surface-variant);
-      font-size: 0.875rem;
-    }
-    .overdue-badge {
-      background: #ffebee; color: #c62828;
-      padding: 2px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;
-    }
-    .images { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-    .task-image { width: 200px; height: 150px; object-fit: cover; border-radius: 8px; }
-    .applied-badge {
-      display: flex; align-items: center; gap: 4px;
-      color: #2e7d32; font-weight: 500;
-    }
-    .status-chip {
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      text-transform: capitalize;
-    }
-    .status-chip.open { background: #e8f5e9; color: #2e7d32; }
-    .status-chip.in_progress { background: #fff3e0; color: #e65100; }
-    .status-chip.completed { background: #e3f2fd; color: #1565c0; }
-    .status-chip.cancelled { background: #fbe9e7; color: #bf360c; }
   `,
 })
 export class TaskDetailComponent implements OnInit {
@@ -211,15 +165,23 @@ export class TaskDetailComponent implements OnInit {
   private paymentService = inject(PaymentService);
   private auth = inject(AuthService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private snackbar = inject(NhannhtMetroSnackbarService);
 
   task = signal<Task | null>(null);
   applications = signal<TaskApplication[]>([]);
   loading = signal(true);
+  showDeleteDialog = signal(false);
+  showEscrowDialog = signal(false);
+  pendingAppId = signal(0);
 
   get isRequester() {
     return () => this.task()?.requester_id === this.auth.currentUser()?.id;
+  }
+
+  badgeStatus(): 'open' | 'in_progress' | 'completed' | 'cancelled' | 'default' {
+    const s = this.task()?.status;
+    if (s === 'open' || s === 'in_progress' || s === 'completed' || s === 'cancelled') return s;
+    return 'default';
   }
 
   ngOnInit() {
@@ -236,69 +198,63 @@ export class TaskDetailComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Task not found', 'Close', { duration: 3000 });
+        this.snackbar.show('Task not found', 'Close', { duration: 3000 });
         this.router.navigate(['/']);
       },
     });
   }
 
   confirmDelete() {
-    const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
-      data: { taskTitle: this.task()!.title },
-    });
-
-    dialogRef.afterClosed().subscribe(confirmed => {
-      if (confirmed) {
-        this.deleteTask();
-      }
-    });
+    this.showDeleteDialog.set(true);
   }
 
-  private deleteTask() {
+  deleteTask() {
     this.taskService.delete(this.task()!.id).subscribe({
       next: () => {
-        this.snackBar.open('Task cancelled', 'Close', { duration: 3000 });
+        this.snackbar.show('Task cancelled', 'Close', { duration: 3000 });
         this.router.navigate(['/']);
       },
-      error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
+      error: err => this.snackbar.show(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
     });
   }
 
   acceptApp(appId: number) {
-    const dialogRef = this.dialog.open(ConfirmEscrowDialogComponent, {
-      data: { amount: this.task()!.price },
-    });
+    this.pendingAppId.set(appId);
+    this.showEscrowDialog.set(true);
+  }
 
-    dialogRef.afterClosed().subscribe(confirmed => {
-      if (confirmed) {
-        this.applicationService.accept(appId).subscribe({
+  executeAcceptApp() {
+    const appId = this.pendingAppId();
+    this.applicationService.accept(appId).subscribe({
+      next: () => {
+        this.snackbar.show('Application accepted', 'Close', { duration: 3000 });
+        this.paymentService.createEscrow(this.task()!.id).subscribe({
           next: () => {
-            this.snackBar.open('Application accepted', 'Close', { duration: 3000 });
-            this.paymentService.createEscrow(this.task()!.id).subscribe({
-              next: () => {
-                this.snackBar.open('Escrow created', 'Close', { duration: 3000 });
-                this.ngOnInit();
-              },
-              error: err =>
-                this.snackBar.open(err.error?.error || 'Escrow failed', 'Close', { duration: 3000 }),
-            });
+            this.snackbar.show('Escrow created', 'Close', { duration: 3000 });
+            this.ngOnInit();
           },
-          error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
+          error: err =>
+            this.snackbar.show(err.error?.error || 'Escrow failed', 'Close', { duration: 3000 }),
         });
-      }
+      },
+      error: err => this.snackbar.show(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
     });
+  }
+
+  navigateToApply() {
+    this.router.navigate(['/tasks', this.task()!.id, 'apply']);
   }
 
   completeTask() {
     this.taskService.complete(this.task()!.id).subscribe({
       next: () => {
-        this.snackBar.open('Task completed!', 'Close', { duration: 3000 });
+        this.snackbar.show('Task completed!', 'Close', { duration: 3000 });
         this.paymentService.release(this.task()!.id).subscribe({
-          next: () => this.snackBar.open('Payment released', 'Close', { duration: 3000 }),
+          next: () => this.snackbar.show('Payment released', 'Close', { duration: 3000 }),
         });
         this.ngOnInit();
       },
-      error: err => this.snackBar.open(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
+      error: err => this.snackbar.show(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
     });
   }
 }
