@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { CategoryChipsComponent } from './category-chips.component';
 import { CategoryService } from '../../core/category.service';
 import { Category } from '../../core/models';
@@ -28,7 +27,6 @@ describe('CategoryChipsComponent', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
         { provide: CategoryService, useValue: categoryService },
       ],
     }).compileComponents();

@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { ConversationListComponent } from './conversation-list.component';
 import { Conversation } from '../core/models';
 
@@ -32,7 +31,6 @@ describe('ConversationListComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
       ],
     }).compileComponents();
 
@@ -56,7 +54,7 @@ describe('ConversationListComponent', () => {
   it('should show loading spinner initially', () => {
     fixture.detectChanges();
     expect(component.loading()).toBe(true);
-    expect(fixture.nativeElement.querySelector('mat-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
     httpTesting.expectOne('/api/v1/conversations').flush([]);
   });
 

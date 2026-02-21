@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { of, throwError } from 'rxjs';
 import { NotificationListComponent } from './notification-list.component';
 import { NotificationService } from '../core/notification.service';
@@ -39,7 +38,6 @@ describe('NotificationListComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        provideAnimationsAsync(),
         { provide: NotificationService, useValue: notifSpy },
       ],
     }).compileComponents();

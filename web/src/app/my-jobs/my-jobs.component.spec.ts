@@ -3,7 +3,6 @@ import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID, signal, Component } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { By } from '@angular/platform-browser';
 import { MyJobsComponent } from './my-jobs.component';
 import { AuthService } from '../core/auth.service';
@@ -67,7 +66,6 @@ describe('MyJobsComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         {
           provide: AuthService,
@@ -104,7 +102,7 @@ describe('MyJobsComponent', () => {
   it('should display My Jobs title', () => {
     initComponent();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('My Jobs');
+    expect(el.textContent).toContain('MY JOBS');
   });
 
   it('should load posted tasks by default with requester_id param', () => {
@@ -144,7 +142,7 @@ describe('MyJobsComponent', () => {
   it('should switch tabs and navigate on tab change', () => {
     initComponent();
     const comp = fixture.debugElement.query(By.directive(MyJobsComponent)).componentInstance as MyJobsComponent;
-    comp.onTabChange(1);
+    comp.onTabChange('applied');
     const req = httpTesting.expectOne(r =>
       r.url === '/api/v1/tasks' && r.params.get('tasker_id') === '1' && r.params.get('status') === 'in_progress',
     );
@@ -155,7 +153,7 @@ describe('MyJobsComponent', () => {
   it('should load completed tasks on tab 2', () => {
     initComponent();
     const comp = fixture.debugElement.query(By.directive(MyJobsComponent)).componentInstance as MyJobsComponent;
-    comp.onTabChange(2);
+    comp.onTabChange('completed');
     const req = httpTesting.expectOne(r =>
       r.url === '/api/v1/tasks' && r.params.get('tasker_id') === '1' && r.params.get('status') === 'completed',
     );

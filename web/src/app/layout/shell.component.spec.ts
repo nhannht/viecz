@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { PLATFORM_ID, signal } from '@angular/core';
 import { of } from 'rxjs';
 import { ShellComponent } from './shell.component';
@@ -45,7 +44,6 @@ describe('ShellComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authSpy },
         { provide: NotificationService, useValue: notifSpy },
@@ -98,18 +96,18 @@ describe('ShellComponent', () => {
 
   it('should have notification bell button', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const icons = compiled.querySelectorAll('mat-icon');
+    const icons = compiled.querySelectorAll('nhannht-metro-icon');
     const notifIcon = Array.from(icons).find((el) =>
-      el.textContent?.includes('notifications'),
+      el.getAttribute('ng-reflect-name') === 'notifications' || el.textContent?.includes('notifications'),
     );
     expect(notifIcon).toBeTruthy();
   });
 
   it('should have user menu with profile and logout', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const icons = compiled.querySelectorAll('mat-icon');
+    const icons = compiled.querySelectorAll('nhannht-metro-icon');
     const accountIcon = Array.from(icons).find((el) =>
-      el.textContent?.includes('account_circle'),
+      el.getAttribute('ng-reflect-name') === 'account_circle' || el.textContent?.includes('account_circle'),
     );
     expect(accountIcon).toBeTruthy();
   });

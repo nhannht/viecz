@@ -294,13 +294,6 @@
     ora "9.0.0"
     rxjs "7.8.2"
 
-"@angular/animations@^21.1.5":
-  version "21.1.5"
-  resolved "https://registry.yarnpkg.com/@angular/animations/-/animations-21.1.5.tgz#986bda6478ae96bffa38b64f4348bfdcdc2de8a9"
-  integrity sha512-gsqHX8lCYV8cgVtHs0iLwrX8SVlmcjUF44l/xCc/jBC/TeKWRl2e6Jqrn1Wcd0NDlGiNsm+mYNyqMyy5/I7kjw==
-  dependencies:
-    tslib "^2.3.0"
-
 "@angular/build@21.1.4", "@angular/build@^21.1.4":
   version "21.1.4"
   resolved "https://registry.yarnpkg.com/@angular/build/-/build-21.1.4.tgz#da5f40ca2864692ee38dc71734a9f4091d63b46c"
@@ -335,14 +328,6 @@
     watchpack "2.5.0"
   optionalDependencies:
     lmdb "3.4.4"
-
-"@angular/cdk@~21.1.5":
-  version "21.1.5"
-  resolved "https://registry.yarnpkg.com/@angular/cdk/-/cdk-21.1.5.tgz#c312f28dadd148b493a6a284ab2f9511d0118ecb"
-  integrity sha512-AlQPgqe3LLwXCyrDwYSX3m/WKnl2ppCMW7Gb+7bJpIcpMdWYEpSOSQF318jXGYIysKg43YbdJ1tWhJWY/cbn3w==
-  dependencies:
-    parse5 "^8.0.0"
-    tslib "^2.3.0"
 
 "@angular/cli@^21.1.4":
   version "21.1.4"
@@ -410,13 +395,6 @@
   integrity sha512-duVT/eOncmFNBYRlK/F7WDg6GD1vL1mxUrDdnp7M9J8JvNrKH0PvdfzuOAmjbB8/bsvUNTLFXCV4+43Mc2Hqsw==
   dependencies:
     "@standard-schema/spec" "^1.0.0"
-    tslib "^2.3.0"
-
-"@angular/material@~21.1.5":
-  version "21.1.5"
-  resolved "https://registry.yarnpkg.com/@angular/material/-/material-21.1.5.tgz#732aa2375ee7082f7b4740639400906975b5f510"
-  integrity sha512-D6JvFulPvIKhPJ52prMV7DxwYMzcUpHar11ZcMb7r9WQzUfCS3FDPXfMAce5n3h+3kFccfmmGpnyBwqTlLPSig==
-  dependencies:
     tslib "^2.3.0"
 
 "@angular/platform-browser-dynamic@^21.1.0":

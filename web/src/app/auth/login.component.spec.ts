@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { Component, PLATFORM_ID } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
@@ -60,7 +59,6 @@ describe('LoginComponent', () => {
           { path: 'register', component: DummyComponent },
           { path: '', component: DummyComponent },
         ]),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authSpy },
       ],
@@ -80,8 +78,8 @@ describe('LoginComponent', () => {
 
   it('should render login form', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h2')?.textContent).toContain('Sign In');
-    expect(compiled.querySelectorAll('mat-form-field').length).toBe(2);
+    expect(compiled.querySelector('h2')?.textContent).toContain('SIGN IN');
+    expect(compiled.querySelectorAll('nhannht-metro-input').length).toBe(2);
   });
 
   it('should show error when fields are empty', () => {

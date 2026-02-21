@@ -3,7 +3,6 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID, signal, Component, input } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { TaskCardComponent } from './task-card.component';
 import { AuthService } from '../../core/auth.service';
 import { Task, User } from '../../core/models';
@@ -71,7 +70,6 @@ describe('TaskCardComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authService },
       ],
@@ -109,43 +107,44 @@ describe('TaskCardComponent', () => {
   it('should display the task status', () => {
     const fixture = createFixture();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('open');
+    expect(el.textContent).toContain('OPEN');
   });
 
   it('should truncate long descriptions', () => {
     const fixture = createFixture(longDescTask);
     const el = fixture.nativeElement as HTMLElement;
-    const desc = el.querySelector('.task-desc')?.textContent || '';
-    expect(desc).toContain('...');
+    expect(el.textContent).toContain('...');
   });
 
-  it('should NOT show "Your Task" badge when user is not the owner', () => {
+  it('should NOT show "YOUR TASK" badge when user is not the owner', () => {
     const fixture = createFixture();
     authService.currentUser.set({ ...mockUser, id: 999 });
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).not.toContain('Your Task');
+    expect(el.textContent).not.toContain('YOUR TASK');
   });
 
-  it('should show "Your Task" badge when user is the owner', () => {
+  it('should show "YOUR TASK" badge when user is the owner', () => {
     const fixture = createFixture();
     authService.currentUser.set(mockUser); // id: 1 matches requester_id: 1
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Your Task');
+    expect(el.textContent).toContain('YOUR TASK');
   });
 
   it('should show deadline when present', () => {
     const fixture = createFixture();
     const el = fixture.nativeElement as HTMLElement;
-    const metaItems = el.querySelectorAll('.meta-item');
-    expect(metaItems.length).toBeGreaterThanOrEqual(2);
+    const icons = el.querySelectorAll('nhannht-metro-icon');
+    const scheduleIcon = Array.from(icons).find(i => i.textContent?.includes('schedule'));
+    expect(scheduleIcon).toBeTruthy();
   });
 
   it('should not show deadline when absent', () => {
     const fixture = createFixture(noDeadlineTask);
     const el = fixture.nativeElement as HTMLElement;
-    const metaItems = el.querySelectorAll('.meta-item');
-    expect(metaItems.length).toBe(1); // only location
+    const icons = el.querySelectorAll('nhannht-metro-icon');
+    const scheduleIcon = Array.from(icons).find(i => i.textContent?.includes('schedule'));
+    expect(scheduleIcon).toBeFalsy();
   });
 });

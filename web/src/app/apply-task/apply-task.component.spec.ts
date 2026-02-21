@@ -3,10 +3,9 @@ import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID, Component } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { By } from '@angular/platform-browser';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { ApplyTaskComponent } from './apply-task.component';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { Task, TaskApplication } from '../core/models';
 
 const mockTask: Task = {
@@ -48,7 +47,7 @@ describe('ApplyTaskComponent', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let httpTesting: HttpTestingController;
   let router: Router;
-  let snackBar: MatSnackBar;
+  let snackbarService: NhannhtMetroSnackbarService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -57,7 +56,6 @@ describe('ApplyTaskComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
       ],
     }).compileComponents();
@@ -65,8 +63,9 @@ describe('ApplyTaskComponent', () => {
     fixture = TestBed.createComponent(TestHostComponent);
     httpTesting = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
-    snackBar = TestBed.inject(MatSnackBar);
+    snackbarService = TestBed.inject(NhannhtMetroSnackbarService);
     vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    vi.spyOn(snackbarService, 'show');
   });
 
   afterEach(() => {
@@ -105,7 +104,6 @@ describe('ApplyTaskComponent', () => {
   it('should display task price', () => {
     initComponent();
     const el = fixture.nativeElement as HTMLElement;
-    // VndPipe formats 50000 as "50.000 ₫" using vi-VN locale
     expect(el.textContent).toContain('50.000');
   });
 
@@ -147,7 +145,6 @@ describe('ApplyTaskComponent', () => {
   it('should show error snackbar on submit failure', () => {
     initComponent();
     const comp = getApplyComponent();
-    const snackSpy = vi.spyOn(snackBar, 'open');
     comp.proposedPrice = 45000;
 
     comp.submit();
@@ -157,7 +154,7 @@ describe('ApplyTaskComponent', () => {
       { status: 400, statusText: 'Bad Request' },
     );
 
-    expect(snackSpy).toHaveBeenCalledWith('Already applied', 'Close', { duration: 3000 });
+    expect(snackbarService.show).toHaveBeenCalledWith('Already applied', 'Close', { duration: 3000 });
     expect(comp.submitting()).toBe(false);
   });
 

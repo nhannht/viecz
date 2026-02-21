@@ -3,7 +3,6 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MarketplaceComponent, MINIMUM_LOADING_MS } from './marketplace.component';
 import { Task, TaskListResponse } from '../core/models';
 
@@ -39,7 +38,6 @@ describe('MarketplaceComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: MINIMUM_LOADING_MS, useValue: 0 },
       ],
