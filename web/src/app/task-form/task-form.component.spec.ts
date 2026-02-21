@@ -3,11 +3,12 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PLATFORM_ID, signal, Component } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { of } from 'rxjs';
 import { TaskFormComponent } from './task-form.component';
 import { CategoryService } from '../core/category.service';
+import { WalletService } from '../core/wallet.service';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { Category, Task } from '../core/models';
 
 const mockCategories: Category[] = [
@@ -49,16 +50,20 @@ class EditHostComponent {
 
 describe('TaskFormComponent', () => {
   let categoryService: { categories: ReturnType<typeof signal<Category[]>>; load: ReturnType<typeof vi.fn> };
+  let walletServiceSpy: { get: ReturnType<typeof vi.fn> };
   let routerSpy: { navigate: ReturnType<typeof vi.fn> };
-  let snackBarSpy: { open: ReturnType<typeof vi.fn> };
+  let snackBarSpy: { show: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     categoryService = {
       categories: signal<Category[]>(mockCategories),
       load: vi.fn(),
     };
+    walletServiceSpy = {
+      get: vi.fn().mockReturnValue(of({ available_balance: 100000, balance: 100000, escrow_balance: 0 })),
+    };
     routerSpy = { navigate: vi.fn() };
-    snackBarSpy = { open: vi.fn() };
+    snackBarSpy = { show: vi.fn() };
   });
 
   function setupTestBed(hostClass: any) {
@@ -68,11 +73,11 @@ describe('TaskFormComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideAnimationsAsync(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: CategoryService, useValue: categoryService },
+        { provide: WalletService, useValue: walletServiceSpy },
         { provide: Router, useValue: routerSpy },
-        { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: NhannhtMetroSnackbarService, useValue: snackBarSpy },
       ],
     });
   }
@@ -119,8 +124,8 @@ describe('TaskFormComponent', () => {
 
       taskForm.title = 'New Task';
       taskForm.description = 'Task description';
-      taskForm.categoryId = 1;
-      taskForm.price = 50000;
+      taskForm.categoryId = '1';
+      taskForm.price = '50000';
       taskForm.location = 'Library';
       fixture.detectChanges();
 
@@ -133,7 +138,7 @@ describe('TaskFormComponent', () => {
       req.flush({ ...mockTask, id: 5 });
 
       expect(routerSpy.navigate).toHaveBeenCalledWith(['/tasks', 5]);
-      expect(snackBarSpy.open).toHaveBeenCalledWith('Task created', 'Close', { duration: 3000 });
+      expect(snackBarSpy.show).toHaveBeenCalledWith('Task created', undefined, { duration: 3000 });
     });
 
     it('should include deadline in request when set', () => {
@@ -142,10 +147,10 @@ describe('TaskFormComponent', () => {
 
       taskForm.title = 'Task with Deadline';
       taskForm.description = 'Description';
-      taskForm.categoryId = 1;
-      taskForm.price = 10000;
+      taskForm.categoryId = '1';
+      taskForm.price = '10000';
       taskForm.location = 'Here';
-      taskForm.deadline = new Date('2026-12-25');
+      taskForm.deadline = '2026-12-25';
       fixture.detectChanges();
 
       taskForm.onSubmit();
@@ -168,8 +173,8 @@ describe('TaskFormComponent', () => {
 
       taskForm.title = 'Task';
       taskForm.description = 'Desc';
-      taskForm.categoryId = 1;
-      taskForm.price = 0;
+      taskForm.categoryId = '1';
+      taskForm.price = '0';
       taskForm.location = 'Here';
 
       taskForm.onSubmit();
@@ -201,7 +206,7 @@ describe('TaskFormComponent', () => {
       const taskForm = taskFormDebug.componentInstance as TaskFormComponent;
       expect(taskForm.isEditMode()).toBe(true);
       expect(taskForm.title).toBe('Existing Task');
-      expect(taskForm.price).toBe(30000);
+      expect(taskForm.price).toBe('30000');
     });
 
     it('should show "Edit Task" title', () => {
@@ -227,7 +232,7 @@ describe('TaskFormComponent', () => {
       expect(req.request.body.title).toBe('Updated Task');
       req.flush({ ...mockTask, title: 'Updated Task' });
 
-      expect(snackBarSpy.open).toHaveBeenCalledWith('Task updated', 'Close', { duration: 3000 });
+      expect(snackBarSpy.show).toHaveBeenCalledWith('Task updated', undefined, { duration: 3000 });
     });
 
     it('should navigate to task detail on cancel in edit mode', () => {

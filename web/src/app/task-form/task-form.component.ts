@@ -1,139 +1,132 @@
-import { Component, inject, OnInit, signal, input } from '@angular/core';
+import { Component, inject, OnInit, signal, input, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCard, MatCardContent, MatCardHeader, MatCardTitle, MatCardActions } from '@angular/material/card';
-import { MatFormField, MatLabel, MatError } from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
-import { MatSelect, MatOption } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { TaskService } from '../core/task.service';
 import { CategoryService } from '../core/category.service';
+import { WalletService } from '../core/wallet.service';
+import { VndPipe } from '../core/pipes';
+import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
+import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
+import { NhannhtMetroSelectComponent } from '../shared/components/nhannht-metro-select.component';
+import { NhannhtMetroDatepickerComponent } from '../shared/components/nhannht-metro-datepicker.component';
+import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
+import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 
 @Component({
   selector: 'app-task-form',
   standalone: true,
   imports: [
     FormsModule,
-    MatCard,
-    MatCardContent,
-    MatCardHeader,
-    MatCardTitle,
-    MatCardActions,
-    MatFormField,
-    MatLabel,
-    MatError,
-    MatInput,
-    MatSelect,
-    MatOption,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatButton,
-    MatIcon,
-    MatProgressSpinner,
+    VndPipe,
+    NhannhtMetroCardComponent,
+    NhannhtMetroInputComponent,
+    NhannhtMetroSelectComponent,
+    NhannhtMetroDatepickerComponent,
+    NhannhtMetroButtonComponent,
+    NhannhtMetroIconComponent,
+    NhannhtMetroSpinnerComponent,
   ],
   template: `
     @if (loadingTask()) {
-      <div class="loading"><mat-spinner diameter="40"></mat-spinner></div>
+      <div class="flex justify-center py-16"><nhannht-metro-spinner [size]="40" /></div>
     } @else {
-      <mat-card class="form-card">
-        <mat-card-header>
-          <mat-card-title>{{ isEditMode() ? 'Edit Task' : 'Create Task' }}</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <form class="task-form" (ngSubmit)="onSubmit()">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Title</mat-label>
-              <input matInput [(ngModel)]="title" name="title" required maxlength="200"
-                     placeholder="What do you need help with?">
-              @if (submitted && !title) {
-                <mat-error>Title is required</mat-error>
-              }
-            </mat-form-field>
+      <nhannht-metro-card class="block max-w-[700px] mx-auto">
+        <h2 class="font-display text-[11px] tracking-[1px] text-fg uppercase mb-4">
+          {{ isEditMode() ? 'Edit Task' : 'Create Task' }}
+        </h2>
+        <form class="flex flex-col gap-1 pt-4" (ngSubmit)="onSubmit()">
+          <nhannht-metro-input
+            label="TITLE"
+            placeholder="What do you need help with?"
+            [(ngModel)]="title" name="title"
+            [error]="submitted && !title ? 'Title is required' : ''" />
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Description</mat-label>
-              <textarea matInput [(ngModel)]="description" name="description" required
-                        maxlength="2000" rows="5"
-                        placeholder="Describe the task in detail"></textarea>
-              @if (submitted && !description) {
-                <mat-error>Description is required</mat-error>
-              }
-            </mat-form-field>
+          <div class="flex flex-col gap-1">
+            <label class="font-display text-[10px] tracking-[1px] text-fg">DESCRIPTION</label>
+            <textarea
+              class="w-full px-4 py-3 bg-card border border-border font-body text-[13px] text-fg
+                     placeholder:text-muted focus:border-fg focus:outline-none transition-colors duration-200"
+              [(ngModel)]="description" name="description" rows="5"
+              placeholder="Describe the task in detail"></textarea>
+            @if (submitted && !description) {
+              <span class="font-body text-[11px] text-fg" role="alert">Description is required</span>
+            }
+          </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Category</mat-label>
-              <mat-select [(ngModel)]="categoryId" name="categoryId" required>
-                @for (cat of categoryService.categories(); track cat.id) {
-                  <mat-option [value]="cat.id">{{ cat.name_vi || cat.name }}</mat-option>
-                }
-              </mat-select>
-              @if (submitted && !categoryId) {
-                <mat-error>Category is required</mat-error>
-              }
-            </mat-form-field>
+          <nhannht-metro-select
+            label="CATEGORY"
+            placeholder="Select a category"
+            [options]="categoryOptions()"
+            [(ngModel)]="categoryId" name="categoryId"
+            [error]="submitted && !categoryId ? 'Category is required' : ''" />
 
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Price (VND)</mat-label>
-                <input matInput type="number" [(ngModel)]="price" name="price"
-                       required min="1" placeholder="e.g. 50000">
-                @if (submitted && (!price || price <= 0)) {
-                  <mat-error>Price must be greater than 0</mat-error>
-                }
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Location</mat-label>
-                <input matInput [(ngModel)]="location" name="location" required
-                       maxlength="255" placeholder="Where is this task?">
-                @if (submitted && !location) {
-                  <mat-error>Location is required</mat-error>
-                }
-              </mat-form-field>
+          @if (!isEditMode()) {
+            <div class="flex items-center gap-3 p-3 mb-2"
+                 [class.bg-fg]="!isInsufficient()"
+                 [class.text-bg]="!isInsufficient()"
+                 [class.bg-card]="isInsufficient()"
+                 [class.border]="isInsufficient()"
+                 [class.border-fg]="isInsufficient()"
+                 [class.text-fg]="isInsufficient()">
+              <nhannht-metro-icon name="account_balance_wallet" />
+              <div class="flex flex-col">
+                <span class="font-body text-[10px] opacity-80">Available Balance</span>
+                <span class="font-body text-[15px] font-semibold">
+                  @if (balanceLoading()) {
+                    Loading...
+                  } @else if (walletBalance() !== null) {
+                    {{ walletBalance()! | vnd }}
+                  } @else {
+                    Could not load balance
+                  }
+                </span>
+              </div>
             </div>
+          }
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Deadline</mat-label>
-              <input matInput [matDatepicker]="picker" [(ngModel)]="deadline" name="deadline">
-              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-              <mat-datepicker #picker></mat-datepicker>
-            </mat-form-field>
+          <div class="flex max-sm:flex-col gap-4">
+            <nhannht-metro-input class="flex-1"
+              label="PRICE (VND)"
+              type="number"
+              placeholder="e.g. 50000"
+              [(ngModel)]="price" name="price"
+              [error]="submitted && (!price || +price <= 0) ? 'Price must be greater than 0' : ''" />
 
-            <mat-card-actions align="end">
-              <button mat-button type="button" (click)="onCancel()">Cancel</button>
-              <button mat-raised-button type="submit" [disabled]="saving()">
-                @if (saving()) {
-                  <mat-spinner diameter="20"></mat-spinner>
-                } @else {
-                  <ng-container>
-                    <mat-icon>{{ isEditMode() ? 'save' : 'add' }}</mat-icon>
-                    {{ isEditMode() ? 'Save Changes' : 'Create Task' }}
-                  </ng-container>
-                }
-              </button>
-            </mat-card-actions>
-          </form>
-        </mat-card-content>
-      </mat-card>
-    }
-  `,
-  styles: `
-    .loading { display: flex; justify-content: center; padding: 64px 0; }
-    .form-card { max-width: 700px; margin: 0 auto; }
-    .task-form { display: flex; flex-direction: column; gap: 4px; padding-top: 16px; }
-    .full-width { width: 100%; }
-    .half-width { flex: 1; }
-    .form-row {
-      display: flex; gap: 16px;
-    }
-    @media (max-width: 600px) {
-      .form-row { flex-direction: column; gap: 4px; }
-      .half-width { width: 100%; }
+            <nhannht-metro-input class="flex-1"
+              label="LOCATION"
+              placeholder="Where is this task?"
+              [(ngModel)]="location" name="location"
+              [error]="submitted && !location ? 'Location is required' : ''" />
+          </div>
+
+          <nhannht-metro-datepicker
+            label="DEADLINE"
+            [(ngModel)]="deadline" name="deadline" />
+
+          <div class="flex justify-end gap-3 pt-4">
+            <nhannht-metro-button
+              variant="secondary"
+              label="Cancel"
+              type="button"
+              (clicked)="onCancel()" />
+            <nhannht-metro-button
+              variant="primary"
+              [disabled]="saving()"
+              type="submit">
+              @if (saving()) {
+                <nhannht-metro-spinner [size]="20" />
+              } @else {
+                <span class="inline-flex items-center gap-2">
+                  <nhannht-metro-icon [name]="isEditMode() ? 'save' : 'add'" [size]="18" />
+                  {{ isEditMode() ? 'Save Changes' : 'Create Task' }}
+                </span>
+              }
+            </nhannht-metro-button>
+          </div>
+        </form>
+      </nhannht-metro-card>
     }
   `,
 })
@@ -141,24 +134,41 @@ export class TaskFormComponent implements OnInit {
   id = input<string>();
 
   private taskService = inject(TaskService);
-  categoryService = inject(CategoryService);
+  private categoryService = inject(CategoryService);
+  private walletService = inject(WalletService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private snackBar = inject(NhannhtMetroSnackbarService);
 
   isEditMode = signal(false);
   loadingTask = signal(false);
   saving = signal(false);
   submitted = false;
+  walletBalance = signal<number | null>(null);
+  balanceLoading = signal(true);
+
+  categoryOptions = computed(() =>
+    this.categoryService.categories().map(cat => ({
+      value: String(cat.id),
+      label: cat.name_vi || cat.name,
+    }))
+  );
 
   title = '';
   description = '';
-  categoryId: number | null = null;
-  price: number | null = null;
+  categoryId = '';
+  price = '';
   location = '';
-  deadline: Date | null = null;
+  deadline = '';
 
   ngOnInit() {
     this.categoryService.load();
+    this.walletService.get().subscribe({
+      next: wallet => {
+        this.walletBalance.set(wallet.available_balance);
+        this.balanceLoading.set(false);
+      },
+      error: () => this.balanceLoading.set(false),
+    });
     const taskId = this.id();
     if (taskId) {
       this.isEditMode.set(true);
@@ -167,14 +177,14 @@ export class TaskFormComponent implements OnInit {
         next: task => {
           this.title = task.title;
           this.description = task.description;
-          this.categoryId = task.category_id;
-          this.price = task.price;
+          this.categoryId = String(task.category_id);
+          this.price = String(task.price);
           this.location = task.location;
-          this.deadline = task.deadline ? new Date(task.deadline) : null;
+          this.deadline = task.deadline ? task.deadline.split('T')[0] : '';
           this.loadingTask.set(false);
         },
         error: () => {
-          this.snackBar.open('Task not found', 'Close', { duration: 3000 });
+          this.snackBar.show('Task not found', undefined, { duration: 3000 });
           this.router.navigate(['/']);
           this.loadingTask.set(false);
         },
@@ -182,9 +192,15 @@ export class TaskFormComponent implements OnInit {
     }
   }
 
+  isInsufficient(): boolean {
+    const balance = this.walletBalance();
+    const p = Number(this.price);
+    return balance !== null && p > 0 && p > balance;
+  }
+
   onSubmit() {
     this.submitted = true;
-    if (!this.title || !this.description || !this.categoryId || !this.price || this.price <= 0 || !this.location) {
+    if (!this.title || !this.description || !this.categoryId || !this.price || Number(this.price) <= 0 || !this.location) {
       return;
     }
 
@@ -192,18 +208,18 @@ export class TaskFormComponent implements OnInit {
     const body: Record<string, unknown> = {
       title: this.title,
       description: this.description,
-      category_id: this.categoryId,
-      price: this.price,
+      category_id: Number(this.categoryId),
+      price: Number(this.price),
       location: this.location,
     };
     if (this.deadline) {
-      body['deadline'] = this.deadline.toISOString();
+      body['deadline'] = new Date(this.deadline).toISOString();
     }
 
     if (this.isEditMode()) {
       this.taskService.update(Number(this.id()), body).subscribe({
         next: task => {
-          this.snackBar.open('Task updated', 'Close', { duration: 3000 });
+          this.snackBar.show('Task updated', undefined, { duration: 3000 });
           this.router.navigate(['/tasks', task.id]);
           this.saving.set(false);
         },
@@ -212,7 +228,7 @@ export class TaskFormComponent implements OnInit {
     } else {
       this.taskService.create(body).subscribe({
         next: task => {
-          this.snackBar.open('Task created', 'Close', { duration: 3000 });
+          this.snackBar.show('Task created', undefined, { duration: 3000 });
           this.router.navigate(['/tasks', task.id]);
           this.saving.set(false);
         },
