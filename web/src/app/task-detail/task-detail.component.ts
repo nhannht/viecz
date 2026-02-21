@@ -100,7 +100,20 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
             }
 
             <div class="mt-6 flex gap-4">
-              @if (isRequester()) {
+              @if (!auth.isAuthenticated()) {
+                <div class="border-2 border-fg p-6 w-full text-center">
+                  <h4 class="font-display text-[12px] tracking-[2px] mb-2">INTERESTED?</h4>
+                  <p class="font-body text-[13px] text-muted mb-4">Create an account to apply for this task.</p>
+                  <div class="flex justify-center gap-4 items-center">
+                    <a routerLink="/register">
+                      <nhannht-metro-button variant="primary" label="Register to Apply" />
+                    </a>
+                    <a routerLink="/login" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
+                      Sign In &gt;
+                    </a>
+                  </div>
+                </div>
+              } @else if (isRequester()) {
                 @if (task()!.status === 'in_progress') {
                   <nhannht-metro-button variant="primary" label="Mark Complete" (clicked)="completeTask()" />
                 }
@@ -163,7 +176,7 @@ export class TaskDetailComponent implements OnInit {
   private taskService = inject(TaskService);
   private applicationService = inject(ApplicationService);
   private paymentService = inject(PaymentService);
-  private auth = inject(AuthService);
+  auth = inject(AuthService);
   private router = inject(Router);
   private snackbar = inject(NhannhtMetroSnackbarService);
 

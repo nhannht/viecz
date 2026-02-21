@@ -64,13 +64,14 @@ class TestHostComponent {
 describe('TaskDetailComponent', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let httpTesting: HttpTestingController;
-  let authService: { currentUser: ReturnType<typeof signal<User | null>>; getAccessToken: () => string | null };
+  let authService: { currentUser: ReturnType<typeof signal<User | null>>; getAccessToken: () => string | null; isAuthenticated: () => boolean };
   let router: Router;
 
   beforeEach(async () => {
     authService = {
       currentUser: signal<User | null>(mockUser),
       getAccessToken: () => 'test-token',
+      isAuthenticated: () => true,
     };
 
     await TestBed.configureTestingModule({

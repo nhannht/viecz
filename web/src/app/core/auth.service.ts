@@ -12,7 +12,7 @@ export class AuthService {
   private platformId = inject(PLATFORM_ID);
 
   currentUser = signal<User | null>(null);
-  isAuthenticated = computed(() => !!this.getAccessToken());
+  isAuthenticated = computed(() => !!this.currentUser());
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {

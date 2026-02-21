@@ -219,13 +219,19 @@ func main() {
 			}
 		}
 
-		// Task routes (protected)
+		// Task routes — public (read-only, optional auth for user context)
+		publicTasks := api.Group("/tasks")
+		publicTasks.Use(auth.OptionalAuth(cfg.JWTSecret))
+		{
+			publicTasks.GET("", taskHandler.ListTasks)
+			publicTasks.GET("/:id", taskHandler.GetTask)
+		}
+
+		// Task routes — protected (write operations)
 		tasks := api.Group("/tasks")
 		tasks.Use(auth.AuthRequired(cfg.JWTSecret))
 		{
 			tasks.POST("", taskHandler.CreateTask)
-			tasks.GET("", taskHandler.ListTasks)
-			tasks.GET("/:id", taskHandler.GetTask)
 			tasks.PUT("/:id", taskHandler.UpdateTask)
 			tasks.DELETE("/:id", taskHandler.DeleteTask)
 			tasks.POST("/:id/applications", taskHandler.ApplyForTask)

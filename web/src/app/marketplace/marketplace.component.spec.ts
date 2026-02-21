@@ -93,8 +93,13 @@ describe('MarketplaceComponent', () => {
     httpTesting.match('/api/v1/categories').forEach(r => r.flush([]));
     httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
 
+    vi.useFakeTimers();
     component.search = 'lunch';
-    component.onSearch();
+    component.onSearchInput();
+
+    // Flush the 300ms debounce timer
+    vi.advanceTimersByTime(300);
+    vi.useRealTimers();
 
     const req = httpTesting.expectOne(r => r.url === '/api/v1/tasks');
     expect(req.request.params.get('search')).toBe('lunch');

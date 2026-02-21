@@ -20,6 +20,7 @@ describe('ShellComponent', () => {
     authSpy = {
       currentUser: signal({ id: 1, name: 'Test User' }),
       getAccessToken: vi.fn().mockReturnValue('token'),
+      isAuthenticated: vi.fn().mockReturnValue(true),
       logout: vi.fn(),
     };
     notifSpy = {

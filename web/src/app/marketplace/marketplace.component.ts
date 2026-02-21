@@ -11,8 +11,10 @@ import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-i
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { TaskService } from '../core/task.service';
+import { AuthService } from '../core/auth.service';
 import { Task } from '../core/models';
 import { CategoryChipsComponent } from '../shared/components/category-chips.component';
+import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { TaskCardComponent } from '../shared/components/task-card.component';
 import { LoadingSkeletonComponent } from '../shared/components/loading-skeleton.component';
 import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
@@ -26,6 +28,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
     NhannhtMetroInputComponent,
     NhannhtMetroIconComponent,
     NhannhtMetroSpinnerComponent,
+    NhannhtMetroButtonComponent,
     CategoryChipsComponent,
     TaskCardComponent,
     LoadingSkeletonComponent,
@@ -33,19 +36,28 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
   ],
   template: `
     <div class="py-2 relative min-h-[60vh]">
-      <div class="mb-4 flex gap-2 items-end">
-        <div class="flex-1">
-          <nhannht-metro-input
-            label="SEARCH TASKS"
-            placeholder="What do you need help with?"
-            [(ngModel)]="search"
-            (keyup.enter)="onSearch()"
-          />
+      @if (!auth.isAuthenticated()) {
+        <div class="border-2 border-fg p-8 mb-6 text-center">
+          <h1 class="font-display text-[16px] tracking-[3px] mb-2">STUDENT MICRO-TASK MARKETPLACE</h1>
+          <p class="font-body text-[14px] text-muted mb-6">Post tasks, find help, earn money.</p>
+          <div class="flex justify-center gap-4 items-center">
+            <a routerLink="/register">
+              <nhannht-metro-button variant="primary" label="Get Started" />
+            </a>
+            <a routerLink="/login" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
+              Sign In &gt;
+            </a>
+          </div>
         </div>
-        <button class="bg-fg text-bg border-2 border-fg px-4 py-3 cursor-pointer hover:bg-transparent hover:text-fg transition-all duration-200"
-                (click)="onSearch()">
-          <nhannht-metro-icon name="search" [size]="20" />
-        </button>
+      }
+
+      <div class="mb-4">
+        <nhannht-metro-input
+          label="SEARCH TASKS"
+          placeholder="What do you need help with?"
+          [(ngModel)]="search"
+          (ngModelChange)="onSearchInput()"
+        />
       </div>
 
       <app-category-chips (categorySelected)="onCategoryChange($event)" />
@@ -79,17 +91,20 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
         }
       }
 
-      <a routerLink="/tasks/new"
-         class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-fg text-bg border-2 border-fg
-                flex items-center justify-center cursor-pointer
-                hover:bg-transparent hover:text-fg transition-all duration-200"
-         aria-label="Create Task">
-        <nhannht-metro-icon name="add" [size]="28" />
-      </a>
+      @if (auth.isAuthenticated()) {
+        <a routerLink="/tasks/new"
+           class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-fg text-bg border-2 border-fg
+                  flex items-center justify-center cursor-pointer
+                  hover:bg-transparent hover:text-fg transition-all duration-200"
+           aria-label="Create Task">
+          <nhannht-metro-icon name="add" [size]="28" />
+        </a>
+      }
     </div>
   `,
 })
 export class MarketplaceComponent implements OnInit {
+  auth = inject(AuthService);
   private taskService = inject(TaskService);
   private minLoadMs = inject(MINIMUM_LOADING_MS);
 
@@ -106,13 +121,15 @@ export class MarketplaceComponent implements OnInit {
 
   private platformId = inject(PLATFORM_ID);
   private readonly pageSize = 20;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit() {
     this.loadTasks();
   }
 
-  onSearch() {
-    this.resetAndLoad();
+  onSearchInput() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.resetAndLoad(), 300);
   }
 
   onCategoryChange(catId: number) {

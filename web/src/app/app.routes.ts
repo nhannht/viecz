@@ -13,7 +13,6 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
-    canActivate: [authGuard],
     children: [
       {
         path: '',
@@ -22,16 +21,19 @@ export const routes: Routes = [
       },
       {
         path: 'tasks/new',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./task-form/task-form.component').then(m => m.TaskFormComponent),
       },
       {
         path: 'tasks/:id/edit',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./task-form/task-form.component').then(m => m.TaskFormComponent),
       },
       {
         path: 'tasks/:id/apply',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./apply-task/apply-task.component').then(m => m.ApplyTaskComponent),
       },
@@ -42,27 +44,33 @@ export const routes: Routes = [
       },
       {
         path: 'wallet',
+        canActivate: [authGuard],
         loadComponent: () => import('./wallet/wallet.component').then(m => m.WalletComponent),
       },
       {
         path: 'chat',
-        loadComponent: () => import('./chat/chat.component').then(m => m.ChatComponent),
+        redirectTo: 'messages',
+        pathMatch: 'full',
       },
       {
         path: 'messages',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./chat/conversation-list.component').then(m => m.ConversationListComponent),
       },
       {
         path: 'messages/:conversationId',
+        canActivate: [authGuard],
         loadComponent: () => import('./chat/chat.component').then(m => m.ChatComponent),
       },
       {
         path: 'my-jobs/:mode',
+        canActivate: [authGuard],
         loadComponent: () => import('./my-jobs/my-jobs.component').then(m => m.MyJobsComponent),
       },
       {
         path: 'notifications',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./notifications/notification-list.component').then(
             m => m.NotificationListComponent,
@@ -70,11 +78,13 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./profile/profile-redirect.component').then(m => m.ProfileRedirectComponent),
       },
       {
         path: 'profile/:id',
+        canActivate: [authGuard],
         loadComponent: () => import('./profile/profile.component').then(m => m.ProfileComponent),
       },
     ],
