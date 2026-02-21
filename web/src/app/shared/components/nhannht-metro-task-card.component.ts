@@ -1,16 +1,28 @@
-import { Component, input, inject } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SlicePipe } from '@angular/common';
+import { SlicePipe, DatePipe } from '@angular/common';
 import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
 import { NhannhtMetroBadgeComponent } from './nhannht-metro-badge.component';
-import { Task } from '../../core/models';
-import { AuthService } from '../../core/auth.service';
-import { VndPipe, TimeAgoPipe } from '../../core/pipes';
+import { VndPipe } from '../../core/pipes';
+import type { Task } from '../../core/models';
 
+/**
+ * Marketplace task card displaying summary info with hover lift effect.
+ *
+ * Shows status badge, title, truncated description, price, location, and deadline.
+ * Entire card is a clickable link to `/tasks/:id`.
+ *
+ * Replaces `MatCard`-based task card from Angular Material.
+ *
+ * @example
+ * ```html
+ * <nhannht-metro-task-card [task]="task" [isOwner]="true" />
+ * ```
+ */
 @Component({
-  selector: 'app-task-card',
+  selector: 'nhannht-metro-task-card',
   standalone: true,
-  imports: [RouterLink, SlicePipe, NhannhtMetroIconComponent, NhannhtMetroBadgeComponent, VndPipe, TimeAgoPipe],
+  imports: [RouterLink, SlicePipe, DatePipe, NhannhtMetroIconComponent, NhannhtMetroBadgeComponent, VndPipe],
   template: `
     <a [routerLink]="['/tasks', task().id]"
        class="block bg-card border border-border p-6 transition-all duration-300
@@ -44,18 +56,17 @@ import { VndPipe, TimeAgoPipe } from '../../core/pipes';
         @if (task().deadline) {
           <span class="flex items-center gap-1">
             <nhannht-metro-icon name="schedule" [size]="14" />
-            {{ task().deadline | timeAgo }}
+            {{ task().deadline | date:'dd/MM/yyyy' }}
           </span>
         }
       </div>
     </a>
   `,
 })
-export class TaskCardComponent {
+export class NhannhtMetroTaskCardComponent {
+  /** Task data object. */
   task = input.required<Task>();
-  private auth = inject(AuthService);
 
-  isOwner() {
-    return this.task().requester_id === this.auth.currentUser()?.id;
-  }
+  /** When true, shows "YOUR TASK" badge. */
+  isOwner = input(false);
 }

@@ -1,46 +1,20 @@
 import { Component, input } from '@angular/core';
-import { MatIcon } from '@angular/material/icon';
-import { MatButton } from '@angular/material/button';
+import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
+import { NhannhtMetroButtonComponent } from './nhannht-metro-button.component';
 
 @Component({
   selector: 'app-error-fallback',
   standalone: true,
-  imports: [MatIcon, MatButton],
+  imports: [NhannhtMetroIconComponent, NhannhtMetroButtonComponent],
   template: `
-    <div class="error-fallback">
-      <mat-icon class="error-icon">error_outline</mat-icon>
-      <h3>{{ title() }}</h3>
-      <p>{{ message() }}</p>
+    <div class="flex flex-col items-center justify-center py-12 px-4 text-center min-h-[200px]">
+      <nhannht-metro-icon name="error_outline" [size]="64" />
+      <h3 class="font-display text-[11px] tracking-[1px] text-fg mt-3 mb-1">{{ title() }}</h3>
+      <p class="font-body text-[13px] text-muted mb-4">{{ message() }}</p>
       @if (retryFn()) {
-        <button mat-raised-button color="primary" (click)="retry()">
-          <mat-icon>refresh</mat-icon> Try Again
-        </button>
+        <nhannht-metro-button variant="primary" label="Try Again" (clicked)="retry()" />
       }
     </div>
-  `,
-  styles: `
-    .error-fallback {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 48px 16px;
-      text-align: center;
-      min-height: 200px;
-    }
-    .error-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: var(--mat-sys-error, #b3261e);
-      margin-bottom: 8px;
-    }
-    h3 { margin: 8px 0 4px; }
-    p {
-      margin: 0 0 16px;
-      font-size: 0.875rem;
-      color: var(--mat-sys-on-surface-variant);
-    }
   `,
 })
 export class ErrorFallbackComponent {

@@ -20,28 +20,30 @@ describe('LoadingSkeletonComponent', () => {
 
   it('should render card skeletons by default', () => {
     fixture.detectChanges();
-    const cards = fixture.nativeElement.querySelectorAll('.skeleton-card');
-    expect(cards.length).toBe(3);
+    const lines = fixture.nativeElement.querySelectorAll('.skeleton-line');
+    // 3 cards × 4 lines each = 12
+    expect(lines.length).toBe(12);
   });
 
   it('should render list skeletons when variant is list', () => {
     fixture.componentRef.setInput('variant', 'list');
     fixture.detectChanges();
-    const items = fixture.nativeElement.querySelectorAll('.skeleton-list-item');
-    expect(items.length).toBe(3);
+    const circles = fixture.nativeElement.querySelectorAll('.skeleton-circle');
+    expect(circles.length).toBe(3);
   });
 
   it('should render correct count', () => {
     fixture.componentRef.setInput('count', 5);
     fixture.detectChanges();
-    const cards = fixture.nativeElement.querySelectorAll('.skeleton-card');
-    expect(cards.length).toBe(5);
+    const lines = fixture.nativeElement.querySelectorAll('.skeleton-line');
+    // 5 cards × 4 lines each = 20
+    expect(lines.length).toBe(20);
   });
 
   it('should render line variant', () => {
     fixture.componentRef.setInput('variant', 'line');
     fixture.detectChanges();
-    const lines = fixture.nativeElement.querySelectorAll('.skeleton-line.body');
+    const lines = fixture.nativeElement.querySelectorAll('.skeleton-line');
     expect(lines.length).toBe(3);
   });
 });

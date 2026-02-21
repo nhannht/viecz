@@ -1,30 +1,26 @@
 import { Component, inject, output, signal, OnInit } from '@angular/core';
-import { MatChipListbox, MatChipOption } from '@angular/material/chips';
 import { CategoryService } from '../../core/category.service';
-import { Category } from '../../core/models';
 
 @Component({
   selector: 'app-category-chips',
   standalone: true,
-  imports: [MatChipListbox, MatChipOption],
   template: `
-    <div class="category-chips">
-      <mat-chip-listbox (change)="onSelect($event.value)">
-        <mat-chip-option [value]="0" [selected]="selected() === 0">All</mat-chip-option>
-        @for (cat of categoryService.categories(); track cat.id) {
-          <mat-chip-option [value]="cat.id" [selected]="selected() === cat.id">
-            {{ cat.name_vi || cat.name }}
-          </mat-chip-option>
-        }
-      </mat-chip-listbox>
+    <div class="flex gap-2 overflow-x-auto pb-1 font-body text-[13px]">
+      <button
+        class="px-4 py-2 border cursor-pointer transition-all duration-200 whitespace-nowrap"
+        [class]="selected() === 0 ? 'bg-fg text-bg border-fg' : 'bg-transparent text-muted border-border hover:border-fg hover:text-fg'"
+        (click)="onSelect(0)">
+        All
+      </button>
+      @for (cat of categoryService.categories(); track cat.id) {
+        <button
+          class="px-4 py-2 border cursor-pointer transition-all duration-200 whitespace-nowrap"
+          [class]="selected() === cat.id ? 'bg-fg text-bg border-fg' : 'bg-transparent text-muted border-border hover:border-fg hover:text-fg'"
+          (click)="onSelect(cat.id)">
+          {{ cat.name_vi || cat.name }}
+        </button>
+      }
     </div>
-  `,
-  styles: `
-    .category-chips {
-      overflow-x: auto;
-      white-space: nowrap;
-      padding-bottom: 4px;
-    }
   `,
 })
 export class CategoryChipsComponent implements OnInit {

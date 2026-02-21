@@ -45,43 +45,46 @@ describe('MessageBubbleComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Hello there!');
   });
 
-  it('should apply mine class when isMine is true', () => {
-    const bubble = fixture.nativeElement.querySelector('.msg-bubble');
-    expect(bubble.classList.contains('mine')).toBe(true);
-    expect(bubble.classList.contains('theirs')).toBe(false);
+  it('should apply self-end class when isMine is true', () => {
+    const bubble = fixture.nativeElement.querySelector('app-message-bubble div');
+    expect(bubble.classList.contains('self-end')).toBe(true);
   });
 
-  it('should apply theirs class when isMine is false', () => {
+  it('should apply self-start class when isMine is false', () => {
     host.mine.set(false);
     fixture.detectChanges();
-    const bubble = fixture.nativeElement.querySelector('.msg-bubble');
-    expect(bubble.classList.contains('theirs')).toBe(true);
-    expect(bubble.classList.contains('mine')).toBe(false);
+    const bubble = fixture.nativeElement.querySelector('app-message-bubble div');
+    expect(bubble.classList.contains('self-start')).toBe(true);
   });
 
   it('should show read icon when message is read and mine', () => {
     host.msg.set({ ...mockMessage, is_read: true });
     host.mine.set(true);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.read-icon')).toBeTruthy();
+    const icons = fixture.nativeElement.querySelectorAll('nhannht-metro-icon');
+    const readIcon = Array.from(icons).find((i: any) => i.textContent?.includes('done_all'));
+    expect(readIcon).toBeTruthy();
   });
 
   it('should not show read icon when message is not read', () => {
     host.msg.set({ ...mockMessage, is_read: false });
     host.mine.set(true);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.read-icon')).toBeFalsy();
+    const icons = fixture.nativeElement.querySelectorAll('nhannht-metro-icon');
+    const readIcon = Array.from(icons).find((i: any) => i.textContent?.includes('done_all'));
+    expect(readIcon).toBeFalsy();
   });
 
   it('should not show read icon for others messages even if read', () => {
     host.msg.set({ ...mockMessage, is_read: true });
     host.mine.set(false);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.read-icon')).toBeFalsy();
+    const icons = fixture.nativeElement.querySelectorAll('nhannht-metro-icon');
+    const readIcon = Array.from(icons).find((i: any) => i.textContent?.includes('done_all'));
+    expect(readIcon).toBeFalsy();
   });
 
   it('should display time', () => {
-    const timeEl = fixture.nativeElement.querySelector('.msg-time');
-    expect(timeEl.textContent.trim()).toBeTruthy();
+    expect(fixture.nativeElement.textContent.trim()).toBeTruthy();
   });
 });

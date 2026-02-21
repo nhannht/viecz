@@ -1,58 +1,25 @@
 import { Component, input } from '@angular/core';
-import { MatIcon } from '@angular/material/icon';
+import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
 import { Message } from '../../core/models';
 import { TimeAgoPipe } from '../../core/pipes';
 
 @Component({
   selector: 'app-message-bubble',
   standalone: true,
-  imports: [MatIcon, TimeAgoPipe],
+  imports: [NhannhtMetroIconComponent, TimeAgoPipe],
   template: `
-    <div class="msg-bubble" [class.mine]="isMine()" [class.theirs]="!isMine()">
-      <div class="msg-content">{{ message().content }}</div>
-      <div class="msg-time">
+    <div class="max-w-[70%] px-3.5 py-2.5 break-words"
+         [class]="isMine()
+           ? 'self-end bg-fg text-bg'
+           : 'self-start bg-card text-fg border border-border'">
+      <div class="font-body text-[13px] leading-[1.6]">{{ message().content }}</div>
+      <div class="flex items-center gap-1 mt-1 opacity-70 font-body text-[11px]">
         {{ message().created_at | timeAgo }}
         @if (message().is_read && isMine()) {
-          <mat-icon class="read-icon">done_all</mat-icon>
+          <nhannht-metro-icon name="done_all" [size]="12" />
         }
       </div>
     </div>
-  `,
-  styles: `
-    .msg-bubble {
-      max-width: 70%;
-      padding: 10px 14px;
-      border-radius: 16px;
-      word-wrap: break-word;
-    }
-    .msg-bubble.mine {
-      align-self: flex-end;
-      background: var(--mat-sys-primary, #6750a4);
-      color: var(--mat-sys-on-primary, #fff);
-      border-bottom-right-radius: 4px;
-    }
-    .msg-bubble.theirs {
-      align-self: flex-start;
-      background: var(--mat-sys-surface-container-high, #e6e0e9);
-      border-bottom-left-radius: 4px;
-    }
-    .msg-content {
-      font-size: 0.875rem;
-      line-height: 1.4;
-    }
-    .msg-time {
-      font-size: 0.65rem;
-      opacity: 0.7;
-      margin-top: 4px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .read-icon {
-      font-size: 12px;
-      width: 12px;
-      height: 12px;
-    }
   `,
 })
 export class MessageBubbleComponent {
