@@ -79,3 +79,56 @@ func (r *walletGormRepository) GetOrCreate(ctx context.Context, userID int64) (*
 
 	return newWallet, nil
 }
+
+func (r *walletGormRepository) GetByUserIDForUpdate(ctx context.Context, tx *gorm.DB, userID int64) (*models.Wallet, error) {
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	var wallet models.Wallet
+	if err := db.WithContext(ctx).Set("gorm:query_option", "FOR UPDATE").
+		Where("user_id = ?", userID).First(&wallet).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("wallet not found for user")
+		}
+		return nil, fmt.Errorf("failed to get wallet for update: %w", err)
+	}
+	return &wallet, nil
+}
+
+func (r *walletGormRepository) GetOrCreateForUpdate(ctx context.Context, tx *gorm.DB, userID int64) (*models.Wallet, error) {
+	wallet, err := r.GetByUserIDForUpdate(ctx, tx, userID)
+	if err == nil {
+		return wallet, nil
+	}
+
+	// Wallet doesn't exist, create it within the transaction
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	newWallet := &models.Wallet{
+		UserID:         userID,
+		Balance:        0,
+		EscrowBalance:  0,
+		TotalDeposited: 0,
+		TotalWithdrawn: 0,
+		TotalEarned:    0,
+		TotalSpent:     0,
+	}
+	if err := db.WithContext(ctx).Create(newWallet).Error; err != nil {
+		return nil, fmt.Errorf("failed to create wallet: %w", err)
+	}
+	return newWallet, nil
+}
+
+func (r *walletGormRepository) UpdateWithTx(ctx context.Context, tx *gorm.DB, wallet *models.Wallet) error {
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	if err := db.WithContext(ctx).Save(wallet).Error; err != nil {
+		return fmt.Errorf("failed to update wallet: %w", err)
+	}
+	return nil
+}

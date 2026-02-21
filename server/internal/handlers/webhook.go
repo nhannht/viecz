@@ -147,7 +147,7 @@ func (h *WebhookHandler) handlePaymentSuccess(ctx context.Context, orderCode int
 	switch transaction.Type {
 	case models.TransactionTypeDeposit:
 		// Credit the user's wallet
-		if err := h.walletService.Deposit(ctx, transaction.PayerID, transaction.Amount, transaction.Description); err != nil {
+		if err := h.walletService.Deposit(ctx, nil, transaction.PayerID, transaction.Amount, transaction.Description); err != nil {
 			return err
 		}
 

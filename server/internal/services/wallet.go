@@ -68,15 +68,17 @@ func (s *WalletService) ValidateDeposit(ctx context.Context, userID, amount int6
 	return nil
 }
 
-// Deposit adds funds to a wallet (for testing/dev mode)
-func (s *WalletService) Deposit(ctx context.Context, userID, amount int64, description string) error {
+// Deposit adds funds to a wallet.
+// If outerTx is non-nil, uses it directly (caller manages the transaction).
+// If outerTx is nil, creates its own transaction.
+func (s *WalletService) Deposit(ctx context.Context, outerTx *gorm.DB, userID, amount int64, description string) error {
 	if amount <= 0 {
 		return fmt.Errorf("deposit amount must be positive")
 	}
 
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Get or create wallet
-		wallet, err := s.walletRepo.GetOrCreate(ctx, userID)
+	do := func(tx *gorm.DB) error {
+		// Get or create wallet with row lock
+		wallet, err := s.walletRepo.GetOrCreateForUpdate(ctx, tx, userID)
 		if err != nil {
 			return fmt.Errorf("failed to get wallet: %w", err)
 		}
@@ -94,7 +96,7 @@ func (s *WalletService) Deposit(ctx context.Context, userID, amount int64, descr
 		wallet.Credit(amount)
 		wallet.TotalDeposited += amount
 
-		if err := s.walletRepo.Update(ctx, wallet); err != nil {
+		if err := s.walletRepo.UpdateWithTx(ctx, tx, wallet); err != nil {
 			return fmt.Errorf("failed to update wallet: %w", err)
 		}
 
@@ -110,23 +112,32 @@ func (s *WalletService) Deposit(ctx context.Context, userID, amount int64, descr
 			Description:   description,
 		}
 
-		if err := s.walletTransactionRepo.Create(ctx, walletTx); err != nil {
+		if err := s.walletTransactionRepo.CreateWithTx(ctx, tx, walletTx); err != nil {
 			return fmt.Errorf("failed to create wallet transaction: %w", err)
 		}
 
 		return nil
+	}
+
+	if outerTx != nil {
+		return do(outerTx)
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return do(tx)
 	})
 }
 
-// HoldInEscrow moves funds from balance to escrow for a task
-func (s *WalletService) HoldInEscrow(ctx context.Context, userID, amount, taskID int64, transactionID *int64) error {
+// HoldInEscrow moves funds from balance to escrow for a task.
+// If outerTx is non-nil, uses it directly (caller manages the transaction).
+// If outerTx is nil, creates its own transaction.
+func (s *WalletService) HoldInEscrow(ctx context.Context, outerTx *gorm.DB, userID, amount, taskID int64, transactionID *int64) error {
 	if amount <= 0 {
 		return fmt.Errorf("escrow amount must be positive")
 	}
 
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Get wallet
-		wallet, err := s.walletRepo.GetByUserID(ctx, userID)
+	do := func(tx *gorm.DB) error {
+		// Get wallet with row lock
+		wallet, err := s.walletRepo.GetByUserIDForUpdate(ctx, tx, userID)
 		if err != nil {
 			return fmt.Errorf("wallet not found: %w", err)
 		}
@@ -140,7 +151,7 @@ func (s *WalletService) HoldInEscrow(ctx context.Context, userID, amount, taskID
 			return err
 		}
 
-		if err := s.walletRepo.Update(ctx, wallet); err != nil {
+		if err := s.walletRepo.UpdateWithTx(ctx, tx, wallet); err != nil {
 			return fmt.Errorf("failed to update wallet: %w", err)
 		}
 
@@ -158,23 +169,32 @@ func (s *WalletService) HoldInEscrow(ctx context.Context, userID, amount, taskID
 			Description:   fmt.Sprintf("Escrow hold for task #%d", taskID),
 		}
 
-		if err := s.walletTransactionRepo.Create(ctx, walletTx); err != nil {
+		if err := s.walletTransactionRepo.CreateWithTx(ctx, tx, walletTx); err != nil {
 			return fmt.Errorf("failed to create wallet transaction: %w", err)
 		}
 
 		return nil
+	}
+
+	if outerTx != nil {
+		return do(outerTx)
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return do(tx)
 	})
 }
 
-// ReleaseFromEscrow releases funds from escrow to payee when task is completed
-func (s *WalletService) ReleaseFromEscrow(ctx context.Context, payerID, payeeID, amount, taskID int64, transactionID *int64) error {
+// ReleaseFromEscrow releases funds from escrow to payee when task is completed.
+// If outerTx is non-nil, uses it directly (caller manages the transaction).
+// If outerTx is nil, creates its own transaction.
+func (s *WalletService) ReleaseFromEscrow(ctx context.Context, outerTx *gorm.DB, payerID, payeeID, amount, taskID int64, transactionID *int64) error {
 	if amount <= 0 {
 		return fmt.Errorf("release amount must be positive")
 	}
 
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Get payer wallet and release from escrow
-		payerWallet, err := s.walletRepo.GetByUserID(ctx, payerID)
+	do := func(tx *gorm.DB) error {
+		// Get payer wallet with row lock and release from escrow
+		payerWallet, err := s.walletRepo.GetByUserIDForUpdate(ctx, tx, payerID)
 		if err != nil {
 			return fmt.Errorf("payer wallet not found: %w", err)
 		}
@@ -186,7 +206,7 @@ func (s *WalletService) ReleaseFromEscrow(ctx context.Context, payerID, payeeID,
 			return err
 		}
 
-		if err := s.walletRepo.Update(ctx, payerWallet); err != nil {
+		if err := s.walletRepo.UpdateWithTx(ctx, tx, payerWallet); err != nil {
 			return fmt.Errorf("failed to update payer wallet: %w", err)
 		}
 
@@ -205,12 +225,12 @@ func (s *WalletService) ReleaseFromEscrow(ctx context.Context, payerID, payeeID,
 			ReferenceUserID: &payeeID,
 		}
 
-		if err := s.walletTransactionRepo.Create(ctx, payerTx); err != nil {
+		if err := s.walletTransactionRepo.CreateWithTx(ctx, tx, payerTx); err != nil {
 			return fmt.Errorf("failed to create payer wallet transaction: %w", err)
 		}
 
-		// Get or create payee wallet and credit
-		payeeWallet, err := s.walletRepo.GetOrCreate(ctx, payeeID)
+		// Get or create payee wallet with row lock and credit
+		payeeWallet, err := s.walletRepo.GetOrCreateForUpdate(ctx, tx, payeeID)
 		if err != nil {
 			return fmt.Errorf("failed to get payee wallet: %w", err)
 		}
@@ -221,7 +241,7 @@ func (s *WalletService) ReleaseFromEscrow(ctx context.Context, payerID, payeeID,
 		payeeWallet.Credit(amount)
 		payeeWallet.TotalEarned += amount
 
-		if err := s.walletRepo.Update(ctx, payeeWallet); err != nil {
+		if err := s.walletRepo.UpdateWithTx(ctx, tx, payeeWallet); err != nil {
 			return fmt.Errorf("failed to update payee wallet: %w", err)
 		}
 
@@ -240,23 +260,32 @@ func (s *WalletService) ReleaseFromEscrow(ctx context.Context, payerID, payeeID,
 			ReferenceUserID: &payerID,
 		}
 
-		if err := s.walletTransactionRepo.Create(ctx, payeeTx); err != nil {
+		if err := s.walletTransactionRepo.CreateWithTx(ctx, tx, payeeTx); err != nil {
 			return fmt.Errorf("failed to create payee wallet transaction: %w", err)
 		}
 
 		return nil
+	}
+
+	if outerTx != nil {
+		return do(outerTx)
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return do(tx)
 	})
 }
 
-// RefundFromEscrow refunds funds from escrow back to payer when task is cancelled
-func (s *WalletService) RefundFromEscrow(ctx context.Context, userID, amount, taskID int64, transactionID *int64) error {
+// RefundFromEscrow refunds funds from escrow back to payer when task is cancelled.
+// If outerTx is non-nil, uses it directly (caller manages the transaction).
+// If outerTx is nil, creates its own transaction.
+func (s *WalletService) RefundFromEscrow(ctx context.Context, outerTx *gorm.DB, userID, amount, taskID int64, transactionID *int64) error {
 	if amount <= 0 {
 		return fmt.Errorf("refund amount must be positive")
 	}
 
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Get wallet
-		wallet, err := s.walletRepo.GetByUserID(ctx, userID)
+	do := func(tx *gorm.DB) error {
+		// Get wallet with row lock
+		wallet, err := s.walletRepo.GetByUserIDForUpdate(ctx, tx, userID)
 		if err != nil {
 			return fmt.Errorf("wallet not found: %w", err)
 		}
@@ -270,7 +299,7 @@ func (s *WalletService) RefundFromEscrow(ctx context.Context, userID, amount, ta
 			return err
 		}
 
-		if err := s.walletRepo.Update(ctx, wallet); err != nil {
+		if err := s.walletRepo.UpdateWithTx(ctx, tx, wallet); err != nil {
 			return fmt.Errorf("failed to update wallet: %w", err)
 		}
 
@@ -288,11 +317,18 @@ func (s *WalletService) RefundFromEscrow(ctx context.Context, userID, amount, ta
 			Description:   fmt.Sprintf("Escrow refund for task #%d", taskID),
 		}
 
-		if err := s.walletTransactionRepo.Create(ctx, walletTx); err != nil {
+		if err := s.walletTransactionRepo.CreateWithTx(ctx, tx, walletTx); err != nil {
 			return fmt.Errorf("failed to create wallet transaction: %w", err)
 		}
 
 		return nil
+	}
+
+	if outerTx != nil {
+		return do(outerTx)
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return do(tx)
 	})
 }
 

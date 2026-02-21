@@ -103,6 +103,10 @@ func (m *mockTaskRepository) GetByIDs(ctx context.Context, ids []int64) ([]*mode
 	return tasks, nil
 }
 
+func (m *mockTaskRepository) UpdateWithTx(ctx context.Context, tx *gorm.DB, task *models.Task) error {
+	return m.Update(ctx, task)
+}
+
 func (m *mockTaskRepository) UpdateStatus(ctx context.Context, taskID int64, status models.TaskStatus) error {
 	task, exists := m.tasks[taskID]
 	if !exists {

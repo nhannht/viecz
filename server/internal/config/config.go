@@ -89,8 +89,8 @@ func Load() (*Config, error) {
 
 	// Validate required fields (PayOS only required for payment features)
 	// Database and JWT are always required
-	if cfg.JWTSecret == "your-secret-key-change-in-production" && cfg.Env == "production" {
-		return nil, fmt.Errorf("JWT_SECRET must be set in production")
+	if cfg.JWTSecret == "your-secret-key-change-in-production" || cfg.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET environment variable must be set to a secure value")
 	}
 
 	return cfg, nil

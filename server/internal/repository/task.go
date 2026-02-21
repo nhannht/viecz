@@ -16,6 +16,7 @@ type TaskRepository interface {
 	GetByID(ctx context.Context, id int64) (*models.Task, error)
 	GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error)
 	Update(ctx context.Context, task *models.Task) error
+	UpdateWithTx(ctx context.Context, tx *gorm.DB, task *models.Task) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, filters TaskFilters) ([]*models.Task, error)
 	CountByFilters(ctx context.Context, filters TaskFilters) (int, error)
@@ -142,6 +143,11 @@ func (r *taskRepository) Update(ctx context.Context, task *models.Task) error {
 	}
 
 	return nil
+}
+
+func (r *taskRepository) UpdateWithTx(ctx context.Context, tx *gorm.DB, task *models.Task) error {
+	// Legacy SQL implementation does not support GORM transactions; fall back to Update
+	return r.Update(ctx, task)
 }
 
 func (r *taskRepository) Delete(ctx context.Context, id int64) error {

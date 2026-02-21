@@ -196,7 +196,7 @@ func main() {
 	mockPayOS := &mockPayOS{}
 
 	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, applicationRepo, walletService, 0, notificationService,
+		transactionRepo, taskRepo, applicationRepo, walletService, 0, notificationService, db,
 	)
 
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
@@ -241,11 +241,16 @@ func main() {
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
 		}
 
-		// Payment routes (public — webhook)
+		// Payment routes — public (mock PayOS webhook callback)
 		payment := api.Group("/payment")
 		{
 			payment.POST("/webhook", webhookHandler.HandleWebhook)
-			payment.POST("/confirm-webhook", webhookHandler.ConfirmWebhook)
+		}
+		// Payment routes — protected (requires auth)
+		paymentProtected := api.Group("/payment")
+		paymentProtected.Use(auth.AuthRequired(jwtSecret))
+		{
+			paymentProtected.POST("/confirm-webhook", webhookHandler.ConfirmWebhook)
 		}
 
 		// Category routes (public)

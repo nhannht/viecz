@@ -67,3 +67,14 @@ func (r *walletTransactionGormRepository) GetByTaskID(ctx context.Context, taskI
 	}
 	return transactions, nil
 }
+
+func (r *walletTransactionGormRepository) CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.WalletTransaction) error {
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	if err := db.WithContext(ctx).Create(transaction).Error; err != nil {
+		return fmt.Errorf("failed to create wallet transaction: %w", err)
+	}
+	return nil
+}

@@ -98,7 +98,7 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 
 	// 7. PaymentService (uses real wallet service)
 	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, applicationRepo, walletService, 0, nil,
+		transactionRepo, taskRepo, applicationRepo, walletService, 0, nil, db,
 	)
 
 	// 9. Handlers

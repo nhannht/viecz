@@ -150,7 +150,7 @@ func TestPaymentService_CreateEscrowPayment(t *testing.T) {
 				walletRepo.Wallets[1] = wallet
 			}
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil)
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB)
 
 			ctx := context.Background()
 
@@ -219,7 +219,7 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 
 	walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, 0.10, nil)
+	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, 0.10, nil, mockDB)
 
 	transaction, checkoutURL, err := service.CreateEscrowPayment(context.Background(), 1, 1)
 
@@ -419,7 +419,7 @@ func TestPaymentService_ReleasePayment(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil)
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB)
 
 			ctx := context.Background()
 
@@ -561,7 +561,7 @@ func TestPaymentService_RefundPayment(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil)
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB)
 
 			ctx := context.Background()
 
@@ -618,7 +618,7 @@ func TestPaymentService_GetTransactionsByTask(t *testing.T) {
 				tt.setupRepos(txRepo)
 			}
 
-			service := NewPaymentService(txRepo, nil, nil, nil, 0, nil)
+			service := NewPaymentService(txRepo, nil, nil, nil, 0, nil, nil)
 			ctx := context.Background()
 
 			transactions, err := service.GetTransactionsByTask(ctx, tt.taskID)

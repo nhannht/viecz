@@ -80,6 +80,18 @@ func (m *MockWalletRepository) GetOrCreate(ctx context.Context, userID int64) (*
 	return newWallet, nil
 }
 
+func (m *MockWalletRepository) GetByUserIDForUpdate(ctx context.Context, tx *gorm.DB, userID int64) (*models.Wallet, error) {
+	return m.GetByUserID(ctx, userID)
+}
+
+func (m *MockWalletRepository) GetOrCreateForUpdate(ctx context.Context, tx *gorm.DB, userID int64) (*models.Wallet, error) {
+	return m.GetOrCreate(ctx, userID)
+}
+
+func (m *MockWalletRepository) UpdateWithTx(ctx context.Context, tx *gorm.DB, wallet *models.Wallet) error {
+	return m.Update(ctx, wallet)
+}
+
 // MockWalletTransactionRepository is a mock implementation of repository.WalletTransactionRepository
 type MockWalletTransactionRepository struct {
 	Transactions map[int64]*models.WalletTransaction
@@ -138,6 +150,10 @@ func (m *MockWalletTransactionRepository) GetByTaskID(ctx context.Context, taskI
 		}
 	}
 	return transactions, nil
+}
+
+func (m *MockWalletTransactionRepository) CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.WalletTransaction) error {
+	return m.Create(ctx, transaction)
 }
 
 // MockTransactionRepository is a mock implementation of repository.TransactionRepository
@@ -251,6 +267,14 @@ func (m *MockTransactionRepository) GetByOrderCode(ctx context.Context, orderCod
 	return nil, errors.New("transaction not found")
 }
 
+func (m *MockTransactionRepository) CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.Transaction) error {
+	return m.Create(ctx, transaction)
+}
+
+func (m *MockTransactionRepository) GetByTaskIDWithTx(ctx context.Context, tx *gorm.DB, taskID int64) ([]*models.Transaction, error) {
+	return m.GetByTaskID(ctx, taskID)
+}
+
 // MockTaskRepository is a mock implementation of repository.TaskRepository for wallet tests
 type MockTaskRepository struct {
 	Tasks map[int64]*models.Task
@@ -334,6 +358,10 @@ func (m *MockTaskRepository) AssignTasker(ctx context.Context, taskID, taskerID 
 	}
 	task.TaskerID = &taskerID
 	return nil
+}
+
+func (m *MockTaskRepository) UpdateWithTx(ctx context.Context, tx *gorm.DB, task *models.Task) error {
+	return m.Update(ctx, task)
 }
 
 func (m *MockTaskRepository) GetByIDs(ctx context.Context, ids []int64) ([]*models.Task, error) {

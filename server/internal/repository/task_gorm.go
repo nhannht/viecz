@@ -61,6 +61,17 @@ func (r *taskGormRepository) Update(ctx context.Context, task *models.Task) erro
 	return nil
 }
 
+func (r *taskGormRepository) UpdateWithTx(ctx context.Context, tx *gorm.DB, task *models.Task) error {
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	if err := db.WithContext(ctx).Save(task).Error; err != nil {
+		return fmt.Errorf("failed to update task: %w", err)
+	}
+	return nil
+}
+
 func (r *taskGormRepository) Delete(ctx context.Context, id int64) error {
 	result := r.db.WithContext(ctx).Delete(&models.Task{}, id)
 	if result.Error != nil {

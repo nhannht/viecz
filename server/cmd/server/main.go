@@ -125,6 +125,7 @@ func main() {
 		walletService,
 		cfg.PlatformFeeRate,
 		notificationService,
+		db,
 	)
 
 	// Initialize message service (Phase 4)
@@ -184,13 +185,18 @@ func main() {
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
 		}
 
-		// Payment routes (keeping for backward compatibility)
+		// Payment routes — public (PayOS callback + browser redirect)
 		payment := api.Group("/payment")
 		{
-			payment.POST("/create", paymentHandler.CreatePayment)
 			payment.GET("/return", returnHandler.HandleReturn)
 			payment.POST("/webhook", webhookHandler.HandleWebhook)
-			payment.POST("/confirm-webhook", webhookHandler.ConfirmWebhook)
+		}
+		// Payment routes — protected (requires auth)
+		paymentProtected := api.Group("/payment")
+		paymentProtected.Use(auth.AuthRequired(cfg.JWTSecret))
+		{
+			paymentProtected.POST("/create", paymentHandler.CreatePayment)
+			paymentProtected.POST("/confirm-webhook", webhookHandler.ConfirmWebhook)
 		}
 
 		// Category routes (public)

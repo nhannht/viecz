@@ -271,7 +271,7 @@ func TestWalletService_Deposit(t *testing.T) {
 			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
-			err = service.Deposit(ctx, tt.userID, tt.amount, tt.description)
+			err = service.Deposit(ctx, nil, tt.userID, tt.amount, tt.description)
 
 			testutil.AssertError(t, err, tt.wantErr, tt.errContains)
 			if !tt.wantErr && tt.checkFunc != nil {
@@ -467,7 +467,7 @@ func TestWalletService_HoldInEscrow(t *testing.T) {
 			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
-			err = service.HoldInEscrow(ctx, tt.userID, tt.amount, tt.taskID, nil)
+			err = service.HoldInEscrow(ctx, nil, tt.userID, tt.amount, tt.taskID, nil)
 
 			testutil.AssertError(t, err, tt.wantErr, tt.errContains)
 			if !tt.wantErr {
@@ -585,7 +585,7 @@ func TestWalletService_ReleaseFromEscrow(t *testing.T) {
 			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
-			err = service.ReleaseFromEscrow(ctx, tt.payerID, tt.payeeID, tt.amount, tt.taskID, nil)
+			err = service.ReleaseFromEscrow(ctx, nil, tt.payerID, tt.payeeID, tt.amount, tt.taskID, nil)
 
 			testutil.AssertError(t, err, tt.wantErr, tt.errContains)
 			if !tt.wantErr && tt.checkFunc != nil {
@@ -677,7 +677,7 @@ func TestWalletService_RefundFromEscrow(t *testing.T) {
 			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 			ctx := context.Background()
 
-			err = service.RefundFromEscrow(ctx, tt.userID, tt.amount, tt.taskID, nil)
+			err = service.RefundFromEscrow(ctx, nil, tt.userID, tt.amount, tt.taskID, nil)
 
 			testutil.AssertError(t, err, tt.wantErr, tt.errContains)
 			if !tt.wantErr {

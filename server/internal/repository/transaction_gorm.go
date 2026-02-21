@@ -116,3 +116,29 @@ func (r *transactionGormRepository) UpdateStatus(ctx context.Context, id int64, 
 	}
 	return nil
 }
+
+func (r *transactionGormRepository) CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.Transaction) error {
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	if err := db.WithContext(ctx).Create(transaction).Error; err != nil {
+		return fmt.Errorf("failed to create transaction: %w", err)
+	}
+	return nil
+}
+
+func (r *transactionGormRepository) GetByTaskIDWithTx(ctx context.Context, tx *gorm.DB, taskID int64) ([]*models.Transaction, error) {
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	var transactions []*models.Transaction
+	if err := db.WithContext(ctx).
+		Where("task_id = ?", taskID).
+		Order("created_at DESC").
+		Find(&transactions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get transactions by task ID: %w", err)
+	}
+	return transactions, nil
+}

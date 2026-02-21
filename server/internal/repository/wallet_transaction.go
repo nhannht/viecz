@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
 )
 
@@ -12,4 +13,6 @@ type WalletTransactionRepository interface {
 	GetByID(ctx context.Context, id int64) (*models.WalletTransaction, error)
 	GetByWalletID(ctx context.Context, walletID int64, limit, offset int) ([]*models.WalletTransaction, error)
 	GetByTaskID(ctx context.Context, taskID int64) ([]*models.WalletTransaction, error)
+	// Transaction-aware method (pass tx from outer transaction, nil = use default db)
+	CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.WalletTransaction) error
 }
