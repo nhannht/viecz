@@ -55,7 +55,7 @@ class LoginScreenTest {
         }
 
         composeTestRule.onNodeWithText("Welcome Back").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Login to your account").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Sign in to your account").assertIsDisplayed()
     }
 
     @Test
@@ -75,7 +75,7 @@ class LoginScreenTest {
     }
 
     @Test
-    fun `LoginScreen displays login button initially disabled`() {
+    fun `LoginScreen displays sign in button initially disabled`() {
         composeTestRule.setContent {
             MaterialTheme {
                 LoginScreen(
@@ -86,12 +86,12 @@ class LoginScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Login").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Login").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Sign In").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Sign In").assertIsNotEnabled()
     }
 
     @Test
-    fun `LoginScreen login button enabled when fields filled`() {
+    fun `LoginScreen sign in button enabled when fields filled`() {
         composeTestRule.setContent {
             MaterialTheme {
                 LoginScreen(
@@ -105,7 +105,7 @@ class LoginScreenTest {
         composeTestRule.onNodeWithText("Email").performTextInput("test@example.com")
         composeTestRule.onNodeWithText("Password").performTextInput("password123")
 
-        composeTestRule.onNodeWithText("Login").assertIsEnabled()
+        composeTestRule.onNodeWithText("Sign In").assertIsEnabled()
     }
 
     @Test
@@ -120,7 +120,7 @@ class LoginScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Don't have an account? Register").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Don't have an account? Create Account").assertIsDisplayed()
     }
 
     @Test
@@ -137,7 +137,7 @@ class LoginScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Don't have an account? Register").performClick()
+        composeTestRule.onNodeWithText("Don't have an account? Create Account").performClick()
         assert(navigated)
     }
 
@@ -164,7 +164,7 @@ class LoginScreenTest {
     }
 
     @Test
-    fun `LoginScreen shows error message on login failure`() {
+    fun `LoginScreen shows error message on sign in failure`() {
         coEvery { mockRepository.login(any(), any()) } returns Result.failure(
             Exception("Invalid credentials")
         )
@@ -182,7 +182,7 @@ class LoginScreenTest {
         // Fill fields and click login
         composeTestRule.onNodeWithText("Email").performTextInput("test@example.com")
         composeTestRule.onNodeWithText("Password").performTextInput("wrongpass")
-        composeTestRule.onNodeWithText("Login").performClick()
+        composeTestRule.onNodeWithText("Sign In").performClick()
 
         composeTestRule.waitForIdle()
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
+import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.TaskCard
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.NotificationViewModel
@@ -167,21 +168,10 @@ fun HomeContent(
                     }
                 }
             } else if (taskUiState.error != null && taskUiState.tasks.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = taskUiState.error ?: "An error occurred",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { taskListViewModel.refresh() }) {
-                            Text("Retry")
-                        }
-                    }
-                }
+                ErrorState(
+                    message = taskUiState.error ?: "An error occurred",
+                    onRetry = { taskListViewModel.refresh() }
+                )
             } else if (taskUiState.tasks.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),

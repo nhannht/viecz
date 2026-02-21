@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.WorkOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -15,12 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.ui.components.EmptyState
+import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.TaskCard
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,11 +45,10 @@ data class MyJobsUiState(
 @HiltViewModel
 class MyJobsViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
-    private val tokenManager: TokenManager,
-    savedStateHandle: SavedStateHandle
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    private val mode: String = savedStateHandle.get<String>("mode") ?: "posted"
+    private var currentMode: String = "posted"
 
     private val _uiState = MutableStateFlow(MyJobsUiState())
     val uiState: StateFlow<MyJobsUiState> = _uiState.asStateFlow()
@@ -56,6 +59,12 @@ class MyJobsViewModel @Inject constructor(
 
     init {
         loadJobs()
+    }
+
+    fun switchMode(mode: String) {
+        if (mode == currentMode && _uiState.value.tasks.isNotEmpty()) return
+        currentMode = mode
+        loadJobs(refresh = true)
     }
 
     fun loadJobs(refresh: Boolean = false) {
@@ -79,7 +88,7 @@ class MyJobsViewModel @Inject constructor(
                 return@launch
             }
 
-            val result = when (mode) {
+            val result = when (currentMode) {
                 "posted" -> taskRepository.getTasks(
                     page = _uiState.value.currentPage,
                     requesterId = userId
@@ -97,7 +106,7 @@ class MyJobsViewModel @Inject constructor(
                 else -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "Unknown mode: $mode"
+                        error = "Unknown mode: $currentMode"
                     )
                     return@launch
                 }
@@ -105,7 +114,7 @@ class MyJobsViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = { response ->
-                    Log.d(TAG, "Jobs loaded ($mode): ${response.data.size} tasks")
+                    Log.d(TAG, "Jobs loaded ($currentMode): ${response.data.size} tasks")
                     val currentTasks = if (refresh) emptyList() else _uiState.value.tasks
                     _uiState.value = _uiState.value.copy(
                         tasks = currentTasks + response.data,
@@ -115,7 +124,7 @@ class MyJobsViewModel @Inject constructor(
                     )
                 },
                 onFailure = { error ->
-                    Log.e(TAG, "Failed to load jobs ($mode)", error)
+                    Log.e(TAG, "Failed to load jobs ($currentMode)", error)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = error.message ?: "Failed to load jobs"
@@ -137,120 +146,150 @@ class MyJobsViewModel @Inject constructor(
     }
 }
 
+private val TAB_MODES = listOf("posted", "applied", "completed")
+private val TAB_LABELS = listOf("Posted", "Applied", "Completed")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyJobsScreen(
-    mode: String,
     onNavigateBack: () -> Unit,
     onNavigateToTaskDetail: (Long) -> Unit,
+    onNavigateToCreateTask: () -> Unit = {},
+    onNavigateToMarketplace: () -> Unit = {},
     viewModel: MyJobsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    Scaffold(
+        topBar = {
+            Column {
+                TopAppBar(
+                    title = { Text("My Jobs") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+                TabRow(selectedTabIndex = selectedTab) {
+                    TAB_LABELS.forEachIndexed { index, label ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = {
+                                selectedTab = index
+                                viewModel.switchMode(TAB_MODES[index])
+                            },
+                            text = { Text(label) }
+                        )
+                    }
+                }
+            }
+        }
+    ) { paddingValues ->
+        MyJobsTabContent(
+            mode = TAB_MODES[selectedTab],
+            uiState = uiState,
+            onRefresh = { viewModel.refresh() },
+            onLoadMore = { viewModel.loadMore() },
+            onNavigateToTaskDetail = onNavigateToTaskDetail,
+            onNavigateToCreateTask = onNavigateToCreateTask,
+            onNavigateToMarketplace = onNavigateToMarketplace,
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MyJobsTabContent(
+    mode: String,
+    uiState: MyJobsUiState,
+    onRefresh: () -> Unit,
+    onLoadMore: () -> Unit,
+    onNavigateToTaskDetail: (Long) -> Unit,
+    onNavigateToCreateTask: () -> Unit,
+    onNavigateToMarketplace: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
-
-    val title = when (mode) {
-        "posted" -> "My Posted Jobs"
-        "applied" -> "My Applied Jobs"
-        "completed" -> "My Completed Jobs"
-        else -> "My Jobs"
-    }
 
     // Load more when reaching end of list
     LaunchedEffect(listState.layoutInfo.visibleItemsInfo) {
         val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
         if (lastVisibleItem != null && lastVisibleItem.index >= uiState.tasks.size - 2) {
-            viewModel.loadMore()
+            onLoadMore()
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
+    PullToRefreshBox(
+        state = pullToRefreshState,
+        isRefreshing = uiState.isLoading && uiState.tasks.isNotEmpty(),
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize()
+    ) {
+        when {
+            uiState.isLoading && uiState.tasks.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
-            )
-        }
-    ) { paddingValues ->
-        PullToRefreshBox(
-            state = pullToRefreshState,
-            isRefreshing = uiState.isLoading && uiState.tasks.isNotEmpty(),
-            onRefresh = { viewModel.refresh() },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                uiState.isLoading && uiState.tasks.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+            }
+            uiState.error != null && uiState.tasks.isEmpty() -> {
+                ErrorState(
+                    message = uiState.error ?: "An error occurred",
+                    onRetry = onRefresh
+                )
+            }
+            uiState.tasks.isEmpty() -> {
+                when (mode) {
+                    "posted" -> EmptyState(
+                        icon = Icons.Default.Assignment,
+                        title = "No posted tasks yet",
+                        message = "Post a task to find help",
+                        actionLabel = "Post a Task",
+                        onAction = onNavigateToCreateTask
+                    )
+                    "applied" -> EmptyState(
+                        icon = Icons.Default.WorkOutline,
+                        title = "No active jobs",
+                        message = "Browse the marketplace to find tasks",
+                        actionLabel = "Browse Marketplace",
+                        onAction = onNavigateToMarketplace
+                    )
+                    else -> EmptyState(
+                        icon = Icons.Default.DoneAll,
+                        title = "No completed jobs yet",
+                        message = "Complete tasks to see them here"
+                    )
                 }
-                uiState.error != null && uiState.tasks.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = uiState.error ?: "An error occurred",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.refresh() }) {
-                                Text("Retry")
-                            }
-                        }
-                    }
-                }
-                uiState.tasks.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = when (mode) {
-                                "posted" -> "You haven't posted any jobs yet"
-                                "applied" -> "You haven't applied to any jobs yet"
-                                "completed" -> "You haven't completed any jobs yet"
-                                else -> "No jobs found"
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            else -> {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.tasks, key = { it.id }) { task ->
+                        TaskCard(
+                            task = task,
+                            onClick = { onNavigateToTaskDetail(task.id) }
                         )
                     }
-                }
-                else -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiState.tasks, key = { it.id }) { task ->
-                            TaskCard(
-                                task = task,
-                                onClick = { onNavigateToTaskDetail(task.id) }
-                            )
-                        }
 
-                        if (uiState.isLoading && uiState.tasks.isNotEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
+                    if (uiState.isLoading && uiState.tasks.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
                             }
                         }
                     }

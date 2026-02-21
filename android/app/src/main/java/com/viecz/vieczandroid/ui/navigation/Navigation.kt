@@ -25,7 +25,7 @@ object NavigationRoutes {
     const val WALLET = "wallet"
     const val CHAT = "chat/{conversationId}"
     const val NOTIFICATIONS = "notifications"
-    const val MY_JOBS = "my_jobs/{mode}"
+    const val MY_JOBS = "my_jobs"
     const val EDIT_TASK = "edit_task/{taskId}"
     const val EDIT_PROFILE = "edit_profile"
     const val FIRST_SCREEN = "first_screen"
@@ -36,7 +36,6 @@ object NavigationRoutes {
     fun editTask(taskId: Long) = "edit_task/$taskId"
     fun applyTask(taskId: Long, price: Long) = "apply_task/$taskId/$price"
     fun chat(conversationId: Long) = "chat/$conversationId"
-    fun myJobs(mode: String) = "my_jobs/$mode"
 }
 
 @Composable
@@ -224,14 +223,8 @@ fun VieczNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onNavigateToMyPostedJobs = {
-                    navController.navigate(NavigationRoutes.myJobs("posted"))
-                },
-                onNavigateToMyAppliedJobs = {
-                    navController.navigate(NavigationRoutes.myJobs("applied"))
-                },
-                onNavigateToMyCompletedJobs = {
-                    navController.navigate(NavigationRoutes.myJobs("completed"))
+                onNavigateToMyJobs = {
+                    navController.navigate(NavigationRoutes.MY_JOBS)
                 },
                 onNavigateToEditProfile = {
                     navController.navigate(NavigationRoutes.EDIT_PROFILE)
@@ -246,17 +239,20 @@ fun VieczNavHost(
             )
         }
 
-        // My Jobs screen
-        composable(
-            route = NavigationRoutes.MY_JOBS,
-            arguments = listOf(navArgument("mode") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val mode = backStackEntry.arguments?.getString("mode") ?: "posted"
+        // My Jobs screen (tabbed: Posted / Applied / Completed)
+        composable(NavigationRoutes.MY_JOBS) {
             MyJobsScreen(
-                mode = mode,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTaskDetail = { taskId ->
                     navController.navigate(NavigationRoutes.taskDetail(taskId))
+                },
+                onNavigateToCreateTask = {
+                    navController.navigate(NavigationRoutes.CREATE_TASK)
+                },
+                onNavigateToMarketplace = {
+                    navController.navigate(NavigationRoutes.MAIN) {
+                        popUpTo(NavigationRoutes.MAIN) { inclusive = true }
+                    }
                 }
             )
         }

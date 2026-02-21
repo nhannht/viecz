@@ -58,7 +58,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Login to your account",
+                text = "Sign in to your account",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -127,7 +127,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Login")
+                Text("Sign In")
             }
 
             // Google Sign-In hidden per user request
@@ -177,7 +177,7 @@ fun LoginScreen(
                 onClick = onNavigateToRegister,
                 enabled = authState !is AuthState.Loading
             ) {
-                Text("Don't have an account? Register")
+                Text("Don't have an account? Create Account")
             }
         }
     }

@@ -54,7 +54,8 @@ class RegisterScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Create Account").assertIsDisplayed()
+        // Title and button both show "Create Account", verify at least 2 exist
+        composeTestRule.onAllNodesWithText("Create Account").assertCountEquals(2)
     }
 
     @Test
@@ -75,7 +76,7 @@ class RegisterScreenTest {
     }
 
     @Test
-    fun `RegisterScreen register button is disabled when fields empty`() {
+    fun `RegisterScreen create account button is disabled when fields empty`() {
         composeTestRule.setContent {
             MaterialTheme {
                 RegisterScreen(
@@ -86,11 +87,11 @@ class RegisterScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Register").assertIsNotEnabled()
+        composeTestRule.onNode(hasText("Create Account") and hasClickAction()).assertIsNotEnabled()
     }
 
     @Test
-    fun `RegisterScreen register button enabled with valid fields`() {
+    fun `RegisterScreen create account button enabled with valid fields`() {
         composeTestRule.setContent {
             MaterialTheme {
                 RegisterScreen(
@@ -105,7 +106,7 @@ class RegisterScreenTest {
         composeTestRule.onNodeWithText("Email").performTextInput("john@example.com")
         composeTestRule.onNodeWithText("Password").performTextInput("Password1")
 
-        composeTestRule.onNodeWithText("Register").assertIsEnabled()
+        composeTestRule.onNode(hasText("Create Account") and hasClickAction()).assertIsEnabled()
     }
 
     @Test
@@ -188,7 +189,7 @@ class RegisterScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Already have an account? Login").assertExists()
+        composeTestRule.onNodeWithText("Already have an account? Sign In").assertExists()
     }
 
     @Test
@@ -208,7 +209,7 @@ class RegisterScreenTest {
         // Use performSemanticsAction to invoke the click directly (bypasses coordinate-based click
         // which fails when the node is positioned off-screen in Robolectric's small viewport)
         composeTestRule.onNode(
-            hasText("Already have an account? Login") and hasClickAction()
+            hasText("Already have an account? Sign In") and hasClickAction()
         ).performSemanticsAction(SemanticsActions.OnClick)
         assert(navigated)
     }

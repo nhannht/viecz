@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.TaskStatusBadge
 import com.viecz.vieczandroid.ui.components.formatPrice
 import android.content.Intent
@@ -141,19 +142,10 @@ fun TaskDetailScreen(
                     )
                 }
                 uiState.error != null -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = uiState.error ?: "An error occurred",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadTask(taskId) }) {
-                            Text("Retry")
-                        }
-                    }
+                    ErrorState(
+                        message = uiState.error ?: "An error occurred",
+                        onRetry = { viewModel.loadTask(taskId) }
+                    )
                 }
                 uiState.task != null -> {
                     TaskDetailContent(

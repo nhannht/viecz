@@ -116,7 +116,13 @@ fun RegisterScreen(
                     }
                 },
                 isError = passwordError != null,
-                supportingText = passwordError?.let { { Text(it) } },
+                supportingText = {
+                    Text(
+                        text = passwordError ?: "Min 8 characters, 1 uppercase, 1 lowercase, 1 digit",
+                        color = if (passwordError != null) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = authState !is AuthState.Loading
             )
@@ -155,7 +161,7 @@ fun RegisterScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Register")
+                Text("Create Account")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -165,7 +171,7 @@ fun RegisterScreen(
                 onClick = onNavigateToLogin,
                 enabled = authState !is AuthState.Loading
             ) {
-                Text("Already have an account? Login")
+                Text("Already have an account? Sign In")
             }
         }
     }

@@ -24,6 +24,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.viecz.vieczandroid.data.models.WalletTransaction
 import com.viecz.vieczandroid.data.models.WalletTransactionType
+import com.viecz.vieczandroid.ui.components.EmptyState
 import com.viecz.vieczandroid.ui.viewmodels.*
 import com.viecz.vieczandroid.utils.formatCurrency
 import com.viecz.vieczandroid.utils.formatDateTime
@@ -78,11 +79,11 @@ fun WalletScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showDepositDialog = true }
-            ) {
-                Icon(Icons.Default.Add, "Deposit")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { showDepositDialog = true },
+                icon = { Icon(Icons.Default.Add, "Deposit") },
+                text = { Text("Deposit") }
+            )
         }
     ) { paddingValues ->
         WalletContent(
@@ -146,6 +147,17 @@ fun WalletContent(
             }
         }
 
+        // Deposit limits info
+        item {
+            Text(
+                text = "Min deposit: 2,000 VND \u2022 Max balance: 200,000 VND",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        }
+
         // Transaction History Header
         item {
             Text(
@@ -170,13 +182,30 @@ fun WalletContent(
             is TransactionsUiState.Success -> {
                 if (state.transactions.isEmpty()) {
                     item {
-                        Text(
-                            text = "No transactions yet",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Receipt,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = "No transactions yet",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Deposit funds to get started",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 } else {
                     items(state.transactions) { transaction ->

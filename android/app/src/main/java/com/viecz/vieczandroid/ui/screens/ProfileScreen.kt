@@ -24,6 +24,8 @@ import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.User
 import com.viecz.vieczandroid.data.repository.UserRepository
+import com.viecz.vieczandroid.ui.components.ErrorState
+import com.viecz.vieczandroid.utils.formatCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -121,9 +123,7 @@ fun resolveAvatarUrl(relativeUrl: String): String {
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
-    onNavigateToMyPostedJobs: () -> Unit = {},
-    onNavigateToMyAppliedJobs: () -> Unit = {},
-    onNavigateToMyCompletedJobs: () -> Unit = {},
+    onNavigateToMyJobs: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -189,27 +189,16 @@ fun ProfileScreen(
                     )
                 }
                 uiState.error != null -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = uiState.error ?: "An error occurred",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadProfile() }) {
-                            Text("Retry")
-                        }
-                    }
+                    ErrorState(
+                        message = uiState.error ?: "An error occurred",
+                        onRetry = { viewModel.loadProfile() }
+                    )
                 }
                 uiState.user != null -> {
                     ProfileContent(
                         user = uiState.user!!,
                         onBecomeTasker = { showBecomeTaskerDialog = true },
-                        onNavigateToMyPostedJobs = onNavigateToMyPostedJobs,
-                        onNavigateToMyAppliedJobs = onNavigateToMyAppliedJobs,
-                        onNavigateToMyCompletedJobs = onNavigateToMyCompletedJobs
+                        onNavigateToMyJobs = onNavigateToMyJobs
                     )
                 }
             }
@@ -274,9 +263,7 @@ fun ProfileScreen(
 fun ProfileContent(
     user: User,
     onBecomeTasker: () -> Unit,
-    onNavigateToMyPostedJobs: () -> Unit = {},
-    onNavigateToMyAppliedJobs: () -> Unit = {},
-    onNavigateToMyCompletedJobs: () -> Unit = {},
+    onNavigateToMyJobs: () -> Unit = {},
     onNavigateToEditProfile: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null
 ) {
@@ -392,6 +379,11 @@ fun ProfileContent(
                             label = "Posted",
                             value = user.totalTasksPosted.toString()
                         )
+                        StatisticItem(
+                            icon = Icons.Default.Payments,
+                            label = "Earned",
+                            value = formatCurrency(user.totalEarnings)
+                        )
                     }
                 }
             }
@@ -440,30 +432,10 @@ fun ProfileContent(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = "My Jobs",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    MyJobsRow(
-                        icon = Icons.Default.Add,
-                        label = "My Posted Jobs",
-                        onClick = onNavigateToMyPostedJobs
-                    )
-                    HorizontalDivider()
                     MyJobsRow(
                         icon = Icons.Default.Work,
-                        label = "My Applied Jobs",
-                        onClick = onNavigateToMyAppliedJobs
-                    )
-                    HorizontalDivider()
-                    MyJobsRow(
-                        icon = Icons.Default.Check,
-                        label = "My Completed Jobs",
-                        onClick = onNavigateToMyCompletedJobs
+                        label = "My Jobs",
+                        onClick = onNavigateToMyJobs
                     )
                 }
             }

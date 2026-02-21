@@ -20,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Message
 import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.models.WebSocketState
+import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.viewmodels.ChatViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
 import kotlinx.coroutines.launch
@@ -172,22 +173,10 @@ fun ChatScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else if (uiState.error != null) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Error: ${uiState.error}",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { viewModel.loadConversation(conversationId) }) {
-                        Text("Retry")
-                    }
-                }
+                ErrorState(
+                    message = uiState.error ?: "An error occurred",
+                    onRetry = { viewModel.loadConversation(conversationId) }
+                )
             } else {
                 LazyColumn(
                     state = listState,

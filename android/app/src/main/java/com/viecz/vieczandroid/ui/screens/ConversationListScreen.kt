@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -19,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Conversation
 import com.viecz.vieczandroid.data.models.TaskStatus
+import com.viecz.vieczandroid.ui.components.EmptyState
+import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.viewmodels.ConversationListViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
 
@@ -26,6 +29,7 @@ import com.viecz.vieczandroid.utils.formatDateTime
 @Composable
 fun ConversationListContent(
     onNavigateToChat: (Long) -> Unit,
+    onNavigateToMarketplace: () -> Unit = {},
     viewModel: ConversationListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -47,33 +51,19 @@ fun ConversationListContent(
                 }
             }
             uiState.error != null && uiState.conversations.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = uiState.error ?: "An error occurred",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.refresh() }) {
-                            Text("Retry")
-                        }
-                    }
-                }
+                ErrorState(
+                    message = uiState.error ?: "An error occurred",
+                    onRetry = { viewModel.refresh() }
+                )
             }
             uiState.conversations.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No conversations yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                EmptyState(
+                    icon = Icons.Default.ChatBubbleOutline,
+                    title = "No conversations yet",
+                    message = "Apply to tasks to start chatting",
+                    actionLabel = "Browse Marketplace",
+                    onAction = onNavigateToMarketplace
+                )
             }
             else -> {
                 LazyColumn(

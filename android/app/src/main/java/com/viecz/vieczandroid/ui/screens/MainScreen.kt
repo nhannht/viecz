@@ -20,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.navigation.NavigationRoutes
 import com.viecz.vieczandroid.ui.viewmodels.*
 import kotlinx.coroutines.launch
@@ -145,32 +146,17 @@ fun MainScreen(
                                 )
                             }
                             profileUiState.error != null -> {
-                                Column(
-                                    modifier = Modifier.align(Alignment.Center),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = profileUiState.error ?: "An error occurred",
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Button(onClick = { profileViewModel.loadProfile() }) {
-                                        Text("Retry")
-                                    }
-                                }
+                                ErrorState(
+                                    message = profileUiState.error ?: "An error occurred",
+                                    onRetry = { profileViewModel.loadProfile() }
+                                )
                             }
                             profileUiState.user != null -> {
                                 ProfileContent(
                                     user = profileUiState.user!!,
                                     onBecomeTasker = { showBecomeTaskerDialog = true },
-                                    onNavigateToMyPostedJobs = {
-                                        navController.navigate(NavigationRoutes.myJobs("posted"))
-                                    },
-                                    onNavigateToMyAppliedJobs = {
-                                        navController.navigate(NavigationRoutes.myJobs("applied"))
-                                    },
-                                    onNavigateToMyCompletedJobs = {
-                                        navController.navigate(NavigationRoutes.myJobs("completed"))
+                                    onNavigateToMyJobs = {
+                                        navController.navigate(NavigationRoutes.MY_JOBS)
                                     },
                                     onNavigateToEditProfile = {
                                         navController.navigate(NavigationRoutes.EDIT_PROFILE)
@@ -213,7 +199,8 @@ fun MainScreen(
                 2 -> ConversationListContent(
                     onNavigateToChat = { conversationId ->
                         navController.navigate(NavigationRoutes.chat(conversationId))
-                    }
+                    },
+                    onNavigateToMarketplace = { currentTab = 0 }
                 )
                 3 -> WalletContent(viewModel = walletViewModel)
             }
