@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 
 /**
  * Action button following the nhannht-metro-meow design system.
@@ -18,35 +18,27 @@ import { Component, input, output } from '@angular/core';
   selector: 'nhannht-metro-button',
   standalone: true,
   template: `
-    @if (variant() === 'primary') {
-      <button
-        class="inline-block px-8 py-3.5 bg-fg text-bg font-body text-[13px] font-bold
-               tracking-[2px] border-2 border-fg cursor-pointer
-               hover:bg-transparent hover:text-fg transition-all duration-250
-               disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-fg disabled:hover:text-bg"
-        [class.w-full]="fullWidth()"
-        [class.block]="fullWidth()"
-        [disabled]="disabled()"
-        [type]="type()"
-        (click)="clicked.emit($event)">
-        <ng-content>{{ label() }}</ng-content>
-      </button>
-    } @else {
-      <button
-        class="font-body text-[13px] text-muted tracking-[1px] cursor-pointer
-               hover:text-fg transition-colors duration-200 bg-transparent border-none
-               disabled:opacity-40 disabled:cursor-not-allowed"
-        [disabled]="disabled()"
-        [type]="type()"
-        (click)="clicked.emit($event)">
-        <ng-content>{{ label() }}</ng-content><span class="ml-1">&gt;</span>
-      </button>
-    }
+    <button
+      [class]="btnClass()"
+      [class.w-full]="fullWidth() && variant() === 'primary'"
+      [class.block]="fullWidth() && variant() === 'primary'"
+      [disabled]="disabled()"
+      [type]="type()"
+      (click)="clicked.emit($event)">
+      <ng-content>{{ label() }}</ng-content>@if (variant() === 'secondary') {<span class="ml-1">&gt;</span>}
+    </button>
   `,
 })
 export class NhannhtMetroButtonComponent {
   /** Visual style. `primary` is solid fill, `secondary` is text-only with `>` arrow. */
   variant = input<'primary' | 'secondary'>('primary');
+
+  /** @internal Computed CSS classes based on variant. */
+  btnClass = computed(() =>
+    this.variant() === 'primary'
+      ? 'inline-block px-8 py-3 bg-fg text-bg font-body text-[13px] font-bold tracking-[2px] border border-fg cursor-pointer hover:bg-transparent hover:text-fg transition-all duration-250 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-fg disabled:hover:text-bg'
+      : 'font-body text-[13px] text-muted tracking-[1px] cursor-pointer hover:text-fg transition-colors duration-200 bg-transparent border-none disabled:opacity-40 disabled:cursor-not-allowed'
+  );
 
   /** Button text. Can also use `<ng-content>` for projected content. */
   label = input('');

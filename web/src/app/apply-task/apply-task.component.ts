@@ -102,7 +102,7 @@ export class ApplyTaskComponent implements OnInit {
 
   submit() {
     const body: { proposed_price?: number; message?: string } = {};
-    if (this.proposedPrice) body.proposed_price = this.proposedPrice;
+    if (this.proposedPrice) body.proposed_price = Number(this.proposedPrice);
     if (this.message) body.message = this.message;
 
     this.submitting.set(true);

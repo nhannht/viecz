@@ -15,6 +15,7 @@ import { AuthService } from '../core/auth.service';
 import { Task } from '../core/models';
 import { CategoryChipsComponent } from '../shared/components/category-chips.component';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
+import { NhannhtMetroAsciiArtComponent } from '../shared/components/nhannht-metro-ascii-art.component';
 import { TaskCardComponent } from '../shared/components/task-card.component';
 import { LoadingSkeletonComponent } from '../shared/components/loading-skeleton.component';
 import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
@@ -29,6 +30,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
     NhannhtMetroIconComponent,
     NhannhtMetroSpinnerComponent,
     NhannhtMetroButtonComponent,
+    NhannhtMetroAsciiArtComponent,
     CategoryChipsComponent,
     TaskCardComponent,
     LoadingSkeletonComponent,
@@ -38,22 +40,32 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
     <div class="py-2 relative min-h-[60vh]">
       @if (!auth.isAuthenticated()) {
         <div class="border-2 border-fg p-8 mb-6">
-          <div class="text-center mb-6">
-            <h1 class="font-display text-[16px] tracking-[3px] mb-2">STUDENT MICRO-TASK MARKETPLACE</h1>
-            <p class="font-body text-[14px] text-muted">Post tasks. Find help. Earn money.</p>
+          <div class="flex items-center justify-center gap-5 mb-6">
+            <div class="w-[100px] sm:w-[120px] shrink-0">
+              <nhannht-metro-ascii-art
+                src="/mascot-ascii.svg"
+                [width]="452"
+                [height]="380"
+                alt="Viecz mascot"
+              />
+            </div>
+            <div class="text-center">
+              <h1 class="font-display text-[16px] tracking-[3px] mb-2">STUDENT MICRO-TASK MARKETPLACE</h1>
+              <p class="font-body text-[14px] text-muted">Post tasks. Find help. Earn money.</p>
+            </div>
           </div>
 
-          <div class="grid grid-cols-3 gap-4 mb-6 max-w-[480px] mx-auto">
-            <div class="border border-fg p-4 text-center">
-              <span class="font-display text-[18px] block">{{ total() }}+</span>
+          <div class="grid grid-cols-3 gap-8 mb-6 max-w-[480px] mx-auto">
+            <div class="text-center border-b-2 border-fg pb-3">
+              <span class="font-display text-[24px] block">{{ total() }}+</span>
               <span class="font-display text-[9px] tracking-[1px] text-muted">TASKS POSTED</span>
             </div>
-            <div class="border border-fg p-4 text-center">
-              <span class="font-display text-[18px] block">11</span>
+            <div class="text-center border-b-2 border-fg pb-3">
+              <span class="font-display text-[24px] block">11</span>
               <span class="font-display text-[9px] tracking-[1px] text-muted">CATEGORIES</span>
             </div>
-            <div class="border border-fg p-4 text-center">
-              <span class="font-display text-[18px] block">0%</span>
+            <div class="text-center border-b-2 border-fg pb-3">
+              <span class="font-display text-[24px] block">0%</span>
               <span class="font-display text-[9px] tracking-[1px] text-muted">PLATFORM FEE</span>
             </div>
           </div>

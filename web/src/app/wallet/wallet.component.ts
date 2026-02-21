@@ -38,9 +38,9 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     } @else {
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <nhannht-metro-card [featured]="true">
+          <nhannht-metro-card>
             <div class="text-center">
-              <div class="font-display text-[11px] tracking-[1px] text-bg/70">AVAILABLE BALANCE</div>
+              <div class="font-display text-[11px] tracking-[1px] text-muted">AVAILABLE BALANCE</div>
               <div class="text-2xl font-bold font-body mt-1">{{ wallet()?.available_balance | vnd }}</div>
             </div>
           </nhannht-metro-card>
@@ -60,17 +60,15 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
 
         <nhannht-metro-card>
           <h3 class="font-display text-[11px] tracking-[2px] text-fg m-0 mb-3">DEPOSIT FUNDS</h3>
-          <div class="flex gap-3 items-start">
+          <div class="flex gap-3 items-end">
             <nhannht-metro-input label="AMOUNT (VND)" type="number"
               [(ngModel)]="depositAmount" name="depositAmount" />
-            <div class="pt-5">
-              @if (depositing()) {
-                <nhannht-metro-spinner [size]="20" label="Depositing" />
-              } @else {
-                <nhannht-metro-button variant="primary" label="Deposit"
-                  (clicked)="deposit()" />
-              }
-            </div>
+            @if (depositing()) {
+              <nhannht-metro-spinner [size]="20" label="Depositing" />
+            } @else {
+              <nhannht-metro-button variant="primary" label="Deposit"
+                (clicked)="deposit()" />
+            }
           </div>
           <p class="font-body text-[11px] text-muted mt-1">Min 2,000 VND. Max balance: 200,000 VND</p>
         </nhannht-metro-card>
@@ -123,7 +121,7 @@ export class WalletComponent implements OnInit {
   loading = signal(true);
   error = signal(false);
   depositing = signal(false);
-  depositAmount = 50000;
+  depositAmount = 0;
   txOffset = 0;
   hasMore = signal(false);
 
@@ -160,18 +158,19 @@ export class WalletComponent implements OnInit {
   }
 
   deposit() {
-    if (this.depositAmount < 2000) {
+    if (Number(this.depositAmount) < 2000) {
       this.snackbar.show('Minimum deposit is 2,000 VND', undefined, { duration: 3000 });
       return;
     }
     this.depositing.set(true);
-    this.walletService.deposit(this.depositAmount).subscribe({
+    this.walletService.deposit(Number(this.depositAmount)).subscribe({
       next: res => {
         this.depositing.set(false);
-        if (res.checkout_url && isPlatformBrowser(this.platformId)) {
-          window.open(res.checkout_url, '_blank');
+        const url = res.checkout_url;
+        if (url && isPlatformBrowser(this.platformId) && !url.includes('localhost')) {
+          window.open(url, '_blank');
         }
-        this.snackbar.show('Deposit initiated', undefined, { duration: 3000 });
+        this.snackbar.show(url?.includes('localhost') ? 'Deposit completed' : 'Deposit initiated', undefined, { duration: 3000 });
         setTimeout(() => this.ngOnInit(), 2000);
       },
       error: err => {

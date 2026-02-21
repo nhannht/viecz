@@ -45,7 +45,9 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                 <img [src]="user()!.avatar_url" alt="Avatar"
                      class="w-24 h-24 rounded-full object-cover border-2 border-fg">
               } @else {
-                <nhannht-metro-icon name="account_circle" [size]="96" />
+                <div class="w-24 h-24 rounded-full bg-card border border-border flex items-center justify-center text-muted">
+                  <nhannht-metro-icon name="person" [size]="48" />
+                </div>
               }
               @if (isOwnProfile()) {
                 <label class="absolute bottom-0 right-0 bg-fg text-bg rounded-full p-1.5 cursor-pointer"
@@ -120,7 +122,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
 
           @if (isOwnProfile()) {
             <nhannht-metro-divider />
-            <div class="flex flex-wrap gap-3 mt-2">
+            <div class="flex flex-col gap-2 mt-2">
               <nhannht-metro-button variant="secondary"
                 [label]="editing() ? 'Cancel' : 'Edit Profile'"
                 (clicked)="editing.set(!editing())" />

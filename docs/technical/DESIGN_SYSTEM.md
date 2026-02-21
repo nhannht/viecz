@@ -26,7 +26,7 @@ Extracted from the reference implementation CSS custom properties.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--font-display` | `'Press Start 2P', monospace` | Headings, logos, section titles, card titles, step numbers, price labels |
+| `--font-display` | `'JetBrains Mono', monospace` | Headings, logos, section titles, card titles, step numbers, price labels |
 | `--font-body` | `'Space Mono', monospace` | Body text, buttons, nav links, descriptions |
 
 **Google Fonts import:**
@@ -343,7 +343,7 @@ The design tokens above map to Tailwind's `@theme` directive as follows:
   --color-card: #ffffff;
 
   /* Fonts */
-  --font-display: 'Press Start 2P', monospace;
+  --font-display: 'JetBrains Mono', monospace;
   --font-body: 'Space Mono', monospace;
 }
 ```

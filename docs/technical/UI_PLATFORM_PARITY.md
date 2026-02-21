@@ -82,7 +82,7 @@ Unused/demo Android screens (not in web): `PaymentScreen`, `FirstScreen`, `Secon
 | Aspect | Android (Material 3) | Web (nhannht-metro-meow) |
 |--------|---------------------|--------------------------|
 | Design System | Material Design 3 | nhannht-metro-meow (custom) |
-| Typography | Roboto (Material type scale) | Press Start 2P (display) + Space Mono (body) |
+| Typography | Roboto (Material type scale) | JetBrains Mono (display) + Space Mono (body) |
 | Colors | Material 3 dynamic colors | Fixed: fg `#1a1a1a`, bg `#f0ede8`, muted `#6b6b6b` |
 | Corners | Rounded (Material shape system) | Square (`border-radius: 0`) |
 | Elevation | Material elevation/shadow | Flat with 1px borders |

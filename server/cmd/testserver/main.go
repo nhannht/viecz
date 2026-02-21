@@ -235,7 +235,34 @@ func main() {
 		// Auth routes (public)
 		authRoutes := api.Group("/auth")
 		{
-			authRoutes.POST("/register", authHandler.Register)
+			authRoutes.POST("/register", func(c *gin.Context) {
+				authHandler.Register(c)
+				if c.Writer.Status() == http.StatusCreated || c.Writer.Status() == http.StatusOK {
+					// Auto-credit 100,000 VND to new user's wallet
+					go func() {
+						time.Sleep(200 * time.Millisecond)
+						var user models.User
+						if err := db.Order("id DESC").First(&user).Error; err != nil {
+							log.Printf("[TestServer] Failed to find new user for wallet seed: %v", err)
+							return
+						}
+						wallet, err := walletService.GetOrCreateWallet(context.Background(), user.ID)
+						if err != nil {
+							log.Printf("[TestServer] Failed to create wallet for user %d: %v", user.ID, err)
+							return
+						}
+						if wallet.Balance == 0 {
+							wallet.Balance = 100000
+							wallet.TotalDeposited = 100000
+							if err := db.Save(wallet).Error; err != nil {
+								log.Printf("[TestServer] Failed to seed wallet for user %d: %v", user.ID, err)
+								return
+							}
+							log.Printf("[TestServer] Auto-seeded 100,000 VND for new user %d (%s)", user.ID, user.Email)
+						}
+					}()
+				}
+			})
 			authRoutes.POST("/login", authHandler.Login)
 			authRoutes.POST("/google", authHandler.GoogleLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)

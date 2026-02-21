@@ -30,7 +30,7 @@ import { VndPipe, TimeAgoPipe } from '../../core/pipes';
         {{ task().title }}
       </h3>
 
-      <p class="font-body text-[13px] text-muted leading-[1.7] mb-4">
+      <p class="font-body text-[13px] text-muted leading-[1.7] mb-4 line-clamp-3">
         {{ task().description | slice:0:120 }}{{ task().description.length > 120 ? '...' : '' }}
       </p>
 

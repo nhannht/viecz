@@ -757,6 +757,31 @@ ssh -f <ssh-alias> "cd <remote-project-path> && nohup ./server/bin/server-linux 
 - **Don't chase Node.js ESM bugs before checking package versions** — Node v24 has real ESM issues with Storybook (tracked in storybookjs/storybook#31434), but a version mismatch between Storybook packages is far more common and should be ruled out first
 - **`@angular/platform-browser-dynamic` is REQUIRED for Storybook Angular** — Without it, components show an infinite loading spinner in the iframe. Webpack builds successfully, sidebar loads, but Angular can't bootstrap any component. This is a runtime dependency, not a build-time one, so the build gives zero hints.
 
+### nhannht-metro-meow UI Design Rules
+
+- **Symmetry first** — The design system is centered and symmetric. Never introduce `text-left` or `justify-start` on hero/landing sections. When in doubt, keep `text-center` and `mx-auto`.
+- **Monochrome over color for ASCII art** — Colored ASCII art from image sampling produces low-contrast results against the beige `#f0ede8` background (especially greens/pastels). Use the `--fg` color (`#1a1a1a`) for maximum contrast and consistency. Bonus: dramatically smaller file size.
+- **Inline placement > stacked for decorative elements** — A large decorative element (mascot, illustration) stacked on top eats vertical space and pushes content down. Place it inline with the title at a smaller size (~100-120px) to keep the hero compact while still visually present.
+
+### UI Design Collaboration Workflow
+
+When proposing layout or visual changes, follow this workflow:
+
+1. **Print ASCII mockups directly in the terminal** — Use box-drawing characters to show layout options inline in the conversation output. This is fast, requires no tooling, and the user sees options immediately. Example:
+   ```
+   ┌──────────────────────────────────┐
+   │          ┌────────┐              │
+   │          │ mascot │  ~100px      │
+   │          └────────┘              │
+   │   STUDENT MICRO-TASK MARKETPLACE │
+   └──────────────────────────────────┘
+   ```
+2. **Present 2-3 options with mockups** — Use `AskUserQuestion` with `markdown` previews containing ASCII layouts so the user can compare side-by-side in the UI
+3. **User picks one** — Apply the chosen option, no wasted work
+4. **Take a Playwright screenshot AFTER applying** — Verify the real render matches the mockup. Use screenshots for verification, not for proposing options
+5. **Never implement multiple variants in worktrees just to screenshot them** — That's overengineered. ASCII mockups in the terminal are faster and good enough for layout decisions
+6. **Keep it simple** — The goal is quick feedback loops. Print mockup → user picks → implement → verify
+
 ### Debugging Discipline (Learned from Mistakes)
 
 - **Read terminal warnings during `yarn install` / `npm install`** — "unmet peer dependency" warnings are often the root cause of runtime failures, not just noise. The missing `@angular/platform-browser-dynamic` was printed in every `yarn install` output but was ignored repeatedly.

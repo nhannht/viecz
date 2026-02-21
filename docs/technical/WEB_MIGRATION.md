@@ -11,7 +11,7 @@
 Migrate the Viecz web client from Angular Material 3 to the nhannht-metro-meow design system using Tailwind CSS 4 and Storybook for component development.
 
 **Before:** Angular Material 3, SCSS, Roboto, azure palette, rounded corners, elevation shadows
-**After:** Tailwind CSS 4, nhannht-metro-meow tokens, Press Start 2P + Space Mono, square corners, 1px borders
+**After:** Tailwind CSS 4, nhannht-metro-meow tokens, JetBrains Mono + Space Mono, square corners, 1px borders
 
 ---
 
@@ -99,7 +99,7 @@ Tailwind v4 uses plain CSS (`@import`), not SCSS. Create a separate CSS file:
   --color-border: #d4d0ca;
   --color-card: #ffffff;
 
-  --font-display: 'Press Start 2P', monospace;
+  --font-display: 'JetBrains Mono', monospace;
   --font-body: 'Space Mono', monospace;
 }
 ```
