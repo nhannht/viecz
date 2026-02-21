@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* nhannht-metro-meow design tokens */
+
+  /* Colors */
+  --color-bg: #f0ede8;
+  --color-fg: #1a1a1a;
+  --color-muted: #6b6b6b;
+  --color-border: #d4d0ca;
+  --color-card: #ffffff;
+
+  /* Fonts */
+  --font-display: 'Press Start 2P', monospace;
+  --font-body: 'Space Mono', monospace;
+}

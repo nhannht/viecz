@@ -31,6 +31,7 @@
               }
             ],
             "styles": [
+              "src/tailwind.css",
               "src/styles.scss"
             ],
             "server": "src/main.server.ts",
@@ -80,6 +81,27 @@
         },
         "test": {
           "builder": "@angular/build:unit-test"
+        },
+        "storybook": {
+          "builder": "@storybook/angular:start-storybook",
+          "options": {
+            "browserTarget": "web:build:development",
+            "configDir": ".storybook",
+            "port": 6006,
+            "compodoc": false,
+            "tsConfig": ".storybook/tsconfig.json",
+            "styles": [".storybook/tailwind-built.css"]
+          }
+        },
+        "build-storybook": {
+          "builder": "@storybook/angular:build-storybook",
+          "options": {
+            "browserTarget": "web:build:development",
+            "configDir": ".storybook",
+            "compodoc": false,
+            "tsConfig": ".storybook/tsconfig.json",
+            "styles": [".storybook/tailwind-built.css"]
+          }
         }
       }
     }

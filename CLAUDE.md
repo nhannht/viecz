@@ -115,6 +115,10 @@ Viecz is a multi-package project containing:
 | `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification, web client token storage |
 | `DEPLOYMENT.md` | Docker Compose, Cloudflare tunnel, Android flavors, web client build |
 | `FIREBASE_DISTRIBUTION.md` | Firebase App Distribution workflow, tester management |
+| `SECURITY_AUDIT_2026_02_20.md` | Full repository security audit: 6 CRITICAL, 7 HIGH, 14 MEDIUM, 10 LOW |
+| `ASCII_ART_SVG.md` | Image → colored ASCII art SVG pipeline, canvas glitch effects |
+| `DESIGN_SYSTEM.md` | nhannht-metro-meow design system: tokens, components, Tailwind 4 mapping |
+| `WEB_MIGRATION.md` | Migration guide: Angular Material → Tailwind 4 + Storybook |
 | `README.md` | Index and navigation guide |
 
 ## YouTrack Project Management
@@ -613,6 +617,48 @@ go build -o bin/testserver ./cmd/testserver
 - **Production server** (`cmd/server/main.go`): Requires PostgreSQL (port 5432), real PayOS keys, `.env` file. Meilisearch optional via `MEILISEARCH_URL` env var
 - **Test server** (`cmd/testserver/main.go`): Requires test PostgreSQL + Meilisearch (`docker compose -f docker-compose.testdb.yml up -d`), mock PayOS, drops/recreates tables on each start
 
+### Web Client Development
+- Primary location: `web/`
+- **Language**: TypeScript 5.9
+- **Framework**: Angular 21 with standalone components
+- **UI**: Material Design 3 (`@angular/material`)
+- **SSR**: `@angular/ssr` + Express 5
+- **Testing**: Vitest 4 via `@angular/build:unit-test`
+- **State**: Angular Signals + RxJS
+- **Package manager**: Yarn 1.22
+
+#### Running the Dev Server
+
+```bash
+cd web
+npm start          # ng serve — dev server on http://localhost:4200
+                   # Uses proxy.conf.json to forward /api to backend
+```
+
+#### Testing (CRITICAL - ALWAYS FOLLOW)
+
+```bash
+cd web
+
+# CORRECT — uses Angular builder which injects Vitest globals + TestBed setup
+npx ng test        # or: npm test
+
+# WRONG — bypasses Angular builder, causes "describe is not defined" error
+# npx vitest run   # ← NEVER use this directly
+```
+
+**Why**: Angular's `@angular/build:unit-test` builder wraps Vitest and automatically injects `globals: true`, TestBed initialization, jsdom environment, and zone.js polyfills. Running `vitest` directly skips all of this, causing every test to fail with `ReferenceError: describe is not defined`.
+
+**Rule**: Never run the test runner directly when a framework provides a builder/wrapper. The builder exists because it configures the runner with framework-specific settings.
+
+#### Building for Production
+
+```bash
+cd web
+npm run build                    # Production build with SSR
+npm run serve:ssr:web            # Serve SSR build locally
+```
+
 ### Shared UI Components (Not Yet Implemented)
 - Planned location: `packages/ui/`
 - Will contain reusable UI components shared across packages
@@ -694,6 +740,15 @@ ssh -f <ssh-alias> "cd <remote-project-path> && nohup ./server/bin/server-linux 
 **Why**: Faster iteration — no Docker rebuild (~90s), no git push/pull round-trip. Just build + rsync + restart.
 
 **Server details**: See `sg` in global CLAUDE.md for SSH alias, IP, and connection details.
+
+## Learned Patterns (Project-Specific)
+
+### Storybook Angular + Compodoc Setup
+- **All `@storybook/*` packages must be on the same major version** — Storybook 9 uses CJS, Storybook 10 is ESM-only. Mixing them (e.g., `@storybook/addon-docs@10` with `storybook@9`) causes `ERR_INTERNAL_ASSERTION: Cannot require() ES Module` errors that look like Node.js bugs but are really version mismatches
+- **Always check `yarn list --pattern "@storybook"` first** when debugging Storybook module loading errors — version alignment is the #1 cause
+- **Compodoc JSDoc placement**: JSDoc must go **before** `@Component()` decorator, not between `})` and `export class`, for compodoc to extract class descriptions
+- **Compodoc builder args bug**: The `@storybook/angular` builder's `compodocArgs` in angular.json may not pass arguments correctly. Workaround: set `compodoc: false` in angular.json and run compodoc manually via npm script (`"storybook": "yarn compodoc && ng run web:storybook"`)
+- **Don't chase Node.js ESM bugs before checking package versions** — Node v24 has real ESM issues with Storybook (tracked in storybookjs/storybook#31434), but a version mismatch between Storybook packages is far more common and should be ruled out first
 
 ## Project Status
 
