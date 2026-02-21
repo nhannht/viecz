@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
-**Version:** 2.4
-**Last Updated:** 2026-02-20
+**Version:** 2.5
+**Last Updated:** 2026-02-21
 
 ---
 
@@ -298,7 +298,11 @@ type userGormRepository struct { db *gorm.DB }
 func NewUserGormRepository(db *gorm.DB) UserRepository { ... }
 ```
 
-**TaskRepository Interface**: Includes `GetByIDForUpdate(ctx context.Context, tx *gorm.DB, id int64) (*models.Task, error)` which executes `SELECT ... FOR UPDATE` within a GORM transaction for row-level locking. Used by `TaskService.DeleteTask` to prevent concurrent modifications during task deletion.
+**Transaction-Aware Repository Methods**: Repositories expose `*WithTx` and `*ForUpdate` methods for participating in GORM transactions with row-level locking (`SELECT ... FOR UPDATE`):
+- `TaskRepository`: `GetByIDForUpdate(ctx, tx, id)`, `UpdateWithTx(ctx, tx, task)` — used by `TaskService.DeleteTask` and `PaymentService` escrow operations
+- `WalletRepository`: `GetByUserIDForUpdate(ctx, tx, userID)`, `GetOrCreateForUpdate(ctx, tx, userID)`, `UpdateWithTx(ctx, tx, wallet)` — used by `WalletService` within caller transactions
+- `TransactionRepository`: `CreateWithTx(ctx, tx, transaction)`, `GetByTaskIDWithTx(ctx, tx, taskID)` — used by `PaymentService` for atomic escrow record creation
+- `WalletTransactionRepository`: `CreateWithTx(ctx, tx, walletTx)` — used by `WalletService` for atomic wallet ledger entries
 
 **SearchServicer Interface Pattern** (same as PayOSServicer): `SearchServicer` is defined in `services/search.go` with two implementations:
 - `MeilisearchService` -- real search engine backed by Meilisearch
@@ -326,7 +330,7 @@ Config → Database → Repositories → Services → Handlers → Gin Router
 **Service Dependencies:**
 - `UserService` depends on `UserRepository` and `TaskRepository` (for computing dynamic user stats via `CountByFilters`)
 - `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, `NotificationService`, `SearchServicer`, and `*gorm.DB` (used for DB transactions with `SELECT ... FOR UPDATE` row locking in `DeleteTask`)
-- `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, and `NotificationService`
+- `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, `NotificationService`, and `*gorm.DB` (used for DB transactions with row locking in escrow operations)
 - `NotificationService` depends on `NotificationRepository` and `WebSocket Hub`
 - `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, and `*gorm.DB`
 - `MessageService` depends on `MessageRepository`, `ConversationRepository`, and `WebSocket Hub`

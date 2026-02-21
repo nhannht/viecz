@@ -1,7 +1,7 @@
 # Security Documentation
 
 **Project:** Viecz (Mini Services for Students)
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-21
 **Status:** Development
 
 ---
@@ -167,11 +167,12 @@ The validation checks:
 
 | Environment | Secret | Source |
 |-------------|--------|--------|
-| Development | `your-secret-key-change-in-production` | Default in `config.go` |
 | Test server | `e2e-test-secret-key` | Hardcoded in `cmd/testserver/main.go` |
-| Production | Must be set via `JWT_SECRET` env var | Enforced: config fails if default is used with `GO_ENV=production` |
+| All others | Must be set via `JWT_SECRET` env var | Enforced: config fails if default or empty value is used |
 
-**Source:** `server/internal/config/config.go:60, 79-81`
+**Enforcement:** Server startup rejects the default secret (`your-secret-key-change-in-production`) and empty strings in **all** environments (not just production). This prevents accidental deployment with insecure defaults.
+
+**Source:** `server/internal/config/config.go:92-95`
 
 ### 2.4 Google OAuth (OIDC)
 
