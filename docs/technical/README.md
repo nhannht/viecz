@@ -1,7 +1,7 @@
 # Technical Documentation
 
 **Project:** Viecz - Dịch Vụ Nhỏ Cho Sinh Viên
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-21
 **Stack:** Go (Gin) backend + Native Kotlin/Jetpack Compose Android app + Angular 21 web client
 
 ---
@@ -19,6 +19,16 @@
 | **[SECURITY.md](./SECURITY.md)** | Security measures | JWT auth, bcrypt, CORS, PayOS webhook verification |
 | **[DEPLOYMENT.md](./DEPLOYMENT.md)** | Deployment & infrastructure | Docker Compose, Cloudflare tunnel, Android build flavors |
 | **[FIREBASE_DISTRIBUTION.md](./FIREBASE_DISTRIBUTION.md)** | App distribution | Firebase App Distribution workflow, tester management |
+| **[SECURITY_AUDIT_2026_02_20.md](./SECURITY_AUDIT_2026_02_20.md)** | Security audit | 6 CRITICAL, 7 HIGH, 14 MEDIUM, 10 LOW findings |
+| **[ASCII_ART_SVG.md](./ASCII_ART_SVG.md)** | Image to ASCII art SVG | image2ascii pipeline, colored SVG generation, canvas glitch effects |
+| **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** | nhannht-metro-meow design system | Tokens, components, layout patterns, Tailwind 4 mapping, Storybook catalog |
+| **[WEB_MIGRATION.md](./WEB_MIGRATION.md)** | Web client migration guide | Angular Material → Tailwind 4 + Storybook, phase-by-phase plan |
+| **[UI_COMPONENT_CATALOG.md](./UI_COMPONENT_CATALOG.md)** | UI component API reference | 28 shared components + 1 service, inputs/outputs, usage examples |
+| **[UI_PATTERNS.md](./UI_PATTERNS.md)** | Page-level UI patterns | Loading/empty/error states, forms, grids, navigation, feedback |
+| **[UI_RESPONSIVE.md](./UI_RESPONSIVE.md)** | Responsive design patterns | Breakpoints, grid strategies, container widths, mobile behavior |
+| **[UI_ACCESSIBILITY.md](./UI_ACCESSIBILITY.md)** | Accessibility audit | ARIA per component, known gaps, keyboard nav, testing tools |
+| **[UI_PLATFORM_PARITY.md](./UI_PLATFORM_PARITY.md)** | Android vs Web comparison | Screen-by-screen parity, navigation, design language |
+| **[UI_ANIMATION.md](./UI_ANIMATION.md)** | Animation & transitions | Duration scale, hover effects, loading animations, guidelines |
 
 ---
 
@@ -48,11 +58,18 @@ Read in this order:
 
 ### For Web Developers
 
-1. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Web client architecture (Section 6)
-2. **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** - Web client overview (Section 8b)
-3. **[API_REFERENCE.md](./API_REFERENCE.md)** - Backend API contracts (shared with Android)
-4. **[SECURITY.md](./SECURITY.md)** - Web token storage, auth interceptor (Section 10)
-5. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Web build & deployment (Section 7b)
+1. **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** - nhannht-metro-meow design tokens, components, patterns
+2. **[UI_COMPONENT_CATALOG.md](./UI_COMPONENT_CATALOG.md)** - Full API reference for all 28 shared components
+3. **[UI_PATTERNS.md](./UI_PATTERNS.md)** - Page-level patterns (states, forms, grids, navigation)
+4. **[UI_RESPONSIVE.md](./UI_RESPONSIVE.md)** - Breakpoints, container widths, mobile behavior
+5. **[UI_ACCESSIBILITY.md](./UI_ACCESSIBILITY.md)** - ARIA audit, keyboard nav, known gaps
+6. **[UI_ANIMATION.md](./UI_ANIMATION.md)** - Duration scale, hover effects, loading animations
+7. **[UI_PLATFORM_PARITY.md](./UI_PLATFORM_PARITY.md)** - Android vs Web screen comparison
+8. **[WEB_MIGRATION.md](./WEB_MIGRATION.md)** - Migration guide (Material → Tailwind 4 + Storybook)
+9. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Web client architecture (Section 6)
+10. **[API_REFERENCE.md](./API_REFERENCE.md)** - Backend API contracts (shared with Android)
+11. **[SECURITY.md](./SECURITY.md)** - Web token storage, auth interceptor (Section 10)
+12. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Web build & deployment (Section 7b)
 
 ### For DevOps
 
@@ -132,5 +149,5 @@ graph TD
 
 ---
 
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-21
 **Maintained By:** Development Team

@@ -260,8 +260,8 @@ Build in dependency order — leaf components first, composite components later.
 11. `NhannhtMetroDialogComponent` — Modal, replaces MatDialog
 12. `NhannhtMetroSnackbarComponent` — Toast notification, replaces MatSnackBar
 13. `NhannhtMetroTabsComponent` — Tab navigation, replaces MatTabGroup
-14. ~~`NhannhtMetroNavComponent`~~ — **Not yet implemented** (top navigation bar)
-15. ~~`NhannhtMetroMenuComponent`~~ — **Not yet implemented** (dropdown menu)
+14. `NhannhtMetroNavComponent` — Top navigation bar with frosted glass effect
+15. `NhannhtMetroMenuComponent` — Dropdown menu with click-outside detection
 
 **Tier 4 — Domain-specific:**
 16. `NhannhtMetroTaskCardComponent` — Marketplace task card

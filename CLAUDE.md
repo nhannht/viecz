@@ -119,6 +119,12 @@ Viecz is a multi-package project containing:
 | `ASCII_ART_SVG.md` | Image → colored ASCII art SVG pipeline, canvas glitch effects |
 | `DESIGN_SYSTEM.md` | nhannht-metro-meow design system: tokens, components, Tailwind 4 mapping |
 | `WEB_MIGRATION.md` | Migration guide: Angular Material → Tailwind 4 + Storybook |
+| `UI_COMPONENT_CATALOG.md` | Full API reference: 28 shared components + 1 service, inputs/outputs, usage examples |
+| `UI_PATTERNS.md` | Page-level UI patterns: four-state rendering, forms, layout, navigation, feedback, data display |
+| `UI_RESPONSIVE.md` | Responsive design: breakpoints, grid strategies, container widths, mobile behavior |
+| `UI_ACCESSIBILITY.md` | Accessibility audit: ARIA per component, known gaps, keyboard nav, testing tools |
+| `UI_PLATFORM_PARITY.md` | Android vs Web: screen-by-screen comparison, navigation, design language |
+| `UI_ANIMATION.md` | Animation patterns: duration scale, hover effects, loading animations, guidelines |
 | `README.md` | Index and navigation guide |
 
 ## YouTrack Project Management

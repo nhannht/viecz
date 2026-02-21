@@ -667,6 +667,40 @@ Snackbar: "You are now registered as a tasker!"
 **API:** `POST /api/v1/users/become-tasker`
 **Note:** Current implementation is a simple toggle (no bio/skills form required).
 
+### 11.3 Edit Profile
+
+```
+Profile tab > Tap "Edit Profile" (pencil icon)
+    |
+    v
+EditProfileScreen / Web profile edit form
+    |  Pre-filled with current data from GET /api/v1/users/me
+    |
+    +-- Editable fields:
+    |     - Name (text)
+    |     - Bio (text, optional)
+    |     - Phone (text, optional)
+    |
+    +-- Avatar upload:
+    |     Tap avatar circle > Image picker
+    |     POST /api/v1/users/me/avatar (multipart/form-data, field: "avatar")
+    |       - Max 5MB, JPEG/PNG/WebP only (validated via magic bytes)
+    |       - Old avatar deleted server-side on successful upload
+    |       - Returns updated user with new avatar_url
+    |
+    v
+Tap "Save"
+    PUT /api/v1/users/me  { name?, bio?, phone?, avatar_url? }
+    |
+    v
+Profile refreshed with updated data
+Snackbar: "Profile updated"
+```
+
+**Android:** `EditProfileScreen.kt` — standalone screen navigated from ProfileScreen
+**Web:** `profile.component.ts` — inline edit mode within profile page
+**API:** `PUT /api/v1/users/me` (profile fields), `POST /api/v1/users/me/avatar` (image upload)
+
 ---
 
 ## 13. Notifications

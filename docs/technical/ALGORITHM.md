@@ -2,7 +2,7 @@
 
 > Technical reference for algorithms implemented in the Viecz Go backend.
 >
-> Last updated: 2026-02-18
+> Last updated: 2026-02-20
 
 ## Table of Contents
 
@@ -240,72 +240,97 @@ The payment system supports two modes:
 - **Mock mode** (`PAYMENT_MOCK_MODE=true`): wallet-to-wallet transfers, no external payment provider
 - **Real mode**: PayOS integration for external payment links
 
+### Transaction Safety
+
+All escrow operations are wrapped in a GORM database transaction with row-level locking (`SELECT ... FOR UPDATE`) to prevent double-spend and race conditions:
+
+```
+db.Transaction(func(tx *gorm.DB) error {
+    task := taskRepo.GetByIDForUpdate(ctx, tx, taskID)  // Row lock on task
+    wallet := walletRepo.GetByUserIDForUpdate(ctx, tx, userID)  // Row lock on wallet
+    // ... validate + mutate within transaction ...
+})
+```
+
+Wallet methods (`Deposit`, `HoldInEscrow`, `ReleaseFromEscrow`, `RefundFromEscrow`) accept an optional `outerTx *gorm.DB` parameter. When non-nil, they execute within the caller's transaction. When nil, they create their own transaction. This enables PaymentService to wrap multiple wallet operations in a single atomic transaction.
+
 ### Phase 1: Escrow Hold (Task Accepted -> In Progress)
 
 ```
 CreateEscrowPayment(taskID, payerID):
-  1. Validate: task.Status == "open", payer == requester
-  2. Determine effective price:
-     - Use accepted application's proposed_price if set
-     - Otherwise use task.Price
-  3. Calculate platform fee: int64(effectivePrice * platformFeeRate)
-     netAmount = effectivePrice - platformFee
-  4. Create Transaction record (type=escrow, status=pending)
+  db.Transaction(func(tx) {
+    1. GetByIDForUpdate(taskID) — row lock on task
+    2. Validate: task.Status == "open", payer == requester
+    3. Determine effective price:
+       - Use accepted application's proposed_price if set
+       - Otherwise use task.Price
+    4. Calculate platform fee: int64(effectivePrice * platformFeeRate)
+       netAmount = effectivePrice - platformFee
+    5. Create Transaction record (type=escrow, status=pending)
 
-  Mock mode:
-    5a. WalletService.HoldInEscrow(payerID, effectivePrice, taskID)
-        - wallet.Balance -= amount
-        - wallet.EscrowBalance += amount
-        - wallet.TotalSpent += amount
-        - Record WalletTransaction (type=escrow_hold, amount=-amount)
-    6a. Transaction.Status = "success"
-    7a. task.Status = "in_progress"
+    Mock mode:
+      6a. WalletService.HoldInEscrow(ctx, tx, payerID, effectivePrice, taskID)
+          - GetByUserIDForUpdate — row lock on wallet
+          - wallet.Balance -= amount
+          - wallet.EscrowBalance += amount
+          - wallet.TotalSpent += amount
+          - Record WalletTransaction (type=escrow_hold, amount=-amount)
+      7a. Transaction.Status = "success"
+      8a. task.Status = "in_progress"
 
-  Real mode:
-    5b. PayOS.CreatePaymentLink(orderCode, amount, returnURL, cancelURL)
-    6b. Store PayOS order code and payment ID on transaction
-    7b. Return checkout URL to client
+    Real mode:
+      6b. PayOS.CreatePaymentLink(orderCode, amount, returnURL, cancelURL)
+      7b. Store PayOS order code and payment ID on transaction
+      8b. Return checkout URL to client
+  })
 ```
 
 ### Phase 2a: Release (Task Completed)
 
 ```
 ReleasePayment(taskID, requesterID):
-  1. Validate: task.Status == "in_progress", caller == requester, tasker assigned
-  2. Find escrow transaction (type=escrow, status=success) for task
-  3. Create release Transaction (amount = escrowTx.NetAmount)
+  db.Transaction(func(tx) {
+    1. GetByIDForUpdate(taskID) — row lock on task
+    2. Validate: task.Status == "in_progress", caller == requester, tasker assigned
+    3. Find escrow transaction (type=escrow, status=success) for task
+    4. Create release Transaction (amount = escrowTx.NetAmount)
 
-  Mock mode:
-    4a. WalletService.ReleaseFromEscrow(payerID, payeeID, netAmount, taskID):
-        Payer wallet:
-          - escrowBalance -= netAmount
-        Payee wallet:
-          - balance += netAmount
-          - totalEarned += netAmount
-    5a. If platformFee > 0, create platform_fee Transaction record
+    Mock mode:
+      5a. WalletService.ReleaseFromEscrow(ctx, tx, payerID, payeeID, netAmount, taskID):
+          Payer wallet (row-locked):
+            - escrowBalance -= netAmount
+          Payee wallet (row-locked):
+            - balance += netAmount
+            - totalEarned += netAmount
+      6a. If platformFee > 0, create platform_fee Transaction record
 
-  Real mode:
-    4b. Mark release transaction as success (actual fund transfer external)
+    Real mode:
+      5b. Mark release transaction as success (actual fund transfer external)
+  })
 ```
 
 ### Phase 2b: Refund (Task Cancelled)
 
 ```
 RefundPayment(taskID, requesterID, reason):
-  1. Validate: task.Status == "in_progress", caller == requester
-  2. Find escrow transaction for task
-  3. Create refund Transaction (amount = escrowTx.Amount, full refund)
+  db.Transaction(func(tx) {
+    1. GetByIDForUpdate(taskID) — row lock on task
+    2. Validate: task.Status == "in_progress", caller == requester
+    3. Find escrow transaction for task
+    4. Create refund Transaction (amount = escrowTx.Amount, full refund)
 
-  Mock mode:
-    4a. WalletService.RefundFromEscrow(userID, fullAmount, taskID):
-        - wallet.EscrowBalance -= amount
-        - wallet.Balance += amount
-        - wallet.TotalSpent -= amount  (reversal)
+    Mock mode:
+      5a. WalletService.RefundFromEscrow(ctx, tx, userID, fullAmount, taskID):
+          - GetByUserIDForUpdate — row lock on wallet
+          - wallet.EscrowBalance -= amount
+          - wallet.Balance += amount
+          - wallet.TotalSpent -= amount  (reversal)
 
-  Real mode:
-    4b. PayOS.CancelPaymentLink(orderCode, reason)
+    Real mode:
+      5b. PayOS.CancelPaymentLink(orderCode, reason)
 
-  5. task.Status = "cancelled"
+    6. task.Status = "cancelled"
+  })
 ```
 
 ### Money Conservation Invariant
@@ -391,6 +416,26 @@ TotalSpent >= 0
 | `HoldInEscrow(amount)` | -= amount | += amount | Also increments TotalSpent |
 | `ReleaseFromEscrow(amount)` | unchanged | -= amount | Funds go to payee, not back to balance |
 | `RefundFromEscrow(amount)` | += amount | -= amount | Also decrements TotalSpent (reversal) |
+
+### Transaction Nesting (outerTx pattern)
+
+All wallet service methods accept an optional `outerTx *gorm.DB` parameter:
+
+```go
+func (s *WalletService) Deposit(ctx context.Context, outerTx *gorm.DB, userID, amount int64, description string) error
+func (s *WalletService) HoldInEscrow(ctx context.Context, outerTx *gorm.DB, userID, amount, taskID int64, ...) error
+func (s *WalletService) ReleaseFromEscrow(ctx context.Context, outerTx *gorm.DB, payerID, payeeID, amount, taskID int64, ...) error
+func (s *WalletService) RefundFromEscrow(ctx context.Context, outerTx *gorm.DB, userID, amount, taskID int64, ...) error
+```
+
+- **`outerTx != nil`**: Executes within the caller's transaction (used by PaymentService to atomically lock task + modify wallet)
+- **`outerTx == nil`**: Creates its own `db.Transaction()` (used for standalone operations like webhook-triggered deposits)
+
+Row-level locking methods used within transactions:
+- `walletRepo.GetByUserIDForUpdate(ctx, tx, userID)` — `SELECT ... FOR UPDATE` on wallet row
+- `walletRepo.GetOrCreateForUpdate(ctx, tx, userID)` — Get-or-create with row lock
+- `walletRepo.UpdateWithTx(ctx, tx, wallet)` — Update using the transaction handle
+- `walletTransactionRepo.CreateWithTx(ctx, tx, walletTx)` — Create record using the transaction handle
 
 ### Available Balance (Soft Reservation)
 

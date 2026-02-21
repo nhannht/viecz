@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-18 (Edit task Android UI notes added)
+**Last Updated:** 2026-02-20 (Payment routes auth status corrected)
 
 ---
 
@@ -1027,7 +1027,7 @@ Legacy/utility payment endpoints for direct PayOS integration.
 Create a direct PayOS payment link (not escrow).
 
 **Endpoint:** `POST /api/v1/payment/create`
-**Auth:** None
+**Auth:** Required
 
 #### Request Body
 
@@ -1113,7 +1113,7 @@ On cancellation (`code: "01"`):
 Register a webhook URL with PayOS.
 
 **Endpoint:** `POST /api/v1/payment/confirm-webhook`
-**Auth:** None
+**Auth:** Required
 
 #### Request Body
 
@@ -1675,10 +1675,10 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 | POST | `/api/v1/payments/escrow` | Yes | Create escrow |
 | POST | `/api/v1/payments/release` | Yes | Release payment |
 | POST | `/api/v1/payments/refund` | Yes | Refund payment |
-| POST | `/api/v1/payment/create` | No | Create payment link |
+| POST | `/api/v1/payment/create` | Yes | Create payment link |
 | GET | `/api/v1/payment/return` | No | Payment return redirect |
 | POST | `/api/v1/payment/webhook` | No | PayOS webhook |
-| POST | `/api/v1/payment/confirm-webhook` | No | Confirm webhook URL |
+| POST | `/api/v1/payment/confirm-webhook` | Yes | Confirm webhook URL |
 | GET | `/api/v1/notifications` | Yes | List notifications |
 | GET | `/api/v1/notifications/unread-count` | Yes | Get unread count |
 | POST | `/api/v1/notifications/:id/read` | Yes | Mark notification as read |

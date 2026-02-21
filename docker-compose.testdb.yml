@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: testpass
       POSTGRES_DB: viecz_test
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
     image: getmeili/meilisearch:v1.16
     container_name: viecz-meilisearch
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     environment:
       MEILI_ENV: development
     tmpfs:
