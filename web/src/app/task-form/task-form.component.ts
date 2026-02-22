@@ -104,7 +104,9 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
 
           <nhannht-metro-datepicker
             label="DEADLINE"
-            [(ngModel)]="deadline" name="deadline" />
+            [min]="today"
+            [(ngModel)]="deadline" name="deadline"
+            [error]="submitted && deadline && deadline < today ? 'Deadline cannot be in the past' : ''" />
 
           <div class="flex justify-end gap-3 pt-4">
             <nhannht-metro-button
@@ -154,6 +156,7 @@ export class TaskFormComponent implements OnInit {
     }))
   );
 
+  today = new Date().toISOString().split('T')[0];
   title = '';
   description = '';
   categoryId = '';
@@ -212,6 +215,9 @@ export class TaskFormComponent implements OnInit {
     this.submitted = true;
     const p = Number(this.price);
     if (!this.title || !this.description || !this.categoryId || !this.price || p <= 0 || p % 1000 !== 0 || !this.location) {
+      return;
+    }
+    if (this.deadline && this.deadline < this.today) {
       return;
     }
 

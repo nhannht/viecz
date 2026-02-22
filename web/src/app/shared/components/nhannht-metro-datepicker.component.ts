@@ -40,7 +40,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
         [attr.aria-label]="label()"
         (change)="onDateChange($event)" />
       @if (error()) {
-        <span class="font-body text-[11px] text-fg" role="alert">
+        <span class="font-body text-[11px] text-red-600 font-semibold" role="alert">
           {{ error() }}
         </span>
       }
