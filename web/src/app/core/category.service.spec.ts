@@ -74,5 +74,18 @@ describe('CategoryService', () => {
       service.load();
       httpTesting.expectNone('/api/v1/categories');
     });
+
+    it('should fetch again when loaded flag is true but categories is empty (cond-expr false branch)', () => {
+      // Manually set loaded=true but keep categories empty (length === 0)
+      // This hits the false branch of: this.loaded && this.categories().length > 0
+      (service as any).loaded = true;
+      // categories() is still empty (signal([]))
+      expect(service.categories().length).toBe(0);
+      // Should still fetch because categories is empty
+      service.load();
+      const req = httpTesting.expectOne('/api/v1/categories');
+      req.flush(mockCategories);
+      expect(service.categories()).toEqual(mockCategories);
+    });
   });
 });

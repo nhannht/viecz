@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { WalletService } from '../core/wallet.service';
 import { Wallet, WalletTransaction } from '../core/models';
 import { VndPipe } from '../core/pipes';
@@ -18,6 +19,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
   standalone: true,
   imports: [
     FormsModule,
+    TranslocoDirective,
     VndPipe,
     EmptyStateComponent,
     ErrorFallbackComponent,
@@ -28,95 +30,98 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     NhannhtMetroTransactionRowComponent,
   ],
   template: `
-    @if (loading()) {
-      <div class="flex justify-center py-16">
-        <nhannht-metro-spinner [size]="40" />
-      </div>
-    } @else if (error()) {
-      <app-error-fallback title="Failed to load wallet"
-        message="Please try again later." [retryFn]="retryLoad" />
-    } @else {
-      <div class="flex flex-col gap-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <ng-container *transloco="let t">
+      @if (loading()) {
+        <div class="flex justify-center py-16">
+          <nhannht-metro-spinner [size]="40" />
+        </div>
+      } @else if (error()) {
+        <app-error-fallback [title]="t('wallet.failedToLoadTitle')"
+          [message]="t('common.tryAgainLater')" [retryFn]="retryLoad" />
+      } @else {
+        <div class="flex flex-col gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <nhannht-metro-card>
+              <div class="text-center">
+                <div class="font-display text-[11px] tracking-[1px] text-muted">{{ t('wallet.availableBalance') }}</div>
+                <div class="text-2xl font-bold font-body mt-1">{{ wallet()?.available_balance | vnd }}</div>
+              </div>
+            </nhannht-metro-card>
+            <nhannht-metro-card>
+              <div class="text-center">
+                <div class="font-display text-[11px] tracking-[1px] text-muted">{{ t('wallet.totalBalance') }}</div>
+                <div class="text-xl font-bold font-body mt-1">{{ wallet()?.balance | vnd }}</div>
+              </div>
+            </nhannht-metro-card>
+            <nhannht-metro-card>
+              <div class="text-center">
+                <div class="font-display text-[11px] tracking-[1px] text-muted">{{ t('wallet.inEscrow') }}</div>
+                <div class="text-xl font-bold font-body mt-1">{{ wallet()?.escrow_balance | vnd }}</div>
+              </div>
+            </nhannht-metro-card>
+          </div>
+
           <nhannht-metro-card>
-            <div class="text-center">
-              <div class="font-display text-[11px] tracking-[1px] text-muted">AVAILABLE BALANCE</div>
-              <div class="text-2xl font-bold font-body mt-1">{{ wallet()?.available_balance | vnd }}</div>
+            <h3 class="font-display text-[11px] tracking-[2px] text-fg m-0 mb-3">{{ t('wallet.depositTitle') }}</h3>
+            <div class="flex gap-3 items-end">
+              <nhannht-metro-input [label]="t('wallet.amountLabel')" type="number"
+                [step]="1000" [min]="2000"
+                [(ngModel)]="depositAmount" name="depositAmount"
+                [error]="depositError" />
+              @if (depositing()) {
+                <nhannht-metro-spinner [size]="20" [label]="t('wallet.depositing')" />
+              } @else {
+                <nhannht-metro-button variant="primary" [label]="t('wallet.depositButton')"
+                  (clicked)="deposit()" />
+              }
+            </div>
+            <p class="font-body text-[11px] text-muted mt-1">{{ t('wallet.depositHint') }}</p>
+          </nhannht-metro-card>
+
+          <nhannht-metro-card>
+            <div class="flex gap-8 justify-center flex-wrap">
+              <div class="text-center">
+                <span class="font-display text-[10px] tracking-[1px] text-muted block">{{ t('wallet.totalDeposited') }}</span>
+                <span class="font-body font-semibold mt-1 block">{{ wallet()?.total_deposited | vnd }}</span>
+              </div>
+              <div class="text-center">
+                <span class="font-display text-[10px] tracking-[1px] text-muted block">{{ t('wallet.totalEarned') }}</span>
+                <span class="font-body font-semibold mt-1 block">{{ wallet()?.total_earned | vnd }}</span>
+              </div>
+              <div class="text-center">
+                <span class="font-display text-[10px] tracking-[1px] text-muted block">{{ t('wallet.totalSpent') }}</span>
+                <span class="font-body font-semibold mt-1 block">{{ wallet()?.total_spent | vnd }}</span>
+              </div>
             </div>
           </nhannht-metro-card>
+
           <nhannht-metro-card>
-            <div class="text-center">
-              <div class="font-display text-[11px] tracking-[1px] text-muted">TOTAL BALANCE</div>
-              <div class="text-xl font-bold font-body mt-1">{{ wallet()?.balance | vnd }}</div>
-            </div>
-          </nhannht-metro-card>
-          <nhannht-metro-card>
-            <div class="text-center">
-              <div class="font-display text-[11px] tracking-[1px] text-muted">IN ESCROW</div>
-              <div class="text-xl font-bold font-body mt-1">{{ wallet()?.escrow_balance | vnd }}</div>
-            </div>
+            <h3 class="font-display text-[11px] tracking-[2px] text-fg m-0 mb-3">{{ t('wallet.transactionHistory') }}</h3>
+            @if (transactions().length === 0) {
+              <app-empty-state icon="receipt_long" [title]="t('wallet.noTransactions')"
+                [message]="t('wallet.noTransactionsHint')" />
+            } @else {
+              @for (tx of transactions(); track tx.id) {
+                <nhannht-metro-transaction-row [transaction]="tx" />
+              }
+              @if (hasMore()) {
+                <div class="text-center pt-3">
+                  <nhannht-metro-button variant="secondary" [label]="t('common.loadMore')"
+                    (clicked)="loadMore()" />
+                </div>
+              }
+            }
           </nhannht-metro-card>
         </div>
-
-        <nhannht-metro-card>
-          <h3 class="font-display text-[11px] tracking-[2px] text-fg m-0 mb-3">DEPOSIT FUNDS</h3>
-          <div class="flex gap-3 items-end">
-            <nhannht-metro-input label="AMOUNT (VND)" type="number"
-              [step]="1000" [min]="2000"
-              [(ngModel)]="depositAmount" name="depositAmount"
-              [error]="depositError" />
-            @if (depositing()) {
-              <nhannht-metro-spinner [size]="20" label="Depositing" />
-            } @else {
-              <nhannht-metro-button variant="primary" label="Deposit"
-                (clicked)="deposit()" />
-            }
-          </div>
-          <p class="font-body text-[11px] text-muted mt-1">Min 2,000 VND. Max balance: 200,000 VND</p>
-        </nhannht-metro-card>
-
-        <nhannht-metro-card>
-          <div class="flex gap-8 justify-center flex-wrap">
-            <div class="text-center">
-              <span class="font-display text-[10px] tracking-[1px] text-muted block">TOTAL DEPOSITED</span>
-              <span class="font-body font-semibold mt-1 block">{{ wallet()?.total_deposited | vnd }}</span>
-            </div>
-            <div class="text-center">
-              <span class="font-display text-[10px] tracking-[1px] text-muted block">TOTAL EARNED</span>
-              <span class="font-body font-semibold mt-1 block">{{ wallet()?.total_earned | vnd }}</span>
-            </div>
-            <div class="text-center">
-              <span class="font-display text-[10px] tracking-[1px] text-muted block">TOTAL SPENT</span>
-              <span class="font-body font-semibold mt-1 block">{{ wallet()?.total_spent | vnd }}</span>
-            </div>
-          </div>
-        </nhannht-metro-card>
-
-        <nhannht-metro-card>
-          <h3 class="font-display text-[11px] tracking-[2px] text-fg m-0 mb-3">TRANSACTION HISTORY</h3>
-          @if (transactions().length === 0) {
-            <app-empty-state icon="receipt_long" title="No transactions yet"
-              message="Deposit funds to get started" />
-          } @else {
-            @for (tx of transactions(); track tx.id) {
-              <nhannht-metro-transaction-row [transaction]="tx" />
-            }
-            @if (hasMore()) {
-              <div class="text-center pt-3">
-                <nhannht-metro-button variant="secondary" label="Load More"
-                  (clicked)="loadMore()" />
-              </div>
-            }
-          }
-        </nhannht-metro-card>
-      </div>
-    }
+      }
+    </ng-container>
   `,
 })
 export class WalletComponent implements OnInit {
   private walletService = inject(WalletService);
   private snackbar = inject(NhannhtMetroSnackbarService);
   private platformId = inject(PLATFORM_ID);
+  private transloco = inject(TranslocoService);
 
   wallet = signal<Wallet | null>(null);
   transactions = signal<WalletTransaction[]>([]);
@@ -163,11 +168,11 @@ export class WalletComponent implements OnInit {
   deposit() {
     const amount = Number(this.depositAmount);
     if (amount < 2000) {
-      this.depositError = 'Minimum deposit is 2,000 VND';
+      this.depositError = this.transloco.translate('wallet.minDeposit');
       return;
     }
     if (amount % 1000 !== 0) {
-      this.depositError = 'Amount must be a multiple of 1,000 VND';
+      this.depositError = this.transloco.translate('wallet.amountMultiple');
       return;
     }
     this.depositError = '';
@@ -178,7 +183,7 @@ export class WalletComponent implements OnInit {
         const url = res.checkout_url;
         if (url && isPlatformBrowser(this.platformId)) {
           if (url.includes('localhost')) {
-            this.snackbar.show('Deposit completed', undefined, { duration: 3000 });
+            this.snackbar.show(this.transloco.translate('wallet.depositCompleted'), undefined, { duration: 3000 });
             setTimeout(() => this.ngOnInit(), 2000);
           } else {
             window.location.href = url;
@@ -187,7 +192,7 @@ export class WalletComponent implements OnInit {
       },
       error: err => {
         this.depositing.set(false);
-        this.snackbar.show(err.error?.error || 'Deposit failed', undefined, { duration: 3000 });
+        this.snackbar.show(err.error?.error || this.transloco.translate('wallet.depositFailed'), undefined, { duration: 3000 });
       },
     });
   }

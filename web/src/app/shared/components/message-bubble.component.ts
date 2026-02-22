@@ -1,4 +1,5 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, inject } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import { Message } from '../../core/models';
 
 @Component({
@@ -14,9 +15,11 @@ import { Message } from '../../core/models';
   `,
 })
 export class MessageBubbleComponent {
+  private transloco = inject(TranslocoService);
+
   message = input.required<Message>();
   isMine = input.required<boolean>();
-  senderName = input<string>('user');
+  senderName = input<string>('');
 
   time = computed(() => {
     const d = new Date(this.message().created_at);
@@ -24,7 +27,7 @@ export class MessageBubbleComponent {
   });
 
   senderLabel = computed(() => {
-    if (this.isMine()) return 'you';
-    return this.senderName() || this.message().sender?.name || 'user';
+    if (this.isMine()) return this.transloco.translate('messageBubble.you');
+    return this.senderName() || this.message().sender?.name || this.transloco.translate('messageBubble.defaultUser');
   });
 }

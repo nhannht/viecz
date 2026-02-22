@@ -269,4 +269,74 @@ describe('WebSocketService', () => {
       expect(mockWs.close).toHaveBeenCalled();
     });
   });
+
+  describe('SSR / server platform (line 31 if branch)', () => {
+    let serverService: WebSocketService;
+
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: PLATFORM_ID, useValue: 'server' },
+          { provide: AuthService, useValue: authSpy },
+          { provide: Router, useValue: { navigate: vi.fn() } },
+        ],
+      });
+      serverService = TestBed.inject(WebSocketService);
+    });
+
+    it('should return early on server platform (covers !isPlatformBrowser branch)', () => {
+      // On server, connect() returns early without creating WebSocket
+      serverService.connect();
+      // mockWs should not have been touched
+      expect(mockWs.onmessage).toBeNull();
+      expect(serverService.connectionStatus()).toBe('disconnected');
+    });
+  });
+
+  describe('connectionStatus cond-expr (reconnecting vs connecting, line 35)', () => {
+    it('should set status to reconnecting when retryCount > 0', () => {
+      service.connect();
+      mockWs.onclose!();
+      // scheduleReconnect increments retryCount and sets reconnecting
+      expect(service.connectionStatus()).toBe('reconnecting');
+
+      // Now advance timer to trigger reconnect
+      mockWs.onmessage = null;
+      vi.advanceTimersByTime(1000);
+      // retryCount is 1 > 0, so status should be 'reconnecting' when connect is called
+      expect(service.connectionStatus()).toBe('reconnecting');
+    });
+  });
+
+  describe('proto cond-expr (wss vs ws, line 37)', () => {
+    it('should use wss protocol when location is https', () => {
+      // Spy on WebSocket constructor to capture the URL
+      const wsUrls: string[] = [];
+      (globalThis as any).WebSocket = function MockWebSocket(url: string) {
+        wsUrls.push(url);
+        return mockWs;
+      } as any;
+      (globalThis.WebSocket as any).OPEN = 1;
+
+      // Set location.protocol to https:
+      Object.defineProperty(window, 'location', {
+        value: { protocol: 'https:', host: 'localhost', origin: 'https://localhost' },
+        writable: true,
+        configurable: true,
+      });
+
+      service.connect();
+      expect(wsUrls[0]).toMatch(/^wss:/);
+
+      // Restore
+      Object.defineProperty(window, 'location', {
+        value: { protocol: 'http:', host: 'localhost', origin: 'http://localhost' },
+        writable: true,
+        configurable: true,
+      });
+    });
+  });
 });

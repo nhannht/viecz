@@ -125,6 +125,7 @@ Viecz is a multi-package project containing:
 | `UI_ACCESSIBILITY.md` | Accessibility audit: ARIA per component, known gaps, keyboard nav, testing tools |
 | `UI_PLATFORM_PARITY.md` | Android vs Web: screen-by-screen comparison, navigation, design language |
 | `UI_ANIMATION.md` | Animation patterns: duration scale, hover effects, loading animations, guidelines |
+| `TESTING.md` | Testing standards: coverage targets (90% stmts/funcs/lines, 80% branches), platform commands, patterns |
 | `README.md` | Index and navigation guide |
 
 ## YouTrack Project Management

@@ -7,6 +7,7 @@ export const MINIMUM_LOADING_MS = new InjectionToken<number>('MINIMUM_LOADING_MS
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslocoDirective } from '@jsverse/transloco';
 import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
@@ -26,6 +27,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
   imports: [
     RouterLink,
     FormsModule,
+    TranslocoDirective,
     NhannhtMetroInputComponent,
     NhannhtMetroIconComponent,
     NhannhtMetroSpinnerComponent,
@@ -37,6 +39,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
     ErrorFallbackComponent,
   ],
   template: `
+    <ng-container *transloco="let t">
     <div class="py-2 relative min-h-[60vh]">
       @if (!auth.isAuthenticated()) {
         <div class="border-2 border-fg p-8 mb-6">
@@ -50,53 +53,53 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
               />
             </div>
             <div class="text-center">
-              <h1 class="font-display text-[16px] tracking-[3px] mb-2">STUDENT MICRO-TASK MARKETPLACE</h1>
-              <p class="font-body text-[14px] text-muted">Post tasks. Find help. Earn money.</p>
+              <h1 class="font-display text-[16px] tracking-[3px] mb-2">{{ t('marketplace.heroTitle') }}</h1>
+              <p class="font-body text-[14px] text-muted">{{ t('marketplace.heroSubtitle') }}</p>
             </div>
           </div>
 
           <div class="grid grid-cols-3 gap-8 mb-6 max-w-[480px] mx-auto">
             <div class="text-center border-b-2 border-fg pb-3">
               <span class="font-display text-[24px] block">{{ total() }}+</span>
-              <span class="font-display text-[9px] tracking-[1px] text-muted">TASKS POSTED</span>
+              <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.tasksPosted') }}</span>
             </div>
             <div class="text-center border-b-2 border-fg pb-3">
               <span class="font-display text-[24px] block">11</span>
-              <span class="font-display text-[9px] tracking-[1px] text-muted">CATEGORIES</span>
+              <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.categories') }}</span>
             </div>
             <div class="text-center border-b-2 border-fg pb-3">
               <span class="font-display text-[24px] block">0%</span>
-              <span class="font-display text-[9px] tracking-[1px] text-muted">PLATFORM FEE</span>
+              <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.platformFee') }}</span>
             </div>
           </div>
 
           <div class="mb-6 max-w-[540px] mx-auto">
-            <h4 class="font-display text-[10px] tracking-[2px] text-muted mb-4 text-center">HOW IT WORKS</h4>
+            <h4 class="font-display text-[10px] tracking-[2px] text-muted mb-4 text-center">{{ t('marketplace.howItWorks') }}</h4>
             <div class="grid grid-cols-3 gap-4 text-center">
               <div>
                 <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">1</span>
-                <p class="font-display text-[10px] tracking-[1px]">POST</p>
-                <p class="font-body text-[11px] text-muted mt-1">Describe your task</p>
+                <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step1Title') }}</p>
+                <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step1Desc') }}</p>
               </div>
               <div>
                 <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">2</span>
-                <p class="font-display text-[10px] tracking-[1px]">MATCH</p>
-                <p class="font-body text-[11px] text-muted mt-1">Taskers apply</p>
+                <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step2Title') }}</p>
+                <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step2Desc') }}</p>
               </div>
               <div>
                 <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">3</span>
-                <p class="font-display text-[10px] tracking-[1px]">PAY</p>
-                <p class="font-body text-[11px] text-muted mt-1">Secure escrow</p>
+                <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step3Title') }}</p>
+                <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step3Desc') }}</p>
               </div>
             </div>
           </div>
 
           <div class="flex justify-center gap-4 items-center">
             <a routerLink="/register">
-              <nhannht-metro-button variant="primary" label="Get Started" />
+              <nhannht-metro-button variant="primary" [label]="t('marketplace.getStarted')" />
             </a>
             <a routerLink="/login" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
-              Sign In &gt;
+              {{ t('marketplace.signInLink') }}
             </a>
           </div>
         </div>
@@ -104,8 +107,8 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 
       <div class="mb-4">
         <nhannht-metro-input
-          label="SEARCH TASKS"
-          placeholder="What do you need help with?"
+          [label]="t('marketplace.searchLabel')"
+          [placeholder]="t('marketplace.searchPlaceholder')"
           [(ngModel)]="search"
           (ngModelChange)="onSearchInput()"
         />
@@ -115,16 +118,16 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 
       @if (error()) {
         <app-error-fallback
-          title="Failed to load tasks"
-          message="Could not load the task list. Please try again."
+          [title]="t('marketplace.failedToLoadTitle')"
+          [message]="t('marketplace.failedToLoadMessage')"
           [retryFn]="retryLoad" />
       } @else if (loading() && tasks().length === 0) {
         <app-loading-skeleton variant="card" [count]="6" />
       } @else if (tasks().length === 0) {
         <div class="flex flex-col items-center py-16 px-4 text-center">
           <nhannht-metro-icon name="assignment" [size]="64" />
-          <h3 class="font-display text-[11px] tracking-[1px] text-fg mt-3 mb-1">No tasks found</h3>
-          <p class="font-body text-[13px] text-muted">Try adjusting your search or filters</p>
+          <h3 class="font-display text-[11px] tracking-[1px] text-fg mt-3 mb-1">{{ t('marketplace.noTasksFound') }}</h3>
+          <p class="font-body text-[13px] text-muted">{{ t('marketplace.noTasksHint') }}</p>
         </div>
       } @else {
         <div class="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4 my-4">
@@ -138,7 +141,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
           </div>
         }
         @if (!hasMore()) {
-          <p class="text-center font-body text-[13px] text-muted py-4">No more tasks</p>
+          <p class="text-center font-body text-[13px] text-muted py-4">{{ t('marketplace.noMoreTasks') }}</p>
         }
       }
 
@@ -147,11 +150,12 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
            class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-fg text-bg border-2 border-fg
                   flex items-center justify-center cursor-pointer
                   hover:bg-transparent hover:text-fg transition-all duration-200"
-           aria-label="Create Task">
+           [attr.aria-label]="t('marketplace.createTask')">
           <nhannht-metro-icon name="add" [size]="28" />
         </a>
       }
     </div>
+    </ng-container>
   `,
 })
 export class MarketplaceComponent implements OnInit {

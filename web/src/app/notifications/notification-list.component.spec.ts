@@ -6,6 +6,7 @@ import { of, throwError } from 'rxjs';
 import { NotificationListComponent } from './notification-list.component';
 import { NotificationService } from '../core/notification.service';
 import { Notification } from '../core/models';
+import { provideTranslocoForTesting } from '../core/transloco-testing';
 
 const mockNotifications: Notification[] = [
   {
@@ -38,6 +39,7 @@ describe('NotificationListComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        provideTranslocoForTesting(),
         { provide: NotificationService, useValue: notifSpy },
       ],
     }).compileComponents();
@@ -145,5 +147,219 @@ describe('NotificationListComponent', () => {
     };
     component.onNotificationClick(n);
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('retryLoad should reset offset and reload', () => {
+    component.offset = 40;
+    notifSpy.list.mockClear();
+    component.retryLoad();
+    expect(component.offset).toBe(0);
+    expect(notifSpy.list).toHaveBeenCalledWith(20, 0);
+  });
+
+  it('should set error state on load failure', () => {
+    notifSpy.list.mockReturnValue(throwError(() => new Error('fail')));
+    component.load();
+    expect(component.error()).toBe(true);
+  });
+
+  it('should append notifications on loadMore (non-zero offset)', () => {
+    // Set up initial notifications
+    component.notifications.set(mockNotifications);
+    component.total.set(50);
+    const moreNotifications: Notification[] = [
+      { id: 3, user_id: 1, type: 'message', title: 'New', message: 'new one', is_read: false, created_at: new Date().toISOString() },
+    ];
+    notifSpy.list.mockReturnValue(of({ notifications: moreNotifications, total: 50 }));
+    component.loadMore();
+    expect(component.notifications().length).toBe(3);
+  });
+
+  it('should return all type icons', () => {
+    expect(component.getTypeIcon('application_accepted')).toBe('check_circle');
+    expect(component.getTypeIcon('application_rejected')).toBe('cancel');
+    expect(component.getTypeIcon('message')).toBe('chat');
+    expect(component.getTypeIcon('task_cancelled')).toBe('block');
+  });
+
+  it('should render loading spinner when loading is true', () => {
+    component.loading.set(true);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+  });
+
+  it('should render error fallback when error is true', () => {
+    component.loading.set(false);
+    component.error.set(true);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-error-fallback')).toBeTruthy();
+  });
+
+  it('should render notification list with dividers', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    const dividers = el.querySelectorAll('nhannht-metro-divider');
+    expect(dividers.length).toBe(2); // one per notification
+  });
+
+  it('should render delete buttons for each notification', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    const deleteButtons = el.querySelectorAll('.delete-btn');
+    expect(deleteButtons.length).toBe(2);
+  });
+
+  it('should not render mark all read button when no notifications', () => {
+    component.notifications.set([]);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // The "Mark all read" button only shows when notifications().length > 0
+    expect(el.textContent).not.toContain('Mark all read');
+  });
+
+  it('should render mark all read button when notifications exist', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Mark all read');
+  });
+
+  it('should update notification to read after click', () => {
+    const unread = component.notifications()[0];
+    expect(unread.is_read).toBe(false);
+    component.onNotificationClick(unread);
+    const updated = component.notifications().find(n => n.id === unread.id);
+    expect(updated?.is_read).toBe(true);
+  });
+
+  it('hasMore should be false when notifications length equals total', () => {
+    expect(component.notifications().length).toBe(2);
+    expect(component.total()).toBe(2);
+    expect(component.hasMore()).toBe(false);
+  });
+
+  it('hasMore should be true when total exceeds notifications length', () => {
+    component.total.set(10);
+    expect(component.hasMore()).toBe(true);
+  });
+
+  it('should not render load more button when hasMore is false', () => {
+    component.total.set(2); // matches length
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Load More');
+  });
+
+  describe('Template branch coverage', () => {
+    it('should toggle from loading to notifications list (destroys spinner block)', () => {
+      component.loading.set(true);
+      component.notifications.set([]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+
+      // Switch to loaded with notifications — destroys spinner, creates @for block
+      component.loading.set(false);
+      component.notifications.set(mockNotifications);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
+      expect(fixture.nativeElement.textContent).toContain('New Application');
+    });
+
+    it('should toggle from loading to error state (destroys spinner, creates error block)', () => {
+      component.loading.set(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+
+      // Switch to error
+      component.loading.set(false);
+      component.error.set(true);
+      component.notifications.set([]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
+    });
+
+    it('should toggle from error to empty state (destroys error block, creates empty block)', () => {
+      component.error.set(true);
+      component.loading.set(false);
+      component.notifications.set([]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeTruthy();
+
+      // Clear error — destroys error block, creates empty state block
+      component.error.set(false);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('app-empty-state')).toBeTruthy();
+    });
+
+    it('should toggle from empty to notifications list (destroys empty state block)', () => {
+      component.loading.set(false);
+      component.error.set(false);
+      component.notifications.set([]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-empty-state')).toBeTruthy();
+
+      // Add notifications — destroys empty state block, creates @for block
+      component.notifications.set(mockNotifications);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-empty-state')).toBeFalsy();
+      expect(fixture.nativeElement.textContent).toContain('New Application');
+    });
+
+    it('should toggle from notifications list to empty state (destroys @for block)', () => {
+      component.loading.set(false);
+      component.error.set(false);
+      component.notifications.set(mockNotifications);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('New Application');
+
+      // Clear notifications — destroys @for block, creates empty state block
+      component.notifications.set([]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-empty-state')).toBeTruthy();
+    });
+
+    it('should toggle hasMore load more button from hidden to visible (destroys/creates button)', () => {
+      component.loading.set(false);
+      component.error.set(false);
+      component.notifications.set(mockNotifications);
+      component.total.set(2); // hasMore = false
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Load More');
+
+      // Make hasMore true — creates load more button block
+      component.total.set(50);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Load More');
+    });
+
+    it('should toggle hasMore from visible to hidden (destroys load more button block)', () => {
+      component.loading.set(false);
+      component.error.set(false);
+      component.notifications.set(mockNotifications);
+      component.total.set(50); // hasMore = true
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Load More');
+
+      // Make hasMore false — destroys load more button block
+      component.total.set(2);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Load More');
+    });
+
+    it('should toggle mark all read button visibility (destroys/creates button block)', () => {
+      component.notifications.set([]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Mark all read');
+
+      // Add notifications — creates mark all read button
+      component.notifications.set(mockNotifications);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Mark all read');
+
+      // Remove — destroys button
+      component.notifications.set([]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Mark all read');
+    });
   });
 });

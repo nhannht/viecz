@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, input } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
 import { NhannhtMetroTextareaComponent } from '../shared/components/nhannht-metro-textarea.component';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
@@ -16,6 +17,7 @@ import { VndPipe } from '../core/pipes';
   standalone: true,
   imports: [
     FormsModule,
+    TranslocoDirective,
     NhannhtMetroInputComponent,
     NhannhtMetroTextareaComponent,
     NhannhtMetroButtonComponent,
@@ -23,53 +25,55 @@ import { VndPipe } from '../core/pipes';
     VndPipe,
   ],
   template: `
-    @if (loading()) {
-      <div class="flex justify-center py-16">
-        <nhannht-metro-spinner [size]="40" />
-      </div>
-    } @else if (task()) {
-      <div class="max-w-[600px] mx-auto">
-        <div class="bg-card border border-border">
-          <div class="px-6 py-4 border-b border-border">
-            <h2 class="font-display text-[11px] tracking-[1px] text-fg m-0">
-              APPLY FOR: {{ task()!.title }}
-            </h2>
-          </div>
-
-          <div class="px-6 py-4 flex flex-col gap-4">
-            <div class="bg-bg border border-border px-4 py-3">
-              <span class="font-body text-[13px] font-bold text-fg">Task price: {{ task()!.price | vnd }}</span>
+    <ng-container *transloco="let t">
+      @if (loading()) {
+        <div class="flex justify-center py-16">
+          <nhannht-metro-spinner [size]="40" />
+        </div>
+      } @else if (task()) {
+        <div class="max-w-[600px] mx-auto">
+          <div class="bg-card border border-border">
+            <div class="px-6 py-4 border-b border-border">
+              <h2 class="font-display text-[11px] tracking-[1px] text-fg m-0">
+                {{ t('applyTask.applyFor') }}{{ task()!.title }}
+              </h2>
             </div>
 
-            <nhannht-metro-input
-              label="PROPOSED PRICE (VND)"
-              type="number"
-              [step]="1000" [min]="1000"
-              [(ngModel)]="proposedPrice"
-              name="proposedPrice"
-              [error]="priceError"
-            />
+            <div class="px-6 py-4 flex flex-col gap-4">
+              <div class="bg-bg border border-border px-4 py-3">
+                <span class="font-body text-[13px] font-bold text-fg">{{ t('applyTask.taskPrice') }}{{ task()!.price | vnd }}</span>
+              </div>
 
-            <nhannht-metro-textarea
-              label="MESSAGE"
-              placeholder="Why are you a good fit for this task?"
-              [rows]="4"
-              [(ngModel)]="message"
-              name="message"
-            />
-          </div>
+              <nhannht-metro-input
+                [label]="t('applyTask.proposedPriceLabel')"
+                type="number"
+                [step]="1000" [min]="1000"
+                [(ngModel)]="proposedPrice"
+                name="proposedPrice"
+                [error]="priceError"
+              />
 
-          <div class="flex justify-end gap-3 px-6 py-4 border-t border-border">
-            <nhannht-metro-button variant="secondary" label="Cancel" (clicked)="cancel()" />
-            @if (submitting()) {
-              <nhannht-metro-spinner [size]="20" />
-            } @else {
-              <nhannht-metro-button variant="primary" label="Submit Application" (clicked)="submit()" />
-            }
+              <nhannht-metro-textarea
+                [label]="t('applyTask.messageLabel')"
+                [placeholder]="t('applyTask.messagePlaceholder')"
+                [rows]="4"
+                [(ngModel)]="message"
+                name="message"
+              />
+            </div>
+
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-border">
+              <nhannht-metro-button variant="secondary" [label]="t('common.cancel')" (clicked)="cancel()" />
+              @if (submitting()) {
+                <nhannht-metro-spinner [size]="20" />
+              } @else {
+                <nhannht-metro-button variant="primary" [label]="t('applyTask.submitButton')" (clicked)="submit()" />
+              }
+            </div>
           </div>
         </div>
-      </div>
-    }
+      }
+    </ng-container>
   `,
 })
 export class ApplyTaskComponent implements OnInit {
@@ -79,6 +83,7 @@ export class ApplyTaskComponent implements OnInit {
   private applicationService = inject(ApplicationService);
   private router = inject(Router);
   private snackbar = inject(NhannhtMetroSnackbarService);
+  private transloco = inject(TranslocoService);
 
   task = signal<Task | null>(null);
   loading = signal(true);
@@ -97,7 +102,7 @@ export class ApplyTaskComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackbar.show('Task not found', 'Close', { duration: 3000 });
+        this.snackbar.show(this.transloco.translate('task.taskNotFound'), this.transloco.translate('common.close'), { duration: 3000 });
         this.router.navigate(['/']);
       },
     });
@@ -106,7 +111,7 @@ export class ApplyTaskComponent implements OnInit {
   submit() {
     const p = Number(this.proposedPrice);
     if (this.proposedPrice && p > 0 && p % 1000 !== 0) {
-      this.priceError = 'Price must be a multiple of 1,000 VND';
+      this.priceError = this.transloco.translate('applyTask.priceMultiple');
       return;
     }
     this.priceError = '';
@@ -118,12 +123,12 @@ export class ApplyTaskComponent implements OnInit {
     this.submitting.set(true);
     this.applicationService.apply(this.task()!.id, body).subscribe({
       next: () => {
-        this.snackbar.show('Application submitted!', 'Close', { duration: 3000 });
+        this.snackbar.show(this.transloco.translate('applyTask.submitted'), this.transloco.translate('common.close'), { duration: 3000 });
         this.router.navigate(['/tasks', this.task()!.id]);
       },
       error: err => {
         this.submitting.set(false);
-        this.snackbar.show(err.error?.error || 'Failed to submit application', 'Close', { duration: 3000 });
+        this.snackbar.show(err.error?.error || this.transloco.translate('applyTask.submitFailed'), this.transloco.translate('common.close'), { duration: 3000 });
       },
     });
   }

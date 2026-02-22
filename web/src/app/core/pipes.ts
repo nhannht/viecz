@@ -1,4 +1,5 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Pipe({ name: 'vnd', standalone: true })
 export class VndPipe implements PipeTransform {
@@ -8,15 +9,17 @@ export class VndPipe implements PipeTransform {
   }
 }
 
-@Pipe({ name: 'timeAgo', standalone: true })
+@Pipe({ name: 'timeAgo', standalone: true, pure: false })
 export class TimeAgoPipe implements PipeTransform {
+  private transloco = inject(TranslocoService);
+
   transform(value: string | undefined | null): string {
     if (!value) return '';
     const secs = Math.floor((Date.now() - new Date(value).getTime()) / 1000);
-    if (secs < 60) return 'just now';
-    if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
-    if (secs < 86400) return Math.floor(secs / 3600) + 'h ago';
-    if (secs < 604800) return Math.floor(secs / 86400) + 'd ago';
+    if (secs < 60) return this.transloco.translate('timeAgo.justNow');
+    if (secs < 3600) return this.transloco.translate('timeAgo.minutesAgo', { count: Math.floor(secs / 60) });
+    if (secs < 86400) return this.transloco.translate('timeAgo.hoursAgo', { count: Math.floor(secs / 3600) });
+    if (secs < 604800) return this.transloco.translate('timeAgo.daysAgo', { count: Math.floor(secs / 86400) });
     return new Date(value).toLocaleDateString('vi-VN');
   }
 }

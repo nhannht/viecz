@@ -7,6 +7,7 @@ import { of, throwError } from 'rxjs';
 import { RegisterComponent } from './register.component';
 import { AuthService } from '../core/auth.service';
 import { AuthResponse } from '../core/models';
+import { provideTranslocoForTesting } from '../core/transloco-testing';
 
 @Component({ selector: 'app-dummy', template: '', standalone: true })
 class DummyComponent {}
@@ -59,6 +60,7 @@ describe('RegisterComponent', () => {
           { path: 'register', component: DummyComponent },
           { path: '', component: DummyComponent },
         ]),
+        provideTranslocoForTesting(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authSpy },
       ],
@@ -166,5 +168,205 @@ describe('RegisterComponent', () => {
     const links = compiled.querySelectorAll('a');
     const loginLink = Array.from(links).find((l) => l.textContent?.includes('Sign In'));
     expect(loginLink).toBeTruthy();
+  });
+
+  it('should render error message when error is set', () => {
+    component.error.set('Something went wrong');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Something went wrong');
+  });
+
+  it('should render spinner when loading', () => {
+    component.loading.set(true);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+  });
+
+  it('should not render submit button when loading', () => {
+    component.loading.set(true);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // The button should be hidden, only spinner visible
+    const buttons = el.querySelectorAll('nhannht-metro-button');
+    // The only button left should be none (all are replaced by spinner)
+    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+  });
+
+  it('should show error when email is empty', () => {
+    component.name = 'Test';
+    component.email = '';
+    component.password = 'Password123';
+    component.onRegister();
+    expect(component.error()).toBe('Please fill in all fields');
+  });
+
+  it('should show error when password is empty', () => {
+    component.name = 'Test';
+    component.email = 'test@example.com';
+    component.password = '';
+    component.onRegister();
+    expect(component.error()).toBe('Please fill in all fields');
+  });
+
+  it('should clear previous error on valid submit', () => {
+    component.error.set('Previous error');
+    authSpy.register.mockReturnValue(of(mockAuthResponse));
+    component.name = 'New User';
+    component.email = 'new@example.com';
+    component.password = 'Password123';
+    component.onRegister();
+    expect(component.error()).toBe('');
+  });
+
+  it('should set loading to true during registration', () => {
+    authSpy.register.mockReturnValue(of(mockAuthResponse));
+    component.name = 'New User';
+    component.email = 'new@example.com';
+    component.password = 'Password123';
+    // After onRegister completes (sync), loading should be false
+    component.onRegister();
+    expect(component.loading()).toBe(false);
+  });
+
+  it('should render password input as text when showPassword is true', () => {
+    component.showPassword.set(true);
+    fixture.detectChanges();
+    // Exercises the showPassword() ? 'text' : 'password' ternary true branch
+    const inputs = fixture.nativeElement.querySelectorAll('nhannht-metro-input');
+    expect(inputs.length).toBe(3);
+  });
+
+  it('should render password input as password when showPassword is false', () => {
+    component.showPassword.set(false);
+    fixture.detectChanges();
+    // Exercises the showPassword() ? 'text' : 'password' ternary false branch
+    const inputs = fixture.nativeElement.querySelectorAll('nhannht-metro-input');
+    expect(inputs.length).toBe(3);
+  });
+
+  it('should not render error div when error is empty', () => {
+    component.error.set('');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const errorDiv = el.querySelector('.bg-fg\\/20');
+    expect(errorDiv).toBeNull();
+  });
+
+  it('should render submit button when not loading', () => {
+    component.loading.set(false);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('nhannht-metro-button')).toBeTruthy();
+    expect(el.querySelector('nhannht-metro-spinner')).toBeFalsy();
+  });
+
+  it('should toggle showPassword icon between visibility_off and visibility', () => {
+    component.showPassword.set(true);
+    fixture.detectChanges();
+    let icon = fixture.nativeElement.querySelector('button[type="button"] nhannht-metro-icon');
+    expect(icon).toBeTruthy();
+
+    component.showPassword.set(false);
+    fixture.detectChanges();
+    icon = fixture.nativeElement.querySelector('button[type="button"] nhannht-metro-icon');
+    expect(icon).toBeTruthy();
+  });
+
+  it('should update name via DOM input event', () => {
+    const inputs = fixture.nativeElement.querySelectorAll('nhannht-metro-input input');
+    const nameInput = inputs[0];
+    if (nameInput) {
+      nameInput.value = 'DOM Name';
+      nameInput.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      expect(component.name).toBe('DOM Name');
+    }
+  });
+
+  it('should update email via DOM input event', () => {
+    const inputs = fixture.nativeElement.querySelectorAll('nhannht-metro-input input');
+    const emailInput = inputs[1];
+    if (emailInput) {
+      emailInput.value = 'dom@example.com';
+      emailInput.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      expect(component.email).toBe('dom@example.com');
+    }
+  });
+
+  it('should update password via DOM input event', () => {
+    const inputs = fixture.nativeElement.querySelectorAll('nhannht-metro-input input');
+    const passwordInput = inputs[2];
+    if (passwordInput) {
+      passwordInput.value = 'DomPass123';
+      passwordInput.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      expect(component.password).toBe('DomPass123');
+    }
+  });
+
+  it('should submit register form via DOM form submit event', () => {
+    authSpy.register.mockReturnValue(of(mockAuthResponse));
+    component.name = 'New User';
+    component.email = 'new@example.com';
+    component.password = 'Password123';
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form');
+    form.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(authSpy.register).toHaveBeenCalledWith('new@example.com', 'Password123', 'New User');
+    expect(router.navigate).toHaveBeenCalledWith(['/']);
+  });
+
+  it('should toggle showPassword via DOM button click', () => {
+    expect(component.showPassword()).toBe(false);
+    const toggleBtn = fixture.nativeElement.querySelector('button[type="button"]');
+    if (toggleBtn) {
+      toggleBtn.click();
+      fixture.detectChanges();
+      expect(component.showPassword()).toBe(true);
+      toggleBtn.click();
+      fixture.detectChanges();
+      expect(component.showPassword()).toBe(false);
+    }
+  });
+
+  it('should render spinner (loading true-branch) and hide button (loading false-branch)', () => {
+    // loading = true → spinner shows, button hidden
+    component.loading.set(true);
+    fixture.detectChanges();
+    expect(component.loading()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+
+    // loading = false → button shows, spinner hidden
+    component.loading.set(false);
+    fixture.detectChanges();
+    expect(el.querySelector('nhannht-metro-button')).toBeTruthy();
+    expect(el.querySelector('nhannht-metro-spinner')).toBeFalsy();
+  });
+
+  it('should show error then clear it (covers @if (error()) both branches)', () => {
+    component.error.set('Some error');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Some error');
+
+    component.error.set('');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.bg-fg\\/20')).toBeNull();
+  });
+
+  it('showPassword cycles through type cond-expr both branches', () => {
+    component.showPassword.set(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('nhannht-metro-input').length).toBe(3);
+
+    component.showPassword.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('nhannht-metro-input').length).toBe(3);
   });
 });

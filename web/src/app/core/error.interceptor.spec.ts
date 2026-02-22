@@ -3,6 +3,7 @@ import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { errorInterceptor } from './error.interceptor';
+import { provideTranslocoForTesting } from './transloco-testing';
 
 describe('errorInterceptor', () => {
   let http: HttpClient;
@@ -14,6 +15,7 @@ describe('errorInterceptor', () => {
       providers: [
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
+        provideTranslocoForTesting(),
       ],
     });
 

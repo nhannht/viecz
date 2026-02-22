@@ -200,5 +200,106 @@ describe('AuthService', () => {
       const newService = TestBed.inject(AuthService);
       expect(newService.currentUser()).toBeNull();
     });
+
+    it('should not restore user when no stored user in localStorage', () => {
+      // localStorage is already clear from beforeEach
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: PLATFORM_ID, useValue: 'browser' },
+          { provide: Router, useValue: routerSpy },
+        ],
+      });
+      const newService = TestBed.inject(AuthService);
+      expect(newService.currentUser()).toBeNull();
+    });
+  });
+
+  describe('isAuthenticated computed signal', () => {
+    it('should be false when currentUser is null (cond-expr false branch)', () => {
+      // Initially null
+      expect(service.currentUser()).toBeNull();
+      expect(service.isAuthenticated()).toBe(false);
+    });
+
+    it('should be true when currentUser is set (cond-expr true branch)', () => {
+      service.login('test@example.com', 'Password123').subscribe();
+      const req = httpTesting.expectOne('/api/v1/auth/login');
+      req.flush(mockAuthResponse);
+      expect(service.currentUser()).not.toBeNull();
+      expect(service.isAuthenticated()).toBe(true);
+    });
+  });
+
+  describe('SSR / server platform', () => {
+    let serverService: AuthService;
+    let serverHttpTesting: HttpTestingController;
+
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: PLATFORM_ID, useValue: 'server' },
+          { provide: Router, useValue: routerSpy },
+        ],
+      });
+      serverService = TestBed.inject(AuthService);
+      serverHttpTesting = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+      serverHttpTesting.verify();
+    });
+
+    it('should not read localStorage in constructor on server', () => {
+      // Even if localStorage has data, server platform should skip it
+      expect(serverService.currentUser()).toBeNull();
+    });
+
+    it('getAccessToken should return null on server', () => {
+      expect(serverService.getAccessToken()).toBeNull();
+    });
+
+    it('getRefreshToken should return null on server', () => {
+      expect(serverService.getRefreshToken()).toBeNull();
+    });
+
+    it('logout should not throw on server (no localStorage)', () => {
+      expect(() => serverService.logout()).not.toThrow();
+      expect(serverService.currentUser()).toBeNull();
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
+    it('refresh should not access localStorage on server', () => {
+      serverService.refresh().subscribe();
+      const req = serverHttpTesting.expectOne('/api/v1/auth/refresh');
+      req.flush({ access_token: 'new-token' });
+      // Should not throw even though localStorage is unavailable on server
+      expect(serverService.getAccessToken()).toBeNull();
+    });
+
+    it('login should store user in signal but not localStorage on server', () => {
+      serverService.login('test@example.com', 'pass').subscribe();
+      const req = serverHttpTesting.expectOne('/api/v1/auth/login');
+      req.flush(mockAuthResponse);
+
+      expect(serverService.currentUser()).toEqual(mockUser);
+      expect(serverService.isAuthenticated()).toBe(true);
+      // localStorage should NOT have been written (server platform)
+      expect(localStorage.getItem('viecz_access_token')).toBeNull();
+    });
+
+    it('register should store user in signal but not localStorage on server', () => {
+      serverService.register('t@x.com', 'pass', 'Name').subscribe();
+      const req = serverHttpTesting.expectOne('/api/v1/auth/register');
+      req.flush(mockAuthResponse);
+
+      expect(serverService.currentUser()).toEqual(mockUser);
+      expect(localStorage.getItem('viecz_user')).toBeNull();
+    });
   });
 });

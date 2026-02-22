@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { TaskService } from '../core/task.service';
 import { ApplicationService } from '../core/application.service';
 import { PaymentService } from '../core/payment.service';
@@ -23,6 +24,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     RouterLink,
     VndPipe,
     TimeAgoPipe,
+    TranslocoDirective,
     NhannhtMetroCardComponent,
     NhannhtMetroButtonComponent,
     NhannhtMetroIconComponent,
@@ -33,6 +35,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     NhannhtMetroApplicationCardComponent,
   ],
   template: `
+    <ng-container *transloco="let t">
     @if (loading()) {
       <div class="flex justify-center py-16">
         <nhannht-metro-spinner [size]="40" />
@@ -47,12 +50,12 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                 <span class="ml-auto flex gap-1">
                   <button class="text-muted hover:text-fg transition-colors duration-200"
                           [routerLink]="['/tasks', task()!.id, 'edit']"
-                          aria-label="Edit Task">
+                          [attr.aria-label]="t('task.editTask')">
                     <nhannht-metro-icon name="edit" [size]="20" />
                   </button>
                   <button class="text-muted hover:text-fg transition-colors duration-200"
                           (click)="confirmDelete()"
-                          aria-label="Delete Task">
+                          [attr.aria-label]="t('task.deleteTask')">
                     <nhannht-metro-icon name="delete" [size]="20" />
                   </button>
                 </span>
@@ -67,7 +70,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
             <nhannht-metro-divider />
 
             <div class="my-4">
-              <h4 class="font-display text-[11px] tracking-[1px] text-muted mb-2">DESCRIPTION</h4>
+              <h4 class="font-display text-[11px] tracking-[1px] text-muted mb-2">{{ t('task.description') }}</h4>
               <p class="font-body text-[13px] leading-[1.7] whitespace-pre-wrap">{{ task()!.description }}</p>
             </div>
 
@@ -79,15 +82,15 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
               @if (task()!.deadline) {
                 <div class="flex items-center gap-2 text-[13px] text-muted">
                   <nhannht-metro-icon name="schedule" [size]="18" />
-                  <span>Deadline: {{ task()!.deadline | timeAgo }}</span>
+                  <span>{{ t('task.deadline') }} {{ task()!.deadline | timeAgo }}</span>
                   @if (task()!.is_overdue) {
-                    <nhannht-metro-badge label="OVERDUE" status="cancelled" />
+                    <nhannht-metro-badge [label]="t('task.overdue')" status="cancelled" />
                   }
                 </div>
               }
               <div class="flex items-center gap-2 text-[13px] text-muted">
                 <nhannht-metro-icon name="calendar_today" [size]="18" />
-                <span>Posted {{ task()!.created_at | timeAgo }}</span>
+                <span>{{ t('task.posted') }} {{ task()!.created_at | timeAgo }}</span>
               </div>
             </div>
 
@@ -102,40 +105,40 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
             <div class="mt-6 flex gap-4">
               @if (!auth.isAuthenticated()) {
                 <div class="border-2 border-fg p-6 w-full">
-                  <h4 class="font-display text-[12px] tracking-[2px] mb-3">WANT TO APPLY FOR THIS TASK?</h4>
-                  <p class="font-body text-[13px] text-muted mb-3">Create a free account to:</p>
+                  <h4 class="font-display text-[12px] tracking-[2px] mb-3">{{ t('task.ctaTitle') }}</h4>
+                  <p class="font-body text-[13px] text-muted mb-3">{{ t('task.ctaSubtitle') }}</p>
                   <ul class="list-none p-0 m-0 mb-4 flex flex-col gap-2">
                     <li class="flex items-center gap-2 font-body text-[13px]">
                       <nhannht-metro-icon name="check" [size]="16" />
-                      Apply with your proposed price
+                      {{ t('task.ctaBenefit1') }}
                     </li>
                     <li class="flex items-center gap-2 font-body text-[13px]">
                       <nhannht-metro-icon name="check" [size]="16" />
-                      Chat directly with the requester
+                      {{ t('task.ctaBenefit2') }}
                     </li>
                     <li class="flex items-center gap-2 font-body text-[13px]">
                       <nhannht-metro-icon name="check" [size]="16" />
-                      Get paid via secure escrow
+                      {{ t('task.ctaBenefit3') }}
                     </li>
                   </ul>
                   <div class="flex gap-4 items-center">
                     <a routerLink="/register">
-                      <nhannht-metro-button variant="primary" label="Register to Apply" />
+                      <nhannht-metro-button variant="primary" [label]="t('task.registerToApply')" />
                     </a>
                     <a routerLink="/login" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
-                      Sign In &gt;
+                      {{ t('task.signInLink') }}
                     </a>
                   </div>
                 </div>
               } @else if (isRequester()) {
                 @if (task()!.status === 'in_progress') {
-                  <nhannht-metro-button variant="primary" label="Mark Complete" (clicked)="completeTask()" />
+                  <nhannht-metro-button variant="primary" [label]="t('task.markComplete')" (clicked)="completeTask()" />
                 }
               } @else if (task()!.status === 'open' && !task()!.user_has_applied && !task()!.is_overdue) {
-                <nhannht-metro-button variant="primary" label="Apply" (clicked)="navigateToApply()" />
+                <nhannht-metro-button variant="primary" [label]="t('task.apply')" (clicked)="navigateToApply()" />
               } @else if (task()!.user_has_applied) {
                 <span class="flex items-center gap-1 text-[13px] text-muted font-bold">
-                  <nhannht-metro-icon name="check" [size]="18" /> Applied
+                  <nhannht-metro-icon name="check" [size]="18" /> {{ t('task.applied') }}
                 </span>
               }
             </div>
@@ -145,7 +148,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
         @if (isRequester() && applications().length > 0) {
           <div>
             <nhannht-metro-card>
-              <h3 class="font-display text-[11px] tracking-[1px] mb-4">APPLICATIONS ({{ applications().length }})</h3>
+              <h3 class="font-display text-[11px] tracking-[1px] mb-4">{{ t('task.applications') }} ({{ applications().length }})</h3>
               <div class="flex flex-col gap-3">
                 @for (app of applications(); track app.id) {
                   <nhannht-metro-application-card
@@ -161,27 +164,28 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
       </div>
 
       <!-- Delete confirmation dialog -->
-      <nhannht-metro-dialog [open]="showDeleteDialog()" title="CANCEL TASK"
-        confirmLabel="Yes, Cancel Task" cancelLabel="No, Keep It"
+      <nhannht-metro-dialog [open]="showDeleteDialog()" [title]="t('task.cancelDialogTitle')"
+        [confirmLabel]="t('task.cancelConfirm')" [cancelLabel]="t('task.cancelDeny')"
         (confirmed)="deleteTask(); showDeleteDialog.set(false)"
         (cancelled)="showDeleteDialog.set(false)">
-        <p>Are you sure you want to cancel <strong>{{ task()!.title }}</strong>?</p>
-        <p class="text-[13px] text-red-700 mt-2">This will reject all pending applications.</p>
+        <p>{{ t('task.cancelMessage') }} <strong>{{ task()!.title }}</strong>?</p>
+        <p class="text-[13px] text-red-700 mt-2">{{ t('task.cancelWarning') }}</p>
       </nhannht-metro-dialog>
 
       <!-- Escrow confirmation dialog -->
-      <nhannht-metro-dialog [open]="showEscrowDialog()" title="CONFIRM ESCROW PAYMENT"
-        confirmLabel="Confirm & Pay" cancelLabel="Cancel"
+      <nhannht-metro-dialog [open]="showEscrowDialog()" [title]="t('task.escrowDialogTitle')"
+        [confirmLabel]="t('task.escrowConfirm')" [cancelLabel]="t('common.cancel')"
         (confirmed)="executeAcceptApp(); showEscrowDialog.set(false)"
         (cancelled)="showEscrowDialog.set(false)">
-        <p>Accept this application and create an escrow payment?</p>
+        <p>{{ t('task.escrowMessage') }}</p>
         <div class="flex justify-between items-center p-4 bg-card border border-border my-3">
-          <span class="font-bold text-[13px]">Escrow amount:</span>
+          <span class="font-bold text-[13px]">{{ t('task.escrowAmount') }}</span>
           <span class="text-[16px] font-bold">{{ task()!.price | vnd }}</span>
         </div>
-        <p class="text-[13px] text-muted">This amount will be held in escrow until the task is completed.</p>
+        <p class="text-[13px] text-muted">{{ t('task.escrowHint') }}</p>
       </nhannht-metro-dialog>
     }
+    </ng-container>
   `,
 })
 export class TaskDetailComponent implements OnInit {
@@ -193,6 +197,7 @@ export class TaskDetailComponent implements OnInit {
   auth = inject(AuthService);
   private router = inject(Router);
   private snackbar = inject(NhannhtMetroSnackbarService);
+  private transloco = inject(TranslocoService);
 
   task = signal<Task | null>(null);
   applications = signal<TaskApplication[]>([]);
@@ -225,7 +230,7 @@ export class TaskDetailComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackbar.show('Task not found', 'Close', { duration: 3000 });
+        this.snackbar.show(this.transloco.translate('task.taskNotFound'), this.transloco.translate('common.close'), { duration: 3000 });
         this.router.navigate(['/']);
       },
     });
@@ -238,10 +243,10 @@ export class TaskDetailComponent implements OnInit {
   deleteTask() {
     this.taskService.delete(this.task()!.id).subscribe({
       next: () => {
-        this.snackbar.show('Task cancelled', 'Close', { duration: 3000 });
+        this.snackbar.show(this.transloco.translate('task.taskCancelled'), this.transloco.translate('common.close'), { duration: 3000 });
         this.router.navigate(['/']);
       },
-      error: err => this.snackbar.show(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
+      error: err => this.snackbar.show(err.error?.error || this.transloco.translate('common.failed'), this.transloco.translate('common.close'), { duration: 3000 }),
     });
   }
 
@@ -254,17 +259,17 @@ export class TaskDetailComponent implements OnInit {
     const appId = this.pendingAppId();
     this.applicationService.accept(appId).subscribe({
       next: () => {
-        this.snackbar.show('Application accepted', 'Close', { duration: 3000 });
+        this.snackbar.show(this.transloco.translate('task.applicationAccepted'), this.transloco.translate('common.close'), { duration: 3000 });
         this.paymentService.createEscrow(this.task()!.id).subscribe({
           next: () => {
-            this.snackbar.show('Escrow created', 'Close', { duration: 3000 });
+            this.snackbar.show(this.transloco.translate('task.escrowCreated'), this.transloco.translate('common.close'), { duration: 3000 });
             this.ngOnInit();
           },
           error: err =>
-            this.snackbar.show(err.error?.error || 'Escrow failed', 'Close', { duration: 3000 }),
+            this.snackbar.show(err.error?.error || this.transloco.translate('task.escrowFailed'), this.transloco.translate('common.close'), { duration: 3000 }),
         });
       },
-      error: err => this.snackbar.show(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
+      error: err => this.snackbar.show(err.error?.error || this.transloco.translate('common.failed'), this.transloco.translate('common.close'), { duration: 3000 }),
     });
   }
 
@@ -275,10 +280,10 @@ export class TaskDetailComponent implements OnInit {
   completeTask() {
     this.taskService.complete(this.task()!.id).subscribe({
       next: () => {
-        this.snackbar.show('Task completed & payment released!', 'Close', { duration: 3000 });
+        this.snackbar.show(this.transloco.translate('task.taskCompleted'), this.transloco.translate('common.close'), { duration: 3000 });
         this.ngOnInit();
       },
-      error: err => this.snackbar.show(err.error?.error || 'Failed to complete task', 'Close', { duration: 3000 }),
+      error: err => this.snackbar.show(err.error?.error || this.transloco.translate('task.completeFailed'), this.transloco.translate('common.close'), { duration: 3000 }),
     });
   }
 }

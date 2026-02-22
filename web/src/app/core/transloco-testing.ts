@@ -1,0 +1,191 @@
+import { provideTransloco, TranslocoLoader, TranslocoService, Translation } from '@jsverse/transloco';
+import { APP_INITIALIZER, Injectable } from '@angular/core';
+import { of } from 'rxjs';
+
+const translations: Record<string, Translation> = {
+  en: {
+    common: {
+      cancel: 'Cancel', close: 'Close', signIn: 'Sign In', register: 'Register',
+      loading: 'Loading...', failed: 'Failed', tryAgainLater: 'Please try again later.',
+      loadMore: 'Load More', errorOccurred: 'An error occurred', viecz: 'Viecz',
+    },
+    timeAgo: {
+      justNow: 'just now', minutesAgo: '{{count}}m ago',
+      hoursAgo: '{{count}}h ago', daysAgo: '{{count}}d ago',
+    },
+    auth: {
+      login: {
+        title: 'SIGN IN', subtitle: 'Sign in to your account',
+        emailLabel: 'EMAIL', emailPlaceholder: 'you@example.com',
+        passwordLabel: 'PASSWORD', passwordPlaceholder: 'Enter password',
+        signInButton: 'Sign In', noAccount: "Don't have an account?",
+        registerLink: 'Register', fillAllFields: 'Please fill in all fields',
+        loginFailed: 'Login failed',
+      },
+      register: {
+        title: 'CREATE ACCOUNT', subtitle: 'Join Viecz to find and post tasks',
+        nameLabel: 'FULL NAME', namePlaceholder: 'Your full name',
+        emailLabel: 'EMAIL', emailPlaceholder: 'you@example.com',
+        passwordLabel: 'PASSWORD', passwordPlaceholder: 'Enter password',
+        passwordHint: 'Min 8 characters, 1 uppercase, 1 lowercase, 1 digit',
+        createButton: 'Create Account', hasAccount: 'Already have an account?',
+        signInLink: 'Sign In', fillAllFields: 'Please fill in all fields',
+        registerFailed: 'Registration failed',
+      },
+    },
+    shell: {
+      marketplace: 'Marketplace', wallet: 'Wallet', chat: 'Chat',
+      noNotifications: 'No notifications', viewAllNotifications: 'View all notifications',
+      profile: 'Profile', logout: 'Logout',
+    },
+    marketplace: {
+      heroTitle: 'STUDENT MICRO-TASK MARKETPLACE',
+      heroSubtitle: 'Post tasks. Find help. Earn money.',
+      tasksPosted: 'TASKS POSTED', categories: 'CATEGORIES', platformFee: 'PLATFORM FEE',
+      howItWorks: 'HOW IT WORKS',
+      step1Title: 'POST', step1Desc: 'Describe your task',
+      step2Title: 'MATCH', step2Desc: 'Taskers apply',
+      step3Title: 'PAY', step3Desc: 'Secure escrow',
+      getStarted: 'Get Started', signInLink: 'Sign In >',
+      searchLabel: 'SEARCH TASKS', searchPlaceholder: 'What do you need help with?',
+      failedToLoadTitle: 'Failed to load tasks',
+      failedToLoadMessage: 'Could not load the task list. Please try again.',
+      noTasksFound: 'No tasks found', noTasksHint: 'Try adjusting your search or filters',
+      noMoreTasks: 'No more tasks', createTask: 'Create Task', allCategories: 'All',
+    },
+    task: {
+      editTask: 'Edit Task', deleteTask: 'Delete Task', description: 'DESCRIPTION',
+      deadline: 'Deadline: ', overdue: 'OVERDUE', posted: 'Posted ',
+      ctaTitle: 'WANT TO APPLY FOR THIS TASK?', ctaSubtitle: 'Create a free account to:',
+      ctaBenefit1: 'Apply with your proposed price',
+      ctaBenefit2: 'Chat directly with the requester',
+      ctaBenefit3: 'Get paid via secure escrow',
+      registerToApply: 'Register to Apply', signInLink: 'Sign In >',
+      markComplete: 'Mark Complete', apply: 'Apply', applied: 'Applied',
+      applications: 'APPLICATIONS',
+      cancelDialogTitle: 'CANCEL TASK', cancelConfirm: 'Yes, Cancel Task',
+      cancelDeny: 'No, Keep It', cancelMessage: 'Are you sure you want to cancel',
+      cancelWarning: 'This will reject all pending applications.',
+      taskNotFound: 'Task not found', taskCancelled: 'Task cancelled',
+      taskCompleted: 'Task completed & payment released!',
+      escrowDialogTitle: 'CONFIRM ESCROW PAYMENT', escrowConfirm: 'Confirm & Pay',
+      escrowMessage: 'Accept this application and create an escrow payment?',
+      escrowAmount: 'Escrow amount:',
+      escrowHint: 'This amount will be held in escrow until the task is completed.',
+      applicationAccepted: 'Application accepted', escrowCreated: 'Escrow created',
+      escrowFailed: 'Escrow failed', completeFailed: 'Failed to complete task',
+    },
+    taskForm: {
+      editTitle: 'Edit Task', createTitle: 'Create Task',
+      titleLabel: 'TITLE', titlePlaceholder: 'What do you need help with?',
+      titleRequired: 'Title is required', descLabel: 'DESCRIPTION',
+      descPlaceholder: 'Describe the task in detail', descRequired: 'Description is required',
+      categoryLabel: 'CATEGORY', categoryPlaceholder: 'Select a category',
+      categoryRequired: 'Category is required', availableBalance: 'Available Balance',
+      couldNotLoadBalance: 'Could not load balance',
+      priceLabel: 'PRICE (VND)', pricePlaceholder: 'e.g. 50000',
+      priceRequired: 'Price is required', priceGreaterThanZero: 'Price must be greater than 0',
+      priceMultiple: 'Price must be a multiple of 1,000 VND',
+      locationLabel: 'LOCATION', locationPlaceholder: 'Where is this task?',
+      locationRequired: 'Location is required', deadlineLabel: 'DEADLINE',
+      deadlinePast: 'Deadline cannot be in the past', saveChanges: 'Save Changes',
+      taskNotFound: 'Task not found', taskUpdated: 'Task updated', taskCreated: 'Task created',
+    },
+    applyTask: {
+      applyFor: 'APPLY FOR: ', taskPrice: 'Task price: ',
+      proposedPriceLabel: 'PROPOSED PRICE (VND)', messageLabel: 'MESSAGE',
+      messagePlaceholder: 'Why are you a good fit for this task?',
+      submitButton: 'Submit Application',
+      priceMultiple: 'Price must be a multiple of 1,000 VND',
+      submitted: 'Application submitted!', submitFailed: 'Failed to submit application',
+    },
+    wallet: {
+      failedToLoadTitle: 'Failed to load wallet', availableBalance: 'AVAILABLE BALANCE',
+      totalBalance: 'TOTAL BALANCE', inEscrow: 'IN ESCROW', depositTitle: 'DEPOSIT FUNDS',
+      amountLabel: 'AMOUNT (VND)', depositButton: 'Deposit', depositing: 'Depositing',
+      depositHint: 'Min 2,000 VND. Max balance: 200,000 VND',
+      totalDeposited: 'TOTAL DEPOSITED', totalEarned: 'TOTAL EARNED', totalSpent: 'TOTAL SPENT',
+      transactionHistory: 'TRANSACTION HISTORY', noTransactions: 'No transactions yet',
+      noTransactionsHint: 'Deposit funds to get started',
+      minDeposit: 'Minimum deposit is 2,000 VND',
+      amountMultiple: 'Amount must be a multiple of 1,000 VND',
+      depositCompleted: 'Deposit completed', depositFailed: 'Deposit failed',
+    },
+    chat: {
+      backButton: '←', chatTitle: 'Chat', live: '● live', connecting: '○ connecting',
+      reconnecting: '○ reconnecting', offline: '○ offline', chatClosed: '~ chat closed',
+      noMessages: '~ no messages yet. say hello!', isTyping: ' is typing',
+      you: 'you', inputPlaceholder: 'type a message...', send: '⏎',
+    },
+    conversationList: {
+      title: '> MESSAGES', failedToLoadTitle: 'Failed to load conversations',
+      noConversations: 'No conversations yet',
+      noConversationsHint: 'Apply to tasks to start chatting',
+      browseMarketplace: 'Browse Marketplace', untitledTask: 'Untitled task',
+      noMessagesYet: '~ no messages yet',
+    },
+    profile: {
+      avatar: 'Avatar', verified: 'VERIFIED', tasker: 'TASKER', rating: 'RATING',
+      completed: 'COMPLETED', posted: 'POSTED', earned: 'EARNED', bio: 'BIO', skills: 'SKILLS',
+      editProfile: 'Edit Profile', becomeTasker: 'Become Tasker',
+      myPostedJobs: 'My Posted Jobs >', myAppliedJobs: 'My Applied Jobs >',
+      logout: 'Logout', editTitle: 'EDIT PROFILE', nameLabel: 'NAME', phoneLabel: 'PHONE',
+      bioLabel: 'BIO', bioPlaceholder: 'Tell us about yourself', saving: 'Saving',
+      saveChanges: 'Save Changes', profileUpdated: 'Profile updated',
+      updateFailed: 'Update failed', avatarUpdated: 'Avatar updated',
+      uploadFailed: 'Upload failed', becameTasker: 'You are now a tasker!',
+      taskNotFound: 'Task not found',
+    },
+    myJobs: {
+      title: 'MY JOBS', tabPosted: 'Posted', tabApplied: 'Applied', tabCompleted: 'Completed',
+      failedToLoadTitle: 'Failed to load tasks', noPosted: 'No posted tasks yet',
+      noPostedHint: 'Post a task to find help', postTask: 'Post a Task',
+      noApplied: 'No active jobs', noAppliedHint: 'Browse the marketplace to find tasks',
+      noCompleted: 'No completed jobs yet', noCompletedHint: 'Complete tasks to see them here',
+    },
+    notifications: {
+      title: 'NOTIFICATIONS', markAllRead: 'Mark all read',
+      failedToLoadTitle: 'Failed to load notifications',
+      noNotifications: 'No notifications yet',
+      noNotificationsHint: "You'll be notified about task updates",
+    },
+    payment: {
+      successTitle: 'PAYMENT SUCCESSFUL',
+      successMessage: 'Your deposit has been processed. Funds will appear in your wallet shortly.',
+      cancelledTitle: 'PAYMENT CANCELLED',
+      cancelledMessage: 'The payment was cancelled. No funds were charged.',
+      errorTitle: 'PAYMENT ERROR',
+      errorMessage: 'Something went wrong with the payment. Please try again.',
+      goToWallet: 'Go to Wallet', logIn: 'Log In',
+    },
+    applicationCard: { tasker: 'Tasker #', proposed: 'Proposed: ', accept: 'Accept' },
+    messageBubble: { you: 'you', defaultUser: 'user' },
+  },
+};
+
+@Injectable()
+class TestTranslocoLoader implements TranslocoLoader {
+  getTranslation(lang: string) {
+    return of(translations[lang] || translations['en']);
+  }
+}
+
+export function provideTranslocoForTesting() {
+  return [
+    provideTransloco({
+      config: {
+        availableLangs: ['en', 'vi'],
+        defaultLang: 'en',
+        reRenderOnLangChange: true,
+        prodMode: true,
+      },
+      loader: TestTranslocoLoader,
+    }),
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (transloco: TranslocoService) => () => transloco.load('en').toPromise(),
+      deps: [TranslocoService],
+      multi: true,
+    },
+  ];
+}

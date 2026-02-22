@@ -56,4 +56,94 @@ describe('EmptyStateComponent', () => {
     fixture.nativeElement.querySelector('button').click();
     expect(called).toBe(true);
   });
+
+  it('should toggle action button visibility (destroys button block)', () => {
+    fixture.componentRef.setInput('actionLabel', 'Retry');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button')).toBeTruthy();
+
+    fixture.componentRef.setInput('actionLabel', '');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button')).toBeFalsy();
+  });
+
+  it('should handle component destruction', () => {
+    fixture.detectChanges();
+    fixture.destroy();
+  });
+
+  describe('template conditional toggles', () => {
+    it('should toggle actionLabel from empty to provided (creates button block)', () => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button')).toBeFalsy();
+
+      fixture.componentRef.setInput('actionLabel', 'Try Again');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button')).toBeTruthy();
+    });
+
+    it('should update title when title input changes', () => {
+      fixture.componentRef.setInput('title', 'No results');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('h3').textContent).toContain('No results');
+
+      fixture.componentRef.setInput('title', 'Empty');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('h3').textContent).toContain('Empty');
+    });
+
+    it('should update message when message input changes', () => {
+      fixture.componentRef.setInput('message', 'No data available');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('p').textContent).toContain('No data available');
+
+      fixture.componentRef.setInput('message', '');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('p').textContent.trim()).toBe('');
+    });
+
+    it('should update icon when icon input changes', () => {
+      fixture.componentRef.setInput('icon', 'search');
+      fixture.detectChanges();
+      const icon = fixture.nativeElement.querySelector('nhannht-metro-icon');
+      expect(icon.textContent.trim()).toBe('search');
+
+      fixture.componentRef.setInput('icon', 'inbox');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('nhannht-metro-icon').textContent.trim()).toBe('inbox');
+    });
+
+    it('should toggle actionLabel empty→set→empty→set covering button block cycle', () => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button')).toBeFalsy();
+
+      fixture.componentRef.setInput('actionLabel', 'Retry');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button')).toBeTruthy();
+
+      fixture.componentRef.setInput('actionLabel', '');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button')).toBeFalsy();
+
+      fixture.componentRef.setInput('actionLabel', 'Go');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button')).toBeTruthy();
+    });
+
+    it('should not call action when action fn is undefined', () => {
+      fixture.componentRef.setInput('actionLabel', 'Click');
+      fixture.detectChanges();
+      // action is not set — onAction should handle undefined gracefully
+      fixture.nativeElement.querySelector('button').click();
+      expect(component).toBeTruthy(); // no error thrown
+    });
+
+    it('should render all default values correctly', () => {
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('h3')!.textContent).toContain('Nothing here');
+      expect(el.querySelector('nhannht-metro-icon')!.textContent!.trim()).toBe('inbox');
+      expect(el.querySelector('button')).toBeFalsy();
+    });
+  });
 });

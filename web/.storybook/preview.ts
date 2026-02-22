@@ -1,10 +1,17 @@
 import type { Preview } from '@storybook/angular';
+import { applicationConfig } from '@storybook/angular';
 import { setCompodocJson } from '@storybook/addon-docs/angular';
+import { provideTranslocoForTesting } from '../src/app/core/transloco-testing';
 import docJson from './documentation.json';
 
 setCompodocJson(docJson);
 
 const preview: Preview = {
+  decorators: [
+    applicationConfig({
+      providers: [provideTranslocoForTesting()],
+    }),
+  ],
   parameters: {
     backgrounds: {
       default: 'nhannht-metro',

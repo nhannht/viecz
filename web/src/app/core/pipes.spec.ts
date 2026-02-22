@@ -1,4 +1,6 @@
+import { TestBed } from '@angular/core/testing';
 import { VndPipe, TimeAgoPipe } from './pipes';
+import { provideTranslocoForTesting } from './transloco-testing';
 
 describe('VndPipe', () => {
   const pipe = new VndPipe();
@@ -34,7 +36,14 @@ describe('VndPipe', () => {
 });
 
 describe('TimeAgoPipe', () => {
-  const pipe = new TimeAgoPipe();
+  let pipe: TimeAgoPipe;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideTranslocoForTesting(), TimeAgoPipe],
+    });
+    pipe = TestBed.inject(TimeAgoPipe);
+  });
 
   it('should return "just now" for recent timestamps', () => {
     const now = new Date().toISOString();

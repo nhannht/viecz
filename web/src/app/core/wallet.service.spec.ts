@@ -100,4 +100,19 @@ describe('WalletService', () => {
     service.deposit(500).subscribe({ error: err => expect(err.status).toBe(400) });
     httpCtrl.expectOne('/api/v1/wallet/deposit').flush({ error: 'Amount too low' }, { status: 400, statusText: 'Bad Request' });
   });
+
+  it('should send undefined return_url when window is not defined (covers typeof window !== "undefined" false branch)', () => {
+    // Temporarily delete window to simulate SSR environment
+    const originalWindow = globalThis.window;
+    (globalThis as any).window = undefined;
+
+    try {
+      service.deposit(50000, 'SSR deposit').subscribe();
+      const req = httpCtrl.expectOne('/api/v1/wallet/deposit');
+      expect(req.request.body.return_url).toBeUndefined();
+      req.flush({ checkout_url: 'https://pay.payos.vn/123', order_code: 123 });
+    } finally {
+      (globalThis as any).window = originalWindow;
+    }
+  });
 });

@@ -6,6 +6,7 @@ import { PLATFORM_ID, signal, Component, input } from '@angular/core';
 import { TaskCardComponent } from './task-card.component';
 import { AuthService } from '../../core/auth.service';
 import { Task, User } from '../../core/models';
+import { provideTranslocoForTesting } from '../../core/transloco-testing';
 
 const mockTask: Task = {
   id: 1,
@@ -70,6 +71,7 @@ describe('TaskCardComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideTranslocoForTesting(),
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: AuthService, useValue: authService },
       ],
@@ -146,5 +148,67 @@ describe('TaskCardComponent', () => {
     const icons = el.querySelectorAll('nhannht-metro-icon');
     const scheduleIcon = Array.from(icons).find(i => i.textContent?.includes('schedule'));
     expect(scheduleIcon).toBeFalsy();
+  });
+
+  it('should toggle YOUR TASK badge visibility (destroys badge block)', () => {
+    const fixture = createFixture();
+    authService.currentUser.set(mockUser); // id: 1 matches requester_id: 1
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('YOUR TASK');
+
+    authService.currentUser.set({ ...mockUser, id: 999 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('YOUR TASK');
+  });
+
+  it('should handle component destruction', () => {
+    const fixture = createFixture();
+    fixture.destroy();
+  });
+
+  describe('template conditional toggles', () => {
+    it('should not show location icon when location is absent', () => {
+      const noLocationTask = { ...mockTask, location: undefined };
+      const fixture = createFixture(noLocationTask as any);
+      const el = fixture.nativeElement as HTMLElement;
+      const icons = el.querySelectorAll('nhannht-metro-icon');
+      const locationIcon = Array.from(icons).find(i => i.textContent?.includes('location_on'));
+      expect(locationIcon).toBeFalsy();
+    });
+
+    it('should show location icon when location is present', () => {
+      const fixture = createFixture();
+      const el = fixture.nativeElement as HTMLElement;
+      const icons = el.querySelectorAll('nhannht-metro-icon');
+      const locationIcon = Array.from(icons).find(i => i.textContent?.includes('location_on'));
+      expect(locationIcon).toBeTruthy();
+    });
+
+    it('should toggle isOwner from false to true (creates YOUR TASK badge)', () => {
+      const fixture = createFixture();
+      authService.currentUser.set(null);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('YOUR TASK');
+
+      authService.currentUser.set(mockUser); // id matches requester_id: 1
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('YOUR TASK');
+    });
+
+    it('should not show deadline block when task has no deadline (deadline @if false-branch)', () => {
+      const noDeadlineFix = createFixture({ ...mockTask, deadline: undefined });
+      const el = noDeadlineFix.nativeElement as HTMLElement;
+      const scheduleIcon = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+        .find(i => i.textContent?.includes('schedule'));
+      expect(scheduleIcon).toBeFalsy();
+    });
+
+    it('should show deadline block when task has a deadline (deadline @if true-branch)', () => {
+      const withDeadlineFix = createFixture({ ...mockTask, deadline: '2026-12-31T00:00:00Z' });
+      const el = withDeadlineFix.nativeElement as HTMLElement;
+      const scheduleIcon = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+        .find(i => i.textContent?.includes('schedule'));
+      expect(scheduleIcon).toBeTruthy();
+    });
   });
 });

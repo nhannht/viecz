@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { TranslocoDirective } from '@jsverse/transloco';
 import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { AuthService } from '../core/auth.service';
@@ -8,41 +9,43 @@ import { AuthService } from '../core/auth.service';
 @Component({
   selector: 'app-payment-return',
   standalone: true,
-  imports: [RouterLink, NhannhtMetroCardComponent, NhannhtMetroButtonComponent],
+  imports: [RouterLink, TranslocoDirective, NhannhtMetroCardComponent, NhannhtMetroButtonComponent],
   template: `
-    <div class="flex justify-center py-16 px-4">
-      <nhannht-metro-card class="max-w-md w-full">
-        <div class="text-center">
-          @if (state() === 'success') {
-            <div class="text-4xl mb-4">&#10003;</div>
-            <h2 class="font-display text-[13px] tracking-[2px] text-fg m-0 mb-2">PAYMENT SUCCESSFUL</h2>
-            <p class="font-body text-[13px] text-muted mb-6">
-              Your deposit has been processed. Funds will appear in your wallet shortly.
-            </p>
-          } @else if (state() === 'cancelled') {
-            <div class="text-4xl mb-4">&#10005;</div>
-            <h2 class="font-display text-[13px] tracking-[2px] text-fg m-0 mb-2">PAYMENT CANCELLED</h2>
-            <p class="font-body text-[13px] text-muted mb-6">
-              The payment was cancelled. No funds were charged.
-            </p>
-          } @else {
-            <div class="text-4xl mb-4">&#9888;</div>
-            <h2 class="font-display text-[13px] tracking-[2px] text-fg m-0 mb-2">PAYMENT ERROR</h2>
-            <p class="font-body text-[13px] text-muted mb-6">
-              Something went wrong with the payment. Please try again.
-            </p>
-          }
+    <ng-container *transloco="let t">
+      <div class="flex justify-center py-16 px-4">
+        <nhannht-metro-card class="max-w-md w-full">
+          <div class="text-center">
+            @if (state() === 'success') {
+              <div class="text-4xl mb-4">&#10003;</div>
+              <h2 class="font-display text-[13px] tracking-[2px] text-fg m-0 mb-2">{{ t('payment.successTitle') }}</h2>
+              <p class="font-body text-[13px] text-muted mb-6">
+                {{ t('payment.successMessage') }}
+              </p>
+            } @else if (state() === 'cancelled') {
+              <div class="text-4xl mb-4">&#10005;</div>
+              <h2 class="font-display text-[13px] tracking-[2px] text-fg m-0 mb-2">{{ t('payment.cancelledTitle') }}</h2>
+              <p class="font-body text-[13px] text-muted mb-6">
+                {{ t('payment.cancelledMessage') }}
+              </p>
+            } @else {
+              <div class="text-4xl mb-4">&#9888;</div>
+              <h2 class="font-display text-[13px] tracking-[2px] text-fg m-0 mb-2">{{ t('payment.errorTitle') }}</h2>
+              <p class="font-body text-[13px] text-muted mb-6">
+                {{ t('payment.errorMessage') }}
+              </p>
+            }
 
-          @if (loggedIn()) {
-            <nhannht-metro-button variant="primary" label="Go to Wallet"
-              routerLink="/wallet" />
-          } @else {
-            <nhannht-metro-button variant="primary" label="Log In"
-              routerLink="/login" />
-          }
-        </div>
-      </nhannht-metro-card>
-    </div>
+            @if (loggedIn()) {
+              <nhannht-metro-button variant="primary" [label]="t('payment.goToWallet')"
+                routerLink="/wallet" />
+            } @else {
+              <nhannht-metro-button variant="primary" [label]="t('payment.logIn')"
+                routerLink="/login" />
+            }
+          </div>
+        </nhannht-metro-card>
+      </div>
+    </ng-container>
   `,
 })
 export class PaymentReturnComponent implements OnInit {

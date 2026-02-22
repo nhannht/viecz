@@ -29,6 +29,7 @@
 | **[UI_ACCESSIBILITY.md](./UI_ACCESSIBILITY.md)** | Accessibility audit | ARIA per component, known gaps, keyboard nav, testing tools |
 | **[UI_PLATFORM_PARITY.md](./UI_PLATFORM_PARITY.md)** | Android vs Web comparison | Screen-by-screen parity, navigation, design language |
 | **[UI_ANIMATION.md](./UI_ANIMATION.md)** | Animation & transitions | Duration scale, hover effects, loading animations, guidelines |
+| **[TESTING.md](./TESTING.md)** | Testing standards | Coverage targets, platform test commands, patterns, pitfalls |
 
 ---
 

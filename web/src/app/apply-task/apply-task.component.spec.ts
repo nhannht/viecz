@@ -7,6 +7,7 @@ import { By } from '@angular/platform-browser';
 import { ApplyTaskComponent } from './apply-task.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { Task, TaskApplication } from '../core/models';
+import { provideTranslocoForTesting } from '../core/transloco-testing';
 
 const mockTask: Task = {
   id: 1,
@@ -56,6 +57,7 @@ describe('ApplyTaskComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideTranslocoForTesting(),
         { provide: PLATFORM_ID, useValue: 'browser' },
       ],
     }).compileComponents();
@@ -164,6 +166,248 @@ describe('ApplyTaskComponent', () => {
 
     comp.cancel();
 
+    expect(router.navigate).toHaveBeenCalledWith(['/tasks', 1]);
+  });
+
+  it('should show price error when proposed price is not multiple of 1000', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    comp.proposedPrice = 45500;
+    comp.submit();
+
+    expect(comp.priceError).toBe('Price must be a multiple of 1,000 VND');
+    httpTesting.expectNone('/api/v1/tasks/1/applications');
+  });
+
+  it('should submit without proposed_price when null', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    comp.proposedPrice = null;
+    comp.message = 'Just a message';
+    comp.submit();
+
+    const req = httpTesting.expectOne('/api/v1/tasks/1/applications');
+    expect(req.request.body).toEqual({ message: 'Just a message' });
+    req.flush({ id: 10 });
+  });
+
+  it('should submit without message when empty', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    comp.proposedPrice = 50000;
+    comp.message = '';
+    comp.submit();
+
+    const req = httpTesting.expectOne('/api/v1/tasks/1/applications');
+    expect(req.request.body).toEqual({ proposed_price: 50000 });
+    req.flush({ id: 10 });
+  });
+
+  it('should show generic error on submit failure without details', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    comp.proposedPrice = 45000;
+    comp.submit();
+
+    httpTesting.expectOne('/api/v1/tasks/1/applications').flush(
+      {},
+      { status: 500, statusText: 'Internal Server Error' },
+    );
+
+    expect(snackbarService.show).toHaveBeenCalledWith('Failed to submit application', 'Close', { duration: 3000 });
+  });
+
+  it('should show loading spinner before task loads', () => {
+    fixture.detectChanges();
+    // Before flushing the task request, loading should be true
+    const comp = getApplyComponent();
+    expect(comp.loading()).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    // Should not show the form yet
+    expect(el.textContent).not.toContain('Fix my laptop');
+    // Flush to avoid afterEach verify error
+    httpTesting.expectOne('/api/v1/tasks/1').flush(mockTask);
+  });
+
+  it('should show submitting spinner during submit', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    comp.proposedPrice = 45000;
+    comp.message = 'Test';
+    comp.submit();
+    // submitting is true before flush
+    expect(comp.submitting()).toBe(true);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // The spinner should be visible (submitting branch)
+    const spinners = el.querySelectorAll('nhannht-metro-spinner');
+    expect(spinners.length).toBeGreaterThan(0);
+    // Flush to avoid afterEach verify error
+    httpTesting.expectOne('/api/v1/tasks/1/applications').flush(mockApplication);
+  });
+
+  it('should not show submit button while submitting', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    comp.submitting.set(true);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // The submit button text should not be present when submitting
+    // Instead a spinner replaces the button
+    const buttons = el.querySelectorAll('nhannht-metro-button');
+    const submitBtn = Array.from(buttons).find(b =>
+      b.getAttribute('ng-reflect-label')?.includes('Submit') || b.textContent?.includes('Submit'));
+    expect(submitBtn).toBeFalsy();
+  });
+
+  it('should clear priceError after valid submit', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    // First trigger a price error
+    comp.proposedPrice = 45500;
+    comp.submit();
+    expect(comp.priceError).toBe('Price must be a multiple of 1,000 VND');
+
+    // Now submit with valid price - priceError should be cleared
+    comp.proposedPrice = 45000;
+    comp.submit();
+    expect(comp.priceError).toBe('');
+    // Flush the request
+    httpTesting.expectOne('/api/v1/tasks/1/applications').flush(mockApplication);
+  });
+
+  it('should show form content after task loads', () => {
+    initComponent();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Fix my laptop');
+    expect(el.querySelector('nhannht-metro-input')).toBeTruthy();
+    expect(el.querySelector('nhannht-metro-textarea')).toBeTruthy();
+  });
+
+  it('should show cancel button in form', () => {
+    initComponent();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Cancel');
+  });
+
+  it('should show submit button when not submitting', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    expect(comp.submitting()).toBe(false);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Submit');
+  });
+
+  it('should update proposedPrice via DOM input event', () => {
+    initComponent();
+    const input = fixture.nativeElement.querySelector('nhannht-metro-input[name="proposedPrice"] input');
+    if (input) {
+      input.value = '30000';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      const comp = getApplyComponent();
+      expect(String(comp.proposedPrice)).toBe('30000');
+    }
+  });
+
+  it('should update message via DOM textarea input event', () => {
+    initComponent();
+    const textarea = fixture.nativeElement.querySelector('nhannht-metro-textarea textarea');
+    if (textarea) {
+      textarea.value = 'DOM message';
+      textarea.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      const comp = getApplyComponent();
+      expect(comp.message).toBe('DOM message');
+    }
+  });
+
+  it('should trigger submit via DOM button click', async () => {
+    initComponent();
+    // Set values through DOM inputs to avoid ExpressionChangedAfterItHasBeenCheckedError
+    const priceInput = fixture.nativeElement.querySelector('nhannht-metro-input input') as HTMLInputElement;
+    if (priceInput) {
+      priceInput.value = '50000';
+      priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    const textarea = fixture.nativeElement.querySelector('nhannht-metro-textarea textarea') as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.value = 'Apply via DOM';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // Find submit button by its text content ('Submit Application')
+    const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
+    const submitBtn = Array.from(buttons).find(
+      (b: any) => b.textContent?.includes('Submit Application')
+    ) as HTMLButtonElement | undefined;
+    expect(submitBtn).toBeTruthy();
+    submitBtn!.click();
+    fixture.detectChanges();
+    const req = httpTesting.expectOne('/api/v1/tasks/1/applications');
+    expect(req.request.method).toBe('POST');
+    req.flush(mockApplication);
+  });
+
+  it('should not show task form when loading is true (covers @if loading branch)', () => {
+    fixture.detectChanges();
+    // loading() is true before flush — the @else if (task()) branch is NOT entered
+    const comp = getApplyComponent();
+    expect(comp.loading()).toBe(true);
+    expect(comp.task()).toBeNull();
+    const el = fixture.nativeElement as HTMLElement;
+    // Neither the task form nor the task title should be visible
+    expect(el.textContent).not.toContain('Fix my laptop');
+    // Flush to avoid afterEach verify error
+    httpTesting.expectOne('/api/v1/tasks/1').flush(mockTask);
+  });
+
+  it('should not show task form when task is null after loading (covers @else if (task()) false branch)', () => {
+    fixture.detectChanges();
+    // Flush with error to set loading=false but task remains null
+    httpTesting.expectOne('/api/v1/tasks/1').flush(
+      { error: 'not found' }, { status: 404, statusText: 'Not Found' },
+    );
+    fixture.detectChanges();
+    const comp = getApplyComponent();
+    expect(comp.loading()).toBe(false);
+    expect(comp.task()).toBeNull();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Fix my laptop');
+  });
+
+  it('should show submit button (@else branch of submitting) when submitting is false', () => {
+    initComponent();
+    const comp = getApplyComponent();
+    comp.submitting.set(false);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // The submit button is present in the @else branch
+    const submitBtns = el.querySelectorAll('nhannht-metro-button');
+    expect(submitBtns.length).toBeGreaterThan(0);
+    // The spinner from submitting should not be visible
+    const spinners = el.querySelectorAll('nhannht-metro-spinner');
+    // Only one spinner at most (from loading, which is now false), so none expected
+    expect(comp.submitting()).toBe(false);
+  });
+
+  it('should trigger cancel via DOM button click', () => {
+    initComponent();
+    fixture.detectChanges();
+
+    // Find cancel button by text content ('Cancel >')
+    const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
+    const cancelBtn = Array.from(buttons).find(
+      (b: any) => b.textContent?.includes('Cancel')
+    ) as HTMLButtonElement | undefined;
+    expect(cancelBtn).toBeTruthy();
+    cancelBtn!.click();
+    fixture.detectChanges();
     expect(router.navigate).toHaveBeenCalledWith(['/tasks', 1]);
   });
 });

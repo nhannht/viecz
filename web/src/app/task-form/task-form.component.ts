@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, input, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { TaskService } from '../core/task.service';
 import { CategoryService } from '../core/category.service';
 import { WalletService } from '../core/wallet.service';
@@ -19,6 +20,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
   standalone: true,
   imports: [
     FormsModule,
+    TranslocoDirective,
     VndPipe,
     NhannhtMetroCardComponent,
     NhannhtMetroInputComponent,
@@ -29,108 +31,110 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     NhannhtMetroSpinnerComponent,
   ],
   template: `
-    @if (loadingTask()) {
-      <div class="flex justify-center py-16"><nhannht-metro-spinner [size]="40" /></div>
-    } @else {
-      <nhannht-metro-card class="block max-w-[700px] mx-auto">
-        <h2 class="font-display text-[11px] tracking-[1px] text-fg uppercase mb-4">
-          {{ isEditMode() ? 'Edit Task' : 'Create Task' }}
-        </h2>
-        <form class="flex flex-col gap-1 pt-4" (ngSubmit)="onSubmit()">
-          <nhannht-metro-input
-            label="TITLE"
-            placeholder="What do you need help with?"
-            [(ngModel)]="title" name="title"
-            [error]="submitted && !title ? 'Title is required' : ''" />
+    <ng-container *transloco="let t">
+      @if (loadingTask()) {
+        <div class="flex justify-center py-16"><nhannht-metro-spinner [size]="40" /></div>
+      } @else {
+        <nhannht-metro-card class="block max-w-[700px] mx-auto">
+          <h2 class="font-display text-[11px] tracking-[1px] text-fg uppercase mb-4">
+            {{ isEditMode() ? t('taskForm.editTitle') : t('taskForm.createTitle') }}
+          </h2>
+          <form class="flex flex-col gap-1 pt-4" (ngSubmit)="onSubmit()">
+            <nhannht-metro-input
+              [label]="t('taskForm.titleLabel')"
+              [placeholder]="t('taskForm.titlePlaceholder')"
+              [(ngModel)]="title" name="title"
+              [error]="submitted && !title ? t('taskForm.titleRequired') : ''" />
 
-          <div class="flex flex-col gap-1">
-            <label class="font-display text-[10px] tracking-[1px] text-fg">DESCRIPTION</label>
-            <textarea
-              class="w-full px-4 py-3 bg-card border border-border font-body text-[13px] text-fg
-                     placeholder:text-muted focus:border-fg focus:outline-none transition-colors duration-200"
-              [(ngModel)]="description" name="description" rows="5"
-              placeholder="Describe the task in detail"></textarea>
-            @if (submitted && !description) {
-              <span class="font-body text-[11px] text-red-600 font-semibold" role="alert">Description is required</span>
-            }
-          </div>
-
-          <nhannht-metro-select
-            label="CATEGORY"
-            placeholder="Select a category"
-            [options]="categoryOptions()"
-            [(ngModel)]="categoryId" name="categoryId"
-            [error]="submitted && !categoryId ? 'Category is required' : ''" />
-
-          @if (!isEditMode()) {
-            <div class="flex items-center gap-3 p-3 mb-2"
-                 [class.bg-fg]="!isInsufficient()"
-                 [class.text-bg]="!isInsufficient()"
-                 [class.bg-card]="isInsufficient()"
-                 [class.border]="isInsufficient()"
-                 [class.border-fg]="isInsufficient()"
-                 [class.text-fg]="isInsufficient()">
-              <nhannht-metro-icon name="account_balance_wallet" />
-              <div class="flex flex-col">
-                <span class="font-body text-[10px] opacity-80">Available Balance</span>
-                <span class="font-body text-[15px] font-semibold">
-                  @if (balanceLoading()) {
-                    Loading...
-                  } @else if (walletBalance() !== null) {
-                    {{ walletBalance()! | vnd }}
-                  } @else {
-                    Could not load balance
-                  }
-                </span>
-              </div>
-            </div>
-          }
-
-          <div class="flex max-sm:flex-col gap-4">
-            <nhannht-metro-input class="flex-1"
-              label="PRICE (VND)"
-              type="number"
-              placeholder="e.g. 50000"
-              [step]="1000" [min]="1000"
-              [(ngModel)]="price" name="price"
-              [error]="priceError()" />
-
-            <nhannht-metro-input class="flex-1"
-              label="LOCATION"
-              placeholder="Where is this task?"
-              [(ngModel)]="location" name="location"
-              [error]="submitted && !location ? 'Location is required' : ''" />
-          </div>
-
-          <nhannht-metro-datepicker
-            label="DEADLINE"
-            [min]="today"
-            [(ngModel)]="deadline" name="deadline"
-            [error]="submitted && deadline && deadline < today ? 'Deadline cannot be in the past' : ''" />
-
-          <div class="flex justify-end gap-3 pt-4">
-            <nhannht-metro-button
-              variant="secondary"
-              label="Cancel"
-              type="button"
-              (clicked)="onCancel()" />
-            <nhannht-metro-button
-              variant="primary"
-              [disabled]="saving()"
-              type="submit">
-              @if (saving()) {
-                <nhannht-metro-spinner [size]="20" />
-              } @else {
-                <span class="inline-flex items-center gap-2">
-                  <nhannht-metro-icon [name]="isEditMode() ? 'save' : 'add'" [size]="18" />
-                  {{ isEditMode() ? 'Save Changes' : 'Create Task' }}
-                </span>
+            <div class="flex flex-col gap-1">
+              <label class="font-display text-[10px] tracking-[1px] text-fg">{{ t('taskForm.descLabel') }}</label>
+              <textarea
+                class="w-full px-4 py-3 bg-card border border-border font-body text-[13px] text-fg
+                       placeholder:text-muted focus:border-fg focus:outline-none transition-colors duration-200"
+                [(ngModel)]="description" name="description" rows="5"
+                [placeholder]="t('taskForm.descPlaceholder')"></textarea>
+              @if (submitted && !description) {
+                <span class="font-body text-[11px] text-red-600 font-semibold" role="alert">{{ t('taskForm.descRequired') }}</span>
               }
-            </nhannht-metro-button>
-          </div>
-        </form>
-      </nhannht-metro-card>
-    }
+            </div>
+
+            <nhannht-metro-select
+              [label]="t('taskForm.categoryLabel')"
+              [placeholder]="t('taskForm.categoryPlaceholder')"
+              [options]="categoryOptions()"
+              [(ngModel)]="categoryId" name="categoryId"
+              [error]="submitted && !categoryId ? t('taskForm.categoryRequired') : ''" />
+
+            @if (!isEditMode()) {
+              <div class="flex items-center gap-3 p-3 mb-2"
+                   [class.bg-fg]="!isInsufficient()"
+                   [class.text-bg]="!isInsufficient()"
+                   [class.bg-card]="isInsufficient()"
+                   [class.border]="isInsufficient()"
+                   [class.border-fg]="isInsufficient()"
+                   [class.text-fg]="isInsufficient()">
+                <nhannht-metro-icon name="account_balance_wallet" />
+                <div class="flex flex-col">
+                  <span class="font-body text-[10px] opacity-80">{{ t('taskForm.availableBalance') }}</span>
+                  <span class="font-body text-[15px] font-semibold">
+                    @if (balanceLoading()) {
+                      {{ t('common.loading') }}
+                    } @else if (walletBalance() !== null) {
+                      {{ walletBalance()! | vnd }}
+                    } @else {
+                      {{ t('taskForm.couldNotLoadBalance') }}
+                    }
+                  </span>
+                </div>
+              </div>
+            }
+
+            <div class="flex max-sm:flex-col gap-4">
+              <nhannht-metro-input class="flex-1"
+                [label]="t('taskForm.priceLabel')"
+                type="number"
+                [placeholder]="t('taskForm.pricePlaceholder')"
+                [step]="1000" [min]="1000"
+                [(ngModel)]="price" name="price"
+                [error]="priceError()" />
+
+              <nhannht-metro-input class="flex-1"
+                [label]="t('taskForm.locationLabel')"
+                [placeholder]="t('taskForm.locationPlaceholder')"
+                [(ngModel)]="location" name="location"
+                [error]="submitted && !location ? t('taskForm.locationRequired') : ''" />
+            </div>
+
+            <nhannht-metro-datepicker
+              [label]="t('taskForm.deadlineLabel')"
+              [min]="today"
+              [(ngModel)]="deadline" name="deadline"
+              [error]="submitted && deadline && deadline < today ? t('taskForm.deadlinePast') : ''" />
+
+            <div class="flex justify-end gap-3 pt-4">
+              <nhannht-metro-button
+                variant="secondary"
+                [label]="t('common.cancel')"
+                type="button"
+                (clicked)="onCancel()" />
+              <nhannht-metro-button
+                variant="primary"
+                [disabled]="saving()"
+                type="submit">
+                @if (saving()) {
+                  <nhannht-metro-spinner [size]="20" />
+                } @else {
+                  <span class="inline-flex items-center gap-2">
+                    <nhannht-metro-icon [name]="isEditMode() ? 'save' : 'add'" [size]="18" />
+                    {{ isEditMode() ? t('taskForm.saveChanges') : t('taskForm.createTitle') }}
+                  </span>
+                }
+              </nhannht-metro-button>
+            </div>
+          </form>
+        </nhannht-metro-card>
+      }
+    </ng-container>
   `,
 })
 export class TaskFormComponent implements OnInit {
@@ -141,6 +145,7 @@ export class TaskFormComponent implements OnInit {
   private walletService = inject(WalletService);
   private router = inject(Router);
   private snackBar = inject(NhannhtMetroSnackbarService);
+  private transloco = inject(TranslocoService);
 
   isEditMode = signal(false);
   loadingTask = signal(false);
@@ -188,7 +193,7 @@ export class TaskFormComponent implements OnInit {
           this.loadingTask.set(false);
         },
         error: () => {
-          this.snackBar.show('Task not found', undefined, { duration: 3000 });
+          this.snackBar.show(this.transloco.translate('taskForm.taskNotFound'), undefined, { duration: 3000 });
           this.router.navigate(['/']);
           this.loadingTask.set(false);
         },
@@ -198,10 +203,10 @@ export class TaskFormComponent implements OnInit {
 
   priceError(): string {
     if (!this.submitted) return '';
-    if (!this.price) return 'Price is required';
+    if (!this.price) return this.transloco.translate('taskForm.priceRequired');
     const p = Number(this.price);
-    if (p <= 0) return 'Price must be greater than 0';
-    if (p % 1000 !== 0) return 'Price must be a multiple of 1,000 VND';
+    if (p <= 0) return this.transloco.translate('taskForm.priceGreaterThanZero');
+    if (p % 1000 !== 0) return this.transloco.translate('taskForm.priceMultiple');
     return '';
   }
 
@@ -236,7 +241,7 @@ export class TaskFormComponent implements OnInit {
     if (this.isEditMode()) {
       this.taskService.update(Number(this.id()), body).subscribe({
         next: task => {
-          this.snackBar.show('Task updated', undefined, { duration: 3000 });
+          this.snackBar.show(this.transloco.translate('taskForm.taskUpdated'), undefined, { duration: 3000 });
           this.router.navigate(['/tasks', task.id]);
           this.saving.set(false);
         },
@@ -245,7 +250,7 @@ export class TaskFormComponent implements OnInit {
     } else {
       this.taskService.create(body).subscribe({
         next: task => {
-          this.snackBar.show('Task created', undefined, { duration: 3000 });
+          this.snackBar.show(this.transloco.translate('taskForm.taskCreated'), undefined, { duration: 3000 });
           this.router.navigate(['/tasks', task.id]);
           this.saving.set(false);
         },
