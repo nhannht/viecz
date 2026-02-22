@@ -215,6 +215,7 @@ export class MarketplaceComponent implements OnInit {
       .list({
         search: this.search || undefined,
         category_id: this.selectedCategory || undefined,
+        status: 'open',
         page: this.page(),
         limit: this.pageSize,
       })
@@ -244,6 +245,7 @@ export class MarketplaceComponent implements OnInit {
       .list({
         search: this.search || undefined,
         category_id: this.selectedCategory || undefined,
+        status: 'open',
         page: nextPage,
         limit: this.pageSize,
       })
