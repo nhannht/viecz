@@ -6,25 +6,11 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import { join } from 'node:path';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
-const apiTarget = process.env['API_TARGET'] || 'http://localhost:8080';
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
-
-/**
- * Proxy /api requests to the Go backend.
- */
-app.use(
-  createProxyMiddleware({
-    target: apiTarget,
-    changeOrigin: true,
-    ws: true,
-    pathFilter: '/api',
-  }),
-);
 
 /**
  * Serve static files from /browser
@@ -51,10 +37,11 @@ app.use((req, res, next) => {
 
 /**
  * Start the server if this module is the main entry point, or it is ran via PM2.
- * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
+ * The server listens on the port defined by the `PORT` environment variable, or defaults to 4001.
+ * In production, nginx handles /api proxy and /uploads static serving on port 80/443.
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
-  const port = process.env['PORT'] || 4000;
+  const port = process.env['PORT'] || 4001;
   app.listen(port, (error) => {
     if (error) {
       throw error;

@@ -790,6 +790,17 @@ When proposing layout or visual changes, follow this workflow:
 - **Stop guessing, start reading** — Every "quick fix" attempt that fails (clear cache, kill process, revert file, remove package) costs more time than the 30 seconds of reading the actual error message. The debugging loop should be: **observe error → research → understand → fix**, not: **guess → try → fail → guess again**.
 - **Never revert working code without understanding why it broke** — Reverting compodoc/addon-docs was wrong because they weren't the cause. The revert wasted multiple cycles and had to be re-applied afterward.
 
+### PayOS Integration Patterns
+
+- **PayOS sends test webhooks when verifying URLs** — When you update the webhook URL in the PayOS dashboard, PayOS sends a test payload with `description: "Ma giao dich thu nghiem"` or `"VQRIO123"`. Your webhook handler must detect these and return `200 OK` **before** signature verification, otherwise PayOS reports "webhook url cua ban khong hoat dong" (your webhook URL is not working). See `webhook.go` lines 55-63.
+- **Client-controlled `return_url` over server-side routing** — Instead of fixing server-side return handlers for each platform, let each client send its own `return_url` in the deposit request. Web sends `window.location.origin + "/payment/return"`, Android omits it and falls back to server handler with deep links. This cleanly separates platform concerns.
+- **`.env` is NOT loaded when `GO_ENV=production`** — `config.go` skips `godotenv.Load()` in production. Changing `.env` has zero effect on the production server. Use system environment variables or hardcoded defaults instead.
+
+### Infrastructure Routing
+
+- **Go API has no direct public ingress** — The only cloudflared ingress is `viecz.fishcmus.io.vn → localhost:4000` (Angular SSR/Express). The Go server at `localhost:8080` is only reachable through the Express proxy (`/api → localhost:8080`). This means webhook URLs, return URLs, and all external callbacks must use `https://viecz.fishcmus.io.vn/api/v1/...`, not a separate API domain.
+- **The old domain `viecz-api-dev.fishcmus.io.vn` is dead** — No cloudflared ingress exists for it. Any PayOS settings (webhook URL, etc.) pointing to this domain must be updated to `viecz.fishcmus.io.vn`.
+
 ## Project Status
 
 - ✅ **Android app** - Native Kotlin with Jetpack Compose (Active development)
