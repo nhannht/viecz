@@ -6,23 +6,25 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import { join } from 'node:path';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
+const apiTarget = process.env['API_TARGET'] || 'http://localhost:8080';
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
 /**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
- *
- * Example:
- * ```ts
- * app.get('/api/{*splat}', (req, res) => {
- *   // Handle API request
- * });
- * ```
+ * Proxy /api requests to the Go backend.
  */
+app.use(
+  createProxyMiddleware({
+    target: apiTarget,
+    changeOrigin: true,
+    ws: true,
+    pathFilter: '/api',
+  }),
+);
 
 /**
  * Serve static files from /browser
