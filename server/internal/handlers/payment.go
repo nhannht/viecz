@@ -16,17 +16,17 @@ import (
 type PaymentHandler struct {
 	payos          *services.PayOSService
 	paymentService *services.PaymentService
-	clientURL      string
-	serverURL      string
+	clientURL          string
+	payosReturnBaseURL string
 }
 
 // NewPaymentHandler creates a new payment handler
-func NewPaymentHandler(payos *services.PayOSService, paymentService *services.PaymentService, clientURL, serverURL string) *PaymentHandler {
+func NewPaymentHandler(payos *services.PayOSService, paymentService *services.PaymentService, clientURL, payosReturnBaseURL string) *PaymentHandler {
 	return &PaymentHandler{
-		payos:          payos,
-		paymentService: paymentService,
-		clientURL:      clientURL,
-		serverURL:      serverURL,
+		payos:              payos,
+		paymentService:     paymentService,
+		clientURL:          clientURL,
+		payosReturnBaseURL: payosReturnBaseURL,
 	}
 }
 
@@ -45,8 +45,8 @@ func (h *PaymentHandler) CreatePayment(c *gin.Context) {
 	orderCode := time.Now().UnixNano() / int64(time.Millisecond)
 
 	// Build return and cancel URLs - these are server URLs that will redirect to the app
-	returnURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
-	cancelURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
+	returnURL := fmt.Sprintf("%s/api/v1/payment/return", h.payosReturnBaseURL)
+	cancelURL := fmt.Sprintf("%s/api/v1/payment/return", h.payosReturnBaseURL)
 
 	// Create payment link
 	result, err := h.payos.CreatePaymentLink(

@@ -18,8 +18,8 @@ type WalletHandler struct {
 	walletService   *services.WalletService
 	payosService    services.PayOSServicer
 	transactionRepo repository.TransactionRepository
-	taskRepo        repository.TaskRepository
-	serverURL       string
+	taskRepo           repository.TaskRepository
+	payosReturnBaseURL string
 }
 
 // NewWalletHandler creates a new wallet handler
@@ -28,14 +28,14 @@ func NewWalletHandler(
 	payosService services.PayOSServicer,
 	transactionRepo repository.TransactionRepository,
 	taskRepo repository.TaskRepository,
-	serverURL string,
+	payosReturnBaseURL string,
 ) *WalletHandler {
 	return &WalletHandler{
-		walletService:   walletService,
-		payosService:    payosService,
-		transactionRepo: transactionRepo,
-		taskRepo:        taskRepo,
-		serverURL:       serverURL,
+		walletService:      walletService,
+		payosService:       payosService,
+		transactionRepo:    transactionRepo,
+		taskRepo:           taskRepo,
+		payosReturnBaseURL: payosReturnBaseURL,
 	}
 }
 
@@ -98,6 +98,7 @@ func (h *WalletHandler) GetWallet(c *gin.Context) {
 type DepositRequest struct {
 	Amount      int64  `json:"amount" binding:"required,min=2000"`
 	Description string `json:"description"`
+	ReturnURL   string `json:"return_url"`
 }
 
 // DepositResponse represents the response with PayOS checkout URL
@@ -180,8 +181,15 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 	}
 
 	// Create PayOS payment link
-	returnURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
-	cancelURL := fmt.Sprintf("%s/api/v1/payment/return", h.serverURL)
+	var returnURL, cancelURL string
+	if req.ReturnURL != "" {
+		returnURL = req.ReturnURL
+		cancelURL = req.ReturnURL
+	} else {
+		returnURL = fmt.Sprintf("%s/api/v1/payment/return", h.payosReturnBaseURL)
+		cancelURL = fmt.Sprintf("%s/api/v1/payment/return", h.payosReturnBaseURL)
+	}
+	log.Printf("Deposit: return_url from client=%q, using returnURL=%s", req.ReturnURL, returnURL)
 
 	result, err := h.payosService.CreatePaymentLink(
 		c.Request.Context(),

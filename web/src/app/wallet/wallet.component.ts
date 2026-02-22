@@ -167,11 +167,14 @@ export class WalletComponent implements OnInit {
       next: res => {
         this.depositing.set(false);
         const url = res.checkout_url;
-        if (url && isPlatformBrowser(this.platformId) && !url.includes('localhost')) {
-          window.open(url, '_blank');
+        if (url && isPlatformBrowser(this.platformId)) {
+          if (url.includes('localhost')) {
+            this.snackbar.show('Deposit completed', undefined, { duration: 3000 });
+            setTimeout(() => this.ngOnInit(), 2000);
+          } else {
+            window.location.href = url;
+          }
         }
-        this.snackbar.show(url?.includes('localhost') ? 'Deposit completed' : 'Deposit initiated', undefined, { duration: 3000 });
-        setTimeout(() => this.ngOnInit(), 2000);
       },
       error: err => {
         this.depositing.set(false);

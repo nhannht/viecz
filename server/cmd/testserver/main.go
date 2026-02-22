@@ -204,7 +204,7 @@ func main() {
 	// 6. Handlers
 	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret)
 	userHandler := handlers.NewUserHandler(userService)
-	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL)
+	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL) // serverURL used as payosReturnBaseURL for test
 	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)

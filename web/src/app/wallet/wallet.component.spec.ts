@@ -130,12 +130,12 @@ describe('WalletComponent', () => {
 
   it('should call deposit service', () => {
     fixture.detectChanges();
-    walletServiceMock.deposit.mockReturnValue(of({ checkout_url: 'https://pay.test', order_code: 1 }));
+    walletServiceMock.deposit.mockReturnValue(of({ checkout_url: 'http://localhost:9999/mock-checkout/123', order_code: 1 }));
     component.depositAmount = 50000;
     component.deposit();
     expect(walletServiceMock.deposit).toHaveBeenCalledWith(50000);
     expect(component.depositing()).toBe(false);
-    expect(snackbarMock.show).toHaveBeenCalledWith('Deposit initiated', undefined, { duration: 3000 });
+    expect(snackbarMock.show).toHaveBeenCalledWith('Deposit completed', undefined, { duration: 3000 });
   });
 
   it('should handle deposit error', () => {

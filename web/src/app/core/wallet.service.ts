@@ -11,7 +11,15 @@ export class WalletService {
   }
 
   deposit(amount: number, description = 'Wallet deposit') {
-    return this.http.post<DepositResponse>('/api/v1/wallet/deposit', { amount, description });
+    const return_url =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/payment/return`
+        : undefined;
+    return this.http.post<DepositResponse>('/api/v1/wallet/deposit', {
+      amount,
+      description,
+      return_url,
+    });
   }
 
   getTransactions(limit = 20, offset = 0) {

@@ -107,7 +107,7 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	taskHandler := NewTaskHandler(taskService, applicationRepo)
 	walletHandler := NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, "http://localhost:8080")
 	webhookHandler := NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
-	paymentHandler := NewPaymentHandler(nil, paymentService, "http://localhost:3000", "http://localhost:8080")
+	paymentHandler := NewPaymentHandler(nil, paymentService, "http://localhost:3000", "http://localhost:8080") // payosReturnBaseURL
 	categoryHandler := NewCategoryHandler(categoryRepo)
 
 	// 10. Gin router (mirrors main.go routes)

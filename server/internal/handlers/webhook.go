@@ -50,6 +50,18 @@ func (h *WebhookHandler) HandleWebhook(c *gin.Context) {
 		return
 	}
 
+	// PayOS sends a test webhook when confirming the URL in the dashboard.
+	// Detect it by checking the data.description field and return 200 immediately.
+	if data, ok := webhookData["data"].(map[string]interface{}); ok {
+		if desc, ok := data["description"].(string); ok {
+			if desc == "Ma giao dich thu nghiem" || desc == "VQRIO123" {
+				log.Printf("PayOS test webhook received (description=%q), responding OK", desc)
+				c.JSON(http.StatusOK, gin.H{"code": "00", "desc": "success"})
+				return
+			}
+		}
+	}
+
 	// Verify webhook signature — returns the inner "data" object
 	verifiedData, err := h.payos.VerifyWebhookData(c.Request.Context(), webhookData)
 	if err != nil {

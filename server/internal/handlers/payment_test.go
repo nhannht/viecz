@@ -36,7 +36,7 @@ func setupPaymentHandlerTest(t *testing.T, setupRepos func(*testutil.MockTaskRep
 	walletService := services.NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 	paymentService := services.NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB)
 
-	handler := NewPaymentHandler(nil, paymentService, "http://localhost:3000", "http://localhost:8080")
+	handler := NewPaymentHandler(nil, paymentService, "http://localhost:3000", "http://localhost:8080") // payosReturnBaseURL
 
 	return handler, func() {
 		cleanup()

@@ -512,7 +512,7 @@ url, _ := client.Webhooks.Confirm(ctx, "https://your-domain.com/webhook")
 | `PAYOS_CLIENT_ID` | (required) | PayOS client ID |
 | `PAYOS_API_KEY` | (required) | PayOS API key |
 | `PAYOS_CHECKSUM_KEY` | (required) | PayOS checksum key |
-| `SERVER_URL` | `http://localhost:8080` | Server URL for return/cancel URLs |
+| `PAYOS_RETURN_BASE_URL` | `http://localhost:8080` | Base URL for PayOS return/cancel URLs (fallback when client doesn't send `return_url`) |
 | `CLIENT_URL` | `http://localhost:8081` | Client URL for deep links |
 | `PAYMENT_MOCK_MODE` | `false` | Use wallet instead of PayOS |
 

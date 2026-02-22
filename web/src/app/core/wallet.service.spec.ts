@@ -36,7 +36,9 @@ describe('WalletService', () => {
     service.deposit(50000, 'Test deposit').subscribe(r => expect(r).toEqual(mockRes));
     const req = httpCtrl.expectOne('/api/v1/wallet/deposit');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ amount: 50000, description: 'Test deposit' });
+    expect(req.request.body.amount).toBe(50000);
+    expect(req.request.body.description).toBe('Test deposit');
+    expect(req.request.body.return_url).toContain('/payment/return');
     req.flush(mockRes);
   });
 

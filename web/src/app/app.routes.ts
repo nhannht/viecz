@@ -43,6 +43,13 @@ export const routes: Routes = [
           import('./task-detail/task-detail.component').then(m => m.TaskDetailComponent),
       },
       {
+        path: 'payment/return',
+        loadComponent: () =>
+          import('./payment-return/payment-return.component').then(
+            m => m.PaymentReturnComponent,
+          ),
+      },
+      {
         path: 'wallet',
         canActivate: [authGuard],
         loadComponent: () => import('./wallet/wallet.component').then(m => m.WalletComponent),
