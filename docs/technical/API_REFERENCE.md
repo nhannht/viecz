@@ -1203,7 +1203,38 @@ If a conversation already exists for the task, the existing one is returned.
 
 ---
 
-### 10.3. Get Conversation Messages
+### 10.3. Get Conversation
+
+Get a single conversation with preloaded poster, tasker, and task details.
+
+**Endpoint:** `GET /api/v1/conversations/:id`
+**Auth:** Required (must be poster or tasker in the conversation)
+
+#### Response: 200 OK
+
+```json
+{
+  "id": 1,
+  "task_id": 1,
+  "poster_id": 1,
+  "tasker_id": 2,
+  "last_message_at": "2026-02-14T14:30:00Z",
+  "last_message": "I delivered the items.",
+  "created_at": "2026-02-14T10:00:00Z",
+  "updated_at": "2026-02-14T14:30:00Z",
+  "poster": { "id": 1, "name": "Alice" },
+  "tasker": { "id": 2, "name": "Bob" },
+  "task": { "id": 1, "title": "Deliver groceries" }
+}
+```
+
+#### Errors
+
+- `404` - Conversation not found or user not authorized
+
+---
+
+### 10.4. Get Conversation Messages
 
 Get message history for a conversation.
 
@@ -1686,6 +1717,7 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 | DELETE | `/api/v1/notifications/:id` | Yes | Delete notification |
 | GET | `/api/v1/conversations` | Yes | List conversations |
 | POST | `/api/v1/conversations` | Yes | Create conversation |
+| GET | `/api/v1/conversations/:id` | Yes | Get conversation details |
 | GET | `/api/v1/conversations/:id/messages` | Yes | Get messages |
 | GET | `/api/v1/ws` | Yes* | WebSocket (token via query param) |
 

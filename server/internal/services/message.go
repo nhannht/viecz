@@ -182,6 +182,23 @@ func (s *MessageService) handleJoinConversation(ctx context.Context, client *web
 	return nil
 }
 
+// GetConversationByID retrieves a single conversation with preloaded relations
+func (s *MessageService) GetConversationByID(ctx context.Context, conversationID, userID uint) (*models.Conversation, error) {
+	conversation, err := s.conversationRepo.GetByID(ctx, conversationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conversation: %w", err)
+	}
+	if conversation == nil {
+		return nil, errors.New("conversation not found")
+	}
+
+	if conversation.PosterID != userID && conversation.TaskerID != userID {
+		return nil, errors.New("user not authorized to view this conversation")
+	}
+
+	return conversation, nil
+}
+
 // GetConversationHistory retrieves message history for a conversation
 func (s *MessageService) GetConversationHistory(ctx context.Context, conversationID, userID uint, limit, offset int) ([]models.Message, error) {
 	// Verify user is participant

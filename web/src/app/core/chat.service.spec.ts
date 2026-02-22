@@ -78,6 +78,28 @@ describe('ChatService', () => {
     });
   });
 
+  describe('getConversation', () => {
+    it('should fetch single conversation via GET', () => {
+      service.getConversation(5).subscribe();
+      const req = httpTesting.expectOne('/api/v1/conversations/5');
+      expect(req.request.method).toBe('GET');
+      req.flush(mockConversation);
+    });
+
+    it('should return conversation with nested objects', () => {
+      const spy = vi.fn();
+      const convWithNested = {
+        ...mockConversation,
+        poster: { id: 1, name: 'Alice' },
+        tasker: { id: 2, name: 'Bob' },
+        task: { id: 10, title: 'Clean room' },
+      };
+      service.getConversation(1).subscribe(spy);
+      httpTesting.expectOne('/api/v1/conversations/1').flush(convWithNested);
+      expect(spy).toHaveBeenCalledWith(convWithNested);
+    });
+  });
+
   describe('getMessages', () => {
     it('should fetch messages with default params', () => {
       service.getMessages(1).subscribe();

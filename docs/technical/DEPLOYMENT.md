@@ -31,9 +31,9 @@
 | Android app (dev) | Kotlin / Jetpack Compose | Room (local) | N/A |
 | Android app (prod) | Kotlin / Jetpack Compose | Room (local) | N/A |
 | Web client (dev) | Angular 21 + SSR | N/A | 4200 (ng serve) |
-| Web client (prod) | Angular 21 + SSR (Express 5) | N/A | Served via Cloudflare or Node |
+| Web client (prod) | Angular 21 + SSR (Express 5) | N/A | 4001 (behind nginx) |
 
-**Production stack (beta)**: Go server runs as a native binary on the host. PostgreSQL and Cloudflare Tunnel run in Docker containers. The Go server connects to PostgreSQL at `127.0.0.1:5432` via GORM. External HTTPS is handled by Cloudflare Tunnel (no Nginx or Certbot needed). See [Section 4](#4-production-deployment-beta-phase) for deployment steps.
+**Production stack (beta)**: Go server runs as a native binary on the host (:8080). PostgreSQL and Cloudflare Tunnel run in Docker containers. The web client runs as Express SSR on port 4001. Nginx reverse proxy with Certbot SSL handles `viecz.fishcmus.io.vn` — routing `/api/` to Go (:8080), `/uploads/` to disk, and everything else to Express (:4001). Cloudflare Tunnel only serves the API domain `viecz-api.fishcmus.io.vn`. See [Section 4](#4-production-deployment-beta-phase) for deployment steps.
 
 **Test stack**: Go binary with PostgreSQL test container (port 5433, Docker tmpfs for RAM-backed storage) and mock PayOS. Requires test PostgreSQL container (`docker-compose.testdb.yml`).
 
@@ -200,34 +200,49 @@ Key points:
 
 ## 4. Production Deployment (Beta Phase)
 
-**Current approach**: The Go server runs as a **native binary** on the host, while PostgreSQL and Cloudflare Tunnel run in **Docker containers**. This enables fast iteration — no Docker rebuild (~90s saved per deploy), just cross-compile + rsync + restart.
+**Current approach**: The Go server runs as a **native binary** on the host (:8080), while PostgreSQL and Cloudflare Tunnel run in **Docker containers**. The web client runs as Express SSR on port 4001. **Nginx** with Certbot SSL terminates HTTPS for `viecz.fishcmus.io.vn` and reverse-proxies to both the Go server and the web client. This enables fast iteration — no Docker rebuild (~90s saved per deploy), just cross-compile + rsync + restart.
 
 ### Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│  Production Server (sg)                 │
-│                                         │
-│  ┌──────────────┐   ┌───────────────┐   │
-│  │ server-linux  │──▶│  PostgreSQL    │   │
-│  │ (native bin)  │   │  (Docker)     │   │
-│  │ :8080         │   │  :5432        │   │
-│  └──────┬───────┘   └───────────────┘   │
-│         │                               │
-│  ┌──────▼───────┐                       │
-│  │ cloudflared   │                       │
-│  │ (Docker)      │                       │
-│  └──────────────┘                       │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  Production Server (sg)                          │
+│                                                  │
+│  ┌──────────────┐   ┌───────────────┐            │
+│  │ server-linux  │──▶│  PostgreSQL    │            │
+│  │ (native bin)  │   │  (Docker)     │            │
+│  │ :8080         │   │  :5432        │            │
+│  └──────┬───────┘   └───────────────┘            │
+│         │                                        │
+│  ┌──────┼───────────────────────────┐            │
+│  │      │    nginx (:443 SSL)       │            │
+│  │      │    viecz.fishcmus.io.vn   │            │
+│  │  /api/──▶ :8080 (Go)            │            │
+│  │  /uploads/──▶ disk               │            │
+│  │  /──▶ :4001 (Express SSR)       │            │
+│  └──────────────────────────────────┘            │
+│                                                  │
+│  ┌──────────────┐   ┌──────────────┐             │
+│  │ Express SSR   │   │ cloudflared   │             │
+│  │ (Node.js)     │   │ (Docker)      │             │
+│  │ :4001         │   │ API only      │             │
+│  └──────────────┘   └──────────────┘             │
+└──────────────────────────────────────────────────┘
 ```
 
 - **Go server**: Native binary on host, connects to PostgreSQL at `127.0.0.1:5432`
 - **PostgreSQL**: Docker container (`docker-compose.yml`), data persisted in `postgres_data` volume
-- **Cloudflare Tunnel**: Docker container, routes `viecz-api.fishcmus.io.vn` → `http://host.docker.internal:8080` (or `http://172.17.0.1:8080`)
+- **Nginx**: Reverse proxy with Certbot SSL for `viecz.fishcmus.io.vn`. Config: `nginx/viecz-web.conf`
+  - `/api/` → Go backend at `:8080` (includes WebSocket upgrade for `/api/v1/ws`)
+  - `/uploads/` → Static files from disk
+  - `/` → Express SSR at `:4001`
+- **Express SSR**: Angular 21 SSR build at port 4001 (`node dist/web/server/server.mjs`)
+- **Cloudflare Tunnel**: Docker container, routes `viecz-api.fishcmus.io.vn` → Go server at `:8080` (API-only, NOT used for web client)
 
 ### Prerequisites
 
 - Docker and Docker Compose (for PostgreSQL + Cloudflare Tunnel)
+- Nginx with Certbot (for web client SSL)
 - Go 1.25+ on the development machine (for cross-compilation)
 - SSH access to the production server (see `sg` in global CLAUDE.md)
 
@@ -550,7 +565,25 @@ Output:
 ### Running SSR in Production
 
 ```bash
-npm run serve:ssr:web  # Starts Express SSR server from dist/web/server/server.mjs
+# Production runs on port 4001 (nginx proxies to this port)
+PORT=4001 node dist/web/server/server.mjs
+
+# Or via nohup for background:
+PORT=4001 nohup node dist/web/server/server.mjs > /tmp/viecz-web.log 2>&1 &
+```
+
+### Deploy / Update Web Client
+
+```bash
+# 1. Build
+cd web && npm run build
+
+# 2. Restart
+pkill -f 'node.*dist/web/server/server.mjs' || true
+PORT=4001 nohup node dist/web/server/server.mjs > /tmp/viecz-web.log 2>&1 &
+
+# 3. Verify
+curl -s --max-time 5 -o /dev/null -w "%{http_code}" https://viecz.fishcmus.io.vn
 ```
 
 ### Testing
@@ -577,13 +610,13 @@ Environment files at `web/src/app/environments/`:
 
 ---
 
-## 8. Cloudflare Tunnel
+## 8. Cloudflare Tunnel (API Only)
 
-The production API is exposed via Cloudflare Tunnel (no public ports, no Nginx, no Certbot).
+The **Go API** is exposed via Cloudflare Tunnel at `viecz-api.fishcmus.io.vn`. The **web client** is NOT served via Cloudflare — it uses nginx with Certbot SSL at `viecz.fishcmus.io.vn`.
 
 **How it works**:
 1. `cloudflared` container connects outbound to Cloudflare edge
-2. Cloudflare routes `viecz-api.fishcmus.io.vn` traffic through the tunnel to the `server` container on port 8080
+2. Cloudflare routes `viecz-api.fishcmus.io.vn` traffic through the tunnel to the Go server on port 8080
 3. HTTPS termination happens at Cloudflare edge
 
 **Setup**:
@@ -594,7 +627,11 @@ The production API is exposed via Cloudflare Tunnel (no public ports, no Nginx, 
    - Hostname: `viecz-api.fishcmus.io.vn`
    - Service: `http://server:8080` (Docker service name)
 
-The config file `cloudflared-config.yml` is gitignored (contains tunnel credentials). It references `viecz-api-dev.fishcmus.io.vn` for the dev tunnel endpoint.
+**Web client routing** (separate from Cloudflare):
+- Domain: `viecz.fishcmus.io.vn`
+- SSL: Certbot (Let's Encrypt) managed by nginx
+- Config: `nginx/viecz-web.conf`
+- Routes: `/api/` → Go :8080, `/uploads/` → disk, `/` → Express SSR :4001
 
 ---
 

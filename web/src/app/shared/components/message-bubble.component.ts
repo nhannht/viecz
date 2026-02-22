@@ -1,28 +1,30 @@
-import { Component, input } from '@angular/core';
-import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
+import { Component, input, computed } from '@angular/core';
 import { Message } from '../../core/models';
-import { TimeAgoPipe } from '../../core/pipes';
 
 @Component({
   selector: 'app-message-bubble',
   standalone: true,
-  imports: [NhannhtMetroIconComponent, TimeAgoPipe],
   template: `
-    <div class="max-w-[70%] px-3.5 py-2.5 break-words"
-         [class]="isMine()
-           ? 'self-end bg-fg text-bg'
-           : 'self-start bg-card text-fg border border-border'">
-      <div class="font-body text-[13px] leading-[1.6]">{{ message().content }}</div>
-      <div class="flex items-center gap-1 mt-1 opacity-70 font-body text-[11px]">
-        {{ message().created_at | timeAgo }}
-        @if (message().is_read && isMine()) {
-          <nhannht-metro-icon name="done_all" [size]="12" />
-        }
-      </div>
+    <div class="flex gap-0 font-body text-[13px] leading-[1.7]"
+         [class.opacity-70]="!isMine()">
+      <span class="shrink-0 text-muted">[{{ time() }}]</span>
+      <span class="shrink-0 font-bold ml-2" [class.text-fg]="isMine()" [class.text-muted]="!isMine()">{{ senderLabel() }}></span>
+      <span class="ml-1 text-fg break-words min-w-0">{{ message().content }}</span>
     </div>
   `,
 })
 export class MessageBubbleComponent {
   message = input.required<Message>();
   isMine = input.required<boolean>();
+  senderName = input<string>('user');
+
+  time = computed(() => {
+    const d = new Date(this.message().created_at);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  });
+
+  senderLabel = computed(() => {
+    if (this.isMine()) return 'you';
+    return this.senderName() || this.message().sender?.name || 'user';
+  });
 }

@@ -363,6 +363,7 @@ func main() {
 		{
 			conversations.GET("", messageHandler.GetConversations)
 			conversations.POST("", messageHandler.CreateConversation)
+			conversations.GET("/:id", messageHandler.GetConversation)
 			conversations.GET("/:id/messages", messageHandler.GetConversationMessages)
 		}
 	}

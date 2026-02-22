@@ -9,18 +9,19 @@ const mockMessage: Message = {
   sender_id: 1,
   content: 'Hello there!',
   is_read: false,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+  created_at: '2026-02-14T14:02:00Z',
+  updated_at: '2026-02-14T14:02:00Z',
 };
 
 @Component({
   standalone: true,
   imports: [MessageBubbleComponent],
-  template: `<app-message-bubble [message]="msg()" [isMine]="mine()" />`,
+  template: `<app-message-bubble [message]="msg()" [isMine]="mine()" [senderName]="sender()" />`,
 })
 class TestHostComponent {
   msg = signal(mockMessage);
   mine = signal(true);
+  sender = signal('Bob');
 }
 
 describe('MessageBubbleComponent', () => {
@@ -45,46 +46,31 @@ describe('MessageBubbleComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Hello there!');
   });
 
-  it('should apply self-end class when isMine is true', () => {
-    const bubble = fixture.nativeElement.querySelector('app-message-bubble div');
-    expect(bubble.classList.contains('self-end')).toBe(true);
+  it('should show "you>" label when isMine is true', () => {
+    expect(fixture.nativeElement.textContent).toContain('you>');
   });
 
-  it('should apply self-start class when isMine is false', () => {
+  it('should show sender name when isMine is false', () => {
     host.mine.set(false);
     fixture.detectChanges();
-    const bubble = fixture.nativeElement.querySelector('app-message-bubble div');
-    expect(bubble.classList.contains('self-start')).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Bob>');
   });
 
-  it('should show read icon when message is read and mine', () => {
-    host.msg.set({ ...mockMessage, is_read: true });
-    host.mine.set(true);
-    fixture.detectChanges();
-    const icons = fixture.nativeElement.querySelectorAll('nhannht-metro-icon');
-    const readIcon = Array.from(icons).find((i: any) => i.textContent?.includes('done_all'));
-    expect(readIcon).toBeTruthy();
+  it('should display time in HH:MM format', () => {
+    // The time will be locale-dependent, but should contain digits and colon
+    const text = fixture.nativeElement.textContent;
+    expect(text).toMatch(/\[\d{2}:\d{2}\]/);
   });
 
-  it('should not show read icon when message is not read', () => {
-    host.msg.set({ ...mockMessage, is_read: false });
-    host.mine.set(true);
-    fixture.detectChanges();
-    const icons = fixture.nativeElement.querySelectorAll('nhannht-metro-icon');
-    const readIcon = Array.from(icons).find((i: any) => i.textContent?.includes('done_all'));
-    expect(readIcon).toBeFalsy();
-  });
-
-  it('should not show read icon for others messages even if read', () => {
-    host.msg.set({ ...mockMessage, is_read: true });
+  it('should apply reduced opacity for other user messages', () => {
     host.mine.set(false);
     fixture.detectChanges();
-    const icons = fixture.nativeElement.querySelectorAll('nhannht-metro-icon');
-    const readIcon = Array.from(icons).find((i: any) => i.textContent?.includes('done_all'));
-    expect(readIcon).toBeFalsy();
+    const div = fixture.nativeElement.querySelector('app-message-bubble div');
+    expect(div.classList.contains('opacity-70')).toBe(true);
   });
 
-  it('should display time', () => {
-    expect(fixture.nativeElement.textContent.trim()).toBeTruthy();
+  it('should not apply reduced opacity for own messages', () => {
+    const div = fixture.nativeElement.querySelector('app-message-bubble div');
+    expect(div.classList.contains('opacity-70')).toBe(false);
   });
 });

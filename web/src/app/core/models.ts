@@ -112,6 +112,16 @@ export interface DepositResponse {
   order_code: number;
 }
 
+export interface ConversationUser {
+  id: number;
+  name: string;
+}
+
+export interface ConversationTask {
+  id: number;
+  title: string;
+}
+
 export interface Conversation {
   id: number;
   task_id: number;
@@ -121,6 +131,9 @@ export interface Conversation {
   last_message: string;
   created_at: string;
   updated_at: string;
+  poster?: ConversationUser;
+  tasker?: ConversationUser;
+  task?: ConversationTask;
 }
 
 export interface Message {
@@ -132,6 +145,7 @@ export interface Message {
   read_at?: string;
   created_at: string;
   updated_at: string;
+  sender?: ConversationUser;
 }
 
 export interface Notification {

@@ -17,6 +17,10 @@ export class ChatService {
     });
   }
 
+  getConversation(id: number) {
+    return this.http.get<Conversation>(`/api/v1/conversations/${id}`);
+  }
+
   getMessages(conversationId: number, limit = 50, offset = 0) {
     const params = new HttpParams().set('limit', limit).set('offset', offset);
     return this.http.get<Message[]>(`/api/v1/conversations/${conversationId}/messages`, { params });

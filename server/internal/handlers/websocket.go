@@ -111,6 +111,34 @@ func (h *MessageHandler) GetConversations(c *gin.Context) {
 	c.JSON(http.StatusOK, conversations)
 }
 
+// GetConversation returns a single conversation with preloaded poster, tasker, and task
+// GET /api/v1/conversations/:id
+func (h *MessageHandler) GetConversation(c *gin.Context) {
+	userID, ok := auth.GetUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	conversationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid conversation ID"})
+		return
+	}
+
+	conversation, err := h.messageService.GetConversationByID(
+		c.Request.Context(),
+		uint(conversationID),
+		uint(userID),
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, conversation)
+}
+
 // GetConversationMessages returns message history for a conversation
 // GET /api/v1/conversations/:id/messages?limit=50&offset=0
 func (h *MessageHandler) GetConversationMessages(c *gin.Context) {

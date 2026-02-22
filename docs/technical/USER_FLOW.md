@@ -483,66 +483,85 @@ Navigate to ChatScreen (chat/{conversationId})
 ### 9.2 Chat Screen
 
 ```
-ChatScreen
+ChatScreen / ChatComponent
     |
     v
+Load conversation metadata: GET /api/v1/conversations/{id}
+    Returns: poster, tasker, task (title, names)
 Load message history: GET /api/v1/conversations/{id}/messages
+    Server returns DESC order; client reverses to chronological (oldest at top)
     |
     v
 Connect WebSocket: ws://{host}/api/v1/ws?token=JWT
     Send: {"type":"join", "conversationId": N}
     |
     v
-Connection status shown in top bar:
-    Connected (green) | Connecting... | Disconnected | Error
+Header:
+    Android: "Chat" + connection status (Connected/Connecting/Disconnected/Error)
+    Web:     "← #taskId · taskTitle   ● live" (terminal-style with task context)
     |
     v
 Send message:
-    Type text --> Tap send FAB
+    Android: Type text --> Tap send FAB
+    Web:     "you> [input field] [⏎]" (terminal-style prompt)
     WebSocket sends: {"type":"message", "conversationId":N, "content":"..."}
-    Message appears as right-aligned bubble (sent)
+    |
+    v
+Message display:
+    Android: Right-aligned bubble (sent), left-aligned bubble (received)
+    Web:     Terminal/IRC format: "[HH:MM] you> message" or "[HH:MM] username> message"
+             Own messages: full opacity; other's messages: reduced opacity
     |
     v
 Receive message:
     WebSocket delivers broadcast
-    Message appears as left-aligned bubble (received) with sender name
+    Message appended to chronological list, auto-scroll to bottom
     |
     v
 Typing indicator:
-    Text input onChange --> viewModel.sendTypingIndicator()
-    Other user sees animated dots
+    Android: "Typing..." with animated dots
+    Web:     "username is typing..." with blinking cursor
     |
     v
 Task finished (COMPLETED/CANCELLED):
-    Chat input replaced with "This task is completed/cancelled. Chat is closed."
+    Android: Chat input replaced with "This task is completed/cancelled. Chat is closed."
+    Web:     "~ chat closed" banner, input area hidden
 ```
 
-**Screen:** `ChatScreen.kt`
+**Android:** `ChatScreen.kt`
+**Web:** `chat.component.ts`, `message-bubble.component.ts`
 **WebSocket:** `/api/v1/ws?token=JWT`
 **Message types:** `join`, `joined`, `message`, `message_sent`, `typing`, `read`
 
 ### 9.3 Conversation List
 
 ```
-MainScreen > Messages tab (tab 2)
+MainScreen > Messages tab / /messages route
     |
     v
-ConversationListContent
-    GET /api/v1/conversations
+ConversationListContent / ConversationListComponent
+    GET /api/v1/conversations (returns poster, tasker, task preloaded)
     |
     v
-Each ConversationCard shows:
+Android - Each ConversationCard shows:
     - Other user name + icon
     - Task title
     - Last message preview
     - Timestamp
     - Dimmed appearance if task completed/cancelled
+
+Web - Terminal-style list:
+    Header: "> MESSAGES_" (with blinking cursor)
+    Each row:
+        Line 1: "#taskId taskTitle"
+        Line 2: "username> lastMessage ... timeAgo"
     |
     v
-Tap card --> ChatScreen (chat/{conversationId})
+Tap card --> ChatScreen (chat/{conversationId}) or /messages/:id
 ```
 
-**Screen:** `ConversationListScreen.kt`
+**Android:** `ConversationListScreen.kt`
+**Web:** `conversation-list.component.ts`
 
 ---
 

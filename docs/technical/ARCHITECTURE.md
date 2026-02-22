@@ -318,6 +318,7 @@ The wiring logic in `cmd/server/main.go` and `cmd/testserver/main.go` checks `ME
 |--------------------------|------------------------------------|-----------------------------------|
 | `GetConversations()`     | `GET /api/v1/conversations`        | List user's conversations         |
 | `CreateConversation()`   | `POST /api/v1/conversations`       | Create a new conversation         |
+| `GetConversation()`      | `GET /api/v1/conversations/:id`    | Get conversation with poster/tasker/task |
 | `GetConversationMessages()` | `GET /api/v1/conversations/:id/messages` | Get message history for a conversation |
 
 **Model Validation Hooks**: GORM models implement `BeforeCreate` and `BeforeUpdate` hooks that call `Validate()`, enforcing data integrity at the ORM level.
@@ -576,11 +577,11 @@ web/src/app/
 │   ├── wallet.service.ts        # Balance, transactions, deposit
 │   ├── payment.service.ts       # Escrow creation, release, refund
 │   ├── user.service.ts          # Profile retrieval/update, avatar upload
-│   ├── chat.service.ts          # Conversations and messages
+│   ├── chat.service.ts          # Conversations and messages (listConversations, getConversation, getMessages, createConversation)
 │   ├── notification.service.ts  # Notifications list, mark read, unread count
 │   ├── category.service.ts      # Cached category list (signal-based)
 │   ├── application.service.ts   # Task applications
-│   ├── websocket.service.ts     # WebSocket with exponential backoff reconnect
+│   ├── websocket.service.ts     # WebSocket with exponential backoff reconnect (connect, joinConversation, sendMessage, sendTyping, markRead)
 │   ├── models.ts                # TypeScript interfaces (User, Task, Wallet, etc.)
 │   └── pipes.ts                 # Custom template pipes
 │
@@ -601,27 +602,35 @@ web/src/app/
 ├── notifications/               # Notification center
 ├── profile/                     # User profile + redirect component
 │
-├── shared/components/           # Reusable UI components
+├── shared/components/           # Reusable UI components (28 total)
 │   ├── task-card.component.ts
-│   ├── application-card.component.ts
-│   ├── message-bubble.component.ts
+│   ├── nhannht-metro-task-card.component.ts
+│   ├── nhannht-metro-application-card.component.ts
+│   ├── message-bubble.component.ts          # Terminal-style [HH:MM] user> msg
+│   ├── nhannht-metro-chat-bubble.component.ts
 │   ├── empty-state.component.ts
 │   ├── error-fallback.component.ts
 │   ├── loading-skeleton.component.ts
 │   ├── category-chips.component.ts
-│   ├── nhannht-metro-button.component.ts    # Design system components (13)
+│   ├── nhannht-metro-button.component.ts    # Design system components (20)
 │   ├── nhannht-metro-input.component.ts
 │   ├── nhannht-metro-textarea.component.ts
 │   ├── nhannht-metro-select.component.ts
 │   ├── nhannht-metro-datepicker.component.ts
 │   ├── nhannht-metro-card.component.ts
+│   ├── nhannht-metro-price-card.component.ts
 │   ├── nhannht-metro-dialog.component.ts
 │   ├── nhannht-metro-badge.component.ts
 │   ├── nhannht-metro-icon.component.ts
+│   ├── nhannht-metro-ascii-art.component.ts
 │   ├── nhannht-metro-spinner.component.ts
 │   ├── nhannht-metro-divider.component.ts
 │   ├── nhannht-metro-snackbar.component.ts
-│   └── nhannht-metro-tabs.component.ts
+│   ├── nhannht-metro-tabs.component.ts
+│   ├── nhannht-metro-step.component.ts
+│   ├── nhannht-metro-menu.component.ts
+│   ├── nhannht-metro-nav.component.ts
+│   └── nhannht-metro-transaction-row.component.ts
 │
 └── environments/                # Environment configs
     ├── environment.ts           # Dev: localhost:9999

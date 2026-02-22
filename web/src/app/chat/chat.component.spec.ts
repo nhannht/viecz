@@ -61,8 +61,20 @@ describe('ChatComponent', () => {
 
   function init() {
     fixture.detectChanges();
-    const req = httpTesting.expectOne(r => r.url === '/api/v1/conversations/5/messages');
-    req.flush([
+    // Flush conversation metadata request
+    const convReq = httpTesting.expectOne('/api/v1/conversations/5');
+    convReq.flush({
+      id: 5, task_id: 10, poster_id: 1, tasker_id: 2,
+      last_message: 'Hi', last_message_at: '2026-02-14T10:00:00Z',
+      created_at: '2026-02-14T10:00:00Z', updated_at: '2026-02-14T10:00:00Z',
+      poster: { id: 1, name: 'Alice' },
+      tasker: { id: 2, name: 'Bob' },
+      task: { id: 10, title: 'Clean room' },
+    });
+    // Flush messages request (server returns DESC order)
+    const msgReq = httpTesting.expectOne(r => r.url === '/api/v1/conversations/5/messages');
+    msgReq.flush([
+      { id: 2, conversation_id: 5, sender_id: 1, content: 'World', is_read: false, created_at: '2026-02-14T10:01:00Z', updated_at: '2026-02-14T10:01:00Z' },
       { id: 1, conversation_id: 5, sender_id: 2, content: 'Hi', is_read: false, created_at: '2026-02-14T10:00:00Z', updated_at: '2026-02-14T10:00:00Z' },
     ]);
     fixture.detectChanges();
@@ -77,23 +89,39 @@ describe('ChatComponent', () => {
     expect(wsSpy.markRead).toHaveBeenCalledWith(5);
   });
 
-  it('should display messages', () => {
+  it('should reverse messages to chronological order', () => {
     init();
-    expect(component.messages().length).toBe(1);
-    expect(fixture.nativeElement.textContent).toContain('Hi');
+    expect(component.messages().length).toBe(2);
+    // After reversing DESC, first message should be the oldest (id=1)
+    expect(component.messages()[0].content).toBe('Hi');
+    expect(component.messages()[1].content).toBe('World');
+  });
+
+  it('should display task title in header', () => {
+    init();
+    expect(fixture.nativeElement.textContent).toContain('#10');
+    expect(fixture.nativeElement.textContent).toContain('Clean room');
+  });
+
+  it('should display other user name', () => {
+    init();
+    expect(component.otherName()).toBe('Bob');
   });
 
   it('should show loading spinner before messages load', () => {
     fixture.detectChanges();
     expect(component.loading()).toBe(true);
+    // Flush both requests
+    httpTesting.expectOne('/api/v1/conversations/5').flush({});
     httpTesting.expectOne(r => r.url === '/api/v1/conversations/5/messages').flush([]);
   });
 
   it('should show empty state when no messages', () => {
     fixture.detectChanges();
+    httpTesting.expectOne('/api/v1/conversations/5').flush({});
     httpTesting.expectOne(r => r.url === '/api/v1/conversations/5/messages').flush([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('No messages yet');
+    expect(fixture.nativeElement.textContent).toContain('no messages yet');
   });
 
   it('should send message via WebSocket', () => {
@@ -122,13 +150,13 @@ describe('ChatComponent', () => {
     wsMessages$.next({
       type: 'message',
       conversation_id: 5,
-      message_id: 2,
+      message_id: 3,
       sender_id: 2,
       content: 'New msg',
       created_at: '2026-02-14T11:00:00Z',
     });
-    expect(component.messages().length).toBe(2);
-    expect(component.messages()[1].content).toBe('New msg');
+    expect(component.messages().length).toBe(3);
+    expect(component.messages()[2].content).toBe('New msg');
   });
 
   it('should ignore messages for other conversations', () => {
@@ -140,16 +168,15 @@ describe('ChatComponent', () => {
       sender_id: 2,
       content: 'Other',
     });
-    expect(component.messages().length).toBe(1);
+    expect(component.messages().length).toBe(2);
   });
 
   it('should show typing indicator for other user', () => {
     init();
     wsMessages$.next({ type: 'typing', conversation_id: 5, sender_id: 2 });
     expect(component.isTyping()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.typing-indicator')).toBeFalsy(); // need detectChanges
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Typing...');
+    expect(fixture.nativeElement.textContent).toContain('is typing');
   });
 
   it('should not show typing for own user', () => {
@@ -163,12 +190,12 @@ describe('ChatComponent', () => {
     wsMessages$.next({ type: 'chat_closed', conversation_id: 5 });
     fixture.detectChanges();
     expect(component.chatClosed()).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain('This chat is closed');
+    expect(fixture.nativeElement.textContent).toContain('chat closed');
   });
 
-  it('should display connection status', () => {
+  it('should show live connection status', () => {
     init();
-    expect(fixture.nativeElement.querySelector('.connection-status')).toBeTruthy();
+    expect(component.connectionLabel()).toBe('● live');
   });
 
   it('should handle message_sent type', () => {
@@ -180,11 +207,12 @@ describe('ChatComponent', () => {
       sender_id: 1,
       content: 'My msg',
     });
-    expect(component.messages().length).toBe(2);
+    expect(component.messages().length).toBe(3);
   });
 
   it('should handle error loading messages', () => {
     fixture.detectChanges();
+    httpTesting.expectOne('/api/v1/conversations/5').flush({});
     httpTesting.expectOne(r => r.url === '/api/v1/conversations/5/messages')
       .error(new ProgressEvent('error'));
     fixture.detectChanges();
@@ -192,24 +220,24 @@ describe('ChatComponent', () => {
   });
 
   describe('connectionLabel', () => {
-    it('should return connected label', () => {
+    it('should return live label when connected', () => {
       wsSpy.connectionStatus.mockReturnValue('connected');
-      expect(component.connectionLabel()).toContain('Connected');
+      expect(component.connectionLabel()).toContain('live');
     });
 
     it('should return connecting label', () => {
       wsSpy.connectionStatus.mockReturnValue('connecting');
-      expect(component.connectionLabel()).toContain('Connecting');
+      expect(component.connectionLabel()).toContain('connecting');
     });
 
     it('should return reconnecting label', () => {
       wsSpy.connectionStatus.mockReturnValue('reconnecting');
-      expect(component.connectionLabel()).toContain('Reconnecting');
+      expect(component.connectionLabel()).toContain('reconnecting');
     });
 
-    it('should return disconnected label', () => {
+    it('should return offline label when disconnected', () => {
       wsSpy.connectionStatus.mockReturnValue('disconnected');
-      expect(component.connectionLabel()).toContain('Disconnected');
+      expect(component.connectionLabel()).toContain('offline');
     });
   });
 });
