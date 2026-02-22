@@ -21,6 +21,7 @@ type TaskRepository interface {
 	List(ctx context.Context, filters TaskFilters) ([]*models.Task, error)
 	CountByFilters(ctx context.Context, filters TaskFilters) (int, error)
 	UpdateStatus(ctx context.Context, id int64, status models.TaskStatus) error
+	UpdateStatusWithTx(ctx context.Context, tx *gorm.DB, id int64, status models.TaskStatus) error
 	AssignTasker(ctx context.Context, taskID, taskerID int64) error
 	SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error)
 	GetByIDs(ctx context.Context, ids []int64) ([]*models.Task, error)
@@ -364,6 +365,11 @@ func (r *taskRepository) UpdateStatus(ctx context.Context, id int64, status mode
 	}
 
 	return nil
+}
+
+func (r *taskRepository) UpdateStatusWithTx(ctx context.Context, tx *gorm.DB, id int64, status models.TaskStatus) error {
+	// Legacy SQL implementation does not support GORM transactions; fall back to UpdateStatus
+	return r.UpdateStatus(ctx, id, status)
 }
 
 func (r *taskRepository) SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error) {

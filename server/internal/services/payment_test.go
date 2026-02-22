@@ -150,7 +150,7 @@ func TestPaymentService_CreateEscrowPayment(t *testing.T) {
 				walletRepo.Wallets[1] = wallet
 			}
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB)
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB, nil)
 
 			ctx := context.Background()
 
@@ -219,7 +219,7 @@ func TestPaymentService_CreateEscrowPayment_WithProposedPrice(t *testing.T) {
 
 	walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, 0.10, nil, mockDB)
+	service := NewPaymentService(txRepo, taskRepo, appRepo, walletService, 0.10, nil, mockDB, nil)
 
 	transaction, checkoutURL, err := service.CreateEscrowPayment(context.Background(), 1, 1)
 
@@ -288,7 +288,7 @@ func TestPaymentService_ReleasePayment(t *testing.T) {
 			wantErr: false,
 			checkRepos: func(t *testing.T, taskRepo *testutil.MockTaskRepository, txRepo *testutil.MockTransactionRepository) {
 				task := taskRepo.Tasks[1]
-				testutil.AssertEqual(t, task.Status, models.TaskStatusInProgress, "Task status should remain in_progress")
+				testutil.AssertEqual(t, task.Status, models.TaskStatusCompleted, "Task status should be completed after release")
 
 				releaseFound := false
 				platformFeeFound := false
@@ -329,7 +329,7 @@ func TestPaymentService_ReleasePayment(t *testing.T) {
 			},
 			setupWallet: func(ws *testutil.MockWalletService) {},
 			wantErr:     true,
-			errContains: "not in progress",
+			errContains: "cannot be completed from status",
 		},
 		{
 			name:        "no tasker assigned",
@@ -419,7 +419,7 @@ func TestPaymentService_ReleasePayment(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB)
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB, nil)
 
 			ctx := context.Background()
 
@@ -561,7 +561,7 @@ func TestPaymentService_RefundPayment(t *testing.T) {
 
 			walletService := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
 
-			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB)
+			service := NewPaymentService(txRepo, taskRepo, nil, walletService, 0, nil, mockDB, nil)
 
 			ctx := context.Background()
 
@@ -618,7 +618,7 @@ func TestPaymentService_GetTransactionsByTask(t *testing.T) {
 				tt.setupRepos(txRepo)
 			}
 
-			service := NewPaymentService(txRepo, nil, nil, nil, 0, nil, nil)
+			service := NewPaymentService(txRepo, nil, nil, nil, 0, nil, nil, nil)
 			ctx := context.Background()
 
 			transactions, err := service.GetTransactionsByTask(ctx, tt.taskID)

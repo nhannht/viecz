@@ -30,20 +30,26 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
         </label>
       }
       <input
-        class="w-full px-4 py-3 bg-card border border-border font-body text-[13px] text-fg
-               placeholder:text-muted focus:border-fg focus:outline-none transition-colors duration-200"
+        class="w-full px-4 py-3 bg-card font-body text-[13px] text-fg
+               placeholder:text-muted focus:outline-none transition-colors duration-200"
+        [class.border]="true"
+        [class.border-border]="!error()"
+        [class.focus:border-fg]="!error()"
+        [class.border-red-600]="!!error()"
         [id]="inputId()"
         [type]="type()"
         [placeholder]="placeholder()"
         [disabled]="isDisabled"
         [value]="value"
+        [attr.step]="step()"
+        [attr.min]="min()"
         [attr.aria-label]="label() || placeholder()"
         [attr.aria-invalid]="error() ? true : null"
         [attr.aria-describedby]="error() ? inputId() + '-error' : null"
         (input)="onInput($event)"
         (blur)="onTouched()" />
       @if (error()) {
-        <span class="font-body text-[11px] text-fg" [id]="inputId() + '-error'" role="alert">
+        <span class="font-body text-[11px] text-red-600 font-semibold" [id]="inputId() + '-error'" role="alert">
           {{ error() }}
         </span>
       }
@@ -62,6 +68,12 @@ export class NhannhtMetroInputComponent implements ControlValueAccessor {
 
   /** HTML input type. */
   type = input<'text' | 'email' | 'password' | 'number' | 'tel' | 'url'>('text');
+
+  /** Step value for number inputs (e.g. 1000 for VND). */
+  step = input<string | number | undefined>(undefined);
+
+  /** Minimum value for number inputs. */
+  min = input<string | number | undefined>(undefined);
 
   /** Error message. When non-empty, displays below the input and sets `aria-invalid`. */
   error = input('');

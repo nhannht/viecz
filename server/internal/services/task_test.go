@@ -116,6 +116,10 @@ func (m *mockTaskRepository) UpdateStatus(ctx context.Context, taskID int64, sta
 	return nil
 }
 
+func (m *mockTaskRepository) UpdateStatusWithTx(ctx context.Context, tx *gorm.DB, taskID int64, status models.TaskStatus) error {
+	return m.UpdateStatus(ctx, taskID, status)
+}
+
 type mockApplicationRepository struct {
 	applications map[int64]*models.TaskApplication
 }
@@ -424,7 +428,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 				tt.setupRepo(catRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -561,7 +565,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.CreateTask(ctx, tt.requesterID, tt.input)
@@ -648,7 +652,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 				tt.setup(taskRepo, catRepo, userRepo, walletRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, walletService, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -770,7 +774,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo, userRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			app, err := service.ApplyForTask(ctx, tt.taskID, tt.taskerID, tt.input)
@@ -885,7 +889,7 @@ func TestTaskService_AcceptApplication(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.AcceptApplication(ctx, tt.applicationID, tt.requesterID)
@@ -946,7 +950,7 @@ func TestTaskService_GetTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.GetTask(ctx, tt.taskID)
@@ -1052,7 +1056,7 @@ func TestTaskService_UpdateTask(t *testing.T) {
 				tt.setupRepo(taskRepo, catRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			task, err := service.UpdateTask(ctx, tt.taskID, tt.requesterID, tt.input)
@@ -1211,7 +1215,7 @@ func TestTaskService_DeleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.DeleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1272,7 +1276,7 @@ func TestTaskService_ListTasks(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			tasks, total, err := service.ListTasks(ctx, tt.filters)
@@ -1371,7 +1375,7 @@ func TestTaskService_CompleteTask(t *testing.T) {
 				tt.setupRepo(taskRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			err := service.CompleteTask(ctx, tt.taskID, tt.requesterID)
@@ -1466,7 +1470,7 @@ func TestTaskService_GetTaskApplications(t *testing.T) {
 				tt.setupRepo(taskRepo, appRepo)
 			}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			apps, err := service.GetTaskApplications(ctx, tt.taskID, tt.requesterID)
@@ -1548,7 +1552,7 @@ func TestTaskService_CreateTask_Deadline(t *testing.T) {
 			catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
 			userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
 
-			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
 			input := &CreateTaskInput{
@@ -1602,7 +1606,7 @@ func TestTaskService_ApplyForTask_Overdue(t *testing.T) {
 		}
 		userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
 
-		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 		ctx := context.Background()
 
 		_, err := service.ApplyForTask(ctx, 1, 2, &ApplyForTaskInput{Message: "I can help"})
@@ -1629,7 +1633,7 @@ func TestTaskService_ApplyForTask_Overdue(t *testing.T) {
 		}
 		userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
 
-		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 		ctx := context.Background()
 
 		app, err := service.ApplyForTask(ctx, 1, 2, &ApplyForTaskInput{Message: "I can help"})
@@ -1660,7 +1664,7 @@ func TestTaskService_CompleteTask_OverdueStillWorks(t *testing.T) {
 		Deadline:    &pastDeadline,
 	}
 
-	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 	ctx := context.Background()
 
 	err := service.CompleteTask(ctx, 1, 1)

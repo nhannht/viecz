@@ -19,6 +19,7 @@ type TaskService struct {
 	userRepo            repository.UserRepository
 	walletService       *WalletService
 	notificationService *NotificationService
+	paymentService      *PaymentService
 	db                  *gorm.DB
 	searchService       SearchServicer
 }
@@ -33,6 +34,7 @@ func NewTaskService(
 	notificationService *NotificationService,
 	db *gorm.DB,
 	searchService SearchServicer,
+	paymentService *PaymentService,
 ) *TaskService {
 	if searchService == nil {
 		searchService = &NoOpSearchService{}
@@ -44,6 +46,7 @@ func NewTaskService(
 		userRepo:            userRepo,
 		walletService:       walletService,
 		notificationService: notificationService,
+		paymentService:      paymentService,
 		db:                  db,
 		searchService:       searchService,
 	}
@@ -561,7 +564,10 @@ func (s *TaskService) AcceptApplication(ctx context.Context, applicationID, requ
 	return nil
 }
 
-// CompleteTask marks a task as completed
+// CompleteTask marks a task as completed.
+// If the task has an escrow payment, it atomically releases payment and sets status
+// to completed in a single DB transaction via PaymentService.ReleasePayment.
+// If no escrow exists (e.g., free tasks), it sets status to completed directly.
 func (s *TaskService) CompleteTask(ctx context.Context, taskID, requesterID int64) error {
 	// Get task
 	task, err := s.taskRepo.GetByID(ctx, taskID)
@@ -579,7 +585,18 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID, requesterID int6
 		return fmt.Errorf("task is not in progress")
 	}
 
-	// Update status
+	// Try to release payment atomically (also sets status to completed)
+	if s.paymentService != nil {
+		if err := s.paymentService.ReleasePayment(ctx, taskID, requesterID); err != nil {
+			return fmt.Errorf("failed to release payment: %w", err)
+		}
+		// ReleasePayment already set status to completed, sent notifications,
+		// and removed from search index — we're done.
+		return nil
+	}
+
+	// No payment service (e.g., free tasks or unit tests without payment) —
+	// just set status to completed directly.
 	if err := s.taskRepo.UpdateStatus(ctx, taskID, models.TaskStatusCompleted); err != nil {
 		return fmt.Errorf("failed to complete task: %w", err)
 	}

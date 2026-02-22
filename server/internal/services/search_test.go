@@ -100,7 +100,7 @@ func TestListTasks_FallsBackToLIKE_WhenNoOpSearchService(t *testing.T) {
 	taskRepo.tasks[2] = &models.Task{ID: 2, Title: "Sửa laptop", Status: models.TaskStatusOpen}
 
 	// NoOp search service — should fall through to LIKE
-	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil)
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 	ctx := context.Background()
 
 	search := "dọn"

@@ -179,6 +179,21 @@ func (r *taskGormRepository) UpdateStatus(ctx context.Context, id int64, status 
 	return nil
 }
 
+func (r *taskGormRepository) UpdateStatusWithTx(ctx context.Context, tx *gorm.DB, id int64, status models.TaskStatus) error {
+	db := tx
+	if db == nil {
+		db = r.db
+	}
+	result := db.WithContext(ctx).Model(&models.Task{}).Where("id = ?", id).UpdateColumn("status", status)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update task status: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("task not found")
+	}
+	return nil
+}
+
 func (r *taskGormRepository) SumOpenTaskPricesByRequester(ctx context.Context, requesterID int64) (int64, error) {
 	var total *int64
 	err := r.db.WithContext(ctx).Model(&models.Task{}).

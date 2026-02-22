@@ -200,41 +200,26 @@ class TaskDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null, paymentError = null)
 
-            // Step 1: Release payment to tasker
-            Log.d(TAG, "Releasing payment for task: $taskId")
-            val paymentResult = paymentRepository.releasePayment(taskId)
+            // Single call: server atomically releases payment + sets status to completed
+            Log.d(TAG, "Completing task (with payment release): $taskId")
+            val result = repository.completeTask(taskId)
 
-            paymentResult.fold(
-                onSuccess = { message ->
-                    Log.d(TAG, "Payment released successfully: $message")
-
-                    // Step 2: Mark task as complete
-                    val completeResult = repository.completeTask(taskId)
-                    completeResult.fold(
-                        onSuccess = {
-                            Log.d(TAG, "Task completed successfully")
-                            _uiState.value = _uiState.value.copy(
-                                isLoading = false,
-                                paymentSuccess = true,
-                                error = null
-                            )
-                            // Reload task to get updated status
-                            loadTask(taskId)
-                        },
-                        onFailure = { error ->
-                            Log.e(TAG, "Failed to complete task", error)
-                            _uiState.value = _uiState.value.copy(
-                                isLoading = false,
-                                error = error.message ?: "Payment released but failed to mark task complete"
-                            )
-                        }
-                    )
-                },
-                onFailure = { error ->
-                    Log.e(TAG, "Failed to release payment", error)
+            result.fold(
+                onSuccess = {
+                    Log.d(TAG, "Task completed and payment released successfully")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        paymentError = error.message ?: "Failed to release payment"
+                        paymentSuccess = true,
+                        error = null
+                    )
+                    // Reload task to get updated status
+                    loadTask(taskId)
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to complete task", error)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        paymentError = error.message ?: "Failed to complete task"
                     )
                 }
             )

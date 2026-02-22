@@ -275,13 +275,10 @@ export class TaskDetailComponent implements OnInit {
   completeTask() {
     this.taskService.complete(this.task()!.id).subscribe({
       next: () => {
-        this.snackbar.show('Task completed!', 'Close', { duration: 3000 });
-        this.paymentService.release(this.task()!.id).subscribe({
-          next: () => this.snackbar.show('Payment released', 'Close', { duration: 3000 }),
-        });
+        this.snackbar.show('Task completed & payment released!', 'Close', { duration: 3000 });
         this.ngOnInit();
       },
-      error: err => this.snackbar.show(err.error?.error || 'Failed', 'Close', { duration: 3000 }),
+      error: err => this.snackbar.show(err.error?.error || 'Failed to complete task', 'Close', { duration: 3000 }),
     });
   }
 }

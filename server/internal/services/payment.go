@@ -20,6 +20,7 @@ type PaymentService struct {
 	walletService       *WalletService
 	platformFeeRate     float64 // Platform fee as percentage (e.g., 0.10 for 10%)
 	notificationService *NotificationService
+	searchService       SearchServicer
 	db                  *gorm.DB
 }
 
@@ -33,7 +34,11 @@ func NewPaymentService(
 	platformFeeRate float64,
 	notificationService *NotificationService,
 	db *gorm.DB,
+	searchService SearchServicer,
 ) *PaymentService {
+	if searchService == nil {
+		searchService = &NoOpSearchService{}
+	}
 	return &PaymentService{
 		transactionRepo:     transactionRepo,
 		taskRepo:            taskRepo,
@@ -41,6 +46,7 @@ func NewPaymentService(
 		walletService:       walletService,
 		platformFeeRate:     platformFeeRate,
 		notificationService: notificationService,
+		searchService:       searchService,
 		db:                  db,
 	}
 }
@@ -135,11 +141,15 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 	return result, "", nil
 }
 
-// ReleasePayment releases funds from escrow to tasker when task is completed
+// ReleasePayment releases funds from escrow to tasker and marks task as completed.
+// Idempotent: if task is already completed and payment already released, returns nil.
 func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID int64) error {
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	var task *models.Task
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Lock task row
-		task, err := s.taskRepo.GetByIDForUpdate(ctx, tx, taskID)
+		var err error
+		task, err = s.taskRepo.GetByIDForUpdate(ctx, tx, taskID)
 		if err != nil {
 			return fmt.Errorf("task not found: %w", err)
 		}
@@ -149,9 +159,9 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 			return fmt.Errorf("only requester can release payment")
 		}
 
-		// Validate task status
-		if task.Status != models.TaskStatusInProgress {
-			return fmt.Errorf("task is not in progress")
+		// Validate task status — accept in_progress (normal) or completed (idempotent retry)
+		if task.Status != models.TaskStatusInProgress && task.Status != models.TaskStatusCompleted {
+			return fmt.Errorf("task cannot be completed from status: %s", task.Status)
 		}
 
 		// Validate tasker is assigned
@@ -159,18 +169,31 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 			return fmt.Errorf("no tasker assigned to task")
 		}
 
-		// Find escrow transaction
+		// Find escrow and release transactions
 		transactions, err := s.transactionRepo.GetByTaskIDWithTx(ctx, tx, taskID)
 		if err != nil {
 			return fmt.Errorf("failed to get transactions: %w", err)
 		}
 
 		var escrowTx *models.Transaction
+		hasRelease := false
 		for _, t := range transactions {
 			if t.Type == models.TransactionTypeEscrow && t.Status == models.TransactionStatusSuccess {
 				escrowTx = t
-				break
 			}
+			if t.Type == models.TransactionTypeRelease && t.Status == models.TransactionStatusSuccess {
+				hasRelease = true
+			}
+		}
+
+		// Idempotent: if already released, just ensure task is completed
+		if hasRelease {
+			if task.Status == models.TaskStatusInProgress {
+				if err := s.taskRepo.UpdateStatusWithTx(ctx, tx, taskID, models.TaskStatusCompleted); err != nil {
+					return fmt.Errorf("failed to complete task: %w", err)
+				}
+			}
+			return nil
 		}
 
 		if escrowTx == nil {
@@ -236,7 +259,23 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 			}
 		}
 
-		// Notify tasker about payment received (non-critical — log and continue on failure)
+		// Update task status to completed inside the transaction
+		if task.Status == models.TaskStatusInProgress {
+			if err := s.taskRepo.UpdateStatusWithTx(ctx, tx, taskID, models.TaskStatusCompleted); err != nil {
+				return fmt.Errorf("failed to complete task: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Post-commit: notifications and search cleanup (non-critical)
+	if task != nil {
+		// Notify tasker about payment received
 		if s.notificationService != nil && task.TaskerID != nil {
 			if err := s.notificationService.CreateNotification(ctx, *task.TaskerID,
 				models.NotificationTypePaymentReceived, "Payment Received",
@@ -245,8 +284,29 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 			}
 		}
 
-		return nil
-	})
+		// Notify both parties about task completion
+		if s.notificationService != nil {
+			if err := s.notificationService.CreateNotification(ctx, task.RequesterID,
+				models.NotificationTypeTaskCompleted, "Task Completed",
+				fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID); err != nil {
+				log.Printf("[PaymentService] failed to send task_completed notification to requester: %v", err)
+			}
+			if task.TaskerID != nil {
+				if err := s.notificationService.CreateNotification(ctx, *task.TaskerID,
+					models.NotificationTypeTaskCompleted, "Task Completed",
+					fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID); err != nil {
+					log.Printf("[PaymentService] failed to send task_completed notification to tasker: %v", err)
+				}
+			}
+		}
+
+		// Remove from search index (completed tasks shouldn't appear in search)
+		if err := s.searchService.DeleteTask(ctx, taskID); err != nil {
+			log.Printf("[PaymentService] failed to delete completed task %d from search index: %v", taskID, err)
+		}
+	}
+
+	return nil
 }
 
 // RefundPayment refunds escrow payment to requester when task is cancelled

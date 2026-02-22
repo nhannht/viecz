@@ -105,8 +105,6 @@ func main() {
 		searchService = &services.NoOpSearchService{}
 	}
 
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db, searchService)
-
 	// Initialize PayOS service
 	payosService, err := services.NewPayOSService(
 		cfg.PayOSClientID,
@@ -126,7 +124,10 @@ func main() {
 		cfg.PlatformFeeRate,
 		notificationService,
 		db,
+		searchService,
 	)
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db, searchService, paymentService)
 
 	// Initialize message service (Phase 4)
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)

@@ -928,4 +928,35 @@ adb exec-out screencap -p > /tmp/home.png
 - **Report results** with screenshots so the user can see what happened
 - Claudtest is for **verification and debugging**, not a replacement for unit tests
 
+## Production Deployment Ports (CRITICAL - ALWAYS FOLLOW)
+
+**MANDATORY**: Before restarting any service, check the port it was running on. Never assume default dev ports.
+
+| Service | Production Port | Nginx upstream | Dev Port |
+|---------|----------------|----------------|----------|
+| Go API server | 8080 | N/A (proxied by Express) | 8080 |
+| Web SSR (Express/Node) | **4001** | `127.0.0.1:4001` | 4200 |
+
+### Deployment Commands
+
+```bash
+# Go server
+pkill -f './server/bin/server-linux' || true
+cd /home/ubuntu/nhannht-projects/viecz && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &
+
+# Web client — PORT=4001, NOT 4000 or 4200
+pkill -f 'node.*dist/web/server/server.mjs' || true
+cd /home/ubuntu/nhannht-projects/viecz/web && PORT=4001 nohup node dist/web/server/server.mjs > /tmp/viecz-web.log 2>&1 &
+```
+
+### Pre-deployment Checklist
+
+1. `ps aux | grep -E 'server-linux|node.*dist/web' | grep -v grep` — check current ports
+2. Build binaries/assets
+3. Kill old process
+4. Start new process on the **same port**
+5. Verify: `curl -s --max-time 5 -o /dev/null -w "%{http_code}" https://viecz.fishcmus.io.vn`
+
+**Learned the hard way**: Starting the web client on port 4000 instead of 4001 caused a production outage because nginx proxies to 4001. Always verify the nginx upstream port before deploying.
+
 

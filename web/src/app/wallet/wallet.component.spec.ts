@@ -124,7 +124,15 @@ describe('WalletComponent', () => {
     fixture.detectChanges();
     component.depositAmount = 1000;
     component.deposit();
-    expect(snackbarMock.show).toHaveBeenCalledWith('Minimum deposit is 2,000 VND', undefined, { duration: 3000 });
+    expect(component.depositError).toBe('Minimum deposit is 2,000 VND');
+    expect(walletServiceMock.deposit).not.toHaveBeenCalled();
+  });
+
+  it('should validate deposit amount is multiple of 1000', () => {
+    fixture.detectChanges();
+    component.depositAmount = 2500;
+    component.deposit();
+    expect(component.depositError).toBe('Amount must be a multiple of 1,000 VND');
     expect(walletServiceMock.deposit).not.toHaveBeenCalled();
   });
 

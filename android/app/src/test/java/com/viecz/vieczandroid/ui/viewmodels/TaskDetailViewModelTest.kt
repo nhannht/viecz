@@ -189,9 +189,8 @@ class TaskDetailViewModelTest {
     }
 
     @Test
-    fun `completeTask should release payment and complete task`() = runTest {
+    fun `completeTask should complete task and release payment atomically`() = runTest {
         val completedTask = TestData.createTask(id = 1, status = TaskStatus.COMPLETED)
-        coEvery { mockPaymentRepository.releasePayment(1) } returns Result.success("Payment released")
         coEvery { mockTaskRepository.completeTask(1) } returns Result.success(Unit)
         // After completion, ViewModel reloads the task (which also loads applications)
         coEvery { mockTaskRepository.getTask(1) } returns Result.success(completedTask)
@@ -208,15 +207,15 @@ class TaskDetailViewModelTest {
     }
 
     @Test
-    fun `completeTask with payment release failure should emit payment error`() = runTest {
-        coEvery { mockPaymentRepository.releasePayment(1) } returns Result.failure(Exception("Insufficient funds"))
+    fun `completeTask failure should emit payment error`() = runTest {
+        coEvery { mockTaskRepository.completeTask(1) } returns Result.failure(Exception("Failed to release payment"))
 
         viewModel.completeTask(1)
         advanceUntilIdle()
 
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals("Insufficient funds", state.paymentError)
+            assertEquals("Failed to release payment", state.paymentError)
             assertFalse(state.paymentSuccess)
         }
     }

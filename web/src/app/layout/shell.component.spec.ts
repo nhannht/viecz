@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { PLATFORM_ID, signal } from '@angular/core';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { ShellComponent } from './shell.component';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
@@ -37,6 +37,7 @@ describe('ShellComponent', () => {
     };
     wsSpy = {
       connect: vi.fn(),
+      messages$: new Subject(),
     };
 
     await TestBed.configureTestingModule({
@@ -102,6 +103,18 @@ describe('ShellComponent', () => {
       el.getAttribute('ng-reflect-name') === 'notifications' || el.textContent?.includes('notifications'),
     );
     expect(notifIcon).toBeTruthy();
+  });
+
+  it('should increment unread count on websocket notification', () => {
+    expect(component.unreadCount()).toBe(3);
+    wsSpy.messages$.next({ type: 'notification', content: 'New task applied' });
+    expect(component.unreadCount()).toBe(4);
+  });
+
+  it('should not increment unread count for non-notification messages', () => {
+    expect(component.unreadCount()).toBe(3);
+    wsSpy.messages$.next({ type: 'message', content: 'Hello' });
+    expect(component.unreadCount()).toBe(3);
   });
 
   it('should have user menu with profile and logout', () => {

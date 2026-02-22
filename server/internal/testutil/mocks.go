@@ -315,6 +315,10 @@ func (m *MockTaskRepository) UpdateStatus(ctx context.Context, taskID int64, sta
 	return nil
 }
 
+func (m *MockTaskRepository) UpdateStatusWithTx(ctx context.Context, tx *gorm.DB, taskID int64, status models.TaskStatus) error {
+	return m.UpdateStatus(ctx, taskID, status)
+}
+
 func (m *MockTaskRepository) Create(ctx context.Context, task *models.Task) error {
 	task.ID = int64(len(m.Tasks) + 1)
 	m.Tasks[task.ID] = task

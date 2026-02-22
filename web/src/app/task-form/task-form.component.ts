@@ -51,7 +51,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
               [(ngModel)]="description" name="description" rows="5"
               placeholder="Describe the task in detail"></textarea>
             @if (submitted && !description) {
-              <span class="font-body text-[11px] text-fg" role="alert">Description is required</span>
+              <span class="font-body text-[11px] text-red-600 font-semibold" role="alert">Description is required</span>
             }
           </div>
 
@@ -91,8 +91,9 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
               label="PRICE (VND)"
               type="number"
               placeholder="e.g. 50000"
+              [step]="1000" [min]="1000"
               [(ngModel)]="price" name="price"
-              [error]="submitted && (!price || +price <= 0) ? 'Price must be greater than 0' : ''" />
+              [error]="priceError()" />
 
             <nhannht-metro-input class="flex-1"
               label="LOCATION"
@@ -192,6 +193,15 @@ export class TaskFormComponent implements OnInit {
     }
   }
 
+  priceError(): string {
+    if (!this.submitted) return '';
+    if (!this.price) return 'Price is required';
+    const p = Number(this.price);
+    if (p <= 0) return 'Price must be greater than 0';
+    if (p % 1000 !== 0) return 'Price must be a multiple of 1,000 VND';
+    return '';
+  }
+
   isInsufficient(): boolean {
     const balance = this.walletBalance();
     const p = Number(this.price);
@@ -200,7 +210,8 @@ export class TaskFormComponent implements OnInit {
 
   onSubmit() {
     this.submitted = true;
-    if (!this.title || !this.description || !this.categoryId || !this.price || Number(this.price) <= 0 || !this.location) {
+    const p = Number(this.price);
+    if (!this.title || !this.description || !this.categoryId || !this.price || p <= 0 || p % 1000 !== 0 || !this.location) {
       return;
     }
 

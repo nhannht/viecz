@@ -44,8 +44,10 @@ import { VndPipe } from '../core/pipes';
             <nhannht-metro-input
               label="PROPOSED PRICE (VND)"
               type="number"
+              [step]="1000" [min]="1000"
               [(ngModel)]="proposedPrice"
               name="proposedPrice"
+              [error]="priceError"
             />
 
             <nhannht-metro-textarea
@@ -82,6 +84,7 @@ export class ApplyTaskComponent implements OnInit {
   loading = signal(true);
   submitting = signal(false);
   proposedPrice: number | null = null;
+  priceError = '';
   message = '';
 
   ngOnInit() {
@@ -101,8 +104,15 @@ export class ApplyTaskComponent implements OnInit {
   }
 
   submit() {
+    const p = Number(this.proposedPrice);
+    if (this.proposedPrice && p > 0 && p % 1000 !== 0) {
+      this.priceError = 'Price must be a multiple of 1,000 VND';
+      return;
+    }
+    this.priceError = '';
+
     const body: { proposed_price?: number; message?: string } = {};
-    if (this.proposedPrice) body.proposed_price = Number(this.proposedPrice);
+    if (this.proposedPrice) body.proposed_price = p;
     if (this.message) body.message = this.message;
 
     this.submitting.set(true);

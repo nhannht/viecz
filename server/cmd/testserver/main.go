@@ -191,13 +191,13 @@ func main() {
 		}
 	}
 
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db, searchService)
-
 	mockPayOS := &mockPayOS{}
 
 	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, applicationRepo, walletService, 0, notificationService, db,
+		transactionRepo, taskRepo, applicationRepo, walletService, 0, notificationService, db, searchService,
 	)
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db, searchService, paymentService)
 
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
 

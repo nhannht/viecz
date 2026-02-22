@@ -91,15 +91,15 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	authService := auth.NewAuthService(userRepo)
 	userService := services.NewUserService(userRepo, taskRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
-	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, nil, nil, nil)
-
 	// 6. MockPayOS
 	mockPayOS := &e2eMockPayOS{}
 
 	// 7. PaymentService (uses real wallet service)
 	paymentService := services.NewPaymentService(
-		transactionRepo, taskRepo, applicationRepo, walletService, 0, nil, db,
+		transactionRepo, taskRepo, applicationRepo, walletService, 0, nil, db, nil,
 	)
+
+	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, nil, nil, nil, paymentService)
 
 	// 9. Handlers
 	authHandler := NewAuthHandler(authService, nil, e2eJWTSecret)
@@ -487,24 +487,13 @@ func TestE2E_FullJobLifecycle(t *testing.T) {
 	t.Logf("Alice wallet after escrow: balance=%d, escrow=%d", aliceWallet.Balance, aliceWallet.EscrowBalance)
 
 	// =====================
-	// Step 13: Alice releases payment (90000 to Bob after 10% fee)
-	// =====================
-	w = doRequest(t, router, "POST", "/api/v1/payments/release", aliceToken, map[string]interface{}{
-		"task_id": taskID,
-	})
-	if w.Code != http.StatusOK {
-		t.Fatalf("Release payment: expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-	t.Log("Payment released")
-
-	// =====================
-	// Step 13b: Alice completes the task (sets status to completed)
+	// Step 13: Alice completes the task (atomically releases payment + sets status)
 	// =====================
 	w = doRequest(t, router, "POST", fmt.Sprintf("/api/v1/tasks/%d/complete", taskID), aliceToken, nil)
 	if w.Code != http.StatusOK {
 		t.Fatalf("Complete task: expected 200, got %d: %s", w.Code, w.Body.String())
 	}
-	t.Log("Task completed")
+	t.Log("Task completed and payment released")
 
 	// =====================
 	// Step 14: Alice checks wallet balance = 100000 (escrow already deducted)

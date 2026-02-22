@@ -62,7 +62,9 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
           <h3 class="font-display text-[11px] tracking-[2px] text-fg m-0 mb-3">DEPOSIT FUNDS</h3>
           <div class="flex gap-3 items-end">
             <nhannht-metro-input label="AMOUNT (VND)" type="number"
-              [(ngModel)]="depositAmount" name="depositAmount" />
+              [step]="1000" [min]="2000"
+              [(ngModel)]="depositAmount" name="depositAmount"
+              [error]="depositError" />
             @if (depositing()) {
               <nhannht-metro-spinner [size]="20" label="Depositing" />
             } @else {
@@ -122,6 +124,7 @@ export class WalletComponent implements OnInit {
   error = signal(false);
   depositing = signal(false);
   depositAmount = 0;
+  depositError = '';
   txOffset = 0;
   hasMore = signal(false);
 
@@ -158,10 +161,16 @@ export class WalletComponent implements OnInit {
   }
 
   deposit() {
-    if (Number(this.depositAmount) < 2000) {
-      this.snackbar.show('Minimum deposit is 2,000 VND', undefined, { duration: 3000 });
+    const amount = Number(this.depositAmount);
+    if (amount < 2000) {
+      this.depositError = 'Minimum deposit is 2,000 VND';
       return;
     }
+    if (amount % 1000 !== 0) {
+      this.depositError = 'Amount must be a multiple of 1,000 VND';
+      return;
+    }
+    this.depositError = '';
     this.depositing.set(true);
     this.walletService.deposit(Number(this.depositAmount)).subscribe({
       next: res => {

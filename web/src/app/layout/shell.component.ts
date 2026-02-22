@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroMenuComponent } from '../shared/components/nhannht-metro-menu.component';
 import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
 import { NhannhtMetroSnackbarComponent } from '../shared/components/nhannht-metro-snackbar.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
@@ -127,11 +128,12 @@ import { WebSocketService } from '../core/websocket.service';
     }
   `,
 })
-export class ShellComponent implements OnInit {
+export class ShellComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
   snackbarService = inject(NhannhtMetroSnackbarService);
   private notifService = inject(NotificationService);
   private wsService = inject(WebSocketService);
+  private wsSub?: Subscription;
 
   unreadCount = signal(0);
   notifications = signal<{ id: number; title: string; message: string }[]>([]);
@@ -144,7 +146,16 @@ export class ShellComponent implements OnInit {
       this.notifService.getUnreadCount().subscribe({
         next: res => this.unreadCount.set(res.unread_count),
       });
+      this.wsSub = this.wsService.messages$.subscribe(msg => {
+        if (msg.type === 'notification') {
+          this.unreadCount.update(c => c + 1);
+        }
+      });
     }
+  }
+
+  ngOnDestroy() {
+    this.wsSub?.unsubscribe();
   }
 
   toggleNotifMenu() {

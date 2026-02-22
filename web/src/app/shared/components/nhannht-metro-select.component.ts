@@ -30,9 +30,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
         </label>
       }
       <select
-        class="w-full px-4 py-3 bg-card border border-border font-body text-[13px] text-fg
-               focus:border-fg focus:outline-none transition-colors duration-200
+        class="w-full px-4 py-3 bg-card font-body text-[13px] text-fg
+               focus:outline-none transition-colors duration-200
                appearance-none cursor-pointer"
+        [class.border]="true"
+        [class.border-border]="!error()"
+        [class.focus:border-fg]="!error()"
+        [class.border-red-600]="!!error()"
         [id]="selectId()"
         [disabled]="isDisabled"
         [value]="value"
@@ -46,7 +50,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
         }
       </select>
       @if (error()) {
-        <span class="font-body text-[11px] text-fg" role="alert">
+        <span class="font-body text-[11px] text-red-600 font-semibold" role="alert">
           {{ error() }}
         </span>
       }
