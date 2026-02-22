@@ -65,7 +65,8 @@ func main() {
 	messageRepo := repository.NewMessageGormRepository(db)
 
 	// Initialize services
-	authService := auth.NewAuthService(userRepo)
+	emailVerifier := services.NewRealEmailVerifier()
+	authService := auth.NewAuthService(userRepo, emailVerifier)
 
 	// Initialize Google OAuth service
 	googleOAuthService, err := auth.NewGoogleOAuthService(

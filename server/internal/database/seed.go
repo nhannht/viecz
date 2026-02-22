@@ -8,6 +8,7 @@ import (
 	"viecz.vieczserver/internal/auth"
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
+	"viecz.vieczserver/internal/services"
 )
 
 // SeedData seeds the database with initial data (categories, test users, and tasks)
@@ -77,7 +78,7 @@ func seedCategories(ctx context.Context, db *gorm.DB) error {
 // seedTestUser creates test users for development
 func seedTestUser(ctx context.Context, db *gorm.DB) error {
 	userRepo := repository.NewUserGormRepository(db)
-	authService := auth.NewAuthService(userRepo)
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{})
 
 	testUsers := []struct {
 		email    string

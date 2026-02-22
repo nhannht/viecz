@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
+	"viecz.vieczserver/internal/services"
 )
 
 // Custom errors
@@ -18,17 +19,22 @@ var (
 	ErrGoogleAuthFailed        = fmt.Errorf("google authentication failed")
 	ErrEmailAlreadyUsedByEmail = fmt.Errorf("email already registered with email/password")
 	ErrEmailAlreadyUsedByGoogle = fmt.Errorf("email already registered with Google")
+	ErrDisposableEmail          = fmt.Errorf("disposable email addresses are not allowed")
+	ErrNoMXRecords              = fmt.Errorf("email domain does not have valid mail servers")
+	ErrRoleAccount              = fmt.Errorf("role-based email addresses are not allowed")
 )
 
 // AuthService handles authentication operations
 type AuthService struct {
-	userRepo repository.UserRepository
+	userRepo      repository.UserRepository
+	emailVerifier services.EmailVerifierService
 }
 
 // NewAuthService creates a new authentication service
-func NewAuthService(userRepo repository.UserRepository) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, emailVerifier services.EmailVerifierService) *AuthService {
 	return &AuthService{
-		userRepo: userRepo,
+		userRepo:      userRepo,
+		emailVerifier: emailVerifier,
 	}
 }
 
@@ -37,6 +43,20 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 	// Validate email format
 	if !models.IsValidEmail(email) {
 		return nil, ErrInvalidEmail
+	}
+
+	// Validate email domain (MX records, disposable, role account)
+	if err := s.emailVerifier.ValidateEmailDomain(email); err != nil {
+		switch err {
+		case services.ErrNoMXRecords:
+			return nil, ErrNoMXRecords
+		case services.ErrDisposableEmail:
+			return nil, ErrDisposableEmail
+		case services.ErrRoleAccount:
+			return nil, ErrRoleAccount
+		default:
+			return nil, fmt.Errorf("email validation failed: %w", err)
+		}
 	}
 
 	// Validate password strength

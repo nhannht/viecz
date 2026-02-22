@@ -64,6 +64,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		switch err {
 		case auth.ErrInvalidEmail:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
+		case auth.ErrDisposableEmail:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "disposable email addresses are not allowed"})
+		case auth.ErrNoMXRecords:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "email domain does not have valid mail servers"})
+		case auth.ErrRoleAccount:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "role-based email addresses (admin@, info@, etc.) are not allowed"})
 		case auth.ErrWeakPassword:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters with uppercase, lowercase, and number"})
 		case auth.ErrEmailAlreadyExists:

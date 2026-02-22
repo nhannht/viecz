@@ -141,7 +141,7 @@ func main() {
 	messageRepo := repository.NewMessageGormRepository(db)
 
 	// 5. Services
-	authService := auth.NewAuthService(userRepo)
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{})
 
 	// Initialize Google OAuth service for testing (optional - will fail gracefully if credentials not set)
 	googleOAuthService, err := auth.NewGoogleOAuthService(

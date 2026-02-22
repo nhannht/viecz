@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"viecz.vieczserver/internal/auth"
 	"viecz.vieczserver/internal/models"
+	"viecz.vieczserver/internal/services"
 )
 
 // Mock user repository for testing
@@ -260,7 +261,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			if tt.setupRepo != nil {
 				tt.setupRepo(mockUserRepo)
 			}
-			authService := auth.NewAuthService(mockUserRepo)
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{})
 			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/register", handler.Register)
@@ -399,7 +400,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			if tt.setupRepo != nil {
 				tt.setupRepo(mockUserRepo)
 			}
-			authService := auth.NewAuthService(mockUserRepo)
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{})
 			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/login", handler.Login)
@@ -501,7 +502,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			mockUserRepo := newMockUserRepository()
-			authService := auth.NewAuthService(mockUserRepo)
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{})
 			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/refresh", handler.RefreshToken)

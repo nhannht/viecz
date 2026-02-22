@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"viecz.vieczserver/internal/models"
+	"viecz.vieczserver/internal/services"
 )
 
 // Mock user repository
@@ -187,7 +188,7 @@ func TestAuthService_Register(t *testing.T) {
 				tt.setupRepo(repo)
 			}
 
-			service := NewAuthService(repo)
+			service := NewAuthService(repo, &services.NoOpEmailVerifier{})
 			ctx := context.Background()
 
 			user, err := service.Register(ctx, tt.email, tt.password, tt.userName)
@@ -237,7 +238,7 @@ func TestAuthService_Login(t *testing.T) {
 			password: "Password123",
 			setupRepo: func(repo *mockUserRepository) {
 				// Register a user first
-				service := NewAuthService(repo)
+				service := NewAuthService(repo, &services.NoOpEmailVerifier{})
 				_, _ = service.Register(context.Background(), "test@example.com", "Password123", "Test User")
 			},
 			wantErr: false,
@@ -255,7 +256,7 @@ func TestAuthService_Login(t *testing.T) {
 			email:    "test@example.com",
 			password: "WrongPassword123",
 			setupRepo: func(repo *mockUserRepository) {
-				service := NewAuthService(repo)
+				service := NewAuthService(repo, &services.NoOpEmailVerifier{})
 				_, _ = service.Register(context.Background(), "test@example.com", "Password123", "Test User")
 			},
 			wantErr:     true,
@@ -270,7 +271,7 @@ func TestAuthService_Login(t *testing.T) {
 				tt.setupRepo(repo)
 			}
 
-			service := NewAuthService(repo)
+			service := NewAuthService(repo, &services.NoOpEmailVerifier{})
 			ctx := context.Background()
 
 			user, err := service.Login(ctx, tt.email, tt.password)
