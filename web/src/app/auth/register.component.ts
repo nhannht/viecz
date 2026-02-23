@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, AfterViewInit, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
@@ -7,6 +8,19 @@ import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { AuthService } from '../core/auth.service';
+import { environment } from '../environments/environment';
+
+declare const turnstile: {
+  render: (container: string | HTMLElement, options: {
+    sitekey: string;
+    callback: (token: string) => void;
+    'error-callback'?: (error: string) => void;
+    'expired-callback'?: () => void;
+    size?: string;
+  }) => string;
+  remove: (widgetId: string) => void;
+  reset: (widgetId: string) => void;
+};
 
 @Component({
   selector: 'app-register',
@@ -75,6 +89,9 @@ import { AuthService } from '../core/auth.service';
               </p>
             </div>
 
+            <!-- Turnstile invisible widget container -->
+            <div id="turnstile-container"></div>
+
             <div class="mt-2">
               @if (loading()) {
                 <div class="flex justify-center py-3">
@@ -101,10 +118,11 @@ import { AuthService } from '../core/auth.service';
     </ng-container>
   `,
 })
-export class RegisterComponent {
+export class RegisterComponent implements AfterViewInit, OnDestroy {
   private auth = inject(AuthService);
   private router = inject(Router);
   private transloco = inject(TranslocoService);
+  private platformId = inject(PLATFORM_ID);
 
   name = '';
   email = '';
@@ -112,6 +130,22 @@ export class RegisterComponent {
   loading = signal(false);
   error = signal('');
   showPassword = signal(false);
+  turnstileToken = signal('');
+
+  private widgetId: string | null = null;
+
+  ngAfterViewInit() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (!environment.turnstileSiteKey) return;
+
+    this.loadTurnstileScript();
+  }
+
+  ngOnDestroy() {
+    if (this.widgetId && typeof turnstile !== 'undefined') {
+      turnstile.remove(this.widgetId);
+    }
+  }
 
   onRegister() {
     if (!this.name || !this.email || !this.password) {
@@ -120,7 +154,9 @@ export class RegisterComponent {
     }
     this.loading.set(true);
     this.error.set('');
-    this.auth.register(this.email, this.password, this.name).subscribe({
+
+    const token = this.turnstileToken() || undefined;
+    this.auth.register(this.email, this.password, this.name, token).subscribe({
       next: () => {
         this.loading.set(false);
         this.router.navigate(['/']);
@@ -128,7 +164,47 @@ export class RegisterComponent {
       error: err => {
         this.loading.set(false);
         this.error.set(err.error?.error || this.transloco.translate('auth.register.registerFailed'));
+        // Reset Turnstile for retry
+        if (this.widgetId && typeof turnstile !== 'undefined') {
+          turnstile.reset(this.widgetId);
+          this.turnstileToken.set('');
+        }
       },
+    });
+  }
+
+  private loadTurnstileScript() {
+    // Avoid loading twice
+    if (document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')) {
+      this.renderWidget();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.defer = true;
+    script.onload = () => this.renderWidget();
+    document.head.appendChild(script);
+  }
+
+  private renderWidget() {
+    if (typeof turnstile === 'undefined') return;
+
+    const container = document.getElementById('turnstile-container');
+    if (!container) return;
+
+    this.widgetId = turnstile.render(container, {
+      sitekey: environment.turnstileSiteKey,
+      callback: (token: string) => {
+        this.turnstileToken.set(token);
+      },
+      'error-callback': () => {
+        this.turnstileToken.set('');
+      },
+      'expired-callback': () => {
+        this.turnstileToken.set('');
+      },
+      size: 'invisible',
     });
   }
 }

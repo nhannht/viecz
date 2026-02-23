@@ -102,7 +102,7 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, nil, nil, nil, paymentService)
 
 	// 9. Handlers
-	authHandler := NewAuthHandler(authService, nil, e2eJWTSecret)
+	authHandler := NewAuthHandler(authService, nil, e2eJWTSecret, nil)
 	userHandler := NewUserHandler(userService)
 	taskHandler := NewTaskHandler(taskService, applicationRepo)
 	walletHandler := NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, "http://localhost:8080")

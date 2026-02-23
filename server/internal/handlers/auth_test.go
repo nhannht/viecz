@@ -274,7 +274,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
 			router := setupTestRouter()
 			router.POST("/auth/register", handler.Register)
 
@@ -413,7 +413,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
 			router := setupTestRouter()
 			router.POST("/auth/login", handler.Login)
 
@@ -515,7 +515,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			// Setup
 			mockUserRepo := newMockUserRepository()
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
 			router := setupTestRouter()
 			router.POST("/auth/refresh", handler.RefreshToken)
 
@@ -597,7 +597,7 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
 			router := setupTestRouter()
 			router.POST("/auth/verify-email", handler.VerifyEmail)
 
@@ -631,7 +631,7 @@ func TestAuthHandler_ResendVerification(t *testing.T) {
 	mockUserRepo.usersById[1] = mockUserRepo.users["test@example.com"]
 
 	authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-	handler := NewAuthHandler(authService, nil, jwtSecret)
+	handler := NewAuthHandler(authService, nil, jwtSecret, nil)
 	router := setupTestRouter()
 	router.Use(func(c *gin.Context) {
 		c.Set("user_id", int64(1))
@@ -655,5 +655,83 @@ func TestAuthHandler_ResendVerification(t *testing.T) {
 
 	if w2.Code != http.StatusTooManyRequests {
 		t.Errorf("Expected 429, got %d: %s", w2.Code, w2.Body.String())
+	}
+}
+
+func TestAuthHandler_Register_WithTurnstile(t *testing.T) {
+	jwtSecret := "test-secret-key-for-testing-12345"
+
+	// Start mock Turnstile server
+	turnstileServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		token := r.FormValue("response")
+		w.Header().Set("Content-Type", "application/json")
+		if token == "valid-turnstile-token" {
+			w.Write([]byte(`{"success":true}`))
+		} else {
+			w.Write([]byte(`{"success":false,"error-codes":["invalid-input-response"]}`))
+		}
+	}))
+	defer turnstileServer.Close()
+
+	turnstileSvc := services.NewTurnstileService("test-secret")
+	// Override URL to point to mock server
+	turnstileSvc.SetVerifyURL(turnstileServer.URL)
+
+	tests := []struct {
+		name               string
+		requestBody        interface{}
+		expectedStatusCode int
+	}{
+		{
+			name: "register with valid turnstile token",
+			requestBody: map[string]string{
+				"email":           "test@example.com",
+				"password":        "Password123",
+				"name":            "Test User",
+				"turnstile_token": "valid-turnstile-token",
+			},
+			expectedStatusCode: http.StatusCreated,
+		},
+		{
+			name: "register with invalid turnstile token",
+			requestBody: map[string]string{
+				"email":           "test@example.com",
+				"password":        "Password123",
+				"name":            "Test User",
+				"turnstile_token": "bad-token",
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name: "register with missing turnstile token",
+			requestBody: map[string]string{
+				"email":    "test2@example.com",
+				"password": "Password123",
+				"name":     "Test User",
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockUserRepo := newMockUserRepository()
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret, turnstileSvc)
+			router := setupTestRouter()
+			router.POST("/auth/register", handler.Register)
+
+			body, _ := json.Marshal(tt.requestBody)
+			req := httptest.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedStatusCode {
+				t.Errorf("Expected %d, got %d: %s", tt.expectedStatusCode, w.Code, w.Body.String())
+			}
+		})
 	}
 }

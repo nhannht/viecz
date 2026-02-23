@@ -6,21 +6,25 @@ import (
 	"github.com/gin-gonic/gin"
 	"viecz.vieczserver/internal/auth"
 	"viecz.vieczserver/internal/models"
+	"viecz.vieczserver/internal/services"
 )
 
 // AuthHandler handles authentication endpoints
 type AuthHandler struct {
 	authService        *auth.AuthService
 	googleOAuthService *auth.GoogleOAuthService
+	turnstileService   *services.TurnstileService
 	jwtSecret          string
 	resendLimiter      *auth.ResendRateLimiter
 }
 
-// NewAuthHandler creates a new auth handler
-func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.GoogleOAuthService, jwtSecret string) *AuthHandler {
+// NewAuthHandler creates a new auth handler.
+// turnstileService may be nil — if nil, Turnstile validation is skipped (dev/test).
+func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.GoogleOAuthService, jwtSecret string, turnstileService *services.TurnstileService) *AuthHandler {
 	return &AuthHandler{
 		authService:        authService,
 		googleOAuthService: googleOAuthService,
+		turnstileService:   turnstileService,
 		jwtSecret:          jwtSecret,
 		resendLimiter:      auth.NewResendRateLimiter(),
 	}
@@ -28,9 +32,10 @@ func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.Goog
 
 // RegisterRequest represents the registration request
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-	Name     string `json:"name" binding:"required"`
+	Email          string `json:"email" binding:"required,email"`
+	Password       string `json:"password" binding:"required,min=8"`
+	Name           string `json:"name" binding:"required"`
+	TurnstileToken string `json:"turnstile_token"`
 }
 
 // LoginRequest represents the login request
@@ -58,6 +63,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Verify Turnstile token (skip if service not configured)
+	if h.turnstileService != nil {
+		if err := h.turnstileService.Verify(req.TurnstileToken, c.ClientIP()); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "bot verification failed"})
+			return
+		}
 	}
 
 	// Register user

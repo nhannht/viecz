@@ -38,6 +38,8 @@ type Config struct {
 	SMTPUser     string
 	SMTPPassword string
 	SMTPFrom     string
+	// Cloudflare Turnstile (optional — empty = skip bot validation)
+	TurnstileSecretKey string
 	// Platform
 	PlatformFeeRate  float64 // e.g. 0.10 for 10%, 0 for beta
 	MaxWalletBalance int64   // max balance per wallet in VND (e.g. 200000)
@@ -89,6 +91,9 @@ func Load() (*Config, error) {
 	cfg.SMTPUser = os.Getenv("SMTP_USER")
 	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
 	cfg.SMTPFrom = getEnv("SMTP_FROM", "noreply@fishcmus.io.vn")
+
+	// Cloudflare Turnstile (optional — empty = skip bot validation)
+	cfg.TurnstileSecretKey = os.Getenv("TURNSTILE_SECRET_KEY")
 
 	// Parse platform fee rate (default 0 for beta)
 	platformFeeRate, err := strconv.ParseFloat(getEnv("PLATFORM_FEE_RATE", "0"), 64)

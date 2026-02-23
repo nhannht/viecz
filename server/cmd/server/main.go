@@ -148,8 +148,17 @@ func main() {
 	// Initialize message service (Phase 4)
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
 
+	// Initialize Turnstile service (optional — nil = skip bot validation)
+	var turnstileService *services.TurnstileService
+	if cfg.TurnstileSecretKey != "" {
+		turnstileService = services.NewTurnstileService(cfg.TurnstileSecretKey)
+		log.Println("Cloudflare Turnstile bot protection enabled")
+	} else {
+		log.Println("Turnstile not configured, bot validation disabled")
+	}
+
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret)
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret, turnstileService)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL, cfg.PayOSReturnBaseURL)
 	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo, walletService)

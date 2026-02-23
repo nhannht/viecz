@@ -207,7 +207,7 @@ func main() {
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
 
 	// 6. Handlers
-	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret)
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil) // nil = no Turnstile in test
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL) // serverURL used as payosReturnBaseURL for test
 	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)

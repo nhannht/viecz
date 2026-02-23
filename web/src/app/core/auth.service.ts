@@ -35,9 +35,13 @@ export class AuthService {
       .pipe(tap(res => this.storeAuth(res)));
   }
 
-  register(email: string, password: string, name: string) {
+  register(email: string, password: string, name: string, turnstileToken?: string) {
+    const body: Record<string, string> = { email, password, name };
+    if (turnstileToken) {
+      body['turnstile_token'] = turnstileToken;
+    }
     return this.http
-      .post<AuthResponse>('/api/v1/auth/register', { email, password, name })
+      .post<AuthResponse>('/api/v1/auth/register', body)
       .pipe(tap(res => this.storeAuth(res)));
   }
 

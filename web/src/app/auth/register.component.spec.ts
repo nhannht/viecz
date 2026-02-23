@@ -111,7 +111,7 @@ describe('RegisterComponent', () => {
     component.password = 'Password123';
     component.onRegister();
 
-    expect(authSpy.register).toHaveBeenCalledWith('new@example.com', 'Password123', 'New User');
+    expect(authSpy.register).toHaveBeenCalledWith('new@example.com', 'Password123', 'New User', undefined);
   });
 
   it('should navigate to / on successful registration', () => {
@@ -318,7 +318,7 @@ describe('RegisterComponent', () => {
     form.dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
-    expect(authSpy.register).toHaveBeenCalledWith('new@example.com', 'Password123', 'New User');
+    expect(authSpy.register).toHaveBeenCalledWith('new@example.com', 'Password123', 'New User', undefined);
     expect(router.navigate).toHaveBeenCalledWith(['/']);
   });
 
