@@ -43,6 +43,12 @@ type Config struct {
 	// Platform
 	PlatformFeeRate  float64 // e.g. 0.10 for 10%, 0 for beta
 	MaxWalletBalance int64   // max balance per wallet in VND (e.g. 200000)
+	// Rate Limiting
+	RateLimitEnabled       bool
+	RateLimitAuthPerMin    int // public auth endpoints (login/register), default 10
+	RateLimitAPIPerMin     int // authenticated write endpoints, default 30
+	RateLimitReadPerMin    int // read-heavy endpoints (tasks, notifications, chat), default 60
+	RateLimitFinancePerMin int // financial ops (escrow/release/refund), default 10
 }
 
 // Load reads configuration from environment variables
@@ -94,6 +100,29 @@ func Load() (*Config, error) {
 
 	// Cloudflare Turnstile (optional — empty = skip bot validation)
 	cfg.TurnstileSecretKey = os.Getenv("TURNSTILE_SECRET_KEY")
+
+	// Rate limiting (optional — disabled by default)
+	cfg.RateLimitEnabled = getEnv("RATE_LIMIT_ENABLED", "false") == "true"
+	rateLimitAuth, err := strconv.Atoi(getEnv("RATE_LIMIT_AUTH_PER_MIN", "10"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid RATE_LIMIT_AUTH_PER_MIN: %w", err)
+	}
+	cfg.RateLimitAuthPerMin = rateLimitAuth
+	rateLimitAPI, err := strconv.Atoi(getEnv("RATE_LIMIT_API_PER_MIN", "30"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid RATE_LIMIT_API_PER_MIN: %w", err)
+	}
+	cfg.RateLimitAPIPerMin = rateLimitAPI
+	rateLimitRead, err := strconv.Atoi(getEnv("RATE_LIMIT_READ_PER_MIN", "60"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid RATE_LIMIT_READ_PER_MIN: %w", err)
+	}
+	cfg.RateLimitReadPerMin = rateLimitRead
+	rateLimitFinance, err := strconv.Atoi(getEnv("RATE_LIMIT_FINANCE_PER_MIN", "10"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid RATE_LIMIT_FINANCE_PER_MIN: %w", err)
+	}
+	cfg.RateLimitFinancePerMin = rateLimitFinance
 
 	// Parse platform fee rate (default 0 for beta)
 	platformFeeRate, err := strconv.ParseFloat(getEnv("PLATFORM_FEE_RATE", "0"), 64)

@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"viecz.vieczserver/internal/auth"
@@ -196,14 +197,55 @@ func main() {
 	// Serve privacy policy
 	router.StaticFile("/privacy-policy", "./static/privacy-policy.html")
 
+	// --- Rate limit helpers ---
+	// When disabled, MaxRequests=0 makes the middleware a pass-through.
+	rlLimit := func(perMin int) int {
+		if !cfg.RateLimitEnabled {
+			return 0
+		}
+		return perMin
+	}
+	authRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitAuthPerMin), KeyFunc: middleware.IPKey,
+	})
+	publicReadRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitReadPerMin), KeyFunc: middleware.UserOrIPKey,
+	})
+	apiWriteRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitAPIPerMin), KeyFunc: middleware.UserKey,
+	})
+	walletRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitAPIPerMin), KeyFunc: middleware.UserKey,
+	})
+	financeRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitFinancePerMin), KeyFunc: middleware.UserKey,
+	})
+	highFreqRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitReadPerMin), KeyFunc: middleware.UserKey,
+	})
+	profileRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitAPIPerMin), KeyFunc: middleware.UserKey,
+	})
+	categoryRL := middleware.RateLimit(middleware.RateLimitConfig{
+		Window: time.Minute, MaxRequests: rlLimit(cfg.RateLimitAPIPerMin), KeyFunc: middleware.IPKey,
+	})
+
+	if cfg.RateLimitEnabled {
+		log.Printf("Rate limiting enabled: auth=%d/min, api=%d/min, read=%d/min, finance=%d/min",
+			cfg.RateLimitAuthPerMin, cfg.RateLimitAPIPerMin, cfg.RateLimitReadPerMin, cfg.RateLimitFinancePerMin)
+	} else {
+		log.Println("Rate limiting disabled")
+	}
+
 	// API routes
 	api := router.Group("/api/v1")
 	{
 		// Health check
 		api.GET("/health", paymentHandler.Health)
 
-		// Auth routes (public)
+		// Auth routes (public) — IP-based rate limit
 		authRoutes := api.Group("/auth")
+		authRoutes.Use(authRL)
 		{
 			authRoutes.POST("/register", authHandler.Register)
 			authRoutes.POST("/login", authHandler.Login)
@@ -214,12 +256,12 @@ func main() {
 
 		// Auth routes (authenticated)
 		authProtected := api.Group("/auth")
-		authProtected.Use(auth.AuthRequired(cfg.JWTSecret))
+		authProtected.Use(auth.AuthRequired(cfg.JWTSecret), profileRL)
 		{
 			authProtected.POST("/resend-verification", authHandler.ResendVerification)
 		}
 
-		// Payment routes — public (PayOS callback + browser redirect)
+		// Payment routes — public (PayOS callback + browser redirect) — NO rate limit
 		payment := api.Group("/payment")
 		{
 			payment.GET("/return", returnHandler.HandleReturn)
@@ -227,24 +269,32 @@ func main() {
 		}
 		// Payment routes — protected (requires auth)
 		paymentProtected := api.Group("/payment")
-		paymentProtected.Use(auth.AuthRequired(cfg.JWTSecret))
+		paymentProtected.Use(auth.AuthRequired(cfg.JWTSecret), financeRL)
 		{
 			paymentProtected.POST("/create", paymentHandler.CreatePayment)
 			paymentProtected.POST("/confirm-webhook", webhookHandler.ConfirmWebhook)
 		}
 
 		// Category routes (public)
-		api.GET("/categories", categoryHandler.GetCategories)
+		categoriesGroup := api.Group("")
+		categoriesGroup.Use(categoryRL)
+		{
+			categoriesGroup.GET("/categories", categoryHandler.GetCategories)
+		}
 
 		// User routes
 		users := api.Group("/users")
 		{
 			// Public routes
-			users.GET("/:id", userHandler.GetProfile)
+			publicUsers := users.Group("")
+			publicUsers.Use(publicReadRL)
+			{
+				publicUsers.GET("/:id", userHandler.GetProfile)
+			}
 
 			// Protected routes
 			protected := users.Group("")
-			protected.Use(auth.AuthRequired(cfg.JWTSecret))
+			protected.Use(auth.AuthRequired(cfg.JWTSecret), profileRL)
 			{
 				protected.GET("/me", userHandler.GetMyProfile)
 				protected.PUT("/me", userHandler.UpdateProfile)
@@ -255,7 +305,7 @@ func main() {
 
 		// Task routes — public (read-only, optional auth for user context)
 		publicTasks := api.Group("/tasks")
-		publicTasks.Use(auth.OptionalAuth(cfg.JWTSecret))
+		publicTasks.Use(auth.OptionalAuth(cfg.JWTSecret), publicReadRL)
 		{
 			publicTasks.GET("", taskHandler.ListTasks)
 			publicTasks.GET("/:id", taskHandler.GetTask)
@@ -263,7 +313,7 @@ func main() {
 
 		// Task routes — protected (write operations, email verified required)
 		tasks := api.Group("/tasks")
-		tasks.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
+		tasks.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), apiWriteRL)
 		{
 			tasks.POST("", taskHandler.CreateTask)
 			tasks.PUT("/:id", taskHandler.UpdateTask)
@@ -275,14 +325,14 @@ func main() {
 
 		// Application routes (protected, email verified required)
 		applications := api.Group("/applications")
-		applications.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
+		applications.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), apiWriteRL)
 		{
 			applications.POST("/:id/accept", taskHandler.AcceptApplication)
 		}
 
 		// Wallet routes (protected) - Phase 3
 		wallet := api.Group("/wallet")
-		wallet.Use(auth.AuthRequired(cfg.JWTSecret))
+		wallet.Use(auth.AuthRequired(cfg.JWTSecret), walletRL)
 		{
 			wallet.GET("", walletHandler.GetWallet)
 			wallet.POST("/deposit", walletHandler.Deposit)
@@ -291,7 +341,7 @@ func main() {
 
 		// Payment routes (protected, email verified required) - Phase 3
 		payments := api.Group("/payments")
-		payments.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
+		payments.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), financeRL)
 		{
 			payments.POST("/escrow", paymentHandler.CreateEscrowPayment)
 			payments.POST("/release", paymentHandler.ReleasePayment)
@@ -300,7 +350,7 @@ func main() {
 
 		// Notification routes (protected)
 		notifications := api.Group("/notifications")
-		notifications.Use(auth.AuthRequired(cfg.JWTSecret))
+		notifications.Use(auth.AuthRequired(cfg.JWTSecret), highFreqRL)
 		{
 			notifications.GET("", notificationHandler.GetNotifications)
 			notifications.GET("/unread-count", notificationHandler.GetUnreadCount)
@@ -309,12 +359,12 @@ func main() {
 			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
 		}
 
-		// WebSocket route (protected via query param) - Phase 4
+		// WebSocket route (protected via query param) - Phase 4 — NO rate limit
 		api.GET("/ws", websocketHandler.HandleWebSocket)
 
 		// Conversation/Message routes (protected, email verified required)
 		conversations := api.Group("/conversations")
-		conversations.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
+		conversations.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), highFreqRL)
 		{
 			conversations.GET("", messageHandler.GetConversations)
 			conversations.POST("", messageHandler.CreateConversation)
