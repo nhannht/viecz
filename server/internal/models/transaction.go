@@ -42,6 +42,7 @@ type Transaction struct {
 	Status          TransactionStatus `gorm:"type:varchar(20);not null;default:'pending';index" json:"status"`
 	PayOSOrderCode  *int64            `gorm:"unique" json:"payos_order_code,omitempty"`
 	PayOSPaymentID  *string           `gorm:"type:text" json:"payos_payment_id,omitempty"`
+	PayOSPayoutID   *string           `gorm:"type:text" json:"payos_payout_id,omitempty"`
 	Description     string            `gorm:"type:text" json:"description"`
 	FailureReason   *string           `gorm:"type:text" json:"failure_reason,omitempty"`
 	CompletedAt     *time.Time        `json:"completed_at,omitempty"`

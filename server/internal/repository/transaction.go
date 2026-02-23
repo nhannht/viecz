@@ -17,6 +17,7 @@ type TransactionRepository interface {
 	GetByOrderCode(ctx context.Context, orderCode int64) (*models.Transaction, error)
 	Update(ctx context.Context, transaction *models.Transaction) error
 	UpdateStatus(ctx context.Context, id int64, status models.TransactionStatus) error
+	GetPendingPayouts(ctx context.Context) ([]*models.Transaction, error)
 	// Transaction-aware methods (pass tx from outer transaction, nil = use default db)
 	CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.Transaction) error
 	GetByTaskIDWithTx(ctx context.Context, tx *gorm.DB, taskID int64) ([]*models.Transaction, error)

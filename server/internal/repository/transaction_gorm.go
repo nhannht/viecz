@@ -117,6 +117,17 @@ func (r *transactionGormRepository) UpdateStatus(ctx context.Context, id int64, 
 	return nil
 }
 
+func (r *transactionGormRepository) GetPendingPayouts(ctx context.Context) ([]*models.Transaction, error) {
+	var transactions []*models.Transaction
+	if err := r.db.WithContext(ctx).
+		Where("type = ? AND status = ? AND pay_os_payout_id IS NOT NULL", models.TransactionTypeWithdrawal, models.TransactionStatusPending).
+		Order("created_at ASC").
+		Find(&transactions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get pending payouts: %w", err)
+	}
+	return transactions, nil
+}
+
 func (r *transactionGormRepository) CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.Transaction) error {
 	db := tx
 	if db == nil {
