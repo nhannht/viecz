@@ -279,7 +279,8 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 		if s.notificationService != nil && task.TaskerID != nil {
 			if err := s.notificationService.CreateNotification(ctx, *task.TaskerID,
 				models.NotificationTypePaymentReceived, "Payment Received",
-				fmt.Sprintf("You received payment for task '%s'", task.Title), &taskID); err != nil {
+				fmt.Sprintf("You received payment for task '%s'", task.Title), &taskID,
+				models.StringMap{"taskTitle": task.Title}); err != nil {
 				log.Printf("[PaymentService] failed to send payment_received notification: %v", err)
 			}
 		}
@@ -288,13 +289,15 @@ func (s *PaymentService) ReleasePayment(ctx context.Context, taskID, requesterID
 		if s.notificationService != nil {
 			if err := s.notificationService.CreateNotification(ctx, task.RequesterID,
 				models.NotificationTypeTaskCompleted, "Task Completed",
-				fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID); err != nil {
+				fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID,
+				models.StringMap{"taskTitle": task.Title}); err != nil {
 				log.Printf("[PaymentService] failed to send task_completed notification to requester: %v", err)
 			}
 			if task.TaskerID != nil {
 				if err := s.notificationService.CreateNotification(ctx, *task.TaskerID,
 					models.NotificationTypeTaskCompleted, "Task Completed",
-					fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID); err != nil {
+					fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID,
+					models.StringMap{"taskTitle": task.Title}); err != nil {
 					log.Printf("[PaymentService] failed to send task_completed notification to tasker: %v", err)
 				}
 			}

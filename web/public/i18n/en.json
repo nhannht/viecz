@@ -256,6 +256,36 @@
     "noNotifications": "No notifications yet",
     "noNotificationsHint": "You'll be notified about task updates"
   },
+  "notificationContent": {
+    "task_created": {
+      "title": "Task Posted",
+      "message": "Your task '{{taskTitle}}' has been posted"
+    },
+    "application_received": {
+      "title": "New Application",
+      "message": "Someone applied to your task '{{taskTitle}}'"
+    },
+    "application_sent": {
+      "title": "Application Sent",
+      "message": "You applied for '{{taskTitle}}'"
+    },
+    "application_accepted": {
+      "title": "Application Accepted",
+      "message": "Your application for '{{taskTitle}}' was accepted"
+    },
+    "task_completed": {
+      "title": "Task Completed",
+      "message": "Task '{{taskTitle}}' has been completed"
+    },
+    "payment_received": {
+      "title": "Payment Received",
+      "message": "You received payment for task '{{taskTitle}}'"
+    },
+    "task_cancelled": {
+      "title": "Task Cancelled",
+      "message": "Task '{{taskTitle}}' has been cancelled by the creator"
+    }
+  },
   "payment": {
     "successTitle": "PAYMENT SUCCESSFUL",
     "successMessage": "Your deposit has been processed. Funds will appear in your wallet shortly.",

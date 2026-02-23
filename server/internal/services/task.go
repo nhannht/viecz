@@ -130,7 +130,8 @@ func (s *TaskService) CreateTask(ctx context.Context, requesterID int64, input *
 	if s.notificationService != nil {
 		if err := s.notificationService.CreateNotification(ctx, requesterID,
 			models.NotificationTypeTaskCreated, "Task Posted",
-			fmt.Sprintf("Your task '%s' has been posted", task.Title), &task.ID); err != nil {
+			fmt.Sprintf("Your task '%s' has been posted", task.Title), &task.ID,
+			models.StringMap{"taskTitle": task.Title}); err != nil {
 			log.Printf("[TaskService] failed to send task_created notification: %v", err)
 		}
 	}
@@ -295,7 +296,8 @@ func (s *TaskService) DeleteTask(ctx context.Context, taskID, requesterID int64)
 		for _, app := range pendingApps {
 			if notifyErr := s.notificationService.CreateNotification(ctx, app.TaskerID,
 				models.NotificationTypeTaskCancelled, "Task Cancelled",
-				fmt.Sprintf("Task '%s' has been cancelled by the creator", task.Title), &taskID); notifyErr != nil {
+				fmt.Sprintf("Task '%s' has been cancelled by the creator", task.Title), &taskID,
+				models.StringMap{"taskTitle": task.Title}); notifyErr != nil {
 				log.Printf("[TaskService] failed to send task_cancelled notification to user %d: %v", app.TaskerID, notifyErr)
 			}
 		}
@@ -357,7 +359,8 @@ func (s *TaskService) deleteTaskSimple(ctx context.Context, taskID, requesterID 
 		for _, app := range pendingApps {
 			if err := s.notificationService.CreateNotification(ctx, app.TaskerID,
 				models.NotificationTypeTaskCancelled, "Task Cancelled",
-				fmt.Sprintf("Task '%s' has been cancelled by the creator", task.Title), &taskID); err != nil {
+				fmt.Sprintf("Task '%s' has been cancelled by the creator", task.Title), &taskID,
+				models.StringMap{"taskTitle": task.Title}); err != nil {
 				log.Printf("[TaskService] failed to send task_cancelled notification to user %d: %v", app.TaskerID, err)
 			}
 		}
@@ -487,13 +490,15 @@ func (s *TaskService) ApplyForTask(ctx context.Context, taskID, taskerID int64, 
 	if s.notificationService != nil {
 		if err := s.notificationService.CreateNotification(ctx, task.RequesterID,
 			models.NotificationTypeApplicationReceived, "New Application",
-			fmt.Sprintf("Someone applied to your task '%s'", task.Title), &taskID); err != nil {
+			fmt.Sprintf("Someone applied to your task '%s'", task.Title), &taskID,
+			models.StringMap{"taskTitle": task.Title}); err != nil {
 			log.Printf("[TaskService] failed to send application_received notification: %v", err)
 		}
 
 		if err := s.notificationService.CreateNotification(ctx, taskerID,
 			models.NotificationTypeApplicationSent, "Application Sent",
-			fmt.Sprintf("You applied for '%s'", task.Title), &taskID); err != nil {
+			fmt.Sprintf("You applied for '%s'", task.Title), &taskID,
+			models.StringMap{"taskTitle": task.Title}); err != nil {
 			log.Printf("[TaskService] failed to send application_sent notification: %v", err)
 		}
 	}
@@ -556,7 +561,8 @@ func (s *TaskService) AcceptApplication(ctx context.Context, applicationID, requ
 	if s.notificationService != nil {
 		if err := s.notificationService.CreateNotification(ctx, app.TaskerID,
 			models.NotificationTypeApplicationAccepted, "Application Accepted",
-			fmt.Sprintf("Your application for '%s' was accepted", task.Title), &task.ID); err != nil {
+			fmt.Sprintf("Your application for '%s' was accepted", task.Title), &task.ID,
+			models.StringMap{"taskTitle": task.Title}); err != nil {
 			log.Printf("[TaskService] failed to send application_accepted notification: %v", err)
 		}
 	}
@@ -605,14 +611,16 @@ func (s *TaskService) CompleteTask(ctx context.Context, taskID, requesterID int6
 	if s.notificationService != nil {
 		if err := s.notificationService.CreateNotification(ctx, requesterID,
 			models.NotificationTypeTaskCompleted, "Task Completed",
-			fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID); err != nil {
+			fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID,
+			models.StringMap{"taskTitle": task.Title}); err != nil {
 			log.Printf("[TaskService] failed to send task_completed notification to requester: %v", err)
 		}
 
 		if task.TaskerID != nil {
 			if err := s.notificationService.CreateNotification(ctx, *task.TaskerID,
 				models.NotificationTypeTaskCompleted, "Task Completed",
-				fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID); err != nil {
+				fmt.Sprintf("Task '%s' has been completed", task.Title), &taskID,
+				models.StringMap{"taskTitle": task.Title}); err != nil {
 				log.Printf("[TaskService] failed to send task_completed notification to tasker: %v", err)
 			}
 		}

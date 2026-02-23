@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { TranslocoDirective } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroMenuComponent } from '../shared/components/nhannht-metro-menu.component';
 import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
@@ -11,6 +11,8 @@ import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
 import { LanguageService } from '../core/language.service';
+import { Notification } from '../core/models';
+import { resolveNotification } from '../core/notification-i18n';
 
 @Component({
   selector: 'app-shell',
@@ -76,8 +78,8 @@ import { LanguageService } from '../core/language.service';
               }
               @for (n of notifications(); track n.id) {
                 <div class="nhannht-metro-menu-item flex flex-col items-start gap-0.5">
-                  <span class="font-body text-[13px] font-bold">{{ n.title }}</span>
-                  <span class="font-body text-[11px] text-muted">{{ n.message }}</span>
+                  <span class="font-body text-[13px] font-bold">{{ resolveTitle(n) }}</span>
+                  <span class="font-body text-[11px] text-muted">{{ resolveMessage(n) }}</span>
                 </div>
               }
               <nhannht-metro-divider />
@@ -161,11 +163,12 @@ export class ShellComponent implements OnInit, OnDestroy {
   lang = inject(LanguageService);
   snackbarService = inject(NhannhtMetroSnackbarService);
   private notifService = inject(NotificationService);
+  private transloco = inject(TranslocoService);
   private wsService = inject(WebSocketService);
   private wsSub?: Subscription;
 
   unreadCount = signal(0);
-  notifications = signal<{ id: number; title: string; message: string }[]>([]);
+  notifications = signal<Notification[]>([]);
   notifMenuOpen = signal(false);
   userMenuOpen = signal(false);
   resendingEmail = signal(false);
@@ -213,6 +216,14 @@ export class ShellComponent implements OnInit, OnDestroy {
         this.snackbarService.show(err.error?.error || 'Failed to send verification email');
       },
     });
+  }
+
+  resolveTitle(n: Notification): string {
+    return resolveNotification(this.transloco, n).title;
+  }
+
+  resolveMessage(n: Notification): string {
+    return resolveNotification(this.transloco, n).message;
   }
 
   loadNotifications() {

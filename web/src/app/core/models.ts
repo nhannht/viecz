@@ -154,6 +154,7 @@ export interface Notification {
   type: string;
   title: string;
   message: string;
+  params?: Record<string, string>;
   task_id?: number;
   is_read: boolean;
   created_at: string;

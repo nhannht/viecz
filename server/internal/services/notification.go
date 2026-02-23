@@ -27,13 +27,15 @@ func NewNotificationService(
 	}
 }
 
-// CreateNotification creates a notification, saves it to DB, and sends via WebSocket if user is online
-func (s *NotificationService) CreateNotification(ctx context.Context, userID int64, notifType models.NotificationType, title, message string, taskID *int64) error {
+// CreateNotification creates a notification, saves it to DB, and sends via WebSocket if user is online.
+// params stores translation interpolation values (e.g. {"taskTitle": "Fix bug"}) for client-side i18n.
+func (s *NotificationService) CreateNotification(ctx context.Context, userID int64, notifType models.NotificationType, title, message string, taskID *int64, params models.StringMap) error {
 	notification := &models.Notification{
 		UserID:  userID,
 		Type:    notifType,
 		Title:   title,
 		Message: message,
+		Params:  params,
 		TaskID:  taskID,
 	}
 

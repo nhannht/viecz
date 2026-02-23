@@ -256,6 +256,36 @@
     "noNotifications": "Chưa có thông báo",
     "noNotificationsHint": "Bạn sẽ được thông báo về cập nhật công việc"
   },
+  "notificationContent": {
+    "task_created": {
+      "title": "Đã đăng việc",
+      "message": "Việc '{{taskTitle}}' của bạn đã được đăng"
+    },
+    "application_received": {
+      "title": "Đơn ứng tuyển mới",
+      "message": "Có người ứng tuyển việc '{{taskTitle}}' của bạn"
+    },
+    "application_sent": {
+      "title": "Đã gửi đơn ứng tuyển",
+      "message": "Bạn đã ứng tuyển việc '{{taskTitle}}'"
+    },
+    "application_accepted": {
+      "title": "Đơn ứng tuyển được chấp nhận",
+      "message": "Đơn ứng tuyển việc '{{taskTitle}}' của bạn đã được chấp nhận"
+    },
+    "task_completed": {
+      "title": "Hoàn thành việc",
+      "message": "Việc '{{taskTitle}}' đã hoàn thành"
+    },
+    "payment_received": {
+      "title": "Nhận thanh toán",
+      "message": "Bạn đã nhận thanh toán cho việc '{{taskTitle}}'"
+    },
+    "task_cancelled": {
+      "title": "Việc đã bị hủy",
+      "message": "Việc '{{taskTitle}}' đã bị người đăng hủy"
+    }
+  },
   "payment": {
     "successTitle": "THANH TOÁN THÀNH CÔNG",
     "successMessage": "Đã xử lý nạp tiền. Số tiền sẽ xuất hiện trong ví sớm.",

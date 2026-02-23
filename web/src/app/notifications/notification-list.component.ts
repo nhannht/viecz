@@ -1,12 +1,13 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { TranslocoDirective } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { NotificationService } from '../core/notification.service';
 import { Notification } from '../core/models';
+import { resolveNotification } from '../core/notification-i18n';
 import { TimeAgoPipe } from '../core/pipes';
 import { EmptyStateComponent } from '../shared/components/empty-state.component';
 import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
@@ -58,8 +59,8 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
                 <nhannht-metro-icon [name]="getTypeIcon(n.type)" [size]="20" />
                 <div class="flex-1 flex flex-col gap-0.5">
                   <span class="notif-title font-body text-[13px] text-fg"
-                        [class.font-bold]="!n.is_read">{{ n.title }}</span>
-                  <span class="font-body text-[12px] text-muted">{{ n.message }}</span>
+                        [class.font-bold]="!n.is_read">{{ resolveTitle(n) }}</span>
+                  <span class="font-body text-[12px] text-muted">{{ resolveMessage(n) }}</span>
                   <span class="font-body text-[11px] text-muted">{{ n.created_at | timeAgo }}</span>
                 </div>
                 <button class="delete-btn bg-transparent border-none cursor-pointer text-muted
@@ -86,6 +87,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 })
 export class NotificationListComponent implements OnInit {
   private notifService = inject(NotificationService);
+  private transloco = inject(TranslocoService);
   private router = inject(Router);
 
   notifications = signal<Notification[]>([]);
@@ -162,6 +164,14 @@ export class NotificationListComponent implements OnInit {
         this.total.update(t => t - 1);
       },
     });
+  }
+
+  resolveTitle(n: Notification): string {
+    return resolveNotification(this.transloco, n).title;
+  }
+
+  resolveMessage(n: Notification): string {
+    return resolveNotification(this.transloco, n).message;
   }
 
   getTypeIcon(type: string): string {

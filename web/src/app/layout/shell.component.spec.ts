@@ -9,7 +9,13 @@ import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
 import { LanguageService } from '../core/language.service';
+import { Notification } from '../core/models';
 import { provideTranslocoForTesting } from '../core/transloco-testing';
+
+/** Build a minimal Notification for tests — only id/title/message vary. */
+function testNotif(overrides: Partial<Notification> & { id: number; title: string; message: string }): Notification {
+  return { user_id: 1, type: 'task_created', is_read: false, created_at: new Date().toISOString(), ...overrides };
+}
 
 describe('ShellComponent', () => {
   let component: ShellComponent;
@@ -31,7 +37,7 @@ describe('ShellComponent', () => {
       list: vi.fn().mockReturnValue(
         of({
           notifications: [
-            { id: 1, title: 'Test', message: 'Test notification' },
+            testNotif({ id: 1, title: 'Test', message: 'Test notification' }),
           ],
           total: 1,
         }),
@@ -199,8 +205,8 @@ describe('ShellComponent', () => {
   it('should show notification items in notif menu', () => {
     component.notifMenuOpen.set(true);
     component.notifications.set([
-      { id: 1, title: 'Hello', message: 'World' },
-      { id: 2, title: 'Test', message: 'Msg' },
+      testNotif({ id: 1, title: 'Hello', message: 'World' }),
+      testNotif({ id: 2, title: 'Test', message: 'Msg' }),
     ]);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
@@ -311,9 +317,9 @@ describe('ShellComponent', () => {
   it('should render notification items in @for loop', () => {
     component.notifMenuOpen.set(true);
     component.notifications.set([
-      { id: 1, title: 'Notif 1', message: 'Msg 1' },
-      { id: 2, title: 'Notif 2', message: 'Msg 2' },
-      { id: 3, title: 'Notif 3', message: 'Msg 3' },
+      testNotif({ id: 1, title: 'Notif 1', message: 'Msg 1' }),
+      testNotif({ id: 2, title: 'Notif 2', message: 'Msg 2' }),
+      testNotif({ id: 3, title: 'Notif 3', message: 'Msg 3' }),
     ]);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
@@ -356,14 +362,14 @@ describe('ShellComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No notifications');
 
     // Destroy empty block, create @for block
-    component.notifications.set([{ id: 1, title: 'A', message: 'B' }]);
+    component.notifications.set([testNotif({ id: 1, title: 'A', message: 'B' })]);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('A');
   });
 
   it('should toggle notifications from populated to empty (destroys @for block)', () => {
     component.notifMenuOpen.set(true);
-    component.notifications.set([{ id: 1, title: 'A', message: 'B' }]);
+    component.notifications.set([testNotif({ id: 1, title: 'A', message: 'B' })]);
     fixture.detectChanges();
 
     // Destroy @for block, create empty block
@@ -396,7 +402,7 @@ describe('ShellComponent', () => {
 
   it('should toggle notifMenu from open with items to closed (destroys @for and empty blocks)', () => {
     component.notifMenuOpen.set(true);
-    component.notifications.set([{ id: 1, title: 'X', message: 'Y' }]);
+    component.notifications.set([testNotif({ id: 1, title: 'X', message: 'Y' })]);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('X');
 
@@ -434,7 +440,7 @@ describe('ShellComponent', () => {
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain('No notifications');
 
-      component.notifications.set([{ id: 1, title: 'N1', message: 'M1' }]);
+      component.notifications.set([testNotif({ id: 1, title: 'N1', message: 'M1' })]);
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain('N1');
 
@@ -442,7 +448,7 @@ describe('ShellComponent', () => {
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain('No notifications');
 
-      component.notifications.set([{ id: 2, title: 'N2', message: 'M2' }]);
+      component.notifications.set([testNotif({ id: 2, title: 'N2', message: 'M2' })]);
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain('N2');
     });
