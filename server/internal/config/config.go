@@ -16,6 +16,10 @@ type Config struct {
 	PayOSClientID    string
 	PayOSAPIKey      string
 	PayOSChecksumKey string
+	// PayOS Payout channel (separate API keys for disbursements)
+	PayOSPayoutClientID    string
+	PayOSPayoutAPIKey      string
+	PayOSPayoutChecksumKey string
 	ClientURL        string
 	// Database
 	DBHost     string
@@ -41,8 +45,10 @@ type Config struct {
 	// Cloudflare Turnstile (optional — empty = skip bot validation)
 	TurnstileSecretKey string
 	// Platform
-	PlatformFeeRate  float64 // e.g. 0.10 for 10%, 0 for beta
-	MaxWalletBalance int64   // max balance per wallet in VND (e.g. 200000)
+	PlatformFeeRate    float64 // e.g. 0.10 for 10%, 0 for beta
+	MaxWalletBalance   int64   // max balance per wallet in VND (e.g. 200000)
+	MinWithdrawalAmount int64  // min withdrawal amount in VND (default 10000)
+	MaxWithdrawalAmount int64  // max withdrawal amount in VND (default 200000)
 	// Rate Limiting
 	RateLimitEnabled       bool
 	RateLimitAuthPerMin    int // public auth endpoints (login/register), default 10
@@ -67,7 +73,10 @@ func Load() (*Config, error) {
 		PayOSReturnBaseURL: getEnv("PAYOS_RETURN_BASE_URL", "http://localhost:8080"),
 		PayOSClientID:    os.Getenv("PAYOS_CLIENT_ID"),
 		PayOSAPIKey:      os.Getenv("PAYOS_API_KEY"),
-		PayOSChecksumKey: os.Getenv("PAYOS_CHECKSUM_KEY"),
+		PayOSChecksumKey:       os.Getenv("PAYOS_CHECKSUM_KEY"),
+		PayOSPayoutClientID:    os.Getenv("PAYOS_PAYOUT_CLIENT_ID"),
+		PayOSPayoutAPIKey:      os.Getenv("PAYOS_PAYOUT_API_KEY"),
+		PayOSPayoutChecksumKey: os.Getenv("PAYOS_PAYOUT_CHECKSUM_KEY"),
 		ClientURL:        getEnv("CLIENT_URL", "http://localhost:8081"),
 		// Database
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -137,6 +146,19 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid MAX_WALLET_BALANCE: %w", err)
 	}
 	cfg.MaxWalletBalance = maxWalletBalance
+
+	// Parse withdrawal limits
+	minWithdrawal, err := strconv.ParseInt(getEnv("MIN_WITHDRAWAL_AMOUNT", "10000"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MIN_WITHDRAWAL_AMOUNT: %w", err)
+	}
+	cfg.MinWithdrawalAmount = minWithdrawal
+
+	maxWithdrawal, err := strconv.ParseInt(getEnv("MAX_WITHDRAWAL_AMOUNT", "200000"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MAX_WITHDRAWAL_AMOUNT: %w", err)
+	}
+	cfg.MaxWithdrawalAmount = maxWithdrawal
 
 	// Validate required fields (PayOS only required for payment features)
 	// Database and JWT are always required

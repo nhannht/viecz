@@ -122,11 +122,14 @@ func main() {
 		searchService = &services.NoOpSearchService{}
 	}
 
-	// Initialize PayOS service
+	// Initialize PayOS service (deposit + payout channels)
 	payosService, err := services.NewPayOSService(
 		cfg.PayOSClientID,
 		cfg.PayOSAPIKey,
 		cfg.PayOSChecksumKey,
+		cfg.PayOSPayoutClientID,
+		cfg.PayOSPayoutAPIKey,
+		cfg.PayOSPayoutChecksumKey,
 	)
 	if err != nil {
 		log.Fatalf("Failed to initialize PayOS service: %v", err)
@@ -158,6 +161,9 @@ func main() {
 		log.Println("Turnstile not configured, bot validation disabled")
 	}
 
+	// Initialize GORM repositories (bank accounts)
+	bankAccountRepo := repository.NewBankAccountGormRepository(db)
+
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret, turnstileService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -167,7 +173,8 @@ func main() {
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
-	walletHandler := handlers.NewWalletHandler(walletService, payosService, transactionRepo, taskRepo, cfg.PayOSReturnBaseURL)
+	walletHandler := handlers.NewWalletHandlerWithWithdrawal(walletService, payosService, transactionRepo, taskRepo, bankAccountRepo, cfg.PayOSReturnBaseURL, cfg.MinWithdrawalAmount, cfg.MaxWithdrawalAmount)
+	bankAccountHandler := handlers.NewBankAccountHandler(bankAccountRepo)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, cfg.JWTSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
 	uploadHandler := handlers.NewUploadHandler("./uploads", userService)
@@ -286,6 +293,14 @@ func main() {
 			categoriesGroup.GET("/categories", categoryHandler.GetCategories)
 		}
 
+		// Bank list route (public, cached from VietQR)
+		bankListHandler := handlers.NewBankListHandler()
+		bankListGroup := api.Group("")
+		bankListGroup.Use(categoryRL)
+		{
+			bankListGroup.GET("/banks", bankListHandler.GetBanks)
+		}
+
 		// User routes
 		users := api.Group("/users")
 		{
@@ -341,6 +356,10 @@ func main() {
 			wallet.GET("", walletHandler.GetWallet)
 			wallet.POST("/deposit", walletHandler.Deposit)
 			wallet.GET("/transactions", walletHandler.GetTransactionHistory)
+			wallet.GET("/bank-accounts", bankAccountHandler.ListBankAccounts)
+			wallet.POST("/bank-accounts", bankAccountHandler.AddBankAccount)
+			wallet.DELETE("/bank-accounts/:id", bankAccountHandler.DeleteBankAccount)
+			wallet.POST("/withdraw", financeRL, walletHandler.HandleWithdrawal)
 		}
 
 		// Payment routes (protected, email verified required) - Phase 3
@@ -376,6 +395,11 @@ func main() {
 			conversations.GET("/:id/messages", messageHandler.GetConversationMessages)
 		}
 	}
+
+	// Start payout status poller (checks pending PayOS payouts every 30s)
+	payoutPoller := services.NewPayoutPoller(transactionRepo, walletService, payosService, db, 30*time.Second)
+	payoutPoller.Start()
+	defer payoutPoller.Stop()
 
 	// Start server
 	addr := ":" + cfg.Port

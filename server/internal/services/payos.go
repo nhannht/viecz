@@ -7,6 +7,20 @@ import (
 	"github.com/payOSHQ/payos-lib-golang/v2"
 )
 
+// PayoutResponse represents the response from creating a payout
+type PayoutResponse struct {
+	ID            string
+	ReferenceID   string
+	ApprovalState string
+}
+
+// PayoutStatusResponse represents the response from checking payout status
+type PayoutStatusResponse struct {
+	ID           string
+	State        string
+	ErrorMessage string
+}
+
 // PayOSServicer defines the interface for PayOS operations used by handlers.
 // Methods returning SDK-specific types (GetPaymentInfo, CancelPaymentLink)
 // stay on the concrete struct only.
@@ -14,14 +28,19 @@ type PayOSServicer interface {
 	CreatePaymentLink(ctx context.Context, orderCode int64, amount int, description, returnURL, cancelURL string) (*PaymentLinkResponse, error)
 	VerifyWebhookData(ctx context.Context, webhookData map[string]interface{}) (map[string]interface{}, error)
 	ConfirmWebhook(ctx context.Context, webhookURL string) (string, error)
+	CreatePayout(ctx context.Context, referenceID string, amount int, description, toBin, toAccountNumber string) (*PayoutResponse, error)
+	GetPayout(ctx context.Context, payoutID string) (*PayoutStatusResponse, error)
 }
 
 // Verify interface compliance
 var _ PayOSServicer = (*PayOSService)(nil)
 
-// PayOSService wraps the PayOS SDK client
+// PayOSService wraps the PayOS SDK clients.
+// client is used for deposits (payment links, webhooks).
+// payoutClient is used for disbursements (payouts).
 type PayOSService struct {
-	client *payos.PayOS
+	client       *payos.PayOS // deposit channel
+	payoutClient *payos.PayOS // payout channel (nil if not configured)
 }
 
 // PaymentLinkResponse represents the response from creating a payment link
@@ -36,20 +55,36 @@ type PaymentLinkResponse struct {
 	AccountName     string
 }
 
-// NewPayOSService creates a new PayOS service instance
-func NewPayOSService(clientID, apiKey, checksumKey string) (*PayOSService, error) {
+// NewPayOSService creates a new PayOS service instance with separate deposit and payout clients.
+// payoutClientID/payoutAPIKey/payoutChecksumKey are optional — if empty, payout methods return an error.
+func NewPayOSService(clientID, apiKey, checksumKey, payoutClientID, payoutAPIKey, payoutChecksumKey string) (*PayOSService, error) {
 	client, err := payos.NewPayOS(&payos.PayOSOptions{
 		ClientId:    clientID,
 		ApiKey:      apiKey,
 		ChecksumKey: checksumKey,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize PayOS client: %w", err)
+		return nil, fmt.Errorf("failed to initialize PayOS deposit client: %w", err)
 	}
 
-	return &PayOSService{
+	svc := &PayOSService{
 		client: client,
-	}, nil
+	}
+
+	// Initialize payout client only if credentials are provided
+	if payoutClientID != "" && payoutAPIKey != "" && payoutChecksumKey != "" {
+		payoutClient, err := payos.NewPayOS(&payos.PayOSOptions{
+			ClientId:    payoutClientID,
+			ApiKey:      payoutAPIKey,
+			ChecksumKey: payoutChecksumKey,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize PayOS payout client: %w", err)
+		}
+		svc.payoutClient = payoutClient
+	}
+
+	return svc, nil
 }
 
 // CreatePaymentLink creates a payment link with PayOS
@@ -108,6 +143,60 @@ func (s *PayOSService) ConfirmWebhook(ctx context.Context, webhookURL string) (s
 		return "", fmt.Errorf("failed to confirm webhook URL: %w", err)
 	}
 	return confirmedURL, nil
+}
+
+// CreatePayout creates a payout via PayOS using the dedicated payout client
+func (s *PayOSService) CreatePayout(ctx context.Context, referenceID string, amount int, description, toBin, toAccountNumber string) (*PayoutResponse, error) {
+	if s.payoutClient == nil || s.payoutClient.Payouts == nil {
+		return nil, fmt.Errorf("PayOS payout client not configured (set PAYOS_PAYOUT_CLIENT_ID, PAYOS_PAYOUT_API_KEY, PAYOS_PAYOUT_CHECKSUM_KEY)")
+	}
+
+	request := payos.PayoutRequest{
+		ReferenceId:     referenceID,
+		Amount:          amount,
+		Description:     description,
+		ToBin:           toBin,
+		ToAccountNumber: toAccountNumber,
+	}
+
+	result, err := s.payoutClient.Payouts.Create(ctx, request, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create payout: %w", err)
+	}
+
+	return &PayoutResponse{
+		ID:            result.Id,
+		ReferenceID:   result.ReferenceId,
+		ApprovalState: string(result.ApprovalState),
+	}, nil
+}
+
+// GetPayout retrieves payout status from PayOS using the dedicated payout client
+func (s *PayOSService) GetPayout(ctx context.Context, payoutID string) (*PayoutStatusResponse, error) {
+	if s.payoutClient == nil || s.payoutClient.Payouts == nil {
+		return nil, fmt.Errorf("PayOS payout client not configured (set PAYOS_PAYOUT_CLIENT_ID, PAYOS_PAYOUT_API_KEY, PAYOS_PAYOUT_CHECKSUM_KEY)")
+	}
+
+	result, err := s.payoutClient.Payouts.Get(ctx, payoutID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payout: %w", err)
+	}
+
+	resp := &PayoutStatusResponse{
+		ID:    result.Id,
+		State: string(result.ApprovalState),
+	}
+
+	// Check transaction-level state for more detail
+	if len(result.Transactions) > 0 {
+		tx := result.Transactions[0]
+		resp.State = string(tx.State)
+		if tx.ErrorMessage != nil {
+			resp.ErrorMessage = *tx.ErrorMessage
+		}
+	}
+
+	return resp, nil
 }
 
 // GetPaymentInfo retrieves payment information by order code
