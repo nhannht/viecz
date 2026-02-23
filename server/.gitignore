@@ -4,9 +4,9 @@
 # Build output
 bin/
 main
-server
-viecz-server
-testserver
+/server
+/viecz-server
+/testserver
 *.exe
 *.dll
 *.so
