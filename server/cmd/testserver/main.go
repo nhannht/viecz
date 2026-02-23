@@ -141,7 +141,12 @@ func main() {
 	messageRepo := repository.NewMessageGormRepository(db)
 
 	// 5. Services
-	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{})
+	emailService := services.NewRealEmailService(
+		"localhost", 1025,
+		"", "", // Mailpit: no auth required
+		"noreply@viecz.local", "http://localhost:4200",
+	)
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, emailService, jwtSecret)
 
 	// Initialize Google OAuth service for testing (optional - will fail gracefully if credentials not set)
 	googleOAuthService, err := auth.NewGoogleOAuthService(
@@ -238,7 +243,7 @@ func main() {
 			authRoutes.POST("/register", func(c *gin.Context) {
 				authHandler.Register(c)
 				if c.Writer.Status() == http.StatusCreated || c.Writer.Status() == http.StatusOK {
-					// Auto-credit 100,000 VND to new user's wallet
+					// Auto-credit wallet for test users (email verification via Mailpit)
 					go func() {
 						time.Sleep(200 * time.Millisecond)
 						var user models.User
@@ -266,6 +271,14 @@ func main() {
 			authRoutes.POST("/login", authHandler.Login)
 			authRoutes.POST("/google", authHandler.GoogleLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
+			authRoutes.POST("/verify-email", authHandler.VerifyEmail)
+		}
+
+		// Auth routes (authenticated) — resend verification
+		authProtected := api.Group("/auth")
+		authProtected.Use(auth.AuthRequired(jwtSecret))
+		{
+			authProtected.POST("/resend-verification", authHandler.ResendVerification)
 		}
 
 		// Payment routes — public (mock PayOS webhook callback)
