@@ -24,7 +24,7 @@ import { VietQRBank } from '../../core/bank-list';
           (click)="toggle()">
           @if (selectedBank()) {
             <img [src]="selectedBank()!.logo" [alt]="selectedBank()!.shortName"
-              class="w-5 h-5 object-contain flex-shrink-0" />
+              class="w-8 h-5 object-contain flex-shrink-0" />
             <span class="truncate">{{ selectedBank()!.shortName }} &mdash; {{ selectedBank()!.code }}</span>
           } @else {
             <span class="text-muted">{{ placeholder() }}</span>
@@ -42,7 +42,7 @@ import { VietQRBank } from '../../core/bank-list';
                 [attr.aria-selected]="bank.bin === value()"
                 (click)="select(bank)">
                 <img [src]="bank.logo" [alt]="bank.shortName"
-                  class="w-5 h-5 object-contain flex-shrink-0" />
+                  class="w-8 h-5 object-contain flex-shrink-0" />
                 <span class="font-semibold text-[12px]">{{ bank.shortName }}</span>
                 <span class="text-muted text-[11px] truncate">{{ bank.name }}</span>
               </button>
