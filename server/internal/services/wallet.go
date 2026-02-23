@@ -127,6 +127,68 @@ func (s *WalletService) Deposit(ctx context.Context, outerTx *gorm.DB, userID, a
 	})
 }
 
+// Withdraw deducts funds from a wallet for a payout.
+// If outerTx is non-nil, uses it directly (caller manages the transaction).
+// If outerTx is nil, creates its own transaction.
+func (s *WalletService) Withdraw(ctx context.Context, outerTx *gorm.DB, userID, amount int64, description string, txID *int64) error {
+	if amount <= 0 {
+		return fmt.Errorf("withdrawal amount must be positive")
+	}
+
+	do := func(tx *gorm.DB) error {
+		// Get wallet with row lock
+		wallet, err := s.walletRepo.GetByUserIDForUpdate(ctx, tx, userID)
+		if err != nil {
+			return fmt.Errorf("wallet not found: %w", err)
+		}
+
+		// Check sufficient balance
+		if !wallet.HasSufficientBalance(amount) {
+			return fmt.Errorf("insufficient balance: have %d, need %d", wallet.Balance, amount)
+		}
+
+		// Record balances before
+		balanceBefore := wallet.Balance
+		escrowBefore := wallet.EscrowBalance
+
+		// Deduct from wallet
+		if err := wallet.Deduct(amount); err != nil {
+			return err
+		}
+		wallet.TotalWithdrawn += amount
+
+		if err := s.walletRepo.UpdateWithTx(ctx, tx, wallet); err != nil {
+			return fmt.Errorf("failed to update wallet: %w", err)
+		}
+
+		// Create wallet transaction record
+		walletTx := &models.WalletTransaction{
+			WalletID:      wallet.ID,
+			TransactionID: txID,
+			Type:          models.WalletTransactionTypeWithdrawal,
+			Amount:        -amount, // Negative because it's deducted from balance
+			BalanceBefore: balanceBefore,
+			BalanceAfter:  wallet.Balance,
+			EscrowBefore:  escrowBefore,
+			EscrowAfter:   wallet.EscrowBalance,
+			Description:   description,
+		}
+
+		if err := s.walletTransactionRepo.CreateWithTx(ctx, tx, walletTx); err != nil {
+			return fmt.Errorf("failed to create wallet transaction: %w", err)
+		}
+
+		return nil
+	}
+
+	if outerTx != nil {
+		return do(outerTx)
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return do(tx)
+	})
+}
+
 // HoldInEscrow moves funds from balance to escrow for a task.
 // If outerTx is non-nil, uses it directly (caller manages the transaction).
 // If outerTx is nil, creates its own transaction.

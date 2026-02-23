@@ -784,3 +784,144 @@ func TestWalletService_GetTransactionHistory(t *testing.T) {
 		})
 	}
 }
+
+func TestWalletService_Withdraw(t *testing.T) {
+	tests := []struct {
+		name        string
+		userID      int64
+		amount      int64
+		description string
+		setupRepo   func(*testutil.MockWalletRepository)
+		wantErr     bool
+		errContains string
+		checkFunc   func(*testing.T, *testutil.MockWalletRepository, *testutil.MockWalletTransactionRepository)
+	}{
+		{
+			name:        "successful withdrawal",
+			userID:      1,
+			amount:      50000,
+			description: "Test withdrawal",
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(100000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr: false,
+			checkFunc: func(t *testing.T, walletRepo *testutil.MockWalletRepository, txRepo *testutil.MockWalletTransactionRepository) {
+				var wallet *models.Wallet
+				for _, w := range walletRepo.Wallets {
+					if w.UserID == 1 {
+						wallet = w
+						break
+					}
+				}
+				testutil.AssertNotNil(t, wallet, "Wallet should exist")
+				testutil.AssertEqual(t, wallet.Balance, int64(50000), "Balance should be deducted")
+				testutil.AssertEqual(t, wallet.TotalWithdrawn, int64(50000), "TotalWithdrawn should be incremented")
+
+				// Check transaction created
+				testutil.AssertTrue(t, len(txRepo.Transactions) > 0, "Transaction should be created")
+				for _, tx := range txRepo.Transactions {
+					testutil.AssertEqual(t, tx.Type, models.WalletTransactionTypeWithdrawal, "Transaction type")
+					testutil.AssertEqual(t, tx.Amount, int64(-50000), "Amount should be negative for withdrawal")
+				}
+			},
+		},
+		{
+			name:        "insufficient balance",
+			userID:      1,
+			amount:      150000,
+			description: "Over balance withdrawal",
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(100000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr:     true,
+			errContains: "insufficient balance",
+		},
+		{
+			name:        "zero amount rejected",
+			userID:      1,
+			amount:      0,
+			description: "Invalid withdrawal",
+			setupRepo:   func(repo *testutil.MockWalletRepository) {},
+			wantErr:     true,
+			errContains: "must be positive",
+		},
+		{
+			name:        "negative amount rejected",
+			userID:      1,
+			amount:      -50000,
+			description: "Invalid withdrawal",
+			setupRepo:   func(repo *testutil.MockWalletRepository) {},
+			wantErr:     true,
+			errContains: "must be positive",
+		},
+		{
+			name:        "wallet not found",
+			userID:      999,
+			amount:      50000,
+			description: "No wallet withdrawal",
+			setupRepo:   func(repo *testutil.MockWalletRepository) {},
+			wantErr:     true,
+			errContains: "wallet not found",
+		},
+		{
+			name:        "withdraw exact balance succeeds",
+			userID:      1,
+			amount:      100000,
+			description: "Exact balance withdrawal",
+			setupRepo: func(repo *testutil.MockWalletRepository) {
+				wallet := testutil.NewWalletBuilder().
+					WithUserID(1).
+					WithBalance(100000).
+					Build()
+				repo.Wallets[wallet.ID] = wallet
+			},
+			wantErr: false,
+			checkFunc: func(t *testing.T, walletRepo *testutil.MockWalletRepository, txRepo *testutil.MockWalletTransactionRepository) {
+				var wallet *models.Wallet
+				for _, w := range walletRepo.Wallets {
+					if w.UserID == 1 {
+						wallet = w
+						break
+					}
+				}
+				testutil.AssertNotNil(t, wallet, "Wallet should exist")
+				testutil.AssertEqual(t, wallet.Balance, int64(0), "Balance should be zero after exact withdrawal")
+				testutil.AssertEqual(t, wallet.TotalWithdrawn, int64(100000), "TotalWithdrawn should be incremented")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			walletRepo := testutil.NewMockWalletRepository()
+			walletTxRepo := testutil.NewMockWalletTransactionRepository()
+			mockDB, cleanup, err := testutil.NewMockGormDB()
+			if err != nil {
+				t.Fatalf("Failed to create mock DB: %v", err)
+			}
+			defer cleanup()
+
+			if tt.setupRepo != nil {
+				tt.setupRepo(walletRepo)
+			}
+
+			service := NewWalletService(walletRepo, walletTxRepo, mockDB, 200000)
+			ctx := context.Background()
+
+			err = service.Withdraw(ctx, nil, tt.userID, tt.amount, tt.description, nil)
+
+			testutil.AssertError(t, err, tt.wantErr, tt.errContains)
+			if !tt.wantErr && tt.checkFunc != nil {
+				tt.checkFunc(t, walletRepo, walletTxRepo)
+			}
+		})
+	}
+}
