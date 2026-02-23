@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Wallet, WalletTransaction, DepositResponse } from './models';
+import { Wallet, WalletTransaction, DepositResponse, BankAccount, WithdrawalResponse } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class WalletService {
@@ -37,5 +37,24 @@ export class WalletService {
 
   refundPayment(taskId: number, reason: string) {
     return this.http.post('/api/v1/payments/refund', { task_id: taskId, reason });
+  }
+
+  withdraw(amount: number, bankAccountId: number) {
+    return this.http.post<WithdrawalResponse>('/api/v1/wallet/withdraw', {
+      amount,
+      bank_account_id: bankAccountId,
+    });
+  }
+
+  getBankAccounts() {
+    return this.http.get<BankAccount[]>('/api/v1/wallet/bank-accounts');
+  }
+
+  addBankAccount(data: { bank_bin: string; bank_name: string; account_number: string; account_holder_name: string }) {
+    return this.http.post<BankAccount>('/api/v1/wallet/bank-accounts', data);
+  }
+
+  deleteBankAccount(id: number) {
+    return this.http.delete(`/api/v1/wallet/bank-accounts/${id}`);
   }
 }

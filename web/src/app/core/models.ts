@@ -112,6 +112,22 @@ export interface DepositResponse {
   order_code: number;
 }
 
+export interface BankAccount {
+  id: number;
+  user_id: number;
+  bank_bin: string;
+  bank_name: string;
+  account_number: string;
+  account_holder_name: string;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface WithdrawalResponse {
+  transaction_id: number;
+  status: string;
+}
+
 export interface ConversationUser {
   id: number;
   name: string;

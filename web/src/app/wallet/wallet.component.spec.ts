@@ -7,6 +7,7 @@ import { WalletComponent } from './wallet.component';
 import { WalletService } from '../core/wallet.service';
 import { Wallet, WalletTransaction } from '../core/models';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { BankListService } from '../core/bank-list';
 import { provideTranslocoForTesting } from '../core/transloco-testing';
 
 describe('WalletComponent', () => {
@@ -40,6 +41,10 @@ describe('WalletComponent', () => {
       get: vi.fn().mockReturnValue(of(mockWallet)),
       deposit: vi.fn(),
       getTransactions: vi.fn().mockReturnValue(of(mockTxs)),
+      getBankAccounts: vi.fn().mockReturnValue(of([])),
+      addBankAccount: vi.fn(),
+      deleteBankAccount: vi.fn(),
+      withdraw: vi.fn(),
     };
     snackbarMock = { show: vi.fn() };
 
@@ -51,6 +56,7 @@ describe('WalletComponent', () => {
         provideTranslocoForTesting(),
         { provide: WalletService, useValue: walletServiceMock },
         { provide: NhannhtMetroSnackbarService, useValue: snackbarMock },
+        { provide: BankListService, useValue: { getBanks: vi.fn().mockReturnValue(of([])) } },
       ],
     }).compileComponents();
 
@@ -421,6 +427,10 @@ describe('WalletComponent', () => {
       get: vi.fn().mockReturnValue(of(mockWallet)),
       deposit: vi.fn().mockReturnValue(of({ checkout_url: 'http://localhost:9999/mock', order_code: 1 })),
       getTransactions: vi.fn().mockReturnValue(of([])),
+      getBankAccounts: vi.fn().mockReturnValue(of([])),
+      addBankAccount: vi.fn(),
+      deleteBankAccount: vi.fn(),
+      withdraw: vi.fn(),
     };
     const snackSvc = { show: vi.fn() };
     TestBed.configureTestingModule({
@@ -432,6 +442,7 @@ describe('WalletComponent', () => {
         { provide: 'PLATFORM_ID', useValue: 'server' },
         { provide: WalletService, useValue: walletSvc },
         { provide: NhannhtMetroSnackbarService, useValue: snackSvc },
+        { provide: BankListService, useValue: { getBanks: vi.fn().mockReturnValue(of([])) } },
       ],
     });
     const f2 = TestBed.createComponent(WalletComponent);
