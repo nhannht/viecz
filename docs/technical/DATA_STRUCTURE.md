@@ -1,7 +1,7 @@
 # DATA_STRUCTURE.md
 
 **Project:** Viecz - Go Backend Data Models
-**Last Updated:** 2026-02-16
+**Last Updated:** 2026-02-23
 
 This document describes all data models in the Go backend (`server/internal/models/`), their GORM mappings, relationships, hooks, and constants.
 
@@ -22,6 +22,7 @@ This document describes all data models in the Go backend (`server/internal/mode
    - [Conversation](#8-conversation)
    - [Message](#9-message)
    - [Notification](#10-notification)
+   - [BankAccount](#11-bankaccount)
 4. [Request/Response DTOs](#requestresponse-dtos)
 5. [Enums and Constants](#enums-and-constants)
 6. [GORM Hooks](#gorm-hooks)
@@ -50,6 +51,7 @@ db.AutoMigrate(
     &models.Conversation{},
     &models.Message{},
     &models.Notification{},
+    &models.BankAccount{},
 )
 ```
 
@@ -150,7 +152,20 @@ erDiagram
         timestamp created_at
     }
 
+    BankAccount {
+        int64 id PK
+        int64 user_id FK
+        string bank_bin
+        string bank_name
+        string account_number
+        string account_holder_name
+        bool is_default
+        timestamp created_at
+        timestamp updated_at
+    }
+
     User ||--|| Wallet : "has one"
+    User ||--o{ BankAccount : "has"
     User ||--o{ Task : "posts requester"
     User ||--o{ Task : "works tasker"
     User ||--o{ TaskApplication : "applies"
@@ -437,6 +452,7 @@ type Transaction struct {
     Status          TransactionStatus `gorm:"type:varchar(20);not null;default:'pending';index" json:"status"`
     PayOSOrderCode  *int64            `gorm:"unique" json:"payos_order_code,omitempty"`
     PayOSPaymentID  *string           `gorm:"type:text" json:"payos_payment_id,omitempty"`
+    PayOSPayoutID   *string           `gorm:"type:text" json:"payos_payout_id,omitempty"`
     Description     string            `gorm:"type:text" json:"description"`
     FailureReason   *string           `gorm:"type:text" json:"failure_reason,omitempty"`
     CompletedAt     *time.Time        `json:"completed_at,omitempty"`
@@ -463,6 +479,7 @@ type Transaction struct {
 | Status | TransactionStatus | type:varchar(20), not null, default:'pending', index | Transaction status |
 | PayOSOrderCode | *int64 | unique | PayOS order code (nullable, unique) |
 | PayOSPaymentID | *string | type:text | PayOS payment ID (nullable) |
+| PayOSPayoutID | *string | type:text | PayOS payout ID for withdrawal status polling (nullable) |
 | Description | string | type:text | Human-readable description |
 | FailureReason | *string | type:text | Reason for failure (nullable) |
 | CompletedAt | *time.Time | -- | Completion timestamp (nullable) |
@@ -729,6 +746,54 @@ type Notification struct {
 
 ---
 
+### 11. BankAccount
+
+**File:** `server/internal/models/bank_account.go`
+**Table:** `bank_accounts`
+
+```go
+type BankAccount struct {
+    ID                int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+    UserID            int64     `gorm:"not null;index" json:"user_id"`
+    BankBin           string    `gorm:"type:varchar(20);not null" json:"bank_bin"`
+    BankName          string    `gorm:"type:varchar(100);not null" json:"bank_name"`
+    AccountNumber     string    `gorm:"type:varchar(50);not null" json:"account_number"`
+    AccountHolderName string    `gorm:"type:varchar(200);not null" json:"account_holder_name"`
+    IsDefault         bool      `gorm:"default:false" json:"is_default"`
+    CreatedAt         time.Time `gorm:"autoCreateTime" json:"created_at"`
+    UpdatedAt         time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+
+    // Associations
+    User User `gorm:"foreignKey:UserID" json:"-"`
+}
+```
+
+| Field | Type | GORM Tags | Description |
+|-------|------|-----------|-------------|
+| ID | int64 | primaryKey, autoIncrement | Primary key |
+| UserID | int64 | not null, index | FK to users.id (owner) |
+| BankBin | string | type:varchar(20), not null | Bank BIN code (from VietQR/Napas bank list) |
+| BankName | string | type:varchar(100), not null | Bank display name |
+| AccountNumber | string | type:varchar(50), not null | Bank account number |
+| AccountHolderName | string | type:varchar(200), not null | Account holder full name |
+| IsDefault | bool | default:false | Whether this is the user's default bank account |
+| CreatedAt | time.Time | autoCreateTime | Record creation |
+| UpdatedAt | time.Time | autoUpdateTime | Last update |
+
+**Associations:**
+- `User` -> User (foreignKey: UserID)
+
+**Validation rules:**
+- UserID: required (non-zero)
+- BankBin: required, max 20 chars
+- BankName: required, max 100 chars
+- AccountNumber: required, max 50 chars
+- AccountHolderName: required, max 200 chars
+
+**GORM Hooks:** `BeforeCreate`, `BeforeUpdate` -- both call `Validate()`
+
+---
+
 ## Request/Response DTOs
 
 **File:** `server/internal/models/payment.go`
@@ -919,6 +984,7 @@ const (
 | Conversation | -- | -- | No hooks |
 | Message | -- | -- | No hooks |
 | Notification | -- | -- | No hooks |
+| BankAccount | Validate() | Validate() | Validates bank_bin, bank_name, account_number, account_holder_name |
 
 ---
 
@@ -972,6 +1038,7 @@ All models use auto-incrementing primary keys. Most use `int64`; Conversation an
 | messages | deleted_at | INDEX | GORM soft-delete filter |
 | notifications | user_id | INDEX | Get notifications for a user |
 | notifications | task_id | INDEX | Get notifications for a task |
+| bank_accounts | user_id | INDEX | Get bank accounts for a user |
 
 ### Foreign Key Constraints
 
@@ -997,6 +1064,7 @@ All models use auto-incrementing primary keys. Most use `int64`; Conversation an
 | messages | sender_id | users.id | -- |
 | notifications | user_id | users.id | -- |
 | notifications | task_id | tasks.id | -- |
+| bank_accounts | user_id | users.id | -- |
 
 ---
 
@@ -1029,6 +1097,7 @@ func IsStrongPassword(password string) bool
 - User -> Conversation (as TaskerID)
 - User -> Message (as SenderID)
 - User -> Notification (as UserID)
+- User -> BankAccount (as UserID)
 - User -> WalletTransaction (as ReferenceUserID)
 - Category -> Task
 - Task -> TaskApplication

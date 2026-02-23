@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-20 (Payment routes auth status corrected)
+**Last Updated:** 2026-02-23 (Wallet withdrawal/payout endpoints added)
 
 ---
 
@@ -901,6 +901,151 @@ Get wallet transaction history.
 
 ---
 
+### 6.4. List Bank Accounts
+
+Get authenticated user's saved bank accounts.
+
+**Endpoint:** `GET /api/v1/wallet/bank-accounts`
+**Auth:** Required
+
+#### Response: 200 OK
+
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "bank_bin": "970436",
+    "bank_name": "Vietcombank",
+    "account_number": "1234567890",
+    "account_holder_name": "NGUYEN VAN A",
+    "is_default": true,
+    "created_at": "2026-02-23T10:00:00Z",
+    "updated_at": "2026-02-23T10:00:00Z"
+  }
+]
+```
+
+---
+
+### 6.5. Add Bank Account
+
+Save a new bank account for withdrawals.
+
+**Endpoint:** `POST /api/v1/wallet/bank-accounts`
+**Auth:** Required
+
+#### Request Body
+
+```json
+{
+  "bank_bin": "970436",
+  "bank_name": "Vietcombank",
+  "account_number": "1234567890",
+  "account_holder_name": "NGUYEN VAN A"
+}
+```
+
+| Field | Type | Required | Constraints | Description |
+|-------|------|----------|-------------|-------------|
+| `bank_bin` | string | Yes | Max 20 chars | Bank BIN code (from VietQR/Napas bank list) |
+| `bank_name` | string | Yes | Max 100 chars | Bank display name |
+| `account_number` | string | Yes | Max 50 chars | Bank account number |
+| `account_holder_name` | string | Yes | Max 200 chars | Account holder full name |
+
+#### Response: 201 Created
+
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "bank_bin": "970436",
+  "bank_name": "Vietcombank",
+  "account_number": "1234567890",
+  "account_holder_name": "NGUYEN VAN A",
+  "is_default": false,
+  "created_at": "2026-02-23T10:00:00Z",
+  "updated_at": "2026-02-23T10:00:00Z"
+}
+```
+
+#### Errors
+
+- `400` - Validation error (missing required fields, invalid format)
+
+---
+
+### 6.6. Delete Bank Account
+
+Delete a saved bank account. Only the account owner can delete.
+
+**Endpoint:** `DELETE /api/v1/wallet/bank-accounts/:id`
+**Auth:** Required (ownership check)
+
+#### Response: 200 OK
+
+```json
+{
+  "message": "bank account deleted"
+}
+```
+
+#### Errors
+
+- `400` - Invalid bank account ID
+- `403` - Not the owner of this bank account
+- `404` - Bank account not found
+
+---
+
+### 6.7. Withdraw Funds
+
+Withdraw funds from wallet to a saved bank account via PayOS payout.
+
+**Endpoint:** `POST /api/v1/wallet/withdraw`
+**Auth:** Required
+**Rate Limit:** Finance rate limited (stricter than default)
+
+#### Request Body
+
+```json
+{
+  "amount": 50000,
+  "bank_account_id": 1
+}
+```
+
+| Field | Type | Required | Constraints | Description |
+|-------|------|----------|-------------|-------------|
+| `amount` | int64 | Yes | Min 10000, max 200000, multiple of 1000 | Withdrawal amount in VND |
+| `bank_account_id` | int64 | Yes | Must exist and belong to user | Target bank account |
+
+#### Response: 200 OK
+
+```json
+{
+  "transaction_id": 42,
+  "status": "pending"
+}
+```
+
+The withdrawal is processed asynchronously. A background poller checks PayOS payout status every 30 seconds. The transaction status will update to `success` or `failed` once PayOS confirms.
+
+#### Side Effects
+
+- Wallet balance debited immediately
+- `TotalWithdrawn` incremented
+- Pending `withdrawal` transaction created
+- PayOS CreatePayout API called
+- Background poller monitors payout status
+
+#### Errors
+
+- `400` - Invalid amount (not in range, not multiple of 1000) / Bank account not found or not owned
+- `500` - Insufficient available balance / PayOS payout creation failed
+
+---
+
 ## 7. Payments (Escrow)
 
 These endpoints manage escrow payments for task lifecycle. All require authentication.
@@ -1707,6 +1852,10 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 | GET | `/api/v1/wallet` | Yes | Get wallet |
 | POST | `/api/v1/wallet/deposit` | Yes | Deposit funds |
 | GET | `/api/v1/wallet/transactions` | Yes | Transaction history |
+| GET | `/api/v1/wallet/bank-accounts` | Yes | List bank accounts |
+| POST | `/api/v1/wallet/bank-accounts` | Yes | Add bank account |
+| DELETE | `/api/v1/wallet/bank-accounts/:id` | Yes | Delete bank account |
+| POST | `/api/v1/wallet/withdraw` | Yes | Withdraw funds |
 | POST | `/api/v1/payments/escrow` | Yes | Create escrow |
 | POST | `/api/v1/payments/release` | Yes | Release payment |
 | POST | `/api/v1/payments/refund` | Yes | Refund payment |

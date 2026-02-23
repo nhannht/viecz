@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
-**Version:** 2.5
-**Last Updated:** 2026-02-21
+**Version:** 2.6
+**Last Updated:** 2026-02-23
 
 ---
 
@@ -205,7 +205,8 @@ server/
 │   │   ├── categories.go        # GetCategories
 │   │   ├── notification.go      # CRUD notifications, mark read, unread count
 │   │   ├── payment.go           # CreateEscrowPayment, ReleasePayment, RefundPayment
-│   │   ├── wallet.go            # GetWallet, Deposit, GetTransactionHistory
+│   │   ├── wallet.go            # GetWallet, Deposit, GetTransactionHistory, HandleWithdrawal
+│   │   ├── bank_account.go     # BankAccount CRUD (list, add, delete)
 │   │   ├── webhook.go           # PayOS webhook handler
 │   │   ├── return.go            # PayOS return URL handler
 │   │   ├── websocket.go         # WebSocket upgrade + MessageHandler (REST conversation endpoints)
@@ -215,8 +216,9 @@ server/
 │   │   ├── user.go              # UserService
 │   │   ├── task.go              # TaskService (create, list, apply, accept, complete)
 │   │   ├── notification.go      # NotificationService (create + WebSocket delivery)
-│   │   ├── wallet.go            # WalletService (deposit, escrow, release, refund)
+│   │   ├── wallet.go            # WalletService (deposit, withdraw, escrow, release, refund)
 │   │   ├── payment.go           # PaymentService (orchestrates transactions + wallet)
+│   │   ├── payout_poller.go    # PayoutPoller (background goroutine polling PayOS for payout status)
 │   │   ├── payos.go             # PayOSService (PayOSServicer interface + SDK wrapper)
 │   │   ├── search.go            # SearchServicer interface + MeilisearchService + NoOpSearchService
 │   │   ├── turnstile.go         # TurnstileService (Cloudflare Turnstile token verification)
@@ -244,6 +246,8 @@ server/
 │   │   ├── message_gorm.go
 │   │   ├── notification.go      # NotificationRepository interface
 │   │   ├── notification_gorm.go
+│   │   ├── bank_account.go     # BankAccountRepository interface
+│   │   ├── bank_account_gorm.go
 │   │   └── *_gorm_test.go       # Repository tests
 │   │
 │   ├── models/                  # GORM models (struct + Validate + BeforeCreate hooks)
@@ -257,6 +261,7 @@ server/
 │   │   ├── conversation.go
 │   │   ├── message.go           # Also defines WebSocketMessage and FlexTime
 │   │   ├── notification.go      # Notification model + NotificationType enum
+│   │   ├── bank_account.go      # BankAccount model (user bank accounts for withdrawals)
 │   │   └── payment.go
 │   │
 │   ├── middleware/
@@ -334,7 +339,8 @@ Config → Database → Repositories → Services → Handlers → Gin Router
 - `TaskService` depends on `TaskRepository`, `TaskApplicationRepository`, `CategoryRepository`, `UserRepository`, `WalletService`, `NotificationService`, `SearchServicer`, and `*gorm.DB` (used for DB transactions with `SELECT ... FOR UPDATE` row locking in `DeleteTask`)
 - `PaymentService` depends on `TransactionRepository`, `TaskRepository`, `TaskApplicationRepository`, `WalletService`, `NotificationService`, and `*gorm.DB` (used for DB transactions with row locking in escrow operations)
 - `NotificationService` depends on `NotificationRepository` and `WebSocket Hub`
-- `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, and `*gorm.DB`
+- `WalletService` depends on `WalletRepository`, `WalletTransactionRepository`, `TransactionRepository`, `BankAccountRepository`, `PayOSServicer`, and `*gorm.DB`
+- `PayoutPoller` depends on `TransactionRepository`, `WalletService`, `PayOSServicer`, and `*gorm.DB` (background goroutine polling PayOS payout status every 30s)
 - `MessageService` depends on `MessageRepository`, `ConversationRepository`, and `WebSocket Hub`
 
 ---
@@ -701,7 +707,7 @@ The following models are auto-migrated on server startup:
 
 ```
 User, Category, Task, TaskApplication, Transaction,
-Wallet, WalletTransaction, Conversation, Message, Notification
+Wallet, WalletTransaction, Conversation, Message, Notification, BankAccount
 ```
 
 ### Entity Relationship Diagram
@@ -1079,6 +1085,10 @@ All routes are prefixed with `/api/v1/`.
 | GET    | `/wallet`                      | Get wallet balance            |
 | POST   | `/wallet/deposit`              | Create deposit (PayOS link)   |
 | GET    | `/wallet/transactions`         | Wallet transaction history    |
+| GET    | `/wallet/bank-accounts`        | List bank accounts            |
+| POST   | `/wallet/bank-accounts`        | Add bank account              |
+| DELETE | `/wallet/bank-accounts/:id`    | Delete bank account           |
+| POST   | `/wallet/withdraw`             | Withdraw funds (PayOS payout) |
 | POST   | `/payments/escrow`             | Create escrow payment         |
 | POST   | `/payments/release`            | Release escrow to tasker      |
 | POST   | `/payments/refund`             | Refund escrow to requester    |

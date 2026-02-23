@@ -2,7 +2,7 @@
 
 > Technical reference for algorithms implemented in the Viecz Go backend.
 >
-> Last updated: 2026-02-20
+> Last updated: 2026-02-23
 
 ## Table of Contents
 
@@ -17,6 +17,7 @@
 9. [Notification System](#9-notification-system)
 10. [Debounced Marketplace Search](#10-debounced-marketplace-search)
 11. [Meilisearch Integration](#11-meilisearch-integration)
+12. [Wallet Withdrawal (Payout)](#12-wallet-withdrawal-payout)
 
 ---
 
