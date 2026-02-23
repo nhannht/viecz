@@ -147,6 +147,18 @@ func (m *mockUserRepository) GetByGoogleID(ctx context.Context, googleID string)
 	return nil, errors.New("user not found")
 }
 
+func (m *mockUserRepository) SetEmailVerified(ctx context.Context, userID int64) error {
+	if m.shouldFail {
+		return errors.New("update failed")
+	}
+	user, exists := m.usersById[userID]
+	if !exists {
+		return errors.New("user not found")
+	}
+	user.EmailVerified = true
+	return nil
+}
+
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.New()
@@ -261,7 +273,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			if tt.setupRepo != nil {
 				tt.setupRepo(mockUserRepo)
 			}
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{})
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
 			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/register", handler.Register)
@@ -400,7 +412,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			if tt.setupRepo != nil {
 				tt.setupRepo(mockUserRepo)
 			}
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{})
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
 			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/login", handler.Login)
@@ -502,7 +514,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			mockUserRepo := newMockUserRepository()
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{})
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
 			handler := NewAuthHandler(authService, nil, jwtSecret)
 			router := setupTestRouter()
 			router.POST("/auth/refresh", handler.RefreshToken)
@@ -532,5 +544,116 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 				tt.checkResponse(t, response)
 			}
 		})
+	}
+}
+
+func TestAuthHandler_VerifyEmail(t *testing.T) {
+	jwtSecret := "test-secret-key-for-testing-12345"
+
+	tests := []struct {
+		name               string
+		requestBody        interface{}
+		setupRepo          func(*mockUserRepository)
+		expectedStatusCode int
+	}{
+		{
+			name: "valid token",
+			setupRepo: func(repo *mockUserRepository) {
+				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("Password123"), bcrypt.DefaultCost)
+				hashedPasswordStr := string(hashedPassword)
+				repo.users["test@example.com"] = &models.User{
+					ID:           1,
+					Email:        "test@example.com",
+					Name:         "Test",
+					PasswordHash: &hashedPasswordStr,
+					AuthProvider: "email",
+				}
+				repo.usersById[1] = repo.users["test@example.com"]
+			},
+			requestBody: func() interface{} {
+				token, _ := auth.GenerateEmailVerifyToken(1, "test@example.com", jwtSecret)
+				return map[string]string{"token": token}
+			}(),
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "invalid token",
+			setupRepo:          func(repo *mockUserRepository) {},
+			requestBody:        map[string]string{"token": "invalid.token.here"},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "missing token",
+			setupRepo:          func(repo *mockUserRepository) {},
+			requestBody:        map[string]string{},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockUserRepo := newMockUserRepository()
+			if tt.setupRepo != nil {
+				tt.setupRepo(mockUserRepo)
+			}
+			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
+			handler := NewAuthHandler(authService, nil, jwtSecret)
+			router := setupTestRouter()
+			router.POST("/auth/verify-email", handler.VerifyEmail)
+
+			body, _ := json.Marshal(tt.requestBody)
+			req := httptest.NewRequest(http.MethodPost, "/auth/verify-email", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedStatusCode {
+				t.Errorf("Expected %d, got %d: %s", tt.expectedStatusCode, w.Code, w.Body.String())
+			}
+		})
+	}
+}
+
+func TestAuthHandler_ResendVerification(t *testing.T) {
+	jwtSecret := "test-secret-key-for-testing-12345"
+
+	mockUserRepo := newMockUserRepository()
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("Password123"), bcrypt.DefaultCost)
+	hashedPasswordStr := string(hashedPassword)
+	mockUserRepo.users["test@example.com"] = &models.User{
+		ID:           1,
+		Email:        "test@example.com",
+		Name:         "Test",
+		PasswordHash: &hashedPasswordStr,
+		AuthProvider: "email",
+	}
+	mockUserRepo.usersById[1] = mockUserRepo.users["test@example.com"]
+
+	authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
+	handler := NewAuthHandler(authService, nil, jwtSecret)
+	router := setupTestRouter()
+	router.Use(func(c *gin.Context) {
+		c.Set("user_id", int64(1))
+		c.Next()
+	})
+	router.POST("/auth/resend-verification", handler.ResendVerification)
+
+	// First request should succeed
+	req := httptest.NewRequest(http.MethodPost, "/auth/resend-verification", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Second request should be rate limited
+	req2 := httptest.NewRequest(http.MethodPost, "/auth/resend-verification", nil)
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+
+	if w2.Code != http.StatusTooManyRequests {
+		t.Errorf("Expected 429, got %d: %s", w2.Code, w2.Body.String())
 	}
 }

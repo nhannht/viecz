@@ -22,6 +22,7 @@ type UserRepository interface {
 	IncrementTasksCompleted(ctx context.Context, userID int64) error
 	IncrementTasksPosted(ctx context.Context, userID int64) error
 	IncrementEarnings(ctx context.Context, userID int64, amount int64) error
+	SetEmailVerified(ctx context.Context, userID int64) error
 }
 
 type userRepository struct {
@@ -322,6 +323,27 @@ func (r *userRepository) IncrementEarnings(ctx context.Context, userID int64, am
 	_, err := r.db.ExecContext(ctx, query, amount, userID)
 	if err != nil {
 		return fmt.Errorf("failed to increment earnings: %w", err)
+	}
+
+	return nil
+}
+
+// SetEmailVerified marks a user's email as verified
+func (r *userRepository) SetEmailVerified(ctx context.Context, userID int64) error {
+	query := `UPDATE users SET email_verified = TRUE WHERE id = $1`
+
+	result, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to set email verified: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
 	}
 
 	return nil

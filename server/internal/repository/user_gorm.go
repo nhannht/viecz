@@ -150,6 +150,18 @@ func (r *userGormRepository) IncrementTasksPosted(ctx context.Context, userID in
 	return nil
 }
 
+func (r *userGormRepository) SetEmailVerified(ctx context.Context, userID int64) error {
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).
+		UpdateColumn("email_verified", true)
+	if result.Error != nil {
+		return fmt.Errorf("failed to set email verified: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
 // Helper function to check if string contains substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsMiddle(s, substr)))

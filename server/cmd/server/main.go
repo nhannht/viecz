@@ -66,7 +66,22 @@ func main() {
 
 	// Initialize services
 	emailVerifier := services.NewRealEmailVerifier()
-	authService := auth.NewAuthService(userRepo, emailVerifier)
+
+	// Initialize email service (real SMTP if configured, no-op otherwise)
+	var emailService services.EmailService
+	if cfg.SMTPHost != "" {
+		emailService = services.NewRealEmailService(
+			cfg.SMTPHost, cfg.SMTPPort,
+			cfg.SMTPUser, cfg.SMTPPassword,
+			cfg.SMTPFrom, cfg.ClientURL,
+		)
+		log.Printf("SMTP email service enabled: %s:%d", cfg.SMTPHost, cfg.SMTPPort)
+	} else {
+		emailService = &services.NoOpEmailService{}
+		log.Println("SMTP not configured, email service disabled")
+	}
+
+	authService := auth.NewAuthService(userRepo, emailVerifier, emailService, cfg.JWTSecret)
 
 	// Initialize Google OAuth service
 	googleOAuthService, err := auth.NewGoogleOAuthService(
@@ -185,6 +200,14 @@ func main() {
 			authRoutes.POST("/login", authHandler.Login)
 			authRoutes.POST("/google", authHandler.GoogleLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
+			authRoutes.POST("/verify-email", authHandler.VerifyEmail)
+		}
+
+		// Auth routes (authenticated)
+		authProtected := api.Group("/auth")
+		authProtected.Use(auth.AuthRequired(cfg.JWTSecret))
+		{
+			authProtected.POST("/resend-verification", authHandler.ResendVerification)
 		}
 
 		// Payment routes — public (PayOS callback + browser redirect)
@@ -229,9 +252,9 @@ func main() {
 			publicTasks.GET("/:id", taskHandler.GetTask)
 		}
 
-		// Task routes — protected (write operations)
+		// Task routes — protected (write operations, email verified required)
 		tasks := api.Group("/tasks")
-		tasks.Use(auth.AuthRequired(cfg.JWTSecret))
+		tasks.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
 		{
 			tasks.POST("", taskHandler.CreateTask)
 			tasks.PUT("/:id", taskHandler.UpdateTask)
@@ -241,9 +264,9 @@ func main() {
 			tasks.POST("/:id/complete", taskHandler.CompleteTask)
 		}
 
-		// Application routes (protected)
+		// Application routes (protected, email verified required)
 		applications := api.Group("/applications")
-		applications.Use(auth.AuthRequired(cfg.JWTSecret))
+		applications.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
 		{
 			applications.POST("/:id/accept", taskHandler.AcceptApplication)
 		}
@@ -257,9 +280,9 @@ func main() {
 			wallet.GET("/transactions", walletHandler.GetTransactionHistory)
 		}
 
-		// Payment routes (protected) - Phase 3
+		// Payment routes (protected, email verified required) - Phase 3
 		payments := api.Group("/payments")
-		payments.Use(auth.AuthRequired(cfg.JWTSecret))
+		payments.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
 		{
 			payments.POST("/escrow", paymentHandler.CreateEscrowPayment)
 			payments.POST("/release", paymentHandler.ReleasePayment)
@@ -280,9 +303,9 @@ func main() {
 		// WebSocket route (protected via query param) - Phase 4
 		api.GET("/ws", websocketHandler.HandleWebSocket)
 
-		// Conversation/Message routes (protected)
+		// Conversation/Message routes (protected, email verified required)
 		conversations := api.Group("/conversations")
-		conversations.Use(auth.AuthRequired(cfg.JWTSecret))
+		conversations.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo))
 		{
 			conversations.GET("", messageHandler.GetConversations)
 			conversations.POST("", messageHandler.CreateConversation)

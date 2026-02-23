@@ -339,6 +339,15 @@ func (m *mockUserRepository) GetByGoogleID(ctx context.Context, googleID string)
 	return nil, errors.New("user not found")
 }
 
+func (m *mockUserRepository) SetEmailVerified(ctx context.Context, userID int64) error {
+	user, exists := m.users[userID]
+	if !exists {
+		return errors.New("user not found")
+	}
+	user.EmailVerified = true
+	return nil
+}
+
 // Tests
 func TestTaskService_CreateTask(t *testing.T) {
 	tests := []struct {

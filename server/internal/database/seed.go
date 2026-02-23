@@ -78,7 +78,7 @@ func seedCategories(ctx context.Context, db *gorm.DB) error {
 // seedTestUser creates test users for development
 func seedTestUser(ctx context.Context, db *gorm.DB) error {
 	userRepo := repository.NewUserGormRepository(db)
-	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{})
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "seed-secret")
 
 	testUsers := []struct {
 		email    string

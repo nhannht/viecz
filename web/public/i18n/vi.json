@@ -274,5 +274,15 @@
   "messageBubble": {
     "you": "bạn",
     "defaultUser": "người dùng"
+  },
+  "verifyEmail": {
+    "bannerMessage": "Vui lòng xác minh email để sử dụng đầy đủ tính năng.",
+    "resendButton": "Gửi lại email",
+    "sending": "Đang gửi...",
+    "verifying": "Đang xác minh email...",
+    "successTitle": "XÁC MINH THÀNH CÔNG",
+    "successMessage": "Email đã được xác minh. Bạn có thể sử dụng tất cả tính năng.",
+    "errorTitle": "XÁC MINH THẤT BẠI",
+    "goToMarketplace": "Đến Chợ việc"
   }
 }

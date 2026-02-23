@@ -32,6 +32,12 @@ type Config struct {
 	// Meilisearch (optional — empty = disabled, falls back to PostgreSQL LIKE)
 	MeilisearchURL    string
 	MeilisearchAPIKey string
+	// SMTP (optional — empty SMTPHost = no-op email service)
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
 	// Platform
 	PlatformFeeRate  float64 // e.g. 0.10 for 10%, 0 for beta
 	MaxWalletBalance int64   // max balance per wallet in VND (e.g. 200000)
@@ -72,6 +78,17 @@ func Load() (*Config, error) {
 	// Meilisearch (optional)
 	cfg.MeilisearchURL = os.Getenv("MEILISEARCH_URL")
 	cfg.MeilisearchAPIKey = os.Getenv("MEILISEARCH_API_KEY")
+
+	// SMTP (optional — empty SMTPHost means no-op email service)
+	cfg.SMTPHost = os.Getenv("SMTP_HOST")
+	smtpPort, err := strconv.Atoi(getEnv("SMTP_PORT", "587"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid SMTP_PORT: %w", err)
+	}
+	cfg.SMTPPort = smtpPort
+	cfg.SMTPUser = os.Getenv("SMTP_USER")
+	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
+	cfg.SMTPFrom = getEnv("SMTP_FROM", "noreply@fishcmus.io.vn")
 
 	// Parse platform fee rate (default 0 for beta)
 	platformFeeRate, err := strconv.ParseFloat(getEnv("PLATFORM_FEE_RATE", "0"), 64)

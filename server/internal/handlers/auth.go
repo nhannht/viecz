@@ -13,6 +13,7 @@ type AuthHandler struct {
 	authService        *auth.AuthService
 	googleOAuthService *auth.GoogleOAuthService
 	jwtSecret          string
+	resendLimiter      *auth.ResendRateLimiter
 }
 
 // NewAuthHandler creates a new auth handler
@@ -21,6 +22,7 @@ func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.Goog
 		authService:        authService,
 		googleOAuthService: googleOAuthService,
 		jwtSecret:          jwtSecret,
+		resendLimiter:      auth.NewResendRateLimiter(),
 	}
 }
 
@@ -231,4 +233,59 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token": accessToken,
 	})
+}
+
+// VerifyEmail handles email verification via token
+// POST /api/v1/auth/verify-email
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	var req struct {
+		Token string `json:"token" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token is required"})
+		return
+	}
+
+	if err := h.authService.VerifyEmail(c.Request.Context(), req.Token); err != nil {
+		switch err {
+		case auth.ErrEmailAlreadyVerified:
+			c.JSON(http.StatusOK, gin.H{"message": "email is already verified"})
+		case auth.ErrInvalidVerifyToken:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired verification link"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify email"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "email verified successfully"})
+}
+
+// ResendVerification sends a new verification email
+// POST /api/v1/auth/resend-verification
+func (h *AuthHandler) ResendVerification(c *gin.Context) {
+	userID, exists := auth.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization required"})
+		return
+	}
+
+	// Rate limit
+	if err := h.resendLimiter.Allow(userID); err != nil {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.authService.SendVerificationEmail(c.Request.Context(), userID); err != nil {
+		switch err {
+		case auth.ErrEmailAlreadyVerified:
+			c.JSON(http.StatusOK, gin.H{"message": "email is already verified"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send verification email"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "verification email sent"})
 }

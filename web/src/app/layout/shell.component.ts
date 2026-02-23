@@ -130,6 +130,16 @@ import { LanguageService } from '../core/language.service';
           </div>
         }
       </nav>
+      @if (auth.needsEmailVerification()) {
+        <div class="bg-fg text-bg px-6 py-2 flex items-center justify-center gap-4 font-body text-[12px]">
+          <span>{{ t('verifyEmail.bannerMessage') }}</span>
+          <button class="bg-bg text-fg px-3 py-1 font-display text-[10px] tracking-[1px] border-none cursor-pointer hover:opacity-90 transition-opacity"
+                  [disabled]="resendingEmail()"
+                  (click)="resendVerification()">
+            {{ resendingEmail() ? t('verifyEmail.sending') : t('verifyEmail.resendButton') }}
+          </button>
+        </div>
+      }
       <main class="shell-content max-w-[1200px] mx-auto p-4 min-h-[calc(100vh-64px)]">
         <router-outlet />
       </main>
@@ -156,6 +166,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   notifications = signal<{ id: number; title: string; message: string }[]>([]);
   notifMenuOpen = signal(false);
   userMenuOpen = signal(false);
+  resendingEmail = signal(false);
 
   ngOnInit() {
     if (this.auth.isAuthenticated()) {
@@ -186,6 +197,20 @@ export class ShellComponent implements OnInit, OnDestroy {
   toggleUserMenu() {
     this.notifMenuOpen.set(false);
     this.userMenuOpen.update(v => !v);
+  }
+
+  resendVerification() {
+    this.resendingEmail.set(true);
+    this.auth.resendVerification().subscribe({
+      next: () => {
+        this.resendingEmail.set(false);
+        this.snackbarService.show('Verification email sent!');
+      },
+      error: err => {
+        this.resendingEmail.set(false);
+        this.snackbarService.show(err.error?.error || 'Failed to send verification email');
+      },
+    });
   }
 
   loadNotifications() {

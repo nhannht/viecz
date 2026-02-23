@@ -102,6 +102,16 @@ func (m *mockUserRepository) GetByGoogleID(ctx context.Context, googleID string)
 	return nil, errors.New("user not found")
 }
 
+func (m *mockUserRepository) SetEmailVerified(ctx context.Context, userID int64) error {
+	for _, user := range m.users {
+		if user.ID == userID {
+			user.EmailVerified = true
+			return nil
+		}
+	}
+	return errors.New("user not found")
+}
+
 func TestAuthService_Register(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -188,7 +198,7 @@ func TestAuthService_Register(t *testing.T) {
 				tt.setupRepo(repo)
 			}
 
-			service := NewAuthService(repo, &services.NoOpEmailVerifier{})
+			service := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "test-secret")
 			ctx := context.Background()
 
 			user, err := service.Register(ctx, tt.email, tt.password, tt.userName)
@@ -238,7 +248,7 @@ func TestAuthService_Login(t *testing.T) {
 			password: "Password123",
 			setupRepo: func(repo *mockUserRepository) {
 				// Register a user first
-				service := NewAuthService(repo, &services.NoOpEmailVerifier{})
+				service := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "test-secret")
 				_, _ = service.Register(context.Background(), "test@example.com", "Password123", "Test User")
 			},
 			wantErr: false,
@@ -256,7 +266,7 @@ func TestAuthService_Login(t *testing.T) {
 			email:    "test@example.com",
 			password: "WrongPassword123",
 			setupRepo: func(repo *mockUserRepository) {
-				service := NewAuthService(repo, &services.NoOpEmailVerifier{})
+				service := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "test-secret")
 				_, _ = service.Register(context.Background(), "test@example.com", "Password123", "Test User")
 			},
 			wantErr:     true,
@@ -271,7 +281,7 @@ func TestAuthService_Login(t *testing.T) {
 				tt.setupRepo(repo)
 			}
 
-			service := NewAuthService(repo, &services.NoOpEmailVerifier{})
+			service := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "test-secret")
 			ctx := context.Background()
 
 			user, err := service.Login(ctx, tt.email, tt.password)

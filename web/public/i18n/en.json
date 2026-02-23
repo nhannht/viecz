@@ -274,5 +274,15 @@
   "messageBubble": {
     "you": "you",
     "defaultUser": "user"
+  },
+  "verifyEmail": {
+    "bannerMessage": "Please verify your email address to access all features.",
+    "resendButton": "Resend Email",
+    "sending": "Sending...",
+    "verifying": "Verifying your email...",
+    "successTitle": "EMAIL VERIFIED",
+    "successMessage": "Your email has been verified successfully. You can now access all features.",
+    "errorTitle": "VERIFICATION FAILED",
+    "goToMarketplace": "Go to Marketplace"
   }
 }

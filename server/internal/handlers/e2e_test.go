@@ -88,7 +88,7 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	walletTransactionRepo := repository.NewWalletTransactionGormRepository(db)
 
 	// 5. Real services
-	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{})
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "e2e-test-secret")
 	userService := services.NewUserService(userRepo, taskRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
 	// 6. MockPayOS

@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { PLATFORM_ID, signal } from '@angular/core';
+import { PLATFORM_ID, signal, computed } from '@angular/core';
 import { of, Subject } from 'rxjs';
 import { ShellComponent } from './shell.component';
 import { AuthService } from '../core/auth.service';
@@ -24,6 +24,7 @@ describe('ShellComponent', () => {
       getAccessToken: vi.fn().mockReturnValue('token'),
       isAuthenticated: vi.fn().mockReturnValue(true),
       logout: vi.fn(),
+      needsEmailVerification: computed(() => false),
     };
     notifSpy = {
       getUnreadCount: vi.fn().mockReturnValue(of({ unread_count: 3 })),
@@ -477,6 +478,7 @@ describe('ShellComponent (unauthenticated)', () => {
       getAccessToken: vi.fn().mockReturnValue(null),
       isAuthenticated: vi.fn().mockReturnValue(false),
       logout: vi.fn(),
+      needsEmailVerification: computed(() => false),
     };
     wsSpy = {
       connect: vi.fn(),
@@ -538,6 +540,7 @@ describe('ShellComponent (vi language)', () => {
       getAccessToken: vi.fn().mockReturnValue('token'),
       isAuthenticated: vi.fn().mockReturnValue(true),
       logout: vi.fn(),
+      needsEmailVerification: computed(() => false),
     };
     const notifSpy = {
       getUnreadCount: vi.fn().mockReturnValue(of({ unread_count: 0 })),

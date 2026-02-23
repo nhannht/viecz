@@ -238,6 +238,15 @@ func (m *mockTaskUserRepository) GetByGoogleID(ctx context.Context, googleID str
 	return nil, errors.New("user not found")
 }
 
+func (m *mockTaskUserRepository) SetEmailVerified(ctx context.Context, userID int64) error {
+	user, exists := m.users[userID]
+	if !exists {
+		return errors.New("user not found")
+	}
+	user.EmailVerified = true
+	return nil
+}
+
 func TestTaskHandler_CreateTask(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

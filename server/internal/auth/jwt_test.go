@@ -217,6 +217,92 @@ func TestValidateToken(t *testing.T) {
 	}
 }
 
+func TestGenerateEmailVerifyToken(t *testing.T) {
+	secret := "test-secret-key-for-jwt-testing-12345"
+	userID := int64(42)
+	email := "verify@example.com"
+
+	token, err := GenerateEmailVerifyToken(userID, email, secret)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if token == "" {
+		t.Fatal("Expected token, got empty")
+	}
+
+	claims, err := ValidateEmailVerifyToken(token, secret)
+	if err != nil {
+		t.Fatalf("Failed to validate: %v", err)
+	}
+	if claims.UserID != userID {
+		t.Errorf("Expected UserID %d, got %d", userID, claims.UserID)
+	}
+	if claims.Email != email {
+		t.Errorf("Expected Email %s, got %s", email, claims.Email)
+	}
+	if claims.Purpose != "email_verify" {
+		t.Errorf("Expected Purpose 'email_verify', got %s", claims.Purpose)
+	}
+}
+
+func TestValidateEmailVerifyToken_Expired(t *testing.T) {
+	secret := "test-secret-key-for-jwt-testing-12345"
+
+	claims := EmailVerifyClaims{
+		UserID:  42,
+		Email:   "expired@example.com",
+		Purpose: "email_verify",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, _ := token.SignedString([]byte(secret))
+
+	_, err := ValidateEmailVerifyToken(tokenString, secret)
+	if err == nil {
+		t.Error("Expected error for expired token, got nil")
+	}
+}
+
+func TestValidateEmailVerifyToken_WrongPurpose(t *testing.T) {
+	secret := "test-secret-key-for-jwt-testing-12345"
+
+	claims := EmailVerifyClaims{
+		UserID:  42,
+		Email:   "wrong@example.com",
+		Purpose: "password_reset", // wrong purpose
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, _ := token.SignedString([]byte(secret))
+
+	_, err := ValidateEmailVerifyToken(tokenString, secret)
+	if err == nil {
+		t.Error("Expected error for wrong purpose, got nil")
+	}
+	if !contains(err.Error(), "not an email verification") {
+		t.Errorf("Expected purpose mismatch error, got: %v", err)
+	}
+}
+
+func TestValidateEmailVerifyToken_AuthTokenRejected(t *testing.T) {
+	secret := "test-secret-key-for-jwt-testing-12345"
+
+	// A regular auth token should be rejected
+	user := &models.User{ID: 42, Email: "auth@example.com", Name: "Test"}
+	authToken, _ := GenerateAccessToken(user, secret, 30)
+
+	_, err := ValidateEmailVerifyToken(authToken, secret)
+	if err == nil {
+		t.Error("Expected error when using auth token as verify token")
+	}
+}
+
 func TestTokenRoundTrip(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{

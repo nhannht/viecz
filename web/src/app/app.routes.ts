@@ -43,6 +43,11 @@ export const routes: Routes = [
           import('./task-detail/task-detail.component').then(m => m.TaskDetailComponent),
       },
       {
+        path: 'verify-email',
+        loadComponent: () =>
+          import('./verify-email/verify-email.component').then(m => m.VerifyEmailComponent),
+      },
+      {
         path: 'payment/return',
         loadComponent: () =>
           import('./payment-return/payment-return.component').then(

@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject, PLATFORM_ID } from '@angular/core
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { User, AuthResponse } from './models';
 
 @Injectable({ providedIn: 'root' })
@@ -13,6 +13,10 @@ export class AuthService {
 
   currentUser = signal<User | null>(null);
   isAuthenticated = computed(() => !!this.currentUser());
+  needsEmailVerification = computed(() => {
+    const user = this.currentUser();
+    return user !== null && user.auth_provider === 'email' && !user.email_verified;
+  });
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
@@ -68,6 +72,25 @@ export class AuthService {
   getRefreshToken(): string | null {
     if (!isPlatformBrowser(this.platformId)) return null;
     return localStorage.getItem('viecz_refresh_token');
+  }
+
+  verifyEmail(token: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>('/api/v1/auth/verify-email', { token }).pipe(
+      tap(() => {
+        const user = this.currentUser();
+        if (user) {
+          const updated = { ...user, email_verified: true };
+          this.currentUser.set(updated);
+          if (isPlatformBrowser(this.platformId)) {
+            localStorage.setItem('viecz_user', JSON.stringify(updated));
+          }
+        }
+      }),
+    );
+  }
+
+  resendVerification(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>('/api/v1/auth/resend-verification', {});
   }
 
   private storeAuth(res: AuthResponse) {

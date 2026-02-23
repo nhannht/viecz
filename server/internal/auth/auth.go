@@ -12,29 +12,35 @@ import (
 
 // Custom errors
 var (
-	ErrInvalidEmail            = fmt.Errorf("invalid email format")
-	ErrWeakPassword            = fmt.Errorf("password does not meet strength requirements")
-	ErrEmailAlreadyExists      = fmt.Errorf("email already exists")
-	ErrInvalidCredentials      = fmt.Errorf("invalid email or password")
-	ErrGoogleAuthFailed        = fmt.Errorf("google authentication failed")
-	ErrEmailAlreadyUsedByEmail = fmt.Errorf("email already registered with email/password")
+	ErrInvalidEmail             = fmt.Errorf("invalid email format")
+	ErrWeakPassword             = fmt.Errorf("password does not meet strength requirements")
+	ErrEmailAlreadyExists       = fmt.Errorf("email already exists")
+	ErrInvalidCredentials       = fmt.Errorf("invalid email or password")
+	ErrGoogleAuthFailed         = fmt.Errorf("google authentication failed")
+	ErrEmailAlreadyUsedByEmail  = fmt.Errorf("email already registered with email/password")
 	ErrEmailAlreadyUsedByGoogle = fmt.Errorf("email already registered with Google")
 	ErrDisposableEmail          = fmt.Errorf("disposable email addresses are not allowed")
 	ErrNoMXRecords              = fmt.Errorf("email domain does not have valid mail servers")
 	ErrRoleAccount              = fmt.Errorf("role-based email addresses are not allowed")
+	ErrEmailAlreadyVerified     = fmt.Errorf("email is already verified")
+	ErrInvalidVerifyToken       = fmt.Errorf("invalid or expired verification token")
 )
 
 // AuthService handles authentication operations
 type AuthService struct {
 	userRepo      repository.UserRepository
 	emailVerifier services.EmailVerifierService
+	emailService  services.EmailService
+	jwtSecret     string
 }
 
 // NewAuthService creates a new authentication service
-func NewAuthService(userRepo repository.UserRepository, emailVerifier services.EmailVerifierService) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, emailVerifier services.EmailVerifierService, emailService services.EmailService, jwtSecret string) *AuthService {
 	return &AuthService{
 		userRepo:      userRepo,
 		emailVerifier: emailVerifier,
+		emailService:  emailService,
+		jwtSecret:     jwtSecret,
 	}
 }
 
@@ -95,6 +101,18 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
+
+	// Send verification email asynchronously
+	go func() {
+		token, err := GenerateEmailVerifyToken(user.ID, user.Email, s.jwtSecret)
+		if err != nil {
+			fmt.Printf("Failed to generate email verify token for %s: %v\n", user.Email, err)
+			return
+		}
+		if err := s.emailService.SendVerificationEmail(user.Email, user.Name, token); err != nil {
+			fmt.Printf("Failed to send verification email to %s: %v\n", user.Email, err)
+		}
+	}()
 
 	return user, nil
 }
@@ -175,4 +193,53 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, googleInfo *GoogleUse
 	}
 
 	return user, nil
+}
+
+// VerifyEmail validates a verification token and marks the user's email as verified.
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
+	claims, err := ValidateEmailVerifyToken(token, s.jwtSecret)
+	if err != nil {
+		return ErrInvalidVerifyToken
+	}
+
+	// Fetch user to check current state
+	user, err := s.userRepo.GetByID(ctx, claims.UserID)
+	if err != nil {
+		return ErrInvalidVerifyToken
+	}
+
+	// Ensure the token email matches the user's current email
+	if user.Email != claims.Email {
+		return ErrInvalidVerifyToken
+	}
+
+	if user.EmailVerified {
+		return ErrEmailAlreadyVerified
+	}
+
+	return s.userRepo.SetEmailVerified(ctx, claims.UserID)
+}
+
+// SendVerificationEmail generates a verification token and sends the email.
+func (s *AuthService) SendVerificationEmail(ctx context.Context, userID int64) error {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	if user.EmailVerified {
+		return ErrEmailAlreadyVerified
+	}
+
+	// Only email-auth users need verification
+	if user.AuthProvider != "email" {
+		return ErrEmailAlreadyVerified
+	}
+
+	token, err := GenerateEmailVerifyToken(user.ID, user.Email, s.jwtSecret)
+	if err != nil {
+		return fmt.Errorf("failed to generate verify token: %w", err)
+	}
+
+	return s.emailService.SendVerificationEmail(user.Email, user.Name, token)
 }
