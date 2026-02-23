@@ -83,7 +83,25 @@ The project supports two authentication methods:
 - `POST /api/v1/auth/google` -- Sign in with Google ID token
 - `POST /api/v1/auth/refresh` -- Exchange refresh token for new access token
 
-**Source:** `server/internal/handlers/auth.go`, `server/internal/auth/auth.go`, `server/internal/auth/google_oauth.go`
+**Source:** `server/internal/handlers/auth.go`, `server/internal/auth/auth.go`, `server/internal/auth/google_oauth.go`, `server/internal/services/turnstile.go`
+
+### 2.1.1 Bot Prevention (Cloudflare Turnstile)
+
+Registration is protected by Cloudflare Turnstile — an invisible CAPTCHA that runs a browser challenge without user interaction.
+
+**Flow:**
+1. Web client loads Turnstile script and renders invisible widget on register form
+2. Turnstile issues a one-time token via callback
+3. Client sends `turnstile_token` in the registration request body
+4. Server POSTs `{secret, response, remoteip}` to `https://challenges.cloudflare.com/turnstile/v0/siteverify`
+5. If `success: false` → reject with `400 bot verification failed`
+6. If `success: true` → proceed to email validation and registration
+
+**Graceful degradation:** If `TURNSTILE_SECRET_KEY` is not set, the `TurnstileService` is `nil` and validation is skipped entirely. This keeps the test server and E2E tests unaffected.
+
+**Scope:** Web client only. Android is deferred (Turnstile has no native SDK).
+
+**Source:** `server/internal/services/turnstile.go`, `web/src/app/auth/register.component.ts`
 
 ### 2.2 JWT Implementation
 
@@ -435,6 +453,7 @@ All request payloads are validated using Gin's struct binding tags:
 | `POST /auth/register` | `email` | `required,email` |
 | `POST /auth/register` | `password` | `required,min=8` |
 | `POST /auth/register` | `name` | `required` |
+| `POST /auth/register` | `turnstile_token` | Optional (validated server-side via Cloudflare API when configured) |
 | `POST /auth/login` | `email` | `required,email` |
 | `POST /auth/login` | `password` | `required` |
 | `POST /auth/google` | `id_token` | `required` |
@@ -763,7 +782,7 @@ The WebSocket upgrader accepts all origins. Should be restricted to known origin
 
 ### 12.2 No Rate Limiting
 
-No rate limiting is implemented on any endpoint. Auth endpoints (login, register) are vulnerable to brute-force attacks.
+No rate limiting is implemented on any endpoint. Login is still vulnerable to brute-force attacks. Registration is partially protected by Cloudflare Turnstile (blocks automated signups) but has no per-IP rate limit.
 
 ### 12.3 Refresh Token Not Rotated
 
@@ -799,6 +818,7 @@ The server accepts a single `CLIENT_URL` for CORS. The web client must be served
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.3 | 2026-02-23 | Add Cloudflare Turnstile bot prevention on registration |
 | 2.2 | 2026-02-20 | Add web client security: token storage, auth interceptor, route guards, known limitations |
 | 2.1 | 2026-02-16 | Add Google OAuth (OIDC) security documentation, User model OAuth fields |
 | 2.0 | 2026-02-14 | Full rewrite to reflect Go backend + Android app |

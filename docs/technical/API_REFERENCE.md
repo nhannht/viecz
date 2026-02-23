@@ -49,7 +49,8 @@ Create a new user account.
 {
   "email": "user@example.com",
   "password": "Password123",
-  "name": "Nguyen Van A"
+  "name": "Nguyen Van A",
+  "turnstile_token": "0.erCMbNgi..."
 }
 ```
 
@@ -58,6 +59,9 @@ Create a new user account.
 | `email` | string | Yes | Valid email | User email |
 | `password` | string | Yes | Min 8 chars, 1 uppercase, 1 lowercase, 1 digit | Password |
 | `name` | string | Yes | Max 100 chars | Display name |
+| `turnstile_token` | string | No* | Cloudflare Turnstile token | Bot verification token |
+
+*Required when `TURNSTILE_SECRET_KEY` is configured on the server. Omitted/empty token returns 400.
 
 #### Response: 201 Created
 
@@ -86,7 +90,7 @@ Create a new user account.
 
 #### Errors
 
-- `400` - Invalid email format / Weak password
+- `400` - Invalid email format / Weak password / Bot verification failed
 - `409` - Email already exists
 
 ---

@@ -75,20 +75,26 @@ RegisterScreen
     |    - Full Name (required)
     |    - Email (validated format)
     |    - Password (min 8 chars, uppercase, lowercase, digit)
+    |  Bot prevention (web only):
+    |    - Cloudflare Turnstile invisible widget renders automatically
+    |    - Token obtained via callback (no user interaction)
     |
     v
 Tap "Register"
     |
     v
-POST /api/v1/auth/register
+POST /api/v1/auth/register  (includes turnstile_token on web)
+    |-- Server verifies Turnstile token with Cloudflare API
+    |-- If invalid → 400 "bot verification failed"
     |
     v
 JWT tokens saved --> MainScreen
 ```
 
-**Screen:** `RegisterScreen.kt`
-**API:** `POST /api/v1/auth/register` -- `{ email, password, name }`
+**Screen:** `RegisterScreen.kt` (Android), `register.component.ts` (Web)
+**API:** `POST /api/v1/auth/register` -- `{ email, password, name, turnstile_token? }`
 **Response:** `{ access_token, refresh_token, user }`
+**Note:** `turnstile_token` is required when `TURNSTILE_SECRET_KEY` is configured on the server. Android omits it (server skips validation for unconfigured Turnstile). Web always sends it.
 
 ### 1.3 Login
 

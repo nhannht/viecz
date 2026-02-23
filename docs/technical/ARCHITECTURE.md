@@ -199,7 +199,7 @@ server/
 │   │   └── seed.go              # Seed categories + test users
 │   │
 │   ├── handlers/                # HTTP handlers (parse request → call service → respond)
-│   │   ├── auth.go              # Register, Login, RefreshToken
+│   │   ├── auth.go              # Register (+ Turnstile verification), Login, RefreshToken
 │   │   ├── users.go             # GetProfile, GetMyProfile, UpdateProfile, BecomeTasker
 │   │   ├── tasks.go             # CRUD + Apply, Accept, Complete
 │   │   ├── categories.go        # GetCategories
@@ -219,6 +219,7 @@ server/
 │   │   ├── payment.go           # PaymentService (orchestrates transactions + wallet)
 │   │   ├── payos.go             # PayOSService (PayOSServicer interface + SDK wrapper)
 │   │   ├── search.go            # SearchServicer interface + MeilisearchService + NoOpSearchService
+│   │   ├── turnstile.go         # TurnstileService (Cloudflare Turnstile token verification)
 │   │   ├── message.go           # MessageService (conversations + messages + WS broadcast)
 │   │   └── *_test.go            # Service tests
 │   │

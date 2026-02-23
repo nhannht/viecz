@@ -164,6 +164,7 @@ Key points:
 | `PAYOS_CLIENT_ID` | No | PayOS payment gateway client ID |
 | `PAYOS_API_KEY` | No | PayOS payment gateway API key |
 | `PAYOS_CHECKSUM_KEY` | No | PayOS payment gateway checksum key |
+| `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (empty = bot validation disabled) |
 | `CLOUDFLARED_TOKEN` | Yes | Token from Cloudflare Zero Trust dashboard |
 
 ### Server (full list from `server/.env.example`)
@@ -188,6 +189,7 @@ Key points:
 | `MAX_WALLET_BALANCE` | `200000` | Max wallet balance per user in VND |
 | `MEILISEARCH_URL` | (empty) | Meilisearch URL (e.g., `http://localhost:7700`). Empty = PostgreSQL LIKE fallback |
 | `MEILISEARCH_API_KEY` | (empty) | Meilisearch API key. Empty = no auth |
+| `TURNSTILE_SECRET_KEY` | (empty) | Cloudflare Turnstile secret key. Empty = bot validation skipped |
 
 ### Docker-specific variables
 

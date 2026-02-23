@@ -24,6 +24,25 @@
 
 **Source:** `server/internal/auth/jwt.go`, `server/internal/auth/middleware.go`
 
+### Registration Pre-Check: Turnstile Verification
+
+Before any registration logic runs, the server validates the Cloudflare Turnstile token (if configured):
+
+```
+Register(request):
+  1. Bind & validate request fields (email, password, name)
+  2. If TurnstileService is configured:
+     a. POST {secret, response: turnstile_token, remoteip} to Cloudflare siteverify
+     b. If response.success == false → 400 "bot verification failed"
+  3. Validate email (format, MX records, disposable check, role account check)
+  4. Hash password (bcrypt)
+  5. Create user
+  6. Send verification email
+  7. Generate JWT tokens → 201 response
+```
+
+**Source:** `server/internal/handlers/auth.go`, `server/internal/services/turnstile.go`
+
 ### Token Generation
 
 Two token types are issued on login/registration:
