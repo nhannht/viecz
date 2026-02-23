@@ -185,6 +185,10 @@ func main() {
 	// Create Gin router
 	router := gin.Default()
 
+	// Trust Cloudflare's CF-Connecting-IP header for real client IP.
+	// This has higher priority than X-Forwarded-For and cannot be spoofed by clients.
+	router.TrustedPlatform = gin.PlatformCloudflare
+
 	// Apply CORS middleware
 	router.Use(middleware.CORS(cfg.ClientURL))
 
