@@ -54,8 +54,9 @@ import { LanguageService } from '../core/language.service';
 
           <!-- Language toggle -->
           <button class="bg-transparent border border-bg/40 text-bg px-2 py-1 font-display text-[10px] tracking-[1px] cursor-pointer hover:bg-bg/20 transition-colors"
-                  (click)="lang.toggle()">
-            {{ lang.activeLang === 'vi' ? 'EN' : 'VI' }}
+                  (click)="lang.toggle()"
+                  [attr.title]="lang.activeLang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'">
+            {{ lang.activeLang === 'vi' ? '\uD83C\uDDFB\uD83C\uDDF3 VI' : '\uD83C\uDDEC\uD83C\uDDE7 EN' }}
           </button>
 
           <!-- Notification bell -->
@@ -116,8 +117,9 @@ import { LanguageService } from '../core/language.service';
             </a>
             <!-- Language toggle -->
             <button class="bg-transparent border border-bg/40 text-bg px-2 py-1 font-display text-[10px] tracking-[1px] cursor-pointer hover:bg-bg/20 transition-colors"
-                    (click)="lang.toggle()">
-              {{ lang.activeLang === 'vi' ? 'EN' : 'VI' }}
+                    (click)="lang.toggle()"
+                    [attr.title]="lang.activeLang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'">
+              {{ lang.activeLang === 'vi' ? '\uD83C\uDDFB\uD83C\uDDF3 VI' : '\uD83C\uDDEC\uD83C\uDDE7 EN' }}
             </button>
             <a routerLink="/login"
                class="flex items-center gap-1 px-3 py-2 text-bg no-underline font-body text-[13px] hover:opacity-80 transition-opacity">

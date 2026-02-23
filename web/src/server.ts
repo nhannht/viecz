@@ -13,7 +13,20 @@ const app = express();
 const angularApp = new AngularNodeAppEngine();
 
 /**
- * Serve static files from /browser
+ * Serve i18n files with no-cache (they don't have content hashes in filenames).
+ */
+app.use(
+  '/i18n',
+  express.static(join(browserDistFolder, 'i18n'), {
+    maxAge: 0,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'no-cache');
+    },
+  }),
+);
+
+/**
+ * Serve static files from /browser (hashed assets get 1-year cache).
  */
 app.use(
   express.static(browserDistFolder, {
