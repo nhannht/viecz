@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +33,10 @@ const (
 // mockPayOS implements services.PayOSServicer for the test server.
 // When CreatePaymentLink is called, it spawns a goroutine that POSTs
 // a webhook to auto-credit the wallet after a short delay.
-type mockPayOS struct{}
+// Payouts are auto-completed (stored in memory, GetPayout returns SUCCEEDED).
+type mockPayOS struct {
+	payouts sync.Map // payoutID -> true (all payouts auto-succeed)
+}
 
 var _ services.PayOSServicer = (*mockPayOS)(nil)
 
@@ -86,12 +90,34 @@ func (m *mockPayOS) ConfirmWebhook(_ context.Context, webhookURL string) (string
 	return webhookURL, nil
 }
 
+func (m *mockPayOS) CreatePayout(_ context.Context, referenceID string, amount int, description, toBin, toAccountNumber string) (*services.PayoutResponse, error) {
+	payoutID := fmt.Sprintf("mock_payout_%s_%d", referenceID, time.Now().UnixMilli())
+	m.payouts.Store(payoutID, true)
+	log.Printf("[MockPayOS] Created payout: id=%s, ref=%s, amount=%d, bin=%s, account=%s", payoutID, referenceID, amount, toBin, toAccountNumber)
+	return &services.PayoutResponse{
+		ID:            payoutID,
+		ReferenceID:   referenceID,
+		ApprovalState: "APPROVED",
+	}, nil
+}
+
+func (m *mockPayOS) GetPayout(_ context.Context, payoutID string) (*services.PayoutStatusResponse, error) {
+	if _, ok := m.payouts.Load(payoutID); !ok {
+		return nil, fmt.Errorf("payout not found: %s", payoutID)
+	}
+	// Mock payouts auto-succeed
+	return &services.PayoutStatusResponse{
+		ID:    payoutID,
+		State: "SUCCEEDED",
+	}, nil
+}
+
 // dropAllTables drops all tables for a fresh database on each test server start.
 func dropAllTables(db *gorm.DB) {
 	tables := []string{
 		"notifications", "messages", "conversations",
 		"wallet_transactions", "wallets", "transactions",
-		"task_applications", "tasks", "categories", "users",
+		"bank_accounts", "task_applications", "tasks", "categories", "users",
 	}
 	for _, table := range tables {
 		db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", table))
@@ -198,6 +224,11 @@ func main() {
 
 	mockPayOS := &mockPayOS{}
 
+	// Start payout poller for test server (5s interval for faster feedback)
+	payoutPoller := services.NewPayoutPoller(transactionRepo, walletService, mockPayOS, db, 5*time.Second)
+	payoutPoller.Start()
+	defer payoutPoller.Stop()
+
 	paymentService := services.NewPaymentService(
 		transactionRepo, taskRepo, applicationRepo, walletService, 0, notificationService, db, searchService,
 	)
@@ -205,6 +236,9 @@ func main() {
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, notificationService, db, searchService, paymentService)
 
 	messageService := services.NewMessageService(messageRepo, conversationRepo, hub)
+
+	// Bank account repository
+	bankAccountRepo := repository.NewBankAccountGormRepository(db)
 
 	// 6. Handlers
 	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil) // nil = no Turnstile in test
@@ -214,7 +248,8 @@ func main() {
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
-	walletHandler := handlers.NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, serverURL)
+	walletHandler := handlers.NewWalletHandlerWithWithdrawal(walletService, mockPayOS, transactionRepo, taskRepo, bankAccountRepo, serverURL, 10000, 200000)
+	bankAccountHandler := handlers.NewBankAccountHandler(bankAccountRepo)
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, jwtSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
 	uploadHandler := handlers.NewUploadHandler("./uploads", userService)
@@ -296,6 +331,10 @@ func main() {
 		// Category routes (public)
 		api.GET("/categories", categoryHandler.GetCategories)
 
+		// Bank list route (public, cached from VietQR)
+		bankListHandler := handlers.NewBankListHandler()
+		api.GET("/banks", bankListHandler.GetBanks)
+
 		// User routes
 		users := api.Group("/users")
 		{
@@ -345,6 +384,10 @@ func main() {
 			wallet.GET("", walletHandler.GetWallet)
 			wallet.POST("/deposit", walletHandler.Deposit)
 			wallet.GET("/transactions", walletHandler.GetTransactionHistory)
+			wallet.GET("/bank-accounts", bankAccountHandler.ListBankAccounts)
+			wallet.POST("/bank-accounts", bankAccountHandler.AddBankAccount)
+			wallet.DELETE("/bank-accounts/:id", bankAccountHandler.DeleteBankAccount)
+			wallet.POST("/withdraw", walletHandler.HandleWithdrawal)
 		}
 
 		// Payment routes (protected)

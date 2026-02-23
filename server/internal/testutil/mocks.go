@@ -659,3 +659,65 @@ func (m *MockNotificationRepository) Delete(ctx context.Context, id, userID int6
 	delete(m.Notifications, id)
 	return nil
 }
+
+// GetPendingPayouts returns pending payout transactions
+func (m *MockTransactionRepository) GetPendingPayouts(ctx context.Context) ([]*models.Transaction, error) {
+	var pending []*models.Transaction
+	for _, tx := range m.Transactions {
+		if tx.Status == models.TransactionStatusPending && tx.Type == models.TransactionTypeWithdrawal {
+			pending = append(pending, tx)
+		}
+	}
+	return pending, nil
+}
+
+// MockBankAccountRepository is a mock implementation of repository.BankAccountRepository
+type MockBankAccountRepository struct {
+	Accounts map[int64]*models.BankAccount
+}
+
+func NewMockBankAccountRepository() *MockBankAccountRepository {
+	return &MockBankAccountRepository{
+		Accounts: make(map[int64]*models.BankAccount),
+	}
+}
+
+func (m *MockBankAccountRepository) Create(ctx context.Context, bankAccount *models.BankAccount) error {
+	bankAccount.ID = int64(len(m.Accounts) + 1)
+	m.Accounts[bankAccount.ID] = bankAccount
+	return nil
+}
+
+func (m *MockBankAccountRepository) GetByID(ctx context.Context, id int64) (*models.BankAccount, error) {
+	account, exists := m.Accounts[id]
+	if !exists {
+		return nil, errors.New("bank account not found")
+	}
+	return account, nil
+}
+
+func (m *MockBankAccountRepository) GetByIDAndUserID(ctx context.Context, id, userID int64) (*models.BankAccount, error) {
+	account, exists := m.Accounts[id]
+	if !exists || account.UserID != userID {
+		return nil, errors.New("bank account not found")
+	}
+	return account, nil
+}
+
+func (m *MockBankAccountRepository) GetByUserID(ctx context.Context, userID int64) ([]*models.BankAccount, error) {
+	var accounts []*models.BankAccount
+	for _, account := range m.Accounts {
+		if account.UserID == userID {
+			accounts = append(accounts, account)
+		}
+	}
+	return accounts, nil
+}
+
+func (m *MockBankAccountRepository) Delete(ctx context.Context, id int64) error {
+	if _, exists := m.Accounts[id]; !exists {
+		return errors.New("bank account not found")
+	}
+	delete(m.Accounts, id)
+	return nil
+}

@@ -52,6 +52,21 @@ func (m *e2eMockPayOS) ConfirmWebhook(_ context.Context, webhookURL string) (str
 	return webhookURL, nil
 }
 
+func (m *e2eMockPayOS) CreatePayout(_ context.Context, referenceID string, amount int, description, toBin, toAccountNumber string) (*services.PayoutResponse, error) {
+	return &services.PayoutResponse{
+		ID:            fmt.Sprintf("mock_payout_%s", referenceID),
+		ReferenceID:   referenceID,
+		ApprovalState: "APPROVED",
+	}, nil
+}
+
+func (m *e2eMockPayOS) GetPayout(_ context.Context, payoutID string) (*services.PayoutStatusResponse, error) {
+	return &services.PayoutStatusResponse{
+		ID:    payoutID,
+		State: "SUCCEEDED",
+	}, nil
+}
+
 // --- E2E test infrastructure ---
 
 const e2eJWTSecret = "e2e-test-secret-key"
