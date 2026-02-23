@@ -47,7 +47,12 @@ appVersioning {
     }
     overrideVersionName { gitTag, _, variantInfo ->
         val version = gitTag.toString().removePrefix("android/")
-        if (variantInfo.flavorName == "dev") "$version-dev" else version
+        val suffix = when {
+            variantInfo.flavorName == "dev" -> "-dev"
+            variantInfo.buildType == "release" -> "-rel"
+            else -> ""
+        }
+        "$version$suffix"
     }
 }
 
