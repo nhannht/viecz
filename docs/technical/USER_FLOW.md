@@ -632,12 +632,77 @@ Return to app (lifecycle RESUMED triggers refresh)
 **Constraint:** Max wallet balance = 200,000 VND for deposits (earnings bypass limit)
 **Test server:** Mock PayOS auto-fires webhook after 100ms
 
-### 10.3 Transaction Types
+### 10.3 Bank Account Management
+
+```
+Wallet tab > Settings / Withdrawal section
+    |
+    v
+Bank account list (GET /api/v1/wallet/bank-accounts)
+    |
+    +-- Add bank account:
+    |     - Select bank (from GET /api/v1/banks — VietQR bank list, cached 24h)
+    |     - Enter account number
+    |     - Enter account holder name
+    |     POST /api/v1/wallet/bank-accounts
+    |
+    +-- Delete bank account:
+          DELETE /api/v1/wallet/bank-accounts/:id
+          (ownership validated server-side)
+```
+
+**APIs:**
+- `GET /api/v1/banks` — Public, cached VietQR bank list (transfer-capable banks only)
+- `GET /api/v1/wallet/bank-accounts` — List user's saved bank accounts
+- `POST /api/v1/wallet/bank-accounts` — Add a new bank account
+- `DELETE /api/v1/wallet/bank-accounts/:id` — Delete (ownership check)
+
+### 10.4 Withdrawal Flow (PayOS Payout)
+
+```
+Wallet tab > Tap Withdraw
+    |
+    v
+WithdrawalDialog / Withdrawal form
+    Fields:
+      - Amount (VND, min 10000, max 200000, multiple of 1000)
+      - Bank account (select from saved accounts)
+    |
+    v
+Tap "Withdraw"
+    POST /api/v1/wallet/withdraw
+    |
+    v
+Server-side:
+    1. Validate amount and bank account ownership
+    2. Debit wallet immediately (balance -= amount)
+    3. Create pending withdrawal Transaction
+    4. Call PayOS CreatePayout API (using dedicated payout client)
+    5. Store PayOS payout ID on transaction
+    |
+    v
+Background processing:
+    PayoutPoller checks PayOS status every 30s
+    |
+    +-- SUCCEEDED → Transaction.Status = "success"
+    |
+    +-- FAILED/CANCELLED/REVERSED → Transaction.Status = "failed"
+        → Wallet refunded automatically (balance += amount)
+    |
+    v
+User sees transaction status update in wallet history
+```
+
+**API:** `POST /api/v1/wallet/withdraw` — `{ amount, bank_account_id }`
+**Constraints:** Min 10,000 VND, max 200,000 VND, must be multiple of 1,000
+**Async:** Payout processed asynchronously; `PayoutPoller` monitors status and auto-refunds on failure
+
+### 10.5 Transaction Types
 
 | Type              | Direction | Description                         |
 |-------------------|-----------|-------------------------------------|
 | `DEPOSIT`         | +         | Funds added via PayOS               |
-| `WITHDRAWAL`      | -         | Withdraw to bank (not yet implemented) |
+| `WITHDRAWAL`      | -         | Funds withdrawn to bank via PayOS payout |
 | `ESCROW_HOLD`     | -         | Funds locked when accepting application |
 | `ESCROW_RELEASE`  | +         | Escrow paid to tasker on completion  |
 | `ESCROW_REFUND`   | +         | Escrow returned on cancellation     |

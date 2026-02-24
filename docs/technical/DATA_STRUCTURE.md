@@ -147,6 +147,7 @@ erDiagram
         string type
         string title
         string message
+        jsonb params
         int64 task_id FK
         bool is_read
         timestamp created_at
@@ -721,12 +722,15 @@ type Notification struct {
     Type      NotificationType `gorm:"type:varchar(50);not null" json:"type"`
     Title     string           `gorm:"type:varchar(255);not null" json:"title"`
     Message   string           `gorm:"type:text;not null" json:"message"`
+    Params    StringMap        `gorm:"type:jsonb" json:"params,omitempty"`
     TaskID    *int64           `gorm:"index" json:"task_id,omitempty"`
     IsRead    bool             `gorm:"default:false" json:"is_read"`
     CreatedAt time.Time        `gorm:"autoCreateTime" json:"created_at"`
     User      User             `gorm:"foreignKey:UserID" json:"-"`
 }
 ```
+
+`StringMap` is a `map[string]string` with custom GORM scanner/valuer for PostgreSQL JSONB storage. Used to pass dynamic parameters (e.g., task title, user name) to the client for client-side i18n interpolation.
 
 | Field | Type | GORM Tags | Description |
 |-------|------|-----------|-------------|
@@ -735,6 +739,7 @@ type Notification struct {
 | Type | NotificationType | type:varchar(50), not null | Notification type (see NotificationType enum) |
 | Title | string | type:varchar(255), not null | Notification title |
 | Message | string | type:text, not null | Notification message body |
+| Params | StringMap | type:jsonb | Dynamic parameters for client-side i18n interpolation (nullable JSONB) |
 | TaskID | *int64 | index | FK to tasks.id (nullable, context link) |
 | IsRead | bool | default:false | Whether the user has read this notification |
 | CreatedAt | time.Time | autoCreateTime | Record creation timestamp |

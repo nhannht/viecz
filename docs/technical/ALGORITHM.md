@@ -436,6 +436,7 @@ TotalSpent >= 0
 | `HoldInEscrow(amount)` | -= amount | += amount | Also increments TotalSpent |
 | `ReleaseFromEscrow(amount)` | unchanged | -= amount | Funds go to payee, not back to balance |
 | `RefundFromEscrow(amount)` | += amount | -= amount | Also decrements TotalSpent (reversal) |
+| `Withdraw(amount)` | -= amount | unchanged | Also increments TotalWithdrawn. Fails if Balance < amount |
 
 ### Transaction Nesting (outerTx pattern)
 
@@ -875,6 +876,111 @@ if search query present:
 
 ---
 
-**Document Version:** 2.3
-**Last Updated:** 2026-02-17
+## 12. Wallet Withdrawal (Payout)
+
+**Source:** `server/internal/services/wallet.go` -- `Withdraw`, `server/internal/handlers/wallet.go` -- `HandleWithdraw`, `server/internal/services/payout_poller.go`
+
+### Dual PayOS Client Architecture
+
+PayOS uses separate API credentials for deposits (payment links) and payouts (disbursements). The `PayOSService` holds two SDK clients:
+
+```go
+type PayOSService struct {
+    client       *payos.PayOS  // deposit channel (payment links, webhooks)
+    payoutClient *payos.PayOS  // payout channel (disbursements)
+}
+```
+
+- Deposit methods (`CreatePaymentLink`, `VerifyWebhookData`, `GetPaymentInfo`, `CancelPaymentLink`, `ConfirmWebhook`) use `s.client`
+- Payout methods (`CreatePayout`, `GetPayout`) use `s.payoutClient`
+- If payout credentials are not configured, `payoutClient` is `nil` and payout methods return "payout not configured"
+
+**Source:** `server/internal/services/payos.go`
+
+### Withdrawal Flow
+
+```
+HandleWithdraw(userID, amount, bankAccountID):
+  1. Validate amount:
+     - amount >= MinWithdrawalAmount (default 10,000 VND)
+     - amount <= MaxWithdrawalAmount (default 200,000 VND)
+     - amount % 1000 == 0 (must be multiple of 1,000)
+  2. Fetch bank account by ID, verify ownership (userID match)
+  3. WalletService.Withdraw(ctx, userID, amount, description):
+     DB Transaction:
+       a. GetByUserIDForUpdate — row lock on wallet
+       b. Check wallet.Balance >= amount
+       c. wallet.Balance -= amount
+       d. wallet.TotalWithdrawn += amount
+       e. Create pending Transaction (type=withdrawal, status=pending)
+       f. Create WalletTransaction record (type=withdrawal)
+  4. PayOSService.CreatePayout(payoutRequest):
+     - Sends payout to bank via PayOS payout channel
+     - payoutRequest contains: amount, bank info, description, reference
+  5. Store PayOS payout ID on Transaction for polling
+  6. Return {transaction_id, status: "pending"}
+```
+
+### PayoutPoller (Background Status Checker)
+
+**Source:** `server/internal/services/payout_poller.go`
+
+A background goroutine that polls PayOS for payout status updates. Started on server boot with a configurable interval (default 30 seconds).
+
+```
+PayoutPoller.Start(interval):
+  ticker = time.NewTicker(interval)
+  forever:
+    <- ticker.C
+    pollPendingPayouts()
+
+pollPendingPayouts():
+  1. Find all transactions WHERE type = "withdrawal" AND status = "pending"
+  2. For each pending transaction:
+     a. payosService.GetPayout(transaction.PayoutID)
+     b. Switch on payout status:
+        - SUCCEEDED:
+            transaction.Status = "success"
+            Save transaction
+        - FAILED, CANCELLED, REVERSED:
+            transaction.Status = "failed"
+            transaction.FailureReason = payout status
+            Save transaction
+            Auto-refund: walletService.Deposit(ctx, nil, userID, amount, "Withdrawal refund")
+        - PROCESSING, RECEIVED, ON_HOLD:
+            Skip (still in progress, check again next tick)
+     c. Log errors but continue processing other payouts
+```
+
+### Auto-Refund on Failure
+
+When PayOS reports a payout as failed/cancelled/reversed, the poller automatically refunds the user's wallet:
+
+```
+Refund flow:
+  1. Mark transaction as failed (with reason)
+  2. Call WalletService.Deposit(userID, amount, "Withdrawal refund: <reason>")
+     - wallet.Balance += amount
+     - wallet.TotalDeposited += amount
+     - Creates WalletTransaction (type=deposit) for audit trail
+```
+
+The refund uses the standard `Deposit` method with `outerTx = nil` (own transaction), ensuring atomicity.
+
+### Withdrawal Validation Summary
+
+| Check | Enforced By | Error |
+|---|---|---|
+| Amount >= min (10,000) | Handler | 400 "amount below minimum" |
+| Amount <= max (200,000) | Handler | 400 "amount above maximum" |
+| Amount % 1000 == 0 | Handler | 400 "amount must be multiple of 1000" |
+| Bank account exists | Handler | 400 "bank account not found" |
+| Bank account ownership | Handler | 400 "bank account not found" (same error, prevents enumeration) |
+| Sufficient balance | WalletService | 500 "insufficient balance" |
+| PayOS payout configured | PayOSService | 500 "payout not configured" |
+
+---
+
+**Document Version:** 2.4
+**Last Updated:** 2026-02-23
 **Source of Truth:** Go source code in `server/internal/`

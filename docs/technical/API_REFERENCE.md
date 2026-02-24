@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-23 (Wallet withdrawal/payout endpoints added)
+**Last Updated:** 2026-02-23 (Wallet withdrawal/payout, email verification, banks endpoints added)
 
 ---
 
@@ -21,8 +21,9 @@
 10. [Conversations & Messages](#10-conversations--messages)
 11. [WebSocket](#11-websocket)
 12. [Notifications](#12-notifications)
-13. [Error Responses](#13-error-responses)
-14. [Appendices](#14-appendices)
+13. [Banks](#13-banks)
+14. [Error Responses](#14-error-responses)
+15. [Appendices](#15-appendices)
 
 ---
 
@@ -165,7 +166,63 @@ Same format as Login (section 1.2).
 
 ---
 
-### 1.4. Refresh Token
+### 1.4. Verify Email
+
+Verify user's email address using a token sent via email after registration.
+
+**Endpoint:** `POST /api/v1/auth/verify-email`
+**Auth:** None
+
+#### Request Body
+
+```json
+{
+  "token": "abc123..."
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `token` | string | Yes | Email verification token (sent to user's email) |
+
+#### Response: 200 OK
+
+```json
+{
+  "message": "email verified successfully"
+}
+```
+
+#### Errors
+
+- `400` - Missing or invalid token
+- `404` - Token not found or expired
+
+---
+
+### 1.5. Resend Verification Email
+
+Resend the email verification link. Rate-limited to prevent abuse.
+
+**Endpoint:** `POST /api/v1/auth/resend-verification`
+**Auth:** Required
+
+#### Response: 200 OK
+
+```json
+{
+  "message": "verification email sent"
+}
+```
+
+#### Errors
+
+- `400` - Email already verified
+- `429` - Rate limited (too many requests)
+
+---
+
+### 1.6. Refresh Token
 
 Get a new access token using a refresh token.
 
@@ -1705,7 +1762,37 @@ When a notification is created, if the recipient is connected via WebSocket, a r
 
 ---
 
-## 13. Error Responses
+## 13. Banks
+
+### 13.1. List Banks
+
+Get the list of Vietnamese banks that support transfers (from VietQR/Napas). Results are cached server-side for 24 hours.
+
+**Endpoint:** `GET /api/v1/banks`
+**Auth:** None
+
+#### Response: 200 OK
+
+```json
+[
+  {
+    "id": 17,
+    "name": "Ngân hàng TMCP Ngoại thương Việt Nam",
+    "code": "VCB",
+    "bin": "970436",
+    "shortName": "Vietcombank",
+    "logo": "https://api.vietqr.io/img/VCB.png",
+    "transferSupported": 1,
+    "lookupSupported": 1
+  }
+]
+```
+
+The response contains only banks where `transferSupported == 1`. The full bank list is fetched from `https://api.vietqr.io/v2/banks` and filtered. On fetch error, stale cache is returned (graceful degradation).
+
+---
+
+## 14. Error Responses
 
 ### Standard Error Format
 
@@ -1740,7 +1827,7 @@ Or with message detail:
 
 ---
 
-## 14. Appendices
+## 15. Appendices
 
 ### A. Health Check
 
@@ -1833,8 +1920,11 @@ The test server (`cmd/testserver/main.go`) provides an identical API with:
 | POST | `/api/v1/auth/register` | No | Register |
 | POST | `/api/v1/auth/login` | No | Login |
 | POST | `/api/v1/auth/google` | No | Google OAuth login |
+| POST | `/api/v1/auth/verify-email` | No | Verify email |
 | POST | `/api/v1/auth/refresh` | No | Refresh token |
+| POST | `/api/v1/auth/resend-verification` | Yes | Resend verification email |
 | GET | `/api/v1/categories` | No | List categories |
+| GET | `/api/v1/banks` | No | List banks (VietQR) |
 | GET | `/api/v1/users/:id` | No | Get user profile |
 | GET | `/api/v1/users/me` | Yes | Get my profile |
 | PUT | `/api/v1/users/me` | Yes | Update my profile |

@@ -378,6 +378,7 @@ Authorization checks are enforced at the service/handler level:
 - **Release payment:** Only the requester can release (`task.RequesterID != requesterID`)
 - **Refund payment:** Only the requester can refund
 - **Conversations:** Only poster or tasker can send/read messages (`conversation.PosterID != client.UserID && conversation.TaskerID != client.UserID`)
+- **Bank accounts:** Only the owner can view/delete their bank accounts (`bankAccount.UserID != userID`). Withdrawal endpoint also verifies bank account ownership before initiating payout
 
 #### Task Deletion Race Condition Handling
 
@@ -527,9 +528,17 @@ The project uses [PayOS](https://payos.vn/) for payment processing.
 **SDK:** `github.com/payOSHQ/payos-lib-golang/v2`
 
 **Configuration (env vars):**
-- `PAYOS_CLIENT_ID`
-- `PAYOS_API_KEY`
-- `PAYOS_CHECKSUM_KEY`
+
+| Variable | Channel | Description |
+|----------|---------|-------------|
+| `PAYOS_CLIENT_ID` | Deposit | Client ID for payment links |
+| `PAYOS_API_KEY` | Deposit | API key for payment links |
+| `PAYOS_CHECKSUM_KEY` | Deposit | Checksum key for webhook verification |
+| `PAYOS_PAYOUT_CLIENT_ID` | Payout | Client ID for disbursements |
+| `PAYOS_PAYOUT_API_KEY` | Payout | API key for disbursements |
+| `PAYOS_PAYOUT_CHECKSUM_KEY` | Payout | Checksum key for payout verification |
+
+**Dual-client architecture:** PayOS uses separate API keys for deposits and payouts. The `PayOSService` holds two `payos.PayOS` SDK instances — one for each channel. Deposit methods use the deposit client; payout methods (`CreatePayout`, `GetPayout`) use the payout client. If payout credentials are not configured, the payout client is `nil` and withdrawal requests return an error.
 
 **Source:** `server/internal/services/payos.go`, `server/internal/config/config.go`
 
@@ -818,6 +827,7 @@ The server accepts a single `CLIENT_URL` for CORS. The web client must be served
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.4 | 2026-02-23 | Document dual PayOS clients (deposit/payout), bank account ownership validation |
 | 2.3 | 2026-02-23 | Add Cloudflare Turnstile bot prevention on registration |
 | 2.2 | 2026-02-20 | Add web client security: token storage, auth interceptor, route guards, known limitations |
 | 2.1 | 2026-02-16 | Add Google OAuth (OIDC) security documentation, User model OAuth fields |

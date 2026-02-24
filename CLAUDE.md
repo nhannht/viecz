@@ -2,6 +2,50 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Serena MCP Tool Priority (CRITICAL - ALWAYS FOLLOW)
+
+**MANDATORY**: Serena is a passive tool — it only activates when explicitly called. You MUST proactively use Serena's semantic tools for code work. Never default to raw file reads when Serena can do it better.
+
+### Decision Matrix: When to Use Which Tool
+
+| Task | Use This | NOT This | Why |
+|---|---|---|---|
+| Understand a file's structure | `mcp__serena__get_symbols_overview` | `Read` entire file | ~90% fewer tokens, semantic view |
+| Find a class/function by name | `mcp__serena__find_symbol` | `Grep` for name | LSP-aware, understands scope/nesting |
+| Find all callers of a function | `mcp__serena__find_referencing_symbols` | `Grep` for function name | Cross-file LSP references, not text match |
+| Replace an entire function/method | `mcp__serena__replace_symbol_body` | `Edit` with full body | Knows exact symbol boundaries |
+| Add new code next to existing | `mcp__serena__insert_before/after_symbol` | Manual line counting | Structural insertion, no line numbers needed |
+| Rename a symbol across codebase | `mcp__serena__rename_symbol` | Find-and-replace | LSP refactoring, handles all references correctly |
+| Search with regex across files | `mcp__serena__search_for_pattern` | `Grep` | Better file filtering (code-only, globs) |
+| Edit 3 lines inside a big function | Claude Code `Edit` | `replace_symbol_body` | Surgical edit, don't reproduce entire body |
+| Read config/YAML/non-code files | Claude Code `Read` | Serena tools | No LSP intelligence for non-code |
+| Run commands / shell ops | Claude Code `Bash` | N/A | Serena has no shell in claude-code context |
+
+### Standard Code Exploration Workflow
+
+1. **Overview first**: `get_symbols_overview(file, depth=1)` to see all symbols in a file
+2. **Drill down**: `find_symbol(name, include_body=True)` only for the specific symbol you need
+3. **Trace usage**: `find_referencing_symbols(name, file)` to understand call graph
+4. **Edit precisely**: `replace_symbol_body` for whole symbols, Claude Code `Edit` for small patches
+
+### Key Rules
+
+- **ALWAYS call `get_symbols_overview` before reading any code file** — understand structure first, read bodies second
+- **ALWAYS use `find_referencing_symbols`** before renaming or changing a symbol's signature — check what depends on it
+- **Use `find_symbol` with `include_body=False` first**, then `include_body=True` only for the specific symbol you need
+- **Pass `relative_path`** whenever possible — restricts search scope, faster results, fewer tokens
+- **`find_referencing_symbols` requires a file path**, not a directory — use `find_symbol` first if you don't know the file
+- **No cross-language references** — Go LSP won't find TypeScript references and vice versa
+
+### Serena Memories
+
+Serena has persistent cross-session memories in `.serena/memories/`. At session start, check if relevant memories exist before starting work:
+- `mcp__serena__list_memories()` to see available knowledge
+- `mcp__serena__read_memory(name)` to load relevant context
+- `mcp__serena__write_memory(name, content)` to save new learnings
+
+Current memories: `project_overview`, `suggested_commands`, `architecture/go_backend`, `architecture/angular_web`, `conventions/go_style`, `conventions/angular_style`, `task_completion_checklist`, `gotchas`
+
 ## UI/UX Issue Investigation (CRITICAL - ALWAYS FOLLOW)
 
 **MANDATORY**: When the user asks about UI/UX behavior, visual bugs, or app navigation issues, follow this order:

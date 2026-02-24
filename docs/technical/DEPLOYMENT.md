@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-23
 
 ---
 
@@ -97,6 +97,9 @@ services:
       PAYOS_CLIENT_ID: ${PAYOS_CLIENT_ID:-}
       PAYOS_API_KEY: ${PAYOS_API_KEY:-}
       PAYOS_CHECKSUM_KEY: ${PAYOS_CHECKSUM_KEY:-}
+      PAYOS_PAYOUT_CLIENT_ID: ${PAYOS_PAYOUT_CLIENT_ID:-}
+      PAYOS_PAYOUT_API_KEY: ${PAYOS_PAYOUT_API_KEY:-}
+      PAYOS_PAYOUT_CHECKSUM_KEY: ${PAYOS_PAYOUT_CHECKSUM_KEY:-}
     ports:
       - "${DOCKER_SERVER_PORT:-8080}:${PORT:-8080}"
     depends_on:
@@ -161,9 +164,12 @@ Key points:
 | `DB_NAME` | Yes | PostgreSQL database name |
 | `CLIENT_URL` | Yes | Frontend URL for CORS |
 | `JWT_SECRET` | Yes | Minimum 32 characters, random string |
-| `PAYOS_CLIENT_ID` | No | PayOS payment gateway client ID |
-| `PAYOS_API_KEY` | No | PayOS payment gateway API key |
-| `PAYOS_CHECKSUM_KEY` | No | PayOS payment gateway checksum key |
+| `PAYOS_CLIENT_ID` | No | PayOS deposit channel client ID |
+| `PAYOS_API_KEY` | No | PayOS deposit channel API key |
+| `PAYOS_CHECKSUM_KEY` | No | PayOS deposit channel checksum key |
+| `PAYOS_PAYOUT_CLIENT_ID` | No | PayOS payout channel client ID (for withdrawals) |
+| `PAYOS_PAYOUT_API_KEY` | No | PayOS payout channel API key |
+| `PAYOS_PAYOUT_CHECKSUM_KEY` | No | PayOS payout channel checksum key |
 | `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (empty = bot validation disabled) |
 | `CLOUDFLARED_TOKEN` | Yes | Token from Cloudflare Zero Trust dashboard |
 
@@ -182,9 +188,14 @@ Key points:
 | `DB_NAME` | `viecz` | PostgreSQL database |
 | `DB_SSLMODE` | `disable` | PostgreSQL SSL mode |
 | `JWT_SECRET` | (insecure default) | JWT signing key |
-| `PAYOS_CLIENT_ID` | (empty) | PayOS credentials |
-| `PAYOS_API_KEY` | (empty) | PayOS credentials |
-| `PAYOS_CHECKSUM_KEY` | (empty) | PayOS credentials |
+| `PAYOS_CLIENT_ID` | (empty) | PayOS deposit channel credentials |
+| `PAYOS_API_KEY` | (empty) | PayOS deposit channel credentials |
+| `PAYOS_CHECKSUM_KEY` | (empty) | PayOS deposit channel credentials |
+| `PAYOS_PAYOUT_CLIENT_ID` | (empty) | PayOS payout channel credentials (for withdrawals) |
+| `PAYOS_PAYOUT_API_KEY` | (empty) | PayOS payout channel credentials |
+| `PAYOS_PAYOUT_CHECKSUM_KEY` | (empty) | PayOS payout channel credentials |
+| `MIN_WITHDRAWAL_AMOUNT` | `10000` | Minimum withdrawal amount in VND |
+| `MAX_WITHDRAWAL_AMOUNT` | `200000` | Maximum withdrawal amount in VND |
 | `PLATFORM_FEE_RATE` | `0` | Platform fee as decimal (e.g. `0.10` = 10%) |
 | `MAX_WALLET_BALANCE` | `200000` | Max wallet balance per user in VND |
 | `MEILISEARCH_URL` | (empty) | Meilisearch URL (e.g., `http://localhost:7700`). Empty = PostgreSQL LIKE fallback |
@@ -404,15 +415,17 @@ The test server connects to PostgreSQL on port 5433 (database `viecz_test`, user
 ### Routes
 
 The test server mirrors all production routes exactly:
-- Auth: `/api/v1/auth/{register,login,refresh}`
-- Users: `/api/v1/users/{:id,me}`
+- Auth: `/api/v1/auth/{register,login,google,refresh,verify-email,resend-verification}`
+- Users: `/api/v1/users/{:id,me,become-tasker,me/avatar}`
 - Tasks: `/api/v1/tasks/...`
-- Wallet: `/api/v1/wallet/{deposit,transactions}`
+- Wallet: `/api/v1/wallet/{deposit,transactions,bank-accounts,withdraw}`
 - Payments: `/api/v1/payments/{escrow,release,refund}`
+- Payment (PayOS): `/api/v1/payment/{create,return,webhook,confirm-webhook}`
 - WebSocket: `/api/v1/ws`
 - Conversations: `/api/v1/conversations/...`
 - Notifications: `/api/v1/notifications/...`
 - Categories: `/api/v1/categories`
+- Banks: `/api/v1/banks`
 
 ---
 
