@@ -1,17 +1,36 @@
 # Testing Standards
 
-**Last Updated:** 2026-02-22
+**Last Updated:** 2026-02-24
 
 ---
 
 ## Coverage Targets
 
-| Metric | Standard | Notes |
-|--------|----------|-------|
-| Statements | 90% | |
-| Branches | 80% | Angular signal/input internals inflate branch count ~10% |
-| Functions | 90% | |
-| Lines | 90% | |
+Coverage targets are tiered by platform and package type, reflecting the practical testability of each layer.
+
+### Web Client (Angular)
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Statements | 90% | Currently at 97% |
+| Branches | 80% | Angular signal internals inflate branch count ~10% |
+| Functions | 90% | Currently at 91% |
+| Lines | 90% | Currently at 98% |
+
+### Go Server — By Package Tier
+
+| Tier | Packages | Target | Rationale |
+|------|----------|--------|-----------|
+| **Business logic** | `services`, `handlers`, `auth`, `middleware` | **75%** | Core value — bugs here have user impact |
+| **Data layer** | `models`, `repository` | **50%** | Validation hooks + CRUD operations |
+| **Infrastructure** | `config`, `database`, `logger`, `websocket`, `cmd/*` | **No target** | Thin wrappers, entrypoints, or require complex integration setup |
+
+**Why not 90% everywhere?**
+- `cmd/*` are entrypoints that wire dependencies and start the server — testing them is E2E, not unit tests
+- `config` reads env vars — testing it verifies `os.Getenv` works, not our code
+- `logger` wraps zerolog — no business logic to test
+- `websocket` requires real WebSocket connections — better covered by E2E tests
+- `repository` uses testcontainers (PostgreSQL per test, ~10s startup) — slow feedback loop limits practical density
 
 ### Angular Branch Coverage Ceiling
 
@@ -141,17 +160,22 @@ go tool cover -html=coverage.out
 - **Repository**: Use testcontainers-go with PostgreSQL (requires Docker)
 - **Models**: Direct struct validation
 
-### Current Coverage (2026-02-22)
+### Current Coverage (2026-02-24)
 
-| Package | Coverage |
-|---------|----------|
-| `internal/auth` | 62% |
-| `internal/handlers` | 59% |
-| `internal/services` | 55% |
-| `internal/models` | 26% |
-| `internal/repository` | 27% (needs Docker) |
-| `internal/middleware` | 0% |
-| `internal/websocket` | 0% |
+| Package | Coverage | Tier | Target | Status |
+|---------|----------|------|--------|--------|
+| `internal/middleware` | 78.3% | Business logic | 75% | Met |
+| `internal/handlers` | 61.6% | Business logic | 75% | Below |
+| `internal/auth` | 59.8% | Business logic | 75% | Below |
+| `internal/services` | 56.3% | Business logic | 75% | Below |
+| `internal/repository` | 29.9% | Data layer | 50% | Below |
+| `internal/models` | 28.7% | Data layer | 50% | Below |
+| `internal/websocket` | 0% | Infrastructure | — | N/A |
+| `internal/config` | 0% | Infrastructure | — | N/A |
+| `internal/database` | 0% | Infrastructure | — | N/A |
+| `internal/logger` | 0% | Infrastructure | — | N/A |
+
+**Note:** Repository tests require Docker (`sudo go test` or user in `docker` group) for testcontainers-go PostgreSQL containers.
 
 ### Branch Coverage
 

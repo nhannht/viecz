@@ -133,6 +133,7 @@ Viecz is a multi-package project containing:
 
 - **Before implementing a feature** — check relevant docs for existing patterns, models, and endpoints
 - **Before debugging** — understand the architecture and data flow from the docs
+- **Before writing or running tests** — read `TESTING.md` for coverage targets, platform commands, and test patterns
 - **When onboarding to an unfamiliar area** — read the relevant doc before diving into code
 
 ### When to Update
@@ -144,6 +145,7 @@ Viecz is a multi-package project containing:
 - **After changing business logic or algorithms** — update `ALGORITHM.md`
 - **After changing auth, security, or middleware** — update `SECURITY.md`
 - **After changing deployment, Docker, or infra config** — update `DEPLOYMENT.md`
+- **After changing test patterns, coverage targets, or test infrastructure** — update `TESTING.md`
 - **After updating any technical doc** — update the Document Index table in this `CLAUDE.md` if the doc's content scope changed
 
 ### Document Index
@@ -169,7 +171,7 @@ Viecz is a multi-package project containing:
 | `UI_ACCESSIBILITY.md` | Accessibility audit: ARIA per component, known gaps, keyboard nav, testing tools |
 | `UI_PLATFORM_PARITY.md` | Android vs Web: screen-by-screen comparison, navigation, design language |
 | `UI_ANIMATION.md` | Animation patterns: duration scale, hover effects, loading animations, guidelines |
-| `TESTING.md` | Testing standards: coverage targets (90% stmts/funcs/lines, 80% branches), platform commands, patterns |
+| `TESTING.md` | Testing standards: tiered coverage targets (75% business logic, 50% data layer), platform commands, patterns |
 | `README.md` | Index and navigation guide |
 
 ## YouTrack Project Management
