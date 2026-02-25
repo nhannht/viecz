@@ -2,11 +2,13 @@ package com.viecz.vieczandroid.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,9 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.viecz.vieczandroid.data.models.BankAccount
+import com.viecz.vieczandroid.data.models.VietQRBank
 import com.viecz.vieczandroid.data.models.WalletTransaction
 import com.viecz.vieczandroid.data.models.WalletTransactionType
-import com.viecz.vieczandroid.ui.components.EmptyState
 import com.viecz.vieczandroid.ui.components.metro.MetroButton
 import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
 import com.viecz.vieczandroid.ui.components.metro.MetroCard
@@ -31,6 +34,8 @@ import com.viecz.vieczandroid.ui.components.metro.MetroDialog
 import com.viecz.vieczandroid.ui.components.metro.MetroDivider
 import com.viecz.vieczandroid.ui.components.metro.MetroFab
 import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroSelect
+import com.viecz.vieczandroid.ui.components.metro.MetroSelectOption
 import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
 import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.*
@@ -47,10 +52,13 @@ fun WalletScreen(
     val walletState by viewModel.uiState.collectAsState()
     val transactionsState by viewModel.transactionsState.collectAsState()
     val depositState by viewModel.depositState.collectAsState()
+    val withdrawalState by viewModel.withdrawalState.collectAsState()
+    val bankAccountsState by viewModel.bankAccountsState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var showDepositDialog by remember { mutableStateOf(false) }
+    var showWithdrawDialog by remember { mutableStateOf(false) }
 
     // Auto-refresh wallet when returning from browser (RESUMED state)
     LaunchedEffect(lifecycleOwner) {
@@ -71,6 +79,14 @@ fun WalletScreen(
         }
     }
 
+    // Close withdraw dialog on success
+    LaunchedEffect(withdrawalState) {
+        if (withdrawalState is WithdrawalUiState.Success) {
+            showWithdrawDialog = false
+            viewModel.resetWithdrawalState()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -88,11 +104,21 @@ fun WalletScreen(
             )
         },
         floatingActionButton = {
-            MetroFab(
-                onClick = { showDepositDialog = true },
-                icon = Icons.Default.Add,
-                contentDescription = "Deposit",
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+                MetroFab(
+                    onClick = { showWithdrawDialog = true },
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Withdraw",
+                )
+                MetroFab(
+                    onClick = { showDepositDialog = true },
+                    icon = Icons.Default.Add,
+                    contentDescription = "Deposit",
+                )
+            }
         }
     ) { paddingValues ->
         WalletContent(
@@ -114,6 +140,25 @@ fun WalletScreen(
             }
         )
     }
+
+    // Withdraw Dialog
+    if (showWithdrawDialog) {
+        val availableBalance = (walletState as? WalletUiState.Success)?.wallet?.availableBalance ?: 0L
+        val bankAccounts = (bankAccountsState as? BankAccountsUiState.Success)?.accounts ?: emptyList()
+
+        WithdrawDialog(
+            withdrawalState = withdrawalState,
+            bankAccounts = bankAccounts,
+            availableBalance = availableBalance,
+            onWithdraw = { amount, bankAccountId ->
+                viewModel.withdraw(amount, bankAccountId)
+            },
+            onDismiss = {
+                showWithdrawDialog = false
+                viewModel.resetWithdrawalState()
+            }
+        )
+    }
 }
 
 @Composable
@@ -124,6 +169,9 @@ fun WalletContent(
     val colors = MetroTheme.colors
     val walletState by viewModel.uiState.collectAsState()
     val transactionsState by viewModel.transactionsState.collectAsState()
+    val bankAccountsState by viewModel.bankAccountsState.collectAsState()
+    val banksState by viewModel.banksState.collectAsState()
+    val addBankAccountState by viewModel.addBankAccountState.collectAsState()
 
     LazyColumn(
         modifier = modifier
@@ -157,14 +205,28 @@ fun WalletContent(
             }
         }
 
-        // Deposit limits info
+        // Deposit/Withdrawal limits info
         item {
             Text(
-                text = "Min deposit: 2,000 VND \u2022 Max balance: 200,000 VND",
+                text = "Deposit min: 2,000 VND \u2022 Withdraw: 10,000\u2013200,000 VND",
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.muted,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
+            )
+        }
+
+        // Bank Accounts Section
+        item {
+            BankAccountsSection(
+                bankAccountsState = bankAccountsState,
+                banksState = banksState,
+                addBankAccountState = addBankAccountState,
+                onAddBankAccount = { bankBin, bankName, accountNumber, accountHolderName ->
+                    viewModel.addBankAccount(bankBin, bankName, accountNumber, accountHolderName)
+                },
+                onDeleteBankAccount = { id -> viewModel.deleteBankAccount(id) },
+                onResetAddState = { viewModel.resetAddBankAccountState() }
             )
         }
 
@@ -232,6 +294,218 @@ fun WalletContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun BankAccountsSection(
+    bankAccountsState: BankAccountsUiState,
+    banksState: BanksUiState,
+    addBankAccountState: AddBankAccountUiState,
+    onAddBankAccount: (String, String, String, String) -> Unit,
+    onDeleteBankAccount: (Long) -> Unit,
+    onResetAddState: () -> Unit
+) {
+    val colors = MetroTheme.colors
+    var expanded by remember { mutableStateOf(false) }
+
+    MetroCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Bank Accounts",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.fg
+            )
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = colors.fg
+                )
+            }
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                MetroDivider()
+
+                // Bank accounts list
+                when (bankAccountsState) {
+                    is BankAccountsUiState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MetroSpinner()
+                        }
+                    }
+                    is BankAccountsUiState.Success -> {
+                        if (bankAccountsState.accounts.isEmpty()) {
+                            Text(
+                                text = "No bank accounts saved",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colors.muted
+                            )
+                        } else {
+                            bankAccountsState.accounts.forEach { account ->
+                                BankAccountItem(
+                                    account = account,
+                                    onDelete = { onDeleteBankAccount(account.id) }
+                                )
+                            }
+                        }
+                    }
+                    is BankAccountsUiState.Error -> {
+                        Text(
+                            text = bankAccountsState.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
+                MetroDivider()
+
+                // Add bank account form
+                val banks = (banksState as? BanksUiState.Success)?.banks ?: emptyList()
+                AddBankAccountForm(
+                    banks = banks,
+                    addState = addBankAccountState,
+                    onAdd = onAddBankAccount,
+                    onResetState = onResetAddState
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BankAccountItem(
+    account: BankAccount,
+    onDelete: () -> Unit
+) {
+    val colors = MetroTheme.colors
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = account.bankName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = colors.fg
+            )
+            Text(
+                text = "${account.accountNumber} - ${account.accountHolderName}",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.muted
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+fun AddBankAccountForm(
+    banks: List<VietQRBank>,
+    addState: AddBankAccountUiState,
+    onAdd: (String, String, String, String) -> Unit,
+    onResetState: () -> Unit
+) {
+    val colors = MetroTheme.colors
+    var selectedBankBin by remember { mutableStateOf("") }
+    var accountNumber by remember { mutableStateOf("") }
+    var accountHolderName by remember { mutableStateOf("") }
+
+    val selectedBank = banks.find { it.bin == selectedBankBin }
+    val bankOptions = banks
+        .filter { it.transferSupported }
+        .map { MetroSelectOption(value = it.bin, label = it.shortName) }
+
+    val isValid = selectedBankBin.isNotEmpty() &&
+            accountNumber.isNotBlank() &&
+            accountHolderName.isNotBlank()
+
+    // Reset form on success
+    LaunchedEffect(addState) {
+        if (addState is AddBankAccountUiState.Success) {
+            selectedBankBin = ""
+            accountNumber = ""
+            accountHolderName = ""
+            onResetState()
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Add Bank Account",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = colors.fg
+        )
+
+        MetroSelect(
+            selected = selectedBankBin,
+            onSelected = { selectedBankBin = it },
+            options = bankOptions,
+            label = "BANK",
+            placeholder = "Select a bank",
+        )
+
+        MetroInput(
+            value = accountNumber,
+            onValueChange = { accountNumber = it },
+            label = "ACCOUNT NUMBER",
+            placeholder = "Enter account number",
+            keyboardType = KeyboardType.Number,
+        )
+
+        MetroInput(
+            value = accountHolderName,
+            onValueChange = { accountHolderName = it },
+            label = "ACCOUNT HOLDER NAME",
+            placeholder = "Enter account holder name",
+        )
+
+        when (addState) {
+            is AddBankAccountUiState.Loading -> {
+                MetroSpinner()
+            }
+            is AddBankAccountUiState.Error -> {
+                Text(
+                    text = addState.message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            else -> {}
+        }
+
+        MetroButton(
+            label = "Add Account",
+            onClick = {
+                if (isValid && selectedBank != null) {
+                    onAdd(selectedBankBin, selectedBank.shortName, accountNumber, accountHolderName)
+                }
+            },
+            enabled = isValid && addState !is AddBankAccountUiState.Loading,
+            variant = MetroButtonVariant.Secondary,
+        )
     }
 }
 
@@ -379,6 +653,102 @@ fun TransactionItem(transaction: WalletTransaction) {
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.muted
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun WithdrawDialog(
+    withdrawalState: WithdrawalUiState,
+    bankAccounts: List<BankAccount>,
+    availableBalance: Long,
+    onWithdraw: (Long, Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var amount by remember { mutableStateOf("") }
+    var selectedAccountId by remember { mutableStateOf("") }
+    val amountLong = amount.toLongOrNull()
+
+    val accountOptions = bankAccounts.map {
+        MetroSelectOption(
+            value = it.id.toString(),
+            label = "${it.bankName} - ${it.accountNumber}"
+        )
+    }
+
+    val amountError = when {
+        amountLong == null -> ""
+        amountLong < 10000 -> "Min: 10,000 VND"
+        amountLong > 200000 -> "Max: 200,000 VND"
+        amountLong % 1000 != 0L -> "Must be multiples of 1,000"
+        amountLong > availableBalance -> "Exceeds available balance (${formatCurrency(availableBalance)})"
+        else -> ""
+    }
+
+    val isValid = amountLong != null &&
+            amountLong in 10000..200000 &&
+            amountLong % 1000 == 0L &&
+            amountLong <= availableBalance &&
+            selectedAccountId.isNotEmpty()
+
+    MetroDialog(
+        open = true,
+        onDismiss = onDismiss,
+        title = "Withdraw Funds",
+        confirmLabel = "Withdraw",
+        cancelLabel = "Cancel",
+        onConfirm = {
+            if (isValid) {
+                onWithdraw(amountLong!!, selectedAccountId.toLong())
+            }
+        },
+        onCancel = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (bankAccounts.isEmpty()) {
+                Text(
+                    text = "No bank accounts saved. Add one in the Bank Accounts section below.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                MetroSelect(
+                    selected = selectedAccountId,
+                    onSelected = { selectedAccountId = it },
+                    options = accountOptions,
+                    label = "BANK ACCOUNT",
+                    placeholder = "Select a bank account",
+                )
+            }
+
+            MetroInput(
+                value = amount,
+                onValueChange = { amount = it },
+                label = "AMOUNT (VND)",
+                placeholder = "10,000 - 200,000 VND",
+                keyboardType = KeyboardType.Number,
+                error = amountError,
+            )
+
+            Text(
+                text = "Available: ${formatCurrency(availableBalance)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MetroTheme.colors.muted
+            )
+
+            when (withdrawalState) {
+                is WithdrawalUiState.Loading -> {
+                    MetroSpinner()
+                }
+                is WithdrawalUiState.Error -> {
+                    Text(
+                        text = withdrawalState.message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                else -> {}
             }
         }
     }

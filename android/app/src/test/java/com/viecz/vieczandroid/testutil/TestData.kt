@@ -311,4 +311,54 @@ object TestData {
     ) = MessageResponse(
         message = message
     )
+
+    fun createVietQRBank(
+        id: Long = 1,
+        name: String = "Ngan hang TMCP Ngoai Thuong Viet Nam",
+        code: String = "VCB",
+        bin: String = "970436",
+        shortName: String = "Vietcombank",
+        logo: String = "https://api.vietqr.io/img/VCB.png",
+        transferSupported: Boolean = true,
+        lookupSupported: Boolean = true
+    ) = VietQRBank(
+        id = id,
+        name = name,
+        code = code,
+        bin = bin,
+        shortName = shortName,
+        logo = logo,
+        transferSupported = transferSupported,
+        lookupSupported = lookupSupported
+    )
+
+    fun createBankAccount(
+        id: Long = 1,
+        userId: Long = 1,
+        bankBin: String = "970436",
+        bankName: String = "Vietcombank",
+        accountNumber: String = "1234567890",
+        accountHolderName: String = "NGUYEN VAN A",
+        isDefault: Boolean = false,
+        createdAt: String = "2024-01-01T00:00:00Z",
+        updatedAt: String = "2024-01-01T00:00:00Z"
+    ) = BankAccount(
+        id = id,
+        userId = userId,
+        bankBin = bankBin,
+        bankName = bankName,
+        accountNumber = accountNumber,
+        accountHolderName = accountHolderName,
+        isDefault = isDefault,
+        createdAt = createdAt,
+        updatedAt = updatedAt
+    )
+
+    fun createWithdrawalResponse(
+        transactionId: Long = 1,
+        status: String = "completed"
+    ) = WithdrawalResponse(
+        transactionId = transactionId,
+        status = status
+    )
 }

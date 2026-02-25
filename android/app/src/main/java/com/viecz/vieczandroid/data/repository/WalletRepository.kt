@@ -6,6 +6,8 @@ import com.viecz.vieczandroid.data.models.DepositRequest
 import com.viecz.vieczandroid.data.models.DepositResponse
 import com.viecz.vieczandroid.data.models.Wallet
 import com.viecz.vieczandroid.data.models.WalletTransaction
+import com.viecz.vieczandroid.data.models.WithdrawalRequest
+import com.viecz.vieczandroid.data.models.WithdrawalResponse
 import com.viecz.vieczandroid.utils.parseErrorMessage
 import retrofit2.HttpException
 import javax.inject.Inject
@@ -43,6 +45,22 @@ class WalletRepository @Inject constructor(
             Result.failure(Exception(errorMessage))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create deposit", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun withdraw(amount: Long, bankAccountId: Long): Result<WithdrawalResponse> {
+        return try {
+            Log.d(TAG, "Creating withdrawal for $amount to bank account $bankAccountId")
+            val response = api.withdraw(WithdrawalRequest(amount, bankAccountId))
+            Log.d(TAG, "Withdrawal created: transactionId=${response.transactionId}")
+            Result.success(response)
+        } catch (e: HttpException) {
+            val errorMessage = e.parseErrorMessage()
+            Log.e(TAG, "HTTP error withdrawing: ${e.code()} - $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create withdrawal", e)
             Result.failure(e)
         }
     }

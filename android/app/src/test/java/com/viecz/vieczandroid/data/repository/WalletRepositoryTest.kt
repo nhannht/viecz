@@ -3,12 +3,16 @@ package com.viecz.vieczandroid.data.repository
 import com.viecz.vieczandroid.data.api.WalletApi
 import com.viecz.vieczandroid.data.models.DepositRequest
 import com.viecz.vieczandroid.data.models.DepositResponse
+import com.viecz.vieczandroid.data.models.WithdrawalRequest
 import com.viecz.vieczandroid.testutil.TestData
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -164,5 +168,48 @@ class WalletRepositoryTest {
         repository.getTransactionHistory()
 
         coVerify { mockApi.getTransactionHistory(20, 0) }
+    }
+
+    // --- withdraw ---
+
+    @Test
+    fun `withdraw should return WithdrawalResponse on success`() = runTest {
+        val response = TestData.createWithdrawalResponse(transactionId = 42, status = "completed")
+        coEvery { mockApi.withdraw(any()) } returns response
+
+        val result = repository.withdraw(50000L, 1L)
+
+        assertTrue(result.isSuccess)
+        assertEquals(42L, result.getOrNull()?.transactionId)
+        assertEquals("completed", result.getOrNull()?.status)
+    }
+
+    @Test
+    fun `withdraw should pass correct request parameters`() = runTest {
+        val response = TestData.createWithdrawalResponse()
+        coEvery { mockApi.withdraw(any()) } returns response
+
+        repository.withdraw(100000L, 5L)
+
+        coVerify { mockApi.withdraw(WithdrawalRequest(100000L, 5L)) }
+    }
+
+    @Test
+    fun `withdraw with network error should return failure`() = runTest {
+        coEvery { mockApi.withdraw(any()) } throws IOException("No network")
+
+        val result = repository.withdraw(50000L, 1L)
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `withdraw with HTTP error should return failure with parsed message`() = runTest {
+        val errorBody = """{"error":"Insufficient balance"}""".toResponseBody()
+        coEvery { mockApi.withdraw(any()) } throws HttpException(Response.error<Any>(400, errorBody))
+
+        val result = repository.withdraw(999999L, 1L)
+
+        assertTrue(result.isFailure)
     }
 }
