@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,13 +22,20 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.viecz.vieczandroid.BuildConfig
 import com.viecz.vieczandroid.data.models.Category
+import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.TaskCard
 import com.viecz.vieczandroid.ui.components.metro.MetroCard
@@ -39,6 +47,16 @@ import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.NotificationViewModel
 import com.viecz.vieczandroid.ui.viewmodels.TaskListViewModel
+import org.maplibre.android.MapLibre
+import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+
+private const val HCMC_DEFAULT_LAT = 10.7769
+private const val HCMC_DEFAULT_LNG = 106.7009
+private const val MAP_DEFAULT_ZOOM = 13.0
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,7 +138,8 @@ fun HomeContent(
     val pullToRefreshState = rememberPullToRefreshState()
 
     // Load more when reaching end of list
-    LaunchedEffect(listState.layoutInfo.visibleItemsInfo) {
+    LaunchedEffect(listState.layoutInfo.visibleItemsInfo, taskUiState.isMapView) {
+        if (taskUiState.isMapView) return@LaunchedEffect
         val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
         if (lastVisibleItem != null && lastVisibleItem.index >= taskUiState.tasks.size - 2) {
             taskListViewModel.loadMore()
@@ -231,6 +250,19 @@ fun HomeContent(
                         color = colors.muted
                     )
                 }
+            } else if (taskUiState.isMapView) {
+                TaskMapView(
+                    tasks = taskUiState.tasks,
+                    currentUserId = taskUiState.currentUserId,
+                    selectedTaskId = taskUiState.selectedMapTaskId,
+                    centerLatitude = taskUiState.latitude,
+                    centerLongitude = taskUiState.longitude,
+                    onMarkerSelected = { taskId ->
+                        taskListViewModel.selectTaskOnMap(taskId)
+                    },
+                    onTaskClick = onNavigateToTaskDetail,
+                    modifier = Modifier.fillMaxSize()
+                )
             } else {
                 LazyColumn(
                     state = listState,
@@ -260,6 +292,166 @@ fun HomeContent(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskMapView(
+    tasks: List<Task>,
+    currentUserId: Long?,
+    selectedTaskId: Long?,
+    centerLatitude: Double?,
+    centerLongitude: Double?,
+    onMarkerSelected: (Long?) -> Unit,
+    onTaskClick: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val markerSelectedState by rememberUpdatedState(onMarkerSelected)
+    val mapStyleUrl = remember {
+        if (BuildConfig.MAPTILER_API_KEY.isBlank()) {
+            "https://demotiles.maplibre.org/style.json"
+        } else {
+            "https://api.maptiler.com/maps/streets/style.json?key=${BuildConfig.MAPTILER_API_KEY}"
+        }
+    }
+
+    val geoTasks = remember(tasks) {
+        tasks.filter { it.latitude != null && it.longitude != null }
+    }
+    val selectedTask = remember(tasks, selectedTaskId) {
+        tasks.firstOrNull { it.id == selectedTaskId }
+    }
+
+    val mapView = remember {
+        MapLibre.getInstance(context)
+        MapView(context)
+    }
+    var map by remember { mutableStateOf<MapLibreMap?>(null) }
+    var mapReady by remember { mutableStateOf(false) }
+
+    DisposableEffect(mapView) {
+        mapView.getMapAsync { maplibreMap ->
+            map = maplibreMap
+            maplibreMap.uiSettings.setCompassEnabled(false)
+            maplibreMap.uiSettings.setLogoEnabled(false)
+            maplibreMap.uiSettings.setAttributionEnabled(false)
+            maplibreMap.setOnMarkerClickListener { marker ->
+                val taskId = marker.snippet?.toLongOrNull()
+                if (taskId != null) {
+                    markerSelectedState(taskId)
+                    true
+                } else {
+                    false
+                }
+            }
+            maplibreMap.addOnMapClickListener {
+                markerSelectedState(null)
+                false
+            }
+            maplibreMap.setStyle(mapStyleUrl) {
+                mapReady = true
+            }
+        }
+
+        onDispose {
+            mapReady = false
+            map = null
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, mapView) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> mapView.onStart()
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_STOP -> mapView.onStop()
+                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView.onStop()
+            mapView.onDestroy()
+        }
+    }
+
+    val targetLat = centerLatitude ?: HCMC_DEFAULT_LAT
+    val targetLng = centerLongitude ?: HCMC_DEFAULT_LNG
+
+    LaunchedEffect(map, mapReady, targetLat, targetLng) {
+        val maplibreMap = map ?: return@LaunchedEffect
+        if (!mapReady) return@LaunchedEffect
+        maplibreMap.cameraPosition = CameraPosition.Builder()
+            .target(LatLng(targetLat, targetLng))
+            .zoom(MAP_DEFAULT_ZOOM)
+            .build()
+    }
+
+    LaunchedEffect(map, mapReady, geoTasks) {
+        val maplibreMap = map ?: return@LaunchedEffect
+        if (!mapReady) return@LaunchedEffect
+
+        maplibreMap.clear()
+        geoTasks.forEach { task ->
+            maplibreMap.addMarker(
+                MarkerOptions()
+                    .position(LatLng(task.latitude!!, task.longitude!!))
+                    .title(task.title)
+                    .snippet(task.id.toString())
+            )
+        }
+    }
+
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = { mapView },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        if (!mapReady) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                MetroLoadingState()
+            }
+        }
+
+        if (geoTasks.isEmpty() && mapReady) {
+            MetroCard(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "No tasks with map coordinates",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MetroTheme.colors.muted
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = selectedTask != null,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        ) {
+            selectedTask?.let { task ->
+                TaskCard(
+                    task = task,
+                    isOwnTask = currentUserId != null && task.requesterId == currentUserId,
+                    onClick = { onTaskClick(task.id) }
+                )
             }
         }
     }

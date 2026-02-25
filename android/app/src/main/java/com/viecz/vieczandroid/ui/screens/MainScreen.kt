@@ -71,6 +71,16 @@ fun MainScreen(
         )
     }
 
+    fun updateCurrentLocationInState() {
+        fetchCurrentLocation(
+            context = context,
+            onSuccess = { latitude, longitude ->
+                taskListViewModel.updateUserLocation(latitude, longitude)
+            },
+            onFailure = { }
+        )
+    }
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
@@ -138,6 +148,16 @@ fun MainScreen(
                     navController.navigate(NavigationRoutes.NOTIFICATIONS)
                 },
                 onSearchToggle = { showSearchBar = !showSearchBar },
+                isMapView = taskListUiState.isMapView,
+                onShowListView = {
+                    taskListViewModel.showListView()
+                },
+                onShowMapView = {
+                    taskListViewModel.showMapView()
+                    if (taskListUiState.latitude == null && taskListUiState.longitude == null && hasLocationPermission(context)) {
+                        updateCurrentLocationInState()
+                    }
+                },
                 nearMeEnabled = taskListUiState.nearMeEnabled,
                 onNearMeToggle = {
                     if (taskListUiState.nearMeEnabled) {
@@ -294,6 +314,9 @@ fun VieczTopBar(
     onDeposit: () -> Unit,
     onNotifications: () -> Unit,
     onSearchToggle: () -> Unit = {},
+    isMapView: Boolean = false,
+    onShowListView: () -> Unit = {},
+    onShowMapView: () -> Unit = {},
     nearMeEnabled: Boolean = false,
     onNearMeToggle: () -> Unit = {},
     onEditProfile: () -> Unit = {}
@@ -309,6 +332,20 @@ fun VieczTopBar(
             // Contextual action based on current tab
             when (currentTab) {
                 0 -> {
+                    IconButton(onClick = onShowListView) {
+                        Icon(
+                            Icons.Default.ViewList,
+                            contentDescription = "List view",
+                            tint = if (!isMapView) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
+                    }
+                    IconButton(onClick = onShowMapView) {
+                        Icon(
+                            Icons.Default.Map,
+                            contentDescription = "Map view",
+                            tint = if (isMapView) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
+                    }
                     IconButton(onClick = onNearMeToggle) {
                         Icon(
                             Icons.Default.MyLocation,

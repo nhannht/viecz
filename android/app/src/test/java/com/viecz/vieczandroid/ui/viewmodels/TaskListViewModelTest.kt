@@ -313,9 +313,37 @@ class TaskListViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertFalse(state.nearMeEnabled)
-            assertNull(state.latitude)
-            assertNull(state.longitude)
+            assertEquals(10.7758, state.latitude)
+            assertEquals(106.7017, state.longitude)
             assertNotNull(state.locationStatusMessage)
         }
+    }
+
+    @Test
+    fun `showMapView and showListView should toggle map mode`() = runTest {
+        viewModel.showMapView()
+        assertTrue(viewModel.uiState.value.isMapView)
+
+        viewModel.showListView()
+        assertFalse(viewModel.uiState.value.isMapView)
+    }
+
+    @Test
+    fun `selectTaskOnMap should update selected map task id`() = runTest {
+        viewModel.selectTaskOnMap(42L)
+        assertEquals(42L, viewModel.uiState.value.selectedMapTaskId)
+
+        viewModel.selectTaskOnMap(null)
+        assertNull(viewModel.uiState.value.selectedMapTaskId)
+    }
+
+    @Test
+    fun `updateUserLocation should set coordinates without enabling near me`() = runTest {
+        viewModel.updateUserLocation(latitude = 10.77, longitude = 106.70)
+
+        val state = viewModel.uiState.value
+        assertEquals(10.77, state.latitude)
+        assertEquals(106.70, state.longitude)
+        assertFalse(state.nearMeEnabled)
     }
 }

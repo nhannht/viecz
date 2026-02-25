@@ -31,7 +31,9 @@ data class TaskListUiState(
     val selectedRadiusMeters: Int? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val locationStatusMessage: String? = null
+    val locationStatusMessage: String? = null,
+    val isMapView: Boolean = false,
+    val selectedMapTaskId: Long? = null
 )
 
 @OptIn(FlowPreview::class)
@@ -160,8 +162,6 @@ class TaskListViewModel @Inject constructor(
     fun disableNearMe() {
         _uiState.value = _uiState.value.copy(
             nearMeEnabled = false,
-            latitude = null,
-            longitude = null,
             locationStatusMessage = null
         )
         loadTasks(refresh = true)
@@ -177,8 +177,6 @@ class TaskListViewModel @Inject constructor(
     fun onLocationPermissionDenied() {
         _uiState.value = _uiState.value.copy(
             nearMeEnabled = false,
-            latitude = null,
-            longitude = null,
             locationStatusMessage = "Location permission denied. Showing all tasks."
         )
         loadTasks(refresh = true)
@@ -187,11 +185,31 @@ class TaskListViewModel @Inject constructor(
     fun onLocationUnavailable() {
         _uiState.value = _uiState.value.copy(
             nearMeEnabled = false,
-            latitude = null,
-            longitude = null,
             locationStatusMessage = "Unable to get current location. Showing all tasks."
         )
         loadTasks(refresh = true)
+    }
+
+    fun updateUserLocation(latitude: Double, longitude: Double) {
+        _uiState.value = _uiState.value.copy(
+            latitude = latitude,
+            longitude = longitude
+        )
+    }
+
+    fun showMapView() {
+        _uiState.value = _uiState.value.copy(isMapView = true)
+    }
+
+    fun showListView() {
+        _uiState.value = _uiState.value.copy(
+            isMapView = false,
+            selectedMapTaskId = null
+        )
+    }
+
+    fun selectTaskOnMap(taskId: Long?) {
+        _uiState.value = _uiState.value.copy(selectedMapTaskId = taskId)
     }
 
     fun clearLocationStatusMessage() {
