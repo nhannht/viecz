@@ -2,7 +2,7 @@
 
 > **Viecz** -- P2P task marketplace for university students.
 >
-> Last updated: 2026-02-20
+> Last updated: 2026-02-25
 
 ### Platform Note
 
@@ -95,6 +95,10 @@ JWT tokens saved --> MainScreen
 **API:** `POST /api/v1/auth/register` -- `{ email, password, name, turnstile_token? }`
 **Response:** `{ access_token, refresh_token, user }`
 **Note:** `turnstile_token` is required when `TURNSTILE_SECRET_KEY` is configured on the server. Android omits it (server skips validation for unconfigured Turnstile). Web always sends it.
+**Web (phone-first auth update):**
+- Primary auth entry is `/phone` (OTP can sign in existing users or create new users)
+- `/register` route now redirects to `/phone`
+- Email registration code remains in repository for backward compatibility, but registration UI is hidden in the login screen
 
 ### 1.3 Login
 
@@ -116,6 +120,7 @@ JWT tokens saved --> MainScreen
 
 **Screen:** `LoginScreen.kt`
 **API:** `POST /api/v1/auth/login` -- `{ email, password }`
+**Web note:** Email login is kept for legacy accounts; the default unauthenticated flow redirects to `/phone`.
 
 ### 1.4 Google OAuth Login
 
@@ -642,6 +647,8 @@ Bank account list (GET /api/v1/wallet/bank-accounts)
     |
     +-- Add bank account:
     |     - Select bank (from GET /api/v1/banks — VietQR bank list, cached 24h)
+    |     - Bank dropdown shows VietQR bank logos + BIN metadata
+    |     - Client validates selected BIN against transfer-supported bank list before submit
     |     - Enter account number
     |     - Enter account holder name
     |     POST /api/v1/wallet/bank-accounts

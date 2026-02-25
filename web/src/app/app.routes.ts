@@ -8,7 +8,8 @@ export const routes: Routes = [
   },
   {
     path: 'register',
-    loadComponent: () => import('./auth/register.component').then(m => m.RegisterComponent),
+    redirectTo: 'phone',
+    pathMatch: 'full',
   },
   {
     path: 'phone',

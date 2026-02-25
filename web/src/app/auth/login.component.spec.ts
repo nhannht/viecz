@@ -155,11 +155,11 @@ describe('LoginComponent', () => {
     expect(component.showPassword()).toBe(true);
   });
 
-  it('should have a link to register page', () => {
+  it('should not render register link in phone-first flow', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const links = compiled.querySelectorAll('a');
     const registerLink = Array.from(links).find((l) => l.textContent?.includes('Register'));
-    expect(registerLink).toBeTruthy();
+    expect(registerLink).toBeFalsy();
   });
 
   it('should render error message when error is set', () => {

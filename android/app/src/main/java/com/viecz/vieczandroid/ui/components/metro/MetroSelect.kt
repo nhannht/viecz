@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -27,12 +28,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.theme.VieczTheme
+import coil.compose.AsyncImage
 
-data class MetroSelectOption(val value: String, val label: String)
+data class MetroSelectOption(
+    val value: String,
+    val label: String,
+    val supportingText: String = "",
+    val imageUrl: String = "",
+)
 
 /**
  * nhannht-metro-meow Select.
@@ -55,7 +63,9 @@ fun MetroSelect(
     val errorColor = Color(0xFFDC2626)
     var expanded by remember { mutableStateOf(false) }
 
-    val selectedLabel = options.find { it.value == selected }?.label ?: ""
+    val selectedOption = options.find { it.value == selected }
+    val selectedLabel = selectedOption?.label.orEmpty()
+    val selectedSupportingText = selectedOption?.supportingText.orEmpty()
 
     Column(modifier = modifier.fillMaxWidth()) {
         if (label.isNotEmpty()) {
@@ -79,12 +89,29 @@ fun MetroSelect(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = selectedLabel.ifEmpty { placeholder },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (selectedLabel.isEmpty()) colors.muted else colors.fg,
-                    modifier = Modifier.weight(1f),
-                )
+                if (selectedOption?.imageUrl?.isNotBlank() == true) {
+                    AsyncImage(
+                        model = selectedOption.imageUrl,
+                        contentDescription = "${selectedOption.label} logo",
+                        modifier = Modifier.size(20.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = selectedLabel.ifEmpty { placeholder },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (selectedLabel.isEmpty()) colors.muted else colors.fg,
+                    )
+                    if (selectedLabel.isNotEmpty() && selectedSupportingText.isNotEmpty()) {
+                        Text(
+                            text = selectedSupportingText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.muted,
+                        )
+                    }
+                }
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = null,
@@ -99,11 +126,30 @@ fun MetroSelect(
                 options.forEach { option ->
                     DropdownMenuItem(
                         text = {
-                            Text(
-                                text = option.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
+                            Column {
+                                Text(
+                                    text = option.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                if (option.supportingText.isNotEmpty()) {
+                                    Text(
+                                        text = option.supportingText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.muted,
+                                    )
+                                }
+                            }
                         },
+                        leadingIcon = if (option.imageUrl.isNotBlank()) {
+                            {
+                                AsyncImage(
+                                    model = option.imageUrl,
+                                    contentDescription = "${option.label} logo",
+                                    modifier = Modifier.size(20.dp),
+                                    contentScale = ContentScale.Fit,
+                                )
+                            }
+                        } else null,
                         onClick = {
                             onSelected(option.value)
                             expanded = false

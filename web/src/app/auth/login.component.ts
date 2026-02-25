@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
@@ -13,7 +13,6 @@ import { AuthService } from '../core/auth.service';
   standalone: true,
   imports: [
     FormsModule,
-    RouterLink,
     TranslocoDirective,
     NhannhtMetroInputComponent,
     NhannhtMetroButtonComponent,
@@ -78,11 +77,6 @@ import { AuthService } from '../core/auth.service';
               }
             </div>
           </form>
-
-          <p class="font-body text-[13px] text-muted text-center mt-6">
-            {{ t('auth.login.noAccount') }}
-            <a routerLink="/register" class="text-fg font-bold hover:text-muted transition-colors">{{ t('auth.login.registerLink') }}</a>
-          </p>
         </div>
       </div>
     </ng-container>

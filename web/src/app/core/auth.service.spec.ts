@@ -161,9 +161,9 @@ describe('AuthService', () => {
       expect(service.currentUser()).toBeNull();
     });
 
-    it('should navigate to /login', () => {
+    it('should navigate to /phone', () => {
       service.logout();
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/phone']);
     });
   });
 
@@ -272,7 +272,7 @@ describe('AuthService', () => {
     it('logout should not throw on server (no localStorage)', () => {
       expect(() => serverService.logout()).not.toThrow();
       expect(serverService.currentUser()).toBeNull();
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/phone']);
     });
 
     it('refresh should not access localStorage on server', () => {

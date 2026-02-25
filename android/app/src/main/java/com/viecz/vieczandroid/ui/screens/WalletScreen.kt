@@ -432,12 +432,12 @@ fun AddBankAccountForm(
     var accountNumber by remember { mutableStateOf("") }
     var accountHolderName by remember { mutableStateOf("") }
 
-    val selectedBank = banks.find { it.bin == selectedBankBin }
-    val bankOptions = banks
-        .filter { it.transferSupported }
-        .map { MetroSelectOption(value = it.bin, label = it.shortName) }
+    val selectedBank = banks.find { it.bin == selectedBankBin && it.transferSupported }
+    val bankOptions = buildBankOptions(banks)
+    val binValidationError = validateSelectedBankBin(selectedBankBin, banks)
 
     val isValid = selectedBankBin.isNotEmpty() &&
+            binValidationError.isEmpty() &&
             accountNumber.isNotBlank() &&
             accountHolderName.isNotBlank()
 
@@ -465,6 +465,7 @@ fun AddBankAccountForm(
             options = bankOptions,
             label = "BANK",
             placeholder = "Select a bank",
+            error = binValidationError,
         )
 
         MetroInput(
@@ -837,6 +838,31 @@ fun ErrorCard(message: String, onRetry: () -> Unit) {
 }
 
 // Helper functions
+internal fun buildBankOptions(banks: List<VietQRBank>): List<MetroSelectOption> {
+    return banks
+        .filter { it.transferSupported }
+        .map {
+            MetroSelectOption(
+                value = it.bin,
+                label = it.shortName,
+                supportingText = "BIN ${it.bin}",
+                imageUrl = it.logo,
+            )
+        }
+}
+
+internal fun validateSelectedBankBin(selectedBankBin: String, banks: List<VietQRBank>): String {
+    if (selectedBankBin.isEmpty()) return ""
+
+    val validBins = banks
+        .asSequence()
+        .filter { it.transferSupported }
+        .map { it.bin }
+        .toSet()
+
+    return if (selectedBankBin in validBins) "" else "Invalid bank BIN selected"
+}
+
 fun formatTransactionType(type: WalletTransactionType): String {
     return when (type) {
         WalletTransactionType.DEPOSIT -> "Deposit"

@@ -62,6 +62,9 @@ cd web
 # CORRECT - uses Angular builder (injects globals, TestBed, jsdom, zone.js)
 npx ng test
 
+# Targeted file (preferred during bug fixes)
+npx ng test --watch=false --include=src/app/core/auth.service.spec.ts
+
 # With coverage
 npx ng test --coverage
 
@@ -123,6 +126,7 @@ expect(el.textContent).toContain('default');
 - **NG0100 ExpressionChangedAfterItHasBeenCheckedError**: Use `fixture.changeDetectorRef.detectChanges()` instead of `fixture.detectChanges()` when mutating plain (non-signal) properties between detection cycles
 - **FormsModule async registration**: Use `await fixture.whenStable()` before interacting with `ngModel`-bound inputs
 - **`afterNextRender()` doesn't fire in tests**: Manually set up dependencies (e.g., canvas context) that would normally initialize in `afterNextRender`
+- **Route refactor drift in specs**: Keep navigation assertions synchronized with current route contracts. Example: after phone-first auth rollout, `AuthService.logout()` should assert `router.navigate(['/phone'])`, not `['/login']`
 
 ### Current Coverage (2026-02-22)
 
