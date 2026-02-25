@@ -3,6 +3,7 @@ package com.viecz.vieczandroid.data.repository
 import com.viecz.vieczandroid.data.api.AuthApi
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.LoginRequest
+import com.viecz.vieczandroid.data.models.PhoneLoginRequest
 import com.viecz.vieczandroid.data.models.RegisterRequest
 import com.viecz.vieczandroid.data.models.TokenResponse
 import com.viecz.vieczandroid.data.models.User
@@ -290,6 +291,47 @@ class AuthRepositoryTest {
                 testUser.name
             )
         }
+    }
+
+    @Test
+    fun `loginWithPhone with valid token should return success`() = runTest {
+        // Given
+        val idToken = "firebase-id-token"
+        val request = PhoneLoginRequest(idToken = idToken)
+        coEvery { mockAuthApi.phoneLogin(request) } returns testTokenResponse
+        coEvery { mockTokenManager.saveTokens(any(), any()) } just Runs
+        coEvery { mockTokenManager.saveUserInfo(any(), any(), any()) } just Runs
+
+        // When
+        val result = repository.loginWithPhone(idToken)
+
+        // Then
+        assertTrue(result.isSuccess)
+        assertEquals(testUser, result.getOrNull())
+        coVerify(exactly = 1) { mockAuthApi.phoneLogin(request) }
+        coVerify(exactly = 1) {
+            mockTokenManager.saveTokens(
+                testTokenResponse.accessToken,
+                testTokenResponse.refreshToken
+            )
+        }
+    }
+
+    @Test
+    fun `loginWithPhone with invalid token should return failure`() = runTest {
+        // Given
+        val idToken = "invalid-token"
+        val request = PhoneLoginRequest(idToken = idToken)
+        val exception = Exception("Invalid Firebase token")
+        coEvery { mockAuthApi.phoneLogin(request) } throws exception
+
+        // When
+        val result = repository.loginWithPhone(idToken)
+
+        // Then
+        assertTrue(result.isFailure)
+        assertEquals("Invalid Firebase token", result.exceptionOrNull()?.message)
+        coVerify(exactly = 0) { mockTokenManager.saveTokens(any(), any()) }
     }
 
     @Test

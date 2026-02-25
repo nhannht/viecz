@@ -276,6 +276,10 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
+
+    // Phone number validation
+    implementation(libs.libphonenumber)
 
     // Google Sign-In / Credential Manager
     implementation(libs.credentials)

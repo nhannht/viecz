@@ -28,6 +28,7 @@ object NavigationRoutes {
     const val MY_JOBS = "my_jobs"
     const val EDIT_TASK = "edit_task/{taskId}"
     const val EDIT_PROFILE = "edit_profile"
+    const val PHONE_LOGIN = "phone_login"
     const val FIRST_SCREEN = "first_screen"
     const val SECOND_SCREEN = "second_screen"
     const val PAYMENT_SCREEN = "payment_screen"
@@ -52,7 +53,7 @@ fun VieczNavHost(
         composable(NavigationRoutes.SPLASH) {
             SplashScreen(
                 onNavigateToLogin = {
-                    navController.navigate(NavigationRoutes.LOGIN) {
+                    navController.navigate(NavigationRoutes.PHONE_LOGIN) {
                         popUpTo(NavigationRoutes.SPLASH) { inclusive = true }
                     }
                 },
@@ -64,7 +65,21 @@ fun VieczNavHost(
             )
         }
 
-        // Login screen
+        // Phone login screen (primary auth)
+        composable(NavigationRoutes.PHONE_LOGIN) {
+            PhoneLoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(NavigationRoutes.MAIN) {
+                        popUpTo(NavigationRoutes.PHONE_LOGIN) { inclusive = true }
+                    }
+                },
+                onNavigateToEmailLogin = {
+                    navController.navigate(NavigationRoutes.LOGIN)
+                }
+            )
+        }
+
+        // Login screen (email/password)
         composable(NavigationRoutes.LOGIN) {
             LoginScreen(
                 onNavigateToRegister = {
@@ -74,6 +89,9 @@ fun VieczNavHost(
                     navController.navigate(NavigationRoutes.MAIN) {
                         popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
                     }
+                },
+                onNavigateToPhoneLogin = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -219,7 +237,7 @@ fun VieczNavHost(
             ProfileScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onLogout = {
-                    navController.navigate(NavigationRoutes.LOGIN) {
+                    navController.navigate(NavigationRoutes.PHONE_LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
                 },

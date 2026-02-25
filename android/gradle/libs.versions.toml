@@ -45,6 +45,8 @@ appVersioning = "1.5.0"
 # Google Sign-In / Credential Manager
 credentials = "1.6.0-rc01"
 googleid = "1.1.1"
+# Phone number validation
+libphonenumber = "8.13.50"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -128,6 +130,10 @@ androidx-test-core = { group = "androidx.test", name = "core", version.ref = "an
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+
+# Phone number validation
+libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumber", version.ref = "libphonenumber" }
 
 # Google Sign-In / Credential Manager
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }

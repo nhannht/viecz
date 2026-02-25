@@ -27,6 +27,7 @@ import com.viecz.vieczandroid.ui.viewmodels.AuthViewModel
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: () -> Unit,
+    onNavigateToPhoneLogin: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val colors = MetroTheme.colors
@@ -130,6 +131,16 @@ fun LoginScreen(
             MetroButton(
                 label = "Don't have an account? Create Account",
                 onClick = onNavigateToRegister,
+                variant = MetroButtonVariant.Secondary,
+                enabled = authState !is AuthState.Loading,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Navigate to phone login
+            MetroButton(
+                label = "Sign in with phone",
+                onClick = onNavigateToPhoneLogin,
                 variant = MetroButtonVariant.Secondary,
                 enabled = authState !is AuthState.Loading,
             )

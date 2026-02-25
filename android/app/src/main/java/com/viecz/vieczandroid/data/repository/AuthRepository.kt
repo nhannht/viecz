@@ -5,6 +5,7 @@ import com.viecz.vieczandroid.data.api.AuthApi
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.GoogleLoginRequest
 import com.viecz.vieczandroid.data.models.LoginRequest
+import com.viecz.vieczandroid.data.models.PhoneLoginRequest
 import com.viecz.vieczandroid.data.models.RefreshTokenRequest
 import com.viecz.vieczandroid.data.models.RegisterRequest
 import com.viecz.vieczandroid.data.models.TokenResponse
@@ -104,6 +105,27 @@ class AuthRepository(
         } catch (e: Exception) {
             val errorMessage = parseErrorMessage(e)
             Log.e(TAG, "Google login failed: $errorMessage", e)
+            Result.failure(Exception(errorMessage))
+        }
+    }
+
+    /**
+     * Login with Firebase phone auth ID token
+     */
+    suspend fun loginWithPhone(idToken: String): Result<User> {
+        return try {
+            Log.d(TAG, "Logging in with phone")
+            val response = api.phoneLogin(PhoneLoginRequest(idToken))
+
+            // Save tokens
+            tokenManager.saveTokens(response.accessToken, response.refreshToken)
+            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name, response.user.isTasker)
+
+            Log.d(TAG, "Phone login successful for user ID: ${response.user.id}")
+            Result.success(response.user)
+        } catch (e: Exception) {
+            val errorMessage = parseErrorMessage(e)
+            Log.e(TAG, "Phone login failed: $errorMessage", e)
             Result.failure(Exception(errorMessage))
         }
     }

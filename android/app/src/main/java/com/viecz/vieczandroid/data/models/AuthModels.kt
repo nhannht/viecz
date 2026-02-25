@@ -22,6 +22,11 @@ data class GoogleLoginRequest(
 )
 
 @JsonClass(generateAdapter = true)
+data class PhoneLoginRequest(
+    @Json(name = "id_token") val idToken: String
+)
+
+@JsonClass(generateAdapter = true)
 data class RefreshTokenRequest(
     @Json(name = "refresh_token") val refreshToken: String
 )
