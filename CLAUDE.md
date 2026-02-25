@@ -771,12 +771,13 @@ cd android
 ./gradlew --refresh-dependencies
 ```
 
-## Server Deployment (CRITICAL - ALWAYS FOLLOW)
+## Deployment (CRITICAL - ALWAYS FOLLOW)
 
 **MANDATORY**:
 1. **ALWAYS ask the user before deploying.** Never deploy without explicit user confirmation.
 2. Do NOT use Docker or git push/pull for deploying server fixes. Use direct binary deployment.
 3. Do NOT use `sudo` for deployment. Use manual process (pkill + nohup).
+4. **ALWAYS deploy after building.** Every `npx ng build` or `go build` for production MUST be followed by restarting the corresponding process. Building without deploying leaves users on stale code — this has caused production bugs. Never build and walk away.
 
 ```bash
 # 1. Cross-compile for Linux on local machine
@@ -847,6 +848,13 @@ When proposing layout or visual changes, follow this workflow:
 
 - **Go API has no direct public ingress** — The only cloudflared ingress is `viecz.fishcmus.io.vn → localhost:4000` (Angular SSR/Express). The Go server at `localhost:8080` is only reachable through the Express proxy (`/api → localhost:8080`). This means webhook URLs, return URLs, and all external callbacks must use `https://viecz.fishcmus.io.vn/api/v1/...`, not a separate API domain.
 - **The old domain `viecz-api-dev.fishcmus.io.vn` is dead** — No cloudflared ingress exists for it. Any PayOS settings (webhook URL, etc.) pointing to this domain must be updated to `viecz.fishcmus.io.vn`.
+
+### Dual Component Architecture (nhannht-metro vs shared)
+
+- **The app uses `app-task-card` (`TaskCardComponent` in `task-card.component.ts`), NOT `nhannht-metro-task-card`** — Marketplace and My Jobs import `TaskCardComponent`. The `NhannhtMetroTaskCardComponent` is only referenced by Storybook stories. When adding features to the task card, modify `TaskCardComponent` first.
+- **`nhannht-metro-*` components are design system references** — They will eventually move to a standalone project. They may duplicate `shared/` components with slight API differences (e.g., `isOwner` as input vs auto-detected from `AuthService`). Both should stay in sync feature-wise, but the `shared/` version is what production uses.
+- **Always trace imports from page components before modifying a shared component** — Run `Grep` for the component selector (e.g., `app-task-card`) in page templates to confirm which component the app actually renders. Storybook rendering ≠ production rendering.
+- **Same pattern applies to all shared components** — If both `app-X` and `nhannht-metro-X` exist, the `app-X` version is the production one.
 
 ## Project Status
 
