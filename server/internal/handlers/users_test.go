@@ -28,7 +28,7 @@ func TestUserHandler_GetProfile(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:       1,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					Name:     "Test User",
 					IsTasker: false,
 				}
@@ -39,8 +39,8 @@ func TestUserHandler_GetProfile(t *testing.T) {
 				if err := json.Unmarshal(w.Body.Bytes(), &user); err != nil {
 					t.Fatalf("Failed to unmarshal response: %v", err)
 				}
-				if user.Email != "test@example.com" {
-					t.Errorf("Expected email 'test@example.com', got '%s'", user.Email)
+				if user.Email == nil || *user.Email != "test@example.com" {
+					t.Errorf("Expected email 'test@example.com', got '%v'", user.Email)
 				}
 			},
 		},
@@ -126,7 +126,7 @@ func TestUserHandler_GetMyProfile(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test User",
 				}
 			},
@@ -223,7 +223,7 @@ func TestUserHandler_UpdateProfile(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:    1,
-					Email: "old@example.com",
+					Email: strPtr("old@example.com"),
 					Name:  "Old Name",
 				}
 			},
@@ -263,7 +263,7 @@ func TestUserHandler_UpdateProfile(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test",
 				}
 				repo.shouldFail = true
@@ -339,7 +339,7 @@ func TestUserHandler_BecomeTasker(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:       1,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					IsTasker: false,
 				}
 			},
@@ -376,7 +376,7 @@ func TestUserHandler_BecomeTasker(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:       1,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					IsTasker: true,
 				}
 			},

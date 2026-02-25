@@ -29,16 +29,20 @@ type TaskRepository interface {
 
 // TaskFilters represents filters for listing tasks
 type TaskFilters struct {
-	CategoryID  *int64
-	RequesterID *int64
-	TaskerID    *int64
-	Status      *models.TaskStatus
-	MinPrice    *int64
-	MaxPrice    *int64
-	Location    *string
-	Search      *string
-	Limit       int
-	Offset      int
+	CategoryID    *int64
+	RequesterID   *int64
+	TaskerID      *int64
+	Status        *models.TaskStatus
+	MinPrice      *int64
+	MaxPrice      *int64
+	Location      *string
+	Search        *string
+	Latitude      *float64
+	Longitude     *float64
+	RadiusMeters  *int
+	SortByDistance bool
+	Limit         int
+	Offset        int
 }
 
 type taskRepository struct {

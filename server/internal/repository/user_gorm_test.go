@@ -89,7 +89,7 @@ func TestUserGormRepository_Create(t *testing.T) {
 
 	t.Run("create user successfully", func(t *testing.T) {
 		user := &models.User{
-			Email:        "test@example.com",
+			Email:        strPtr("test@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Test User",
@@ -111,8 +111,8 @@ func TestUserGormRepository_Create(t *testing.T) {
 			t.Fatalf("Failed to find created user: %v", err)
 		}
 
-		if found.Email != user.Email {
-			t.Errorf("Expected email %s, got %s", user.Email, found.Email)
+		if (found.Email == nil) != (user.Email == nil) || (found.Email != nil && *found.Email != *user.Email) {
+			t.Errorf("Expected email %v, got %v", user.Email, found.Email)
 		}
 		if found.Name != user.Name {
 			t.Errorf("Expected name %s, got %s", user.Name, found.Name)
@@ -122,7 +122,7 @@ func TestUserGormRepository_Create(t *testing.T) {
 	t.Run("duplicate email error", func(t *testing.T) {
 		// Create first user
 		user1 := &models.User{
-			Email:        "duplicate@example.com",
+			Email:        strPtr("duplicate@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "User 1",
@@ -133,7 +133,7 @@ func TestUserGormRepository_Create(t *testing.T) {
 
 		// Try to create second user with same email
 		user2 := &models.User{
-			Email:        "duplicate@example.com",
+			Email:        strPtr("duplicate@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "User 2",
@@ -149,7 +149,7 @@ func TestUserGormRepository_Create(t *testing.T) {
 
 	t.Run("timestamps are set", func(t *testing.T) {
 		user := &models.User{
-			Email:        "timestamps@example.com",
+			Email:        strPtr("timestamps@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Timestamp User",
@@ -179,7 +179,7 @@ func TestUserGormRepository_GetByID(t *testing.T) {
 	t.Run("get existing user", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "getbyid@example.com",
+			Email:        strPtr("getbyid@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Get By ID User",
@@ -194,8 +194,8 @@ func TestUserGormRepository_GetByID(t *testing.T) {
 			t.Fatalf("Expected no error, got %v", err)
 		}
 
-		if found.Email != user.Email {
-			t.Errorf("Expected email %s, got %s", user.Email, found.Email)
+		if (found.Email == nil) != (user.Email == nil) || (found.Email != nil && *found.Email != *user.Email) {
+			t.Errorf("Expected email %v, got %v", user.Email, found.Email)
 		}
 		if found.Name != user.Name {
 			t.Errorf("Expected name %s, got %s", user.Name, found.Name)
@@ -223,7 +223,7 @@ func TestUserGormRepository_GetByEmail(t *testing.T) {
 	t.Run("get existing user by email", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "getbyemail@example.com",
+			Email:        strPtr("getbyemail@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Get By Email User",
@@ -233,7 +233,7 @@ func TestUserGormRepository_GetByEmail(t *testing.T) {
 		}
 
 		// Get by email
-		found, err := repo.GetByEmail(ctx, user.Email)
+		found, err := repo.GetByEmail(ctx, *user.Email)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
@@ -259,7 +259,7 @@ func TestUserGormRepository_GetByEmail(t *testing.T) {
 	t.Run("case sensitive email search", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "CaseSensitive@example.com",
+			Email:        strPtr("CaseSensitive@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Case User",
@@ -288,7 +288,7 @@ func TestUserGormRepository_Update(t *testing.T) {
 	t.Run("update user successfully", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "update@example.com",
+			Email:        strPtr("update@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Original Name",
@@ -324,7 +324,7 @@ func TestUserGormRepository_Update(t *testing.T) {
 	t.Run("update timestamps", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "timestamps-update@example.com",
+			Email:        strPtr("timestamps-update@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Timestamp User",
@@ -360,7 +360,7 @@ func TestUserGormRepository_ExistsByEmail(t *testing.T) {
 	t.Run("email exists", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "exists@example.com",
+			Email:        strPtr("exists@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Exists User",
@@ -400,7 +400,7 @@ func TestUserGormRepository_BecomeTasker(t *testing.T) {
 	t.Run("become tasker successfully", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "tasker@example.com",
+			Email:        strPtr("tasker@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Future Tasker",
@@ -449,7 +449,7 @@ func TestUserGormRepository_UpdateRating(t *testing.T) {
 	t.Run("update rating successfully", func(t *testing.T) {
 		// Create user
 		user := &models.User{
-			Email:        "rating@example.com",
+			Email:        strPtr("rating@example.com"),
 			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 			Name:         "Rating User",
@@ -492,7 +492,7 @@ func TestUserGormRepository_IncrementCounters(t *testing.T) {
 
 	// Create user
 	user := &models.User{
-		Email:                "counter@example.com",
+		Email:                strPtr("counter@example.com"),
 		PasswordHash: func() *string { s := "hashed_password"; return &s }(),
 			AuthProvider: "email",
 		Name:                 "Counter User",
@@ -569,6 +569,8 @@ func TestUserGormRepository_IncrementCounters(t *testing.T) {
 		}
 	})
 }
+
+func strPtr(s string) *string { return &s }
 
 // Helper function
 func containsStr(s, substr string) bool {

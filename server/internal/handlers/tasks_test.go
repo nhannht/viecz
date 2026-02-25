@@ -25,8 +25,8 @@ func setupTaskHandlerTest(t *testing.T) (*TaskHandler, *testutil.MockTaskReposit
 
 	// Add some default data
 	catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-	userRepo.users[1] = &models.User{ID: 1, Email: "requester@test.com"}
-	userRepo.users[2] = &models.User{ID: 2, Email: "tasker@test.com", IsTasker: true}
+	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("requester@test.com")}
+	userRepo.users[2] = &models.User{ID: 2, Email: strPtr("tasker@test.com"), IsTasker: true}
 
 	taskService := services.NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 	handler := NewTaskHandler(taskService, appRepo)
@@ -109,6 +109,18 @@ func (m *mockTaskApplicationRepository) ExistsByTaskAndTasker(ctx context.Contex
 	return false, nil
 }
 
+func (m *mockTaskApplicationRepository) CountByTaskIDs(ctx context.Context, taskIDs []int64) (map[int64]int64, error) {
+	result := make(map[int64]int64)
+	for _, app := range m.applications {
+		for _, id := range taskIDs {
+			if app.TaskID == id {
+				result[id]++
+			}
+		}
+	}
+	return result, nil
+}
+
 type mockTaskCategoryRepository struct {
 	categories map[int64]*models.Category
 }
@@ -180,7 +192,16 @@ func (m *mockTaskUserRepository) Create(ctx context.Context, user *models.User) 
 
 func (m *mockTaskUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	for _, user := range m.users {
-		if user.Email == email {
+		if user.Email != nil && *user.Email == email {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
+func (m *mockTaskUserRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
+	for _, user := range m.users {
+		if user.Phone != nil && *user.Phone == phone {
 			return user, nil
 		}
 	}
@@ -197,7 +218,7 @@ func (m *mockTaskUserRepository) Update(ctx context.Context, user *models.User) 
 
 func (m *mockTaskUserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	for _, user := range m.users {
-		if user.Email == email {
+		if user.Email != nil && *user.Email == email {
 			return true, nil
 		}
 	}
@@ -244,6 +265,16 @@ func (m *mockTaskUserRepository) SetEmailVerified(ctx context.Context, userID in
 		return errors.New("user not found")
 	}
 	user.EmailVerified = true
+	return nil
+}
+
+func (m *mockTaskUserRepository) SetPhoneVerified(ctx context.Context, userID int64, phone string) error {
+	user, exists := m.users[userID]
+	if !exists {
+		return errors.New("user not found")
+	}
+	user.Phone = &phone
+	user.PhoneVerified = true
 	return nil
 }
 

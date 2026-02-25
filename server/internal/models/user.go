@@ -12,20 +12,21 @@ import (
 // User represents a user in the system
 type User struct {
 	ID                  int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	Email               string    `gorm:"unique;size:255;not null" json:"email"`
+	Email               *string   `gorm:"unique;size:255" json:"email,omitempty"`
 	PasswordHash        *string   `gorm:"size:255" json:"-"` // Nullable - not required for Google OAuth users
 	Name                string    `gorm:"size:100;not null" json:"name"`
 	AvatarURL           *string   `gorm:"type:text" json:"avatar_url,omitempty"`
-	Phone               *string   `gorm:"size:20" json:"phone,omitempty"`
+	Phone               *string   `gorm:"unique;size:20" json:"phone,omitempty"`
 	Bio                 *string   `gorm:"size:500" json:"bio,omitempty"`
 	University          string    `gorm:"size:255;not null;default:'ĐHQG-HCM'" json:"university"`
 	StudentID           *string   `gorm:"size:50" json:"student_id,omitempty"`
 	IsVerified          bool      `gorm:"default:false" json:"is_verified"`
 
 	// Authentication provider fields
-	AuthProvider        string    `gorm:"size:20;not null;default:'email'" json:"auth_provider"` // "email" or "google"
+	AuthProvider        string    `gorm:"size:20;not null;default:'email'" json:"auth_provider"` // "email", "google", or "phone"
 	GoogleID            *string   `gorm:"size:255;unique" json:"-"` // Google's unique user ID (sub claim)
 	EmailVerified       bool      `gorm:"default:false" json:"email_verified"` // Google pre-verifies emails
+	PhoneVerified       bool      `gorm:"default:false" json:"phone_verified"`
 
 	Rating              float64   `gorm:"type:decimal(3,2);default:0" json:"rating"`
 	TotalTasksCompleted int       `gorm:"default:0" json:"total_tasks_completed"`
@@ -42,11 +43,15 @@ var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-
 
 // Validate validates the user model
 func (u *User) Validate() error {
-	if u.Email == "" {
-		return fmt.Errorf("email is required")
+	// At least one of email or phone must be present
+	hasEmail := u.Email != nil && *u.Email != ""
+	hasPhone := u.Phone != nil && *u.Phone != ""
+	if !hasEmail && !hasPhone {
+		return fmt.Errorf("at least one of email or phone is required")
 	}
 
-	if !emailRegex.MatchString(u.Email) {
+	// Validate email format if provided
+	if hasEmail && !emailRegex.MatchString(*u.Email) {
 		return fmt.Errorf("invalid email format")
 	}
 
@@ -59,8 +64,8 @@ func (u *User) Validate() error {
 	}
 
 	// Validate auth provider specific fields
-	if u.AuthProvider != "email" && u.AuthProvider != "google" {
-		return fmt.Errorf("auth provider must be 'email' or 'google'")
+	if u.AuthProvider != "email" && u.AuthProvider != "google" && u.AuthProvider != "phone" {
+		return fmt.Errorf("auth provider must be 'email', 'google', or 'phone'")
 	}
 
 	// Password hash only required for email authentication
@@ -68,9 +73,19 @@ func (u *User) Validate() error {
 		return fmt.Errorf("password hash is required for email authentication")
 	}
 
+	// Email required for email authentication
+	if u.AuthProvider == "email" && !hasEmail {
+		return fmt.Errorf("email is required for email authentication")
+	}
+
 	// Google ID required for google authentication
 	if u.AuthProvider == "google" && (u.GoogleID == nil || *u.GoogleID == "") {
 		return fmt.Errorf("google ID is required for google authentication")
+	}
+
+	// Phone required for phone authentication
+	if u.AuthProvider == "phone" && !hasPhone {
+		return fmt.Errorf("phone is required for phone authentication")
 	}
 
 	if u.Rating < 0 || u.Rating > 5 {

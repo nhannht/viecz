@@ -45,7 +45,7 @@ func (r *taskGormRepository) GetByIDForUpdate(ctx context.Context, tx *gorm.DB, 
 
 func (r *taskGormRepository) GetByID(ctx context.Context, id int64) (*models.Task, error) {
 	var task models.Task
-	if err := r.db.WithContext(ctx).First(&task, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Category").First(&task, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("task not found")
 		}
@@ -123,7 +123,7 @@ func (r *taskGormRepository) List(ctx context.Context, filters TaskFilters) ([]*
 	}
 
 	var tasks []*models.Task
-	if err := query.Find(&tasks).Error; err != nil {
+	if err := query.Preload("Category").Find(&tasks).Error; err != nil {
 		return nil, fmt.Errorf("failed to list tasks: %w", err)
 	}
 
@@ -215,7 +215,7 @@ func (r *taskGormRepository) GetByIDs(ctx context.Context, ids []int64) ([]*mode
 	}
 
 	var tasks []*models.Task
-	if err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&tasks).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Category").Where("id IN ?", ids).Find(&tasks).Error; err != nil {
 		return nil, fmt.Errorf("failed to get tasks by IDs: %w", err)
 	}
 

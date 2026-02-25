@@ -28,8 +28,8 @@ type TaskApplication struct {
 	UpdatedAt     time.Time         `gorm:"autoUpdateTime" json:"updated_at"`
 
 	// Associations
-	Task   Task `gorm:"foreignKey:TaskID" json:"-"`
-	Tasker User `gorm:"foreignKey:TaskerID" json:"-"`
+	Task   Task  `gorm:"foreignKey:TaskID" json:"-"`
+	Tasker *User `gorm:"foreignKey:TaskerID" json:"tasker,omitempty"`
 }
 
 // Validate validates the task application model

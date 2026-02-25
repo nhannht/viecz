@@ -142,3 +142,19 @@ func TestTurnstileService_Verify_InvalidJSON(t *testing.T) {
 		t.Fatal("expected error for invalid JSON")
 	}
 }
+
+func TestTurnstileService_SetVerifyURL(t *testing.T) {
+	svc := NewTurnstileService("test-secret")
+
+	// Default should be the Cloudflare URL
+	if svc.verifyURL != turnstileVerifyURL {
+		t.Errorf("Expected default verifyURL %q, got %q", turnstileVerifyURL, svc.verifyURL)
+	}
+
+	// SetVerifyURL should override
+	customURL := "http://localhost:9999/verify"
+	svc.SetVerifyURL(customURL)
+	if svc.verifyURL != customURL {
+		t.Errorf("Expected verifyURL %q after SetVerifyURL, got %q", customURL, svc.verifyURL)
+	}
+}

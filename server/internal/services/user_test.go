@@ -32,7 +32,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Old Name",
 				}
 			},
@@ -58,7 +58,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Old Name",
 				}
 			},
@@ -78,7 +78,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test User",
 				}
 			},
@@ -98,7 +98,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test User",
 				}
 			},
@@ -123,7 +123,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 				existingPhone := "+9876543210"
 				repo.users[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Old Name",
 					Phone: &existingPhone,
 				}
@@ -156,7 +156,7 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test User",
 				}
 			},
@@ -216,7 +216,7 @@ func TestUserService_BecomeTasker(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:       1,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					Name:     "Test User",
 					IsTasker: false,
 				}
@@ -229,7 +229,7 @@ func TestUserService_BecomeTasker(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:       1,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					Name:     "Test User",
 					IsTasker: true,
 				}
@@ -279,10 +279,6 @@ func TestUserService_BecomeTasker(t *testing.T) {
 	}
 }
 
-func strPtr(s string) *string {
-	return &s
-}
-
 func TestUserService_GetProfile(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -298,7 +294,7 @@ func TestUserService_GetProfile(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users[1] = &models.User{
 					ID:       1,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					Name:     "Test User",
 					IsTasker: false,
 				}
@@ -308,8 +304,8 @@ func TestUserService_GetProfile(t *testing.T) {
 				if user.ID != 1 {
 					t.Errorf("Expected ID 1, got %d", user.ID)
 				}
-				if user.Email != "test@example.com" {
-					t.Errorf("Expected email 'test@example.com', got '%s'", user.Email)
+				if user.Email == nil || *user.Email != "test@example.com" {
+					t.Errorf("Expected email 'test@example.com', got '%v'", user.Email)
 				}
 			},
 		},
@@ -352,5 +348,74 @@ func TestUserService_GetProfile(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// --- Tests for populateTaskStats coverage (GetProfile with taskRepo) ---
+
+func TestUserService_GetProfile_WithTaskStats(t *testing.T) {
+	userRepo := newMockUserRepository()
+	taskRepo := newMockTaskRepository()
+
+	// Seed user
+	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@example.com"), Name: "Test User"}
+
+	// Seed tasks for the user (some open, some completed)
+	taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Status: models.TaskStatusOpen}
+	taskRepo.tasks[2] = &models.Task{ID: 2, RequesterID: 1, Status: models.TaskStatusCompleted}
+
+	service := NewUserService(userRepo, taskRepo)
+	user, err := service.GetProfile(context.Background(), int64(1))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// populateTaskStats should have been called.
+	// The mock's CountByFilters returns len(tasks) for any filter, so both
+	// TotalTasksPosted and TotalTasksCompleted will equal 2.
+	// The important thing is that the code path is exercised.
+	if user.TotalTasksPosted == 0 && user.TotalTasksCompleted == 0 {
+		t.Error("Expected task stats to be populated when taskRepo is provided")
+	}
+	// Verify the mock returned len(tasks)==2 for both calls
+	if user.TotalTasksPosted != 2 {
+		t.Errorf("Expected TotalTasksPosted=2 (mock returns len(tasks)), got %d", user.TotalTasksPosted)
+	}
+	if user.TotalTasksCompleted != 2 {
+		t.Errorf("Expected TotalTasksCompleted=2 (mock returns len(tasks)), got %d", user.TotalTasksCompleted)
+	}
+}
+
+func TestUserService_GetProfile_WithTaskStats_NoTasks(t *testing.T) {
+	userRepo := newMockUserRepository()
+	taskRepo := newMockTaskRepository()
+
+	// Seed user but no tasks
+	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("stats@example.com"), Name: "No Tasks User"}
+
+	service := NewUserService(userRepo, taskRepo)
+	user, err := service.GetProfile(context.Background(), int64(1))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// With zero tasks in the mock, CountByFilters returns 0
+	if user.TotalTasksPosted != 0 {
+		t.Errorf("Expected TotalTasksPosted=0 for user with no tasks, got %d", user.TotalTasksPosted)
+	}
+	if user.TotalTasksCompleted != 0 {
+		t.Errorf("Expected TotalTasksCompleted=0 for user with no tasks, got %d", user.TotalTasksCompleted)
+	}
+}
+
+func TestUserService_GetProfile_WithTaskStats_UserNotFound(t *testing.T) {
+	userRepo := newMockUserRepository()
+	taskRepo := newMockTaskRepository()
+
+	// No user seeded
+	service := NewUserService(userRepo, taskRepo)
+	_, err := service.GetProfile(context.Background(), int64(999))
+	if err == nil {
+		t.Fatal("Expected error for non-existent user, got nil")
 	}
 }

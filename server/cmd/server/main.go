@@ -164,8 +164,22 @@ func main() {
 	// Initialize GORM repositories (bank accounts)
 	bankAccountRepo := repository.NewBankAccountGormRepository(db)
 
+	// Initialize Firebase phone verification (optional — nil = phone verification disabled)
+	var firebaseVerifier auth.FirebaseVerifier
+	if cfg.FirebaseCredentialsFile != "" {
+		fbSvc, err := auth.NewFirebaseService(cfg.FirebaseCredentialsFile)
+		if err != nil {
+			log.Printf("Warning: Firebase not available: %v", err)
+		} else {
+			firebaseVerifier = fbSvc
+			log.Println("Firebase Phone Auth enabled")
+		}
+	} else {
+		log.Println("FIREBASE_CREDENTIALS_FILE not set, phone verification disabled")
+	}
+
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret, turnstileService)
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret, turnstileService, firebaseVerifier, userRepo)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL, cfg.PayOSReturnBaseURL)
 	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo, walletService)
@@ -178,6 +192,19 @@ func main() {
 	websocketHandler := handlers.NewWebSocketHandler(hub, messageService, cfg.JWTSecret)
 	messageHandler := handlers.NewMessageHandler(messageService)
 	uploadHandler := handlers.NewUploadHandler("./uploads", userService)
+
+	// Maps proxy handler (optional — only enabled if GOOGLE_MAPS_SERVER_KEY is set)
+	var mapsHandler *handlers.MapsHandler
+	if cfg.GoogleMapsServerKey != "" {
+		mapsHandler = handlers.NewMapsHandler(cfg.GoogleMapsServerKey)
+		log.Println("Google Maps static proxy enabled")
+	} else {
+		log.Println("GOOGLE_MAPS_SERVER_KEY not set, static maps proxy disabled")
+	}
+
+	// Geocoding proxy handler (self-hosted Nominatim)
+	geocodingHandler := handlers.NewGeocodingHandler(cfg.NominatimURL)
+	log.Printf("Geocoding proxy enabled: %s", cfg.NominatimURL)
 
 	// Ensure upload directories exist
 	if err := os.MkdirAll("./uploads/avatars", 0755); err != nil {
@@ -261,6 +288,7 @@ func main() {
 			authRoutes.POST("/register", authHandler.Register)
 			authRoutes.POST("/login", authHandler.Login)
 			authRoutes.POST("/google", authHandler.GoogleLogin)
+			authRoutes.POST("/phone", authHandler.PhoneLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
 			authRoutes.POST("/verify-email", authHandler.VerifyEmail)
 		}
@@ -270,6 +298,7 @@ func main() {
 		authProtected.Use(auth.AuthRequired(cfg.JWTSecret), profileRL)
 		{
 			authProtected.POST("/resend-verification", authHandler.ResendVerification)
+			authProtected.POST("/verify-phone", authHandler.VerifyPhone)
 		}
 
 		// Payment routes — public (PayOS callback + browser redirect) — NO rate limit
@@ -299,6 +328,23 @@ func main() {
 		bankListGroup.Use(categoryRL)
 		{
 			bankListGroup.GET("/banks", bankListHandler.GetBanks)
+		}
+
+		// Maps proxy (public, cached at Cloudflare edge)
+		if mapsHandler != nil {
+			mapsGroup := api.Group("/maps")
+			mapsGroup.Use(publicReadRL)
+			{
+				mapsGroup.GET("/static", mapsHandler.GetStaticMap)
+			}
+		}
+
+		// Geocoding proxy (public, proxies to self-hosted Nominatim)
+		geocodeGroup := api.Group("/geocode")
+		geocodeGroup.Use(publicReadRL)
+		{
+			geocodeGroup.GET("/search", geocodingHandler.Search)
+			geocodeGroup.GET("/reverse", geocodingHandler.Reverse)
 		}
 
 		// User routes
@@ -354,19 +400,19 @@ func main() {
 		wallet.Use(auth.AuthRequired(cfg.JWTSecret), walletRL)
 		{
 			wallet.GET("", walletHandler.GetWallet)
-			wallet.POST("/deposit", walletHandler.Deposit)
+			wallet.POST("/deposit", auth.PhoneVerifiedRequired(userRepo), walletHandler.Deposit)
 			wallet.GET("/transactions", walletHandler.GetTransactionHistory)
 			wallet.GET("/bank-accounts", bankAccountHandler.ListBankAccounts)
 			wallet.POST("/bank-accounts", bankAccountHandler.AddBankAccount)
 			wallet.DELETE("/bank-accounts/:id", bankAccountHandler.DeleteBankAccount)
-			wallet.POST("/withdraw", financeRL, walletHandler.HandleWithdrawal)
+			wallet.POST("/withdraw", auth.PhoneVerifiedRequired(userRepo), financeRL, walletHandler.HandleWithdrawal)
 		}
 
 		// Payment routes (protected, email verified required) - Phase 3
 		payments := api.Group("/payments")
 		payments.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), financeRL)
 		{
-			payments.POST("/escrow", paymentHandler.CreateEscrowPayment)
+			payments.POST("/escrow", auth.PhoneVerifiedRequired(userRepo), paymentHandler.CreateEscrowPayment)
 			payments.POST("/release", paymentHandler.ReleasePayment)
 			payments.POST("/refund", paymentHandler.RefundPayment)
 		}

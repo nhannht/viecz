@@ -40,7 +40,7 @@ func (r *taskApplicationGormRepository) GetByID(ctx context.Context, id int64) (
 
 func (r *taskApplicationGormRepository) GetByTaskID(ctx context.Context, taskID int64) ([]*models.TaskApplication, error) {
 	var apps []*models.TaskApplication
-	if err := r.db.WithContext(ctx).Where("task_id = ?", taskID).Order("created_at ASC").Find(&apps).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Tasker").Where("task_id = ?", taskID).Order("created_at ASC").Find(&apps).Error; err != nil {
 		return nil, fmt.Errorf("failed to get applications: %w", err)
 	}
 	return apps, nil
@@ -92,4 +92,30 @@ func (r *taskApplicationGormRepository) ExistsByTaskAndTasker(ctx context.Contex
 		return false, fmt.Errorf("failed to check application existence: %w", err)
 	}
 	return count > 0, nil
+}
+
+func (r *taskApplicationGormRepository) CountByTaskIDs(ctx context.Context, taskIDs []int64) (map[int64]int64, error) {
+	result := make(map[int64]int64)
+	if len(taskIDs) == 0 {
+		return result, nil
+	}
+
+	type countResult struct {
+		TaskID int64
+		Count  int64
+	}
+	var results []countResult
+	if err := r.db.WithContext(ctx).Model(&models.TaskApplication{}).
+		Select("task_id, count(*) as count").
+		Where("task_id IN ?", taskIDs).
+		Group("task_id").
+		Find(&results).Error; err != nil {
+		return nil, fmt.Errorf("failed to count applications by task IDs: %w", err)
+	}
+
+	for _, r := range results {
+		result[r.TaskID] = r.Count
+	}
+
+	return result, nil
 }

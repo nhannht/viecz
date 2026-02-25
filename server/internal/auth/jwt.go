@@ -17,11 +17,19 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// userEmail safely dereferences the user's Email pointer, returning "" if nil.
+func userEmail(user *models.User) string {
+	if user.Email != nil {
+		return *user.Email
+	}
+	return ""
+}
+
 // GenerateAccessToken generates a JWT access token for a user
 func GenerateAccessToken(user *models.User, secret string, expiryMinutes int) (string, error) {
 	claims := Claims{
 		UserID:   user.ID,
-		Email:    user.Email,
+		Email:    userEmail(user),
 		Name:     user.Name,
 		IsTasker: user.IsTasker,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -44,7 +52,7 @@ func GenerateAccessToken(user *models.User, secret string, expiryMinutes int) (s
 func GenerateRefreshToken(user *models.User, secret string, expiryDays int) (string, error) {
 	claims := Claims{
 		UserID: user.ID,
-		Email:  user.Email,
+		Email:  userEmail(user),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiryDays) * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

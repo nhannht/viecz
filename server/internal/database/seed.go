@@ -116,7 +116,11 @@ func seedTestUser(ctx context.Context, db *gorm.DB) error {
 			return err
 		}
 
-		log.Printf("✓ Seeded test user: %s (%s) [TASKER]", user.Name, user.Email)
+		emailStr := ""
+		if user.Email != nil {
+			emailStr = *user.Email
+		}
+		log.Printf("✓ Seeded test user: %s (%s) [TASKER]", user.Name, emailStr)
 		log.Printf("  Login credentials: email=%s, password=%s", tu.email, tu.password)
 	}
 

@@ -87,8 +87,9 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 
 	// Create user
 	hashedPasswordStr := string(hashedPassword)
+	emailCopy := email
 	user := &models.User{
-		Email:        email,
+		Email:        &emailCopy,
 		PasswordHash: &hashedPasswordStr,
 		Name:         name,
 		University:   "ĐHQG-HCM", // Default university
@@ -104,13 +105,17 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 
 	// Send verification email asynchronously
 	go func() {
-		token, err := GenerateEmailVerifyToken(user.ID, user.Email, s.jwtSecret)
+		emailStr := ""
+		if user.Email != nil {
+			emailStr = *user.Email
+		}
+		token, err := GenerateEmailVerifyToken(user.ID, emailStr, s.jwtSecret)
 		if err != nil {
-			fmt.Printf("Failed to generate email verify token for %s: %v\n", user.Email, err)
+			fmt.Printf("Failed to generate email verify token for %s: %v\n", emailStr, err)
 			return
 		}
-		if err := s.emailService.SendVerificationEmail(user.Email, user.Name, token); err != nil {
-			fmt.Printf("Failed to send verification email to %s: %v\n", user.Email, err)
+		if err := s.emailService.SendVerificationEmail(emailStr, user.Name, token); err != nil {
+			fmt.Printf("Failed to send verification email to %s: %v\n", emailStr, err)
 		}
 	}()
 
@@ -178,8 +183,9 @@ func (s *AuthService) LoginWithGoogle(ctx context.Context, googleInfo *GoogleUse
 	// Create new Google user
 	googleID := googleInfo.GoogleID
 	avatarURL := googleInfo.AvatarURL
+	googleEmail := googleInfo.Email
 	user = &models.User{
-		Email:         googleInfo.Email,
+		Email:         &googleEmail,
 		Name:          googleInfo.Name,
 		AvatarURL:     &avatarURL,
 		AuthProvider:  "google",
@@ -209,7 +215,11 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	// Ensure the token email matches the user's current email
-	if user.Email != claims.Email {
+	userEmailStr := ""
+	if user.Email != nil {
+		userEmailStr = *user.Email
+	}
+	if userEmailStr != claims.Email {
 		return ErrInvalidVerifyToken
 	}
 
@@ -236,10 +246,14 @@ func (s *AuthService) SendVerificationEmail(ctx context.Context, userID int64) e
 		return ErrEmailAlreadyVerified
 	}
 
-	token, err := GenerateEmailVerifyToken(user.ID, user.Email, s.jwtSecret)
+	emailStr := ""
+	if user.Email != nil {
+		emailStr = *user.Email
+	}
+	token, err := GenerateEmailVerifyToken(user.ID, emailStr, s.jwtSecret)
 	if err != nil {
 		return fmt.Errorf("failed to generate verify token: %w", err)
 	}
 
-	return s.emailService.SendVerificationEmail(user.Email, user.Name, token)
+	return s.emailService.SendVerificationEmail(emailStr, user.Name, token)
 }

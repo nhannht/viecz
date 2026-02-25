@@ -44,6 +44,12 @@ type Config struct {
 	SMTPFrom     string
 	// Cloudflare Turnstile (optional — empty = skip bot validation)
 	TurnstileSecretKey string
+	// Google Maps (optional — empty = static maps proxy disabled)
+	GoogleMapsServerKey string
+	// Nominatim (self-hosted geocoding — default http://127.0.0.1:8085)
+	NominatimURL string
+	// Firebase (optional — empty = phone verification disabled)
+	FirebaseCredentialsFile string
 	// Platform
 	PlatformFeeRate    float64 // e.g. 0.10 for 10%, 0 for beta
 	MaxWalletBalance   int64   // max balance per wallet in VND (e.g. 200000)
@@ -109,6 +115,15 @@ func Load() (*Config, error) {
 
 	// Cloudflare Turnstile (optional — empty = skip bot validation)
 	cfg.TurnstileSecretKey = os.Getenv("TURNSTILE_SECRET_KEY")
+
+	// Google Maps (optional — empty = static maps proxy disabled)
+	cfg.GoogleMapsServerKey = os.Getenv("GOOGLE_MAPS_SERVER_KEY")
+
+	// Nominatim (self-hosted geocoding)
+	cfg.NominatimURL = getEnv("NOMINATIM_URL", "http://127.0.0.1:8085")
+
+	// Firebase (optional — empty = phone verification disabled)
+	cfg.FirebaseCredentialsFile = os.Getenv("FIREBASE_CREDENTIALS_FILE")
 
 	// Rate limiting (optional — disabled by default)
 	cfg.RateLimitEnabled = getEnv("RATE_LIMIT_ENABLED", "false") == "true"

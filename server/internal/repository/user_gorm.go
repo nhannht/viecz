@@ -65,6 +65,18 @@ func (r *userGormRepository) GetByGoogleID(ctx context.Context, googleID string)
 	return &user, nil
 }
 
+// GetByPhone retrieves a user by phone number
+func (r *userGormRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
+	var user models.User
+	if err := r.db.WithContext(ctx).Where("phone = ?", phone).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user by phone: %w", err)
+	}
+	return &user, nil
+}
+
 func (r *userGormRepository) Update(ctx context.Context, user *models.User) error {
 	if err := r.db.WithContext(ctx).Save(user).Error; err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
@@ -155,6 +167,18 @@ func (r *userGormRepository) SetEmailVerified(ctx context.Context, userID int64)
 		UpdateColumn("email_verified", true)
 	if result.Error != nil {
 		return fmt.Errorf("failed to set email verified: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+	return nil
+}
+
+func (r *userGormRepository) SetPhoneVerified(ctx context.Context, userID int64, phone string) error {
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).
+		UpdateColumns(map[string]interface{}{"phone": phone, "phone_verified": true})
+	if result.Error != nil {
+		return fmt.Errorf("failed to set phone verified: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("user not found")

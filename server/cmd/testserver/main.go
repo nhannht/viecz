@@ -241,7 +241,7 @@ func main() {
 	bankAccountRepo := repository.NewBankAccountGormRepository(db)
 
 	// 6. Handlers
-	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil) // nil = no Turnstile in test
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil, &auth.NoOpFirebaseVerifier{}, userRepo) // nil Turnstile, mock Firebase
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL) // serverURL used as payosReturnBaseURL for test
 	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
@@ -298,22 +298,28 @@ func main() {
 								log.Printf("[TestServer] Failed to seed wallet for user %d: %v", user.ID, err)
 								return
 							}
-							log.Printf("[TestServer] Auto-seeded 100,000 VND for new user %d (%s)", user.ID, user.Email)
+							email := ""
+							if user.Email != nil {
+								email = *user.Email
+							}
+							log.Printf("[TestServer] Auto-seeded 100,000 VND for new user %d (%s)", user.ID, email)
 						}
 					}()
 				}
 			})
 			authRoutes.POST("/login", authHandler.Login)
 			authRoutes.POST("/google", authHandler.GoogleLogin)
+			authRoutes.POST("/phone", authHandler.PhoneLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
 			authRoutes.POST("/verify-email", authHandler.VerifyEmail)
 		}
 
-		// Auth routes (authenticated) — resend verification
+		// Auth routes (authenticated) — resend verification + phone verification
 		authProtected := api.Group("/auth")
 		authProtected.Use(auth.AuthRequired(jwtSecret))
 		{
 			authProtected.POST("/resend-verification", authHandler.ResendVerification)
+			authProtected.POST("/verify-phone", authHandler.VerifyPhone)
 		}
 
 		// Payment routes — public (mock PayOS webhook callback)
@@ -334,6 +340,24 @@ func main() {
 		// Bank list route (public, cached from VietQR)
 		bankListHandler := handlers.NewBankListHandler()
 		api.GET("/banks", bankListHandler.GetBanks)
+
+		// Maps proxy (uses env var GOOGLE_MAPS_SERVER_KEY if set, or test key)
+		mapsKey := os.Getenv("GOOGLE_MAPS_SERVER_KEY")
+		if mapsKey != "" {
+			mapsHandler := handlers.NewMapsHandler(mapsKey)
+			api.GET("/maps/static", mapsHandler.GetStaticMap)
+			log.Println("Static maps proxy enabled")
+		}
+
+		// Geocoding proxy (self-hosted Nominatim)
+		nominatimURL := getEnvDefault("NOMINATIM_URL", "http://127.0.0.1:8085")
+		geocodingHandler := handlers.NewGeocodingHandler(nominatimURL)
+		geocodeGroup := api.Group("/geocode")
+		{
+			geocodeGroup.GET("/search", geocodingHandler.Search)
+			geocodeGroup.GET("/reverse", geocodingHandler.Reverse)
+		}
+		log.Printf("Geocoding proxy enabled: %s", nominatimURL)
 
 		// User routes
 		users := api.Group("/users")
@@ -431,4 +455,11 @@ func main() {
 	if err := router.Run(addr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+func getEnvDefault(key, defaultValue string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return defaultValue
 }

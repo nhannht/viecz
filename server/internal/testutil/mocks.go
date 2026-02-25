@@ -449,6 +449,18 @@ func (m *MockTaskApplicationRepository) ExistsByTaskAndTasker(ctx context.Contex
 	return false, nil
 }
 
+func (m *MockTaskApplicationRepository) CountByTaskIDs(ctx context.Context, taskIDs []int64) (map[int64]int64, error) {
+	result := make(map[int64]int64)
+	for _, app := range m.Applications {
+		for _, id := range taskIDs {
+			if app.TaskID == id {
+				result[id]++
+			}
+		}
+	}
+	return result, nil
+}
+
 // MockWalletService is a mock implementation for testing payment service
 type MockWalletService struct {
 	HoldInEscrowCalls      []HoldInEscrowCall

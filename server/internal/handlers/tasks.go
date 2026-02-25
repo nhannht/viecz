@@ -27,8 +27,10 @@ func NewTaskHandler(taskService *services.TaskService, applicationRepo repositor
 // TaskResponse represents a task with additional user-specific fields
 type TaskResponse struct {
 	*models.Task
-	UserHasApplied bool `json:"user_has_applied"`
-	IsOverdue      bool `json:"is_overdue"`
+	UserHasApplied   bool     `json:"user_has_applied"`
+	IsOverdue        bool     `json:"is_overdue"`
+	ApplicationCount int64    `json:"application_count"`
+	DistanceKm       *float64 `json:"distance_km,omitempty"`
 }
 
 // CreateTask handles POST /api/v1/tasks
@@ -77,10 +79,18 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 		}
 	}
 
+	// Get application count
+	var appCount int64
+	counts, err := h.applicationRepo.CountByTaskIDs(c.Request.Context(), []int64{id})
+	if err == nil {
+		appCount = counts[id]
+	}
+
 	response := TaskResponse{
-		Task:           task,
-		UserHasApplied: userHasApplied,
-		IsOverdue:      task.IsOverdue(),
+		Task:             task,
+		UserHasApplied:   userHasApplied,
+		IsOverdue:        task.IsOverdue(),
+		ApplicationCount: appCount,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -193,6 +203,25 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 		filters.Search = &search
 	}
 
+	if lat := c.Query("lat"); lat != "" {
+		if v, err := strconv.ParseFloat(lat, 64); err == nil {
+			filters.Latitude = &v
+		}
+	}
+	if lng := c.Query("lng"); lng != "" {
+		if v, err := strconv.ParseFloat(lng, 64); err == nil {
+			filters.Longitude = &v
+		}
+	}
+	if radius := c.Query("radius"); radius != "" {
+		if v, err := strconv.Atoi(radius); err == nil && v > 0 {
+			filters.RadiusMeters = &v
+		}
+	}
+	if c.Query("sort") == "distance" {
+		filters.SortByDistance = true
+	}
+
 	if page := c.Query("page"); page != "" {
 		pageNum, err := strconv.Atoi(page)
 		if err == nil && pageNum > 0 {
@@ -207,14 +236,41 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 		}
 	}
 
-	tasks, total, err := h.taskService.ListTasks(c.Request.Context(), filters)
+	tasks, total, distances, err := h.taskService.ListTasks(c.Request.Context(), filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Batch-query application counts
+	taskIDs := make([]int64, len(tasks))
+	for i, t := range tasks {
+		taskIDs[i] = t.ID
+	}
+	appCounts, _ := h.applicationRepo.CountByTaskIDs(c.Request.Context(), taskIDs)
+	if appCounts == nil {
+		appCounts = make(map[int64]int64)
+	}
+
+	// Wrap tasks in TaskResponse
+	responses := make([]TaskResponse, len(tasks))
+	for i, t := range tasks {
+		resp := TaskResponse{
+			Task:             t,
+			IsOverdue:        t.IsOverdue(),
+			ApplicationCount: appCounts[t.ID],
+		}
+		if distances != nil {
+			if d, ok := distances[t.ID]; ok {
+				km := float64(d) / 1000.0
+				resp.DistanceKm = &km
+			}
+		}
+		responses[i] = resp
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":  tasks,
+		"data":  responses,
 		"total": total,
 		"page":  (filters.Offset / filters.Limit) + 1,
 		"limit": filters.Limit,

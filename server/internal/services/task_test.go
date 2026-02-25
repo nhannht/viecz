@@ -12,6 +12,8 @@ import (
 	"viecz.vieczserver/internal/testutil"
 )
 
+func strPtr(s string) *string { return &s }
+
 // Mock repositories
 type mockTaskRepository struct {
 	tasks map[int64]*models.Task
@@ -190,6 +192,18 @@ func (m *mockApplicationRepository) ExistsByTaskAndTasker(ctx context.Context, t
 	return false, nil
 }
 
+func (m *mockApplicationRepository) CountByTaskIDs(ctx context.Context, taskIDs []int64) (map[int64]int64, error) {
+	result := make(map[int64]int64)
+	for _, app := range m.applications {
+		for _, id := range taskIDs {
+			if app.TaskID == id {
+				result[id]++
+			}
+		}
+	}
+	return result, nil
+}
+
 type mockCategoryRepository struct {
 	categories map[int64]*models.Category
 }
@@ -261,7 +275,16 @@ func (m *mockUserRepository) GetByID(ctx context.Context, id int64) (*models.Use
 
 func (m *mockUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	for _, user := range m.users {
-		if user.Email == email {
+		if user.Email != nil && *user.Email == email {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
+func (m *mockUserRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
+	for _, user := range m.users {
+		if user.Phone != nil && *user.Phone == phone {
 			return user, nil
 		}
 	}
@@ -278,7 +301,7 @@ func (m *mockUserRepository) Update(ctx context.Context, user *models.User) erro
 
 func (m *mockUserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	for _, user := range m.users {
-		if user.Email == email {
+		if user.Email != nil && *user.Email == email {
 			return true, nil
 		}
 	}
@@ -348,6 +371,16 @@ func (m *mockUserRepository) SetEmailVerified(ctx context.Context, userID int64)
 	return nil
 }
 
+func (m *mockUserRepository) SetPhoneVerified(ctx context.Context, userID int64, phone string) error {
+	user, exists := m.users[userID]
+	if !exists {
+		return errors.New("user not found")
+	}
+	user.Phone = &phone
+	user.PhoneVerified = true
+	return nil
+}
+
 // Tests
 func TestTaskService_CreateTask(t *testing.T) {
 	tests := []struct {
@@ -370,7 +403,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 			},
 			wantErr: false,
 		},
@@ -385,7 +418,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 				Location:    "HCMUS",
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 			},
 			wantErr:     true,
 			errContains: "category not found",
@@ -402,7 +435,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 			},
 			wantErr:     true,
 			errContains: "title is required",
@@ -419,7 +452,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 			},
 			wantErr:     true,
 			errContains: "price must be greater than 0",
@@ -496,7 +529,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 50000, EscrowBalance: 0}
 			},
 			wantErr:     true,
@@ -514,7 +547,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 0}
 				// Existing open task worth 150k
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 150000, Status: models.TaskStatusOpen}
@@ -534,7 +567,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 100000}
 			},
 			wantErr:     true,
@@ -552,7 +585,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 0}
 				// Existing open task worth 50k
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen}
@@ -620,7 +653,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen, Title: "Old Task", Description: "Old", CategoryID: 1, Location: "HCMUS"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 100000, EscrowBalance: 0}
 			},
@@ -640,7 +673,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen, Title: "Old Task", Description: "Old", CategoryID: 1, Location: "HCMUS"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 10000, EscrowBalance: 0}
 			},
@@ -1288,7 +1321,7 @@ func TestTaskService_ListTasks(t *testing.T) {
 			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
 
-			tasks, total, err := service.ListTasks(ctx, tt.filters)
+			tasks, total, _, err := service.ListTasks(ctx, tt.filters)
 
 			if tt.wantErr {
 				if err == nil {
@@ -1559,7 +1592,7 @@ func TestTaskService_CreateTask_Deadline(t *testing.T) {
 			userRepo := newMockUserRepository()
 
 			catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-			userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+			userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 
 			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
@@ -1662,7 +1695,7 @@ func TestTaskService_CompleteTask_OverdueStillWorks(t *testing.T) {
 	catRepo := newMockCategoryRepository()
 	userRepo := newMockUserRepository()
 
-	userRepo.users[1] = &models.User{ID: 1, Email: "test@test.com"}
+	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
 	taskerID := int64(2)
 	pastDeadline := time.Now().Add(-1 * time.Hour)
 	taskRepo.tasks[1] = &models.Task{
@@ -1696,3 +1729,357 @@ func hasSubstring(s, substr string) bool {
 	return false
 }
 
+
+// --- Tests for DeleteTask with gorm.DB (transactional path) ---
+
+func TestTaskService_DeleteTask_WithDB(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	mockDB, cleanup, err := testutil.NewMockGormDB()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer cleanup()
+
+	// Seed an open task owned by user 1
+	taskRepo.tasks[1] = &models.Task{
+		ID: 1, RequesterID: 1, Status: models.TaskStatusOpen, Title: "Test Task",
+	}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, mockDB, nil, nil)
+	err = service.DeleteTask(context.Background(), 1, 1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify task status changed to cancelled (via UpdateStatus mock)
+	task := taskRepo.tasks[1]
+	if task.Status != models.TaskStatusCancelled {
+		t.Errorf("Expected status cancelled, got %s", task.Status)
+	}
+}
+
+func TestTaskService_DeleteTask_WithDB_BlockedByAccepted(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	mockDB, cleanup, err := testutil.NewMockGormDB()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer cleanup()
+
+	// Seed task and an accepted application
+	taskRepo.tasks[1] = &models.Task{
+		ID: 1, RequesterID: 1, Status: models.TaskStatusOpen, Title: "Accepted Task",
+	}
+	appRepo.applications[10] = &models.TaskApplication{
+		ID: 10, TaskID: 1, TaskerID: 2, Status: models.ApplicationStatusAccepted,
+	}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, mockDB, nil, nil)
+	err = service.DeleteTask(context.Background(), 1, 1)
+	if err == nil {
+		t.Fatal("Expected error when accepted application exists, got nil")
+	}
+	if !contains(err.Error(), "cannot delete") {
+		t.Errorf("Expected error about accepted applicant, got: %s", err.Error())
+	}
+
+	// Task should still be open (transaction rolled back)
+	if taskRepo.tasks[1].Status != models.TaskStatusOpen {
+		t.Errorf("Expected task to remain open after rollback, got %s", taskRepo.tasks[1].Status)
+	}
+}
+
+func TestTaskService_DeleteTask_WithDB_WithPendingApps(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	mockDB, cleanup, err := testutil.NewMockGormDB()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer cleanup()
+
+	// Seed task with pending applications
+	taskRepo.tasks[1] = &models.Task{
+		ID: 1, RequesterID: 1, Status: models.TaskStatusOpen, Title: "Pending Apps Task",
+	}
+	appRepo.applications[10] = &models.TaskApplication{
+		ID: 10, TaskID: 1, TaskerID: 2, Status: models.ApplicationStatusPending,
+	}
+	appRepo.applications[11] = &models.TaskApplication{
+		ID: 11, TaskID: 1, TaskerID: 3, Status: models.ApplicationStatusPending,
+	}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, mockDB, nil, nil)
+	err = service.DeleteTask(context.Background(), 1, 1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify task is cancelled
+	if taskRepo.tasks[1].Status != models.TaskStatusCancelled {
+		t.Errorf("Expected status cancelled, got %s", taskRepo.tasks[1].Status)
+	}
+
+	// Verify pending applications were rejected
+	for _, app := range appRepo.applications {
+		if app.TaskID == 1 && app.Status != models.ApplicationStatusRejected {
+			t.Errorf("Expected application %d to be rejected, got %s", app.ID, app.Status)
+		}
+	}
+}
+
+func TestTaskService_DeleteTask_WithNotifications(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+	notifRepo := testutil.NewMockNotificationRepository()
+	notifService := NewNotificationService(notifRepo, nil)
+
+	// Seed task with pending applications (no db, uses simple path with notifications)
+	taskRepo.tasks[1] = &models.Task{
+		ID: 1, RequesterID: 1, Status: models.TaskStatusOpen, Title: "Notify Task",
+	}
+	appRepo.applications[10] = &models.TaskApplication{
+		ID: 10, TaskID: 1, TaskerID: 2, Status: models.ApplicationStatusPending,
+	}
+	appRepo.applications[11] = &models.TaskApplication{
+		ID: 11, TaskID: 1, TaskerID: 3, Status: models.ApplicationStatusPending,
+	}
+
+	// Use nil db to exercise the simple (non-transactional) path with notifications
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, notifService, nil, nil, nil)
+	err := service.DeleteTask(context.Background(), 1, 1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify notifications were created for each pending applicant (2 applicants)
+	if len(notifRepo.Notifications) != 2 {
+		t.Errorf("Expected 2 notifications (one per pending applicant), got %d", len(notifRepo.Notifications))
+	}
+
+	// Verify notifications are task_cancelled type
+	for _, n := range notifRepo.Notifications {
+		if n.Type != models.NotificationTypeTaskCancelled {
+			t.Errorf("Expected notification type task_cancelled, got %s", n.Type)
+		}
+	}
+}
+
+// --- Tests for CompleteTask with notifications and tasker ---
+
+func TestTaskService_CompleteTask_WithNotificationsAndTasker(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+	notifRepo := testutil.NewMockNotificationRepository()
+	notifService := NewNotificationService(notifRepo, nil)
+
+	taskerID := int64(2)
+	taskRepo.tasks[1] = &models.Task{
+		ID: 1, RequesterID: 1, TaskerID: &taskerID,
+		Status: models.TaskStatusInProgress, Title: "Test Task",
+	}
+
+	// No paymentService, no db — exercises the notification branches directly
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, notifService, nil, nil, nil)
+	err := service.CompleteTask(context.Background(), 1, 1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify task is completed
+	if taskRepo.tasks[1].Status != models.TaskStatusCompleted {
+		t.Errorf("Expected status completed, got %s", taskRepo.tasks[1].Status)
+	}
+
+	// Verify 2 notifications: one for requester, one for tasker
+	if len(notifRepo.Notifications) != 2 {
+		t.Errorf("Expected 2 notifications, got %d", len(notifRepo.Notifications))
+	}
+
+	// Check that both user IDs received notifications
+	notifiedUsers := make(map[int64]bool)
+	for _, n := range notifRepo.Notifications {
+		notifiedUsers[n.UserID] = true
+		if n.Type != models.NotificationTypeTaskCompleted {
+			t.Errorf("Expected notification type task_completed, got %s", n.Type)
+		}
+	}
+	if !notifiedUsers[1] {
+		t.Error("Expected requester (user 1) to receive a notification")
+	}
+	if !notifiedUsers[2] {
+		t.Error("Expected tasker (user 2) to receive a notification")
+	}
+}
+
+func TestTaskService_CompleteTask_WithNotificationsNoTasker(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+	notifRepo := testutil.NewMockNotificationRepository()
+	notifService := NewNotificationService(notifRepo, nil)
+
+	// Task with no tasker (TaskerID is nil)
+	taskRepo.tasks[1] = &models.Task{
+		ID: 1, RequesterID: 1, TaskerID: nil,
+		Status: models.TaskStatusInProgress, Title: "Solo Task",
+	}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, notifService, nil, nil, nil)
+	err := service.CompleteTask(context.Background(), 1, 1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Only 1 notification (requester only, no tasker)
+	if len(notifRepo.Notifications) != 1 {
+		t.Errorf("Expected 1 notification (requester only), got %d", len(notifRepo.Notifications))
+	}
+}
+
+// --- Test ListTasks with search query (NoOpSearchService fallback) ---
+
+func TestTaskService_ListTasks_WithSearchQuery(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	// Seed tasks
+	taskRepo.tasks[1] = &models.Task{ID: 1, Status: models.TaskStatusOpen, Title: "Go programming", RequesterID: 1}
+	taskRepo.tasks[2] = &models.Task{ID: 2, Status: models.TaskStatusOpen, Title: "Python scripting", RequesterID: 1}
+
+	// searchService=nil means NewTaskService creates NoOpSearchService internally
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
+
+	search := "Go"
+	tasks, total, _, err := service.ListTasks(context.Background(), repository.TaskFilters{
+		Search: &search,
+	})
+	if err != nil {
+		t.Fatalf("Expected no error with search query, got: %v", err)
+	}
+
+	// NoOpSearchService returns (nil, 0, nil), isNoOp check detects it,
+	// falls through to DB (mock List returns all tasks)
+	if tasks == nil {
+		t.Fatal("Expected tasks from DB fallback, got nil")
+	}
+	// mock CountByFilters returns len(tasks)==2
+	if total != 2 {
+		t.Errorf("Expected total=2 from mock, got %d", total)
+	}
+}
+
+func TestTaskService_ListTasks_WithEmptySearchQuery(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	taskRepo.tasks[1] = &models.Task{ID: 1, Status: models.TaskStatusOpen, Title: "Test", RequesterID: 1}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
+
+	// Empty search string should skip the search branch entirely
+	emptySearch := ""
+	tasks, total, _, err := service.ListTasks(context.Background(), repository.TaskFilters{
+		Search: &emptySearch,
+	})
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if tasks == nil {
+		t.Fatal("Expected tasks, got nil")
+	}
+	if total != 1 {
+		t.Errorf("Expected total=1, got %d", total)
+	}
+}
+
+func TestTaskService_AcceptApplication_NotPending(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Status: models.TaskStatusOpen}
+	appRepo.applications[1] = &models.TaskApplication{ID: 1, TaskID: 1, TaskerID: 2, Status: models.ApplicationStatusRejected}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
+	err := service.AcceptApplication(context.Background(), 1, 1)
+	if err == nil {
+		t.Fatal("Expected error for non-pending application, got nil")
+	}
+	if !contains(err.Error(), "not pending") {
+		t.Errorf("Expected error containing 'not pending', got %q", err.Error())
+	}
+}
+
+func TestTaskService_AcceptApplication_TaskNotOpen(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+
+	taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Status: models.TaskStatusCompleted}
+	appRepo.applications[1] = &models.TaskApplication{ID: 1, TaskID: 1, TaskerID: 2, Status: models.ApplicationStatusPending}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
+	err := service.AcceptApplication(context.Background(), 1, 1)
+	if err == nil {
+		t.Fatal("Expected error for non-open task, got nil")
+	}
+	if !contains(err.Error(), "not open") {
+		t.Errorf("Expected error containing 'not open', got %q", err.Error())
+	}
+}
+
+func TestTaskService_AcceptApplication_WithNotificationsAndRejectsOthers(t *testing.T) {
+	taskRepo := newMockTaskRepository()
+	appRepo := newMockApplicationRepository()
+	catRepo := newMockCategoryRepository()
+	userRepo := newMockUserRepository()
+	notifRepo := testutil.NewMockNotificationRepository()
+	notifService := NewNotificationService(notifRepo, nil)
+
+	taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Status: models.TaskStatusOpen, Title: "Test Task"}
+	appRepo.applications[1] = &models.TaskApplication{ID: 1, TaskID: 1, TaskerID: 2, Status: models.ApplicationStatusPending}
+	appRepo.applications[2] = &models.TaskApplication{ID: 2, TaskID: 1, TaskerID: 3, Status: models.ApplicationStatusPending}
+
+	service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, notifService, nil, nil, nil)
+	err := service.AcceptApplication(context.Background(), 1, 1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify app 1 accepted
+	if appRepo.applications[1].Status != models.ApplicationStatusAccepted {
+		t.Errorf("Expected app 1 to be accepted, got %s", appRepo.applications[1].Status)
+	}
+	// Verify app 2 rejected
+	if appRepo.applications[2].Status != models.ApplicationStatusRejected {
+		t.Errorf("Expected app 2 to be rejected, got %s", appRepo.applications[2].Status)
+	}
+
+	// Verify notification sent to the accepted tasker
+	if len(notifRepo.Notifications) != 1 {
+		t.Errorf("Expected 1 notification, got %d", len(notifRepo.Notifications))
+	}
+}

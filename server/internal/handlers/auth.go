@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"viecz.vieczserver/internal/auth"
 	"viecz.vieczserver/internal/models"
+	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/services"
 )
 
@@ -16,17 +17,23 @@ type AuthHandler struct {
 	turnstileService   *services.TurnstileService
 	jwtSecret          string
 	resendLimiter      *auth.ResendRateLimiter
+	firebaseVerifier   auth.FirebaseVerifier
+	userRepo           repository.UserRepository
 }
 
 // NewAuthHandler creates a new auth handler.
 // turnstileService may be nil — if nil, Turnstile validation is skipped (dev/test).
-func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.GoogleOAuthService, jwtSecret string, turnstileService *services.TurnstileService) *AuthHandler {
+// firebaseVerifier may be nil — if nil, phone verification returns 503.
+// userRepo may be nil — required only for phone verification.
+func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.GoogleOAuthService, jwtSecret string, turnstileService *services.TurnstileService, firebaseVerifier auth.FirebaseVerifier, userRepo repository.UserRepository) *AuthHandler {
 	return &AuthHandler{
 		authService:        authService,
 		googleOAuthService: googleOAuthService,
 		turnstileService:   turnstileService,
 		jwtSecret:          jwtSecret,
 		resendLimiter:      auth.NewResendRateLimiter(),
+		firebaseVerifier:   firebaseVerifier,
+		userRepo:           userRepo,
 	}
 }
 
@@ -229,9 +236,10 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	// Generate new access token
 	// Note: In production, you'd want to fetch the user from database to get updated info
+	claimsEmail := claims.Email
 	user := &models.User{
 		ID:       claims.UserID,
-		Email:    claims.Email,
+		Email:    &claimsEmail,
 		Name:     claims.Name,
 		IsTasker: claims.IsTasker,
 	}
@@ -301,4 +309,105 @@ func (h *AuthHandler) ResendVerification(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "verification email sent"})
+}
+
+// VerifyPhone verifies a user's phone via Firebase ID token.
+// POST /api/v1/auth/verify-phone
+func (h *AuthHandler) VerifyPhone(c *gin.Context) {
+	userID, exists := auth.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization required"})
+		return
+	}
+
+	if h.firebaseVerifier == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "phone verification not configured"})
+		return
+	}
+
+	var req struct {
+		IDToken string `json:"id_token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id_token is required"})
+		return
+	}
+
+	phoneNumber, err := h.firebaseVerifier.VerifyPhoneToken(c.Request.Context(), req.IDToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "phone verification failed: " + err.Error()})
+		return
+	}
+
+	// Update user's phone and phone_verified
+	if err := h.userRepo.SetPhoneVerified(c.Request.Context(), userID, phoneNumber); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update phone verification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"phone": phoneNumber, "phone_verified": true})
+}
+
+// PhoneLoginRequest represents the phone authentication request
+type PhoneLoginRequest struct {
+	IDToken string `json:"id_token" binding:"required"`
+}
+
+// PhoneLogin handles phone-first authentication via Firebase.
+// POST /api/v1/auth/phone
+func (h *AuthHandler) PhoneLogin(c *gin.Context) {
+	if h.firebaseVerifier == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "phone authentication not configured"})
+		return
+	}
+
+	var req PhoneLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id_token is required"})
+		return
+	}
+
+	// Verify Firebase phone token
+	phoneNumber, err := h.firebaseVerifier.VerifyPhoneToken(c.Request.Context(), req.IDToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "phone verification failed: " + err.Error()})
+		return
+	}
+
+	// Try to find existing user by phone
+	user, err := h.userRepo.GetByPhone(c.Request.Context(), phoneNumber)
+	if err != nil {
+		// User not found — create a new user
+		user = &models.User{
+			Phone:         &phoneNumber,
+			PhoneVerified: true,
+			AuthProvider:  "phone",
+			EmailVerified: false,
+			Name:          "User",
+		}
+
+		if createErr := h.userRepo.Create(c.Request.Context(), user); createErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
+			return
+		}
+	}
+
+	// Generate JWT tokens
+	accessToken, err := auth.GenerateAccessToken(user, h.jwtSecret, 30) // 30 minutes
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken(user, h.jwtSecret, 7) // 7 days
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, TokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         user,
+	})
 }

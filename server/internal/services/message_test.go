@@ -434,3 +434,89 @@ func TestMessageService_GetUserConversations(t *testing.T) {
 // Note: WebSocket HandleMessage tests are skipped because they require complex mocking
 // of the websocket.Client and websocket.Hub which have private channels. These methods
 // are better tested via integration tests.
+
+func TestMessageService_GetConversationByID(t *testing.T) {
+	tests := []struct {
+		name           string
+		conversationID uint
+		userID         uint
+		setupConvRepo  func(*mockConversationRepository)
+		wantErr        bool
+		errContains    string
+	}{
+		{
+			name:           "success - user is poster",
+			conversationID: 1,
+			userID:         10,
+			setupConvRepo: func(repo *mockConversationRepository) {
+				repo.conversations[1] = &models.Conversation{ID: 1, PosterID: 10, TaskerID: 20, TaskID: 1}
+			},
+			wantErr: false,
+		},
+		{
+			name:           "success - user is tasker",
+			conversationID: 1,
+			userID:         20,
+			setupConvRepo: func(repo *mockConversationRepository) {
+				repo.conversations[1] = &models.Conversation{ID: 1, PosterID: 10, TaskerID: 20, TaskID: 1}
+			},
+			wantErr: false,
+		},
+		{
+			name:           "conversation not found",
+			conversationID: 999,
+			userID:         10,
+			setupConvRepo:  func(repo *mockConversationRepository) {},
+			wantErr:        true,
+			errContains:    "conversation not found",
+		},
+		{
+			name:           "repo error",
+			conversationID: 1,
+			userID:         10,
+			setupConvRepo: func(repo *mockConversationRepository) {
+				repo.shouldFail = true
+			},
+			wantErr:     true,
+			errContains: "failed to get conversation",
+		},
+		{
+			name:           "user not authorized",
+			conversationID: 1,
+			userID:         30, // neither poster(10) nor tasker(20)
+			setupConvRepo: func(repo *mockConversationRepository) {
+				repo.conversations[1] = &models.Conversation{ID: 1, PosterID: 10, TaskerID: 20, TaskID: 1}
+			},
+			wantErr:     true,
+			errContains: "not authorized",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msgRepo := newMockMessageRepository()
+			convRepo := newMockConversationRepository()
+			if tt.setupConvRepo != nil {
+				tt.setupConvRepo(convRepo)
+			}
+
+			service := NewMessageService(msgRepo, convRepo, nil)
+			conv, err := service.GetConversationByID(context.Background(), tt.conversationID, tt.userID)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error containing %q, got nil", tt.errContains)
+				} else if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error containing %q, got %q", tt.errContains, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got %v", err)
+				}
+				if conv == nil {
+					t.Fatal("Expected conversation, got nil")
+				}
+			}
+		})
+	}
+}

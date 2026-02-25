@@ -631,3 +631,27 @@ func TestPaymentService_GetTransactionsByTask(t *testing.T) {
 		})
 	}
 }
+
+func TestTruncatePayOSDescription(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"short string", "Hello", "Hello"},
+		{"exactly 25 chars", "1234567890123456789012345", "1234567890123456789012345"},
+		{"longer than 25", "12345678901234567890123456789", "1234567890123456789012345"},
+		{"empty string", "", ""},
+		{"unicode within limit", "Xin chào thế giới abc", "Xin chào thế giới abc"},
+		{"unicode exceeding limit", "Thanh toán cho công việc dọn dẹp nhà cửa sạch sẽ", "Thanh toán cho công việc "},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncatePayOSDescription(tt.input)
+			if got != tt.want {
+				t.Errorf("truncatePayOSDescription(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}

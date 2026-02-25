@@ -76,7 +76,7 @@ func TestUploadHandler_UploadAvatar(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test User",
 				}
 			},
@@ -117,7 +117,7 @@ func TestUploadHandler_UploadAvatar(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test User",
 				}
 			},
@@ -148,7 +148,7 @@ func TestUploadHandler_UploadAvatar(t *testing.T) {
 			setupMock: func(repo *mockUserRepository) {
 				repo.usersById[1] = &models.User{
 					ID:    1,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 					Name:  "Test User",
 				}
 			},
@@ -230,7 +230,7 @@ func TestUploadHandler_UploadAvatar(t *testing.T) {
 				oldURL := "/uploads/avatars/old-avatar.jpg"
 				repo.usersById[1] = &models.User{
 					ID:        1,
-					Email:     "test@example.com",
+					Email:     strPtr("test@example.com"),
 					Name:      "Test User",
 					AvatarURL: &oldURL,
 				}

@@ -70,15 +70,25 @@ func (m *mockUserRepository) ExistsByPhone(ctx context.Context, phone string) (b
 	return false, nil
 }
 
+func strPtr(s string) *string { return &s }
+
 func (m *mockUserRepository) Create(ctx context.Context, user *models.User) error {
 	if m.shouldFail {
 		return errors.New("create failed")
 	}
-	if _, exists := m.users[user.Email]; exists {
-		return errors.New("email already exists")
+	key := ""
+	if user.Email != nil {
+		key = *user.Email
+	}
+	if key != "" {
+		if _, exists := m.users[key]; exists {
+			return errors.New("email already exists")
+		}
 	}
 	user.ID = int64(len(m.users) + 1)
-	m.users[user.Email] = user
+	if key != "" {
+		m.users[key] = user
+	}
 	m.usersById[user.ID] = user
 	return nil
 }
@@ -111,7 +121,9 @@ func (m *mockUserRepository) Update(ctx context.Context, user *models.User) erro
 		return errors.New("update failed")
 	}
 	m.usersById[user.ID] = user
-	m.users[user.Email] = user
+	if user.Email != nil {
+		m.users[*user.Email] = user
+	}
 	return nil
 }
 
@@ -156,6 +168,19 @@ func (m *mockUserRepository) SetEmailVerified(ctx context.Context, userID int64)
 		return errors.New("user not found")
 	}
 	user.EmailVerified = true
+	return nil
+}
+
+func (m *mockUserRepository) SetPhoneVerified(ctx context.Context, userID int64, phone string) error {
+	if m.shouldFail {
+		return errors.New("update failed")
+	}
+	user, exists := m.usersById[userID]
+	if !exists {
+		return errors.New("user not found")
+	}
+	user.Phone = &phone
+	user.PhoneVerified = true
 	return nil
 }
 
@@ -235,7 +260,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			setupRepo: func(repo *mockUserRepository) {
 				repo.users["existing@example.com"] = &models.User{
 					ID:    1,
-					Email: "existing@example.com",
+					Email: strPtr("existing@example.com"),
 					Name:  "Existing User",
 				}
 			},
@@ -274,7 +299,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
 			router := setupTestRouter()
 			router.POST("/auth/register", handler.Register)
 
@@ -328,7 +353,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				hashedPasswordStr := string(hashedPassword)
 				repo.users["test@example.com"] = &models.User{
 					ID:           1,
-					Email:        "test@example.com",
+					Email:        strPtr("test@example.com"),
 					Name:         "Test User",
 					PasswordHash: &hashedPasswordStr,
 					AuthProvider: "email",
@@ -358,7 +383,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				hashedPasswordStr := string(hashedPassword)
 				repo.users["test@example.com"] = &models.User{
 					ID:           1,
-					Email:        "test@example.com",
+					Email:        strPtr("test@example.com"),
 					Name:         "Test User",
 					PasswordHash: &hashedPasswordStr,
 					AuthProvider: "email",
@@ -413,7 +438,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
 			router := setupTestRouter()
 			router.POST("/auth/login", handler.Login)
 
@@ -451,7 +476,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 	// Generate a valid refresh token for testing
 	user := &models.User{
 		ID:       123,
-		Email:    "test@example.com",
+		Email:    strPtr("test@example.com"),
 		Name:     "Test User",
 		IsTasker: false,
 	}
@@ -515,7 +540,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			// Setup
 			mockUserRepo := newMockUserRepository()
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
 			router := setupTestRouter()
 			router.POST("/auth/refresh", handler.RefreshToken)
 
@@ -563,7 +588,7 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 				hashedPasswordStr := string(hashedPassword)
 				repo.users["test@example.com"] = &models.User{
 					ID:           1,
-					Email:        "test@example.com",
+					Email:        strPtr("test@example.com"),
 					Name:         "Test",
 					PasswordHash: &hashedPasswordStr,
 					AuthProvider: "email",
@@ -597,7 +622,7 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 				tt.setupRepo(mockUserRepo)
 			}
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil)
+			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
 			router := setupTestRouter()
 			router.POST("/auth/verify-email", handler.VerifyEmail)
 
@@ -623,7 +648,7 @@ func TestAuthHandler_ResendVerification(t *testing.T) {
 	hashedPasswordStr := string(hashedPassword)
 	mockUserRepo.users["test@example.com"] = &models.User{
 		ID:           1,
-		Email:        "test@example.com",
+		Email:        strPtr("test@example.com"),
 		Name:         "Test",
 		PasswordHash: &hashedPasswordStr,
 		AuthProvider: "email",
@@ -631,7 +656,7 @@ func TestAuthHandler_ResendVerification(t *testing.T) {
 	mockUserRepo.usersById[1] = mockUserRepo.users["test@example.com"]
 
 	authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-	handler := NewAuthHandler(authService, nil, jwtSecret, nil)
+	handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
 	router := setupTestRouter()
 	router.Use(func(c *gin.Context) {
 		c.Set("user_id", int64(1))
@@ -718,7 +743,7 @@ func TestAuthHandler_Register_WithTurnstile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUserRepo := newMockUserRepository()
 			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, turnstileSvc)
+			handler := NewAuthHandler(authService, nil, jwtSecret, turnstileSvc, nil, nil)
 			router := setupTestRouter()
 			router.POST("/auth/register", handler.Register)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"gorm.io/gorm"
@@ -374,37 +375,46 @@ func (s *TaskService) deleteTaskSimple(ctx context.Context, taskID, requesterID 
 	return nil
 }
 
-// ListTasks lists tasks with filters. When a search query is present and
-// Meilisearch is configured, it delegates to the search engine for relevance-
-// ranked results. Falls back to PostgreSQL LIKE on error or when Meilisearch
-// is not available.
-func (s *TaskService) ListTasks(ctx context.Context, filters repository.TaskFilters) ([]*models.Task, int, error) {
-	// Try Meilisearch first if a search query is present
-	if filters.Search != nil && *filters.Search != "" {
+// ListTasks lists tasks with filters. When a search query or geo sort is
+// present and Meilisearch is configured, it delegates to the search engine.
+// Falls back to PostgreSQL LIKE on error or when Meilisearch is not available.
+// The returned distances map (task ID → meters) is populated when geo sort is active.
+func (s *TaskService) ListTasks(ctx context.Context, filters repository.TaskFilters) ([]*models.Task, int, map[int64]int, error) {
+	// Determine if we should use Meilisearch (text search or geo sort)
+	hasSearch := filters.Search != nil && *filters.Search != ""
+	hasGeo := filters.SortByDistance && filters.Latitude != nil && filters.Longitude != nil
+	hasGeoFilter := filters.Latitude != nil && filters.Longitude != nil && filters.RadiusMeters != nil
+
+	if hasSearch || hasGeo || hasGeoFilter {
 		searchFilters := SearchFilters{
-			CategoryID: filters.CategoryID,
-			Status:     filters.Status,
-			MinPrice:   filters.MinPrice,
-			MaxPrice:   filters.MaxPrice,
-			Limit:      filters.Limit,
-			Offset:     filters.Offset,
+			CategoryID:    filters.CategoryID,
+			Status:        filters.Status,
+			MinPrice:      filters.MinPrice,
+			MaxPrice:      filters.MaxPrice,
+			Latitude:      filters.Latitude,
+			Longitude:     filters.Longitude,
+			RadiusMeters:  filters.RadiusMeters,
+			SortByDistance: filters.SortByDistance,
+			Limit:         filters.Limit,
+			Offset:        filters.Offset,
 		}
-		taskIDs, total, err := s.searchService.SearchTasks(ctx, *filters.Search, searchFilters)
+		query := ""
+		if hasSearch {
+			query = *filters.Search
+		}
+		taskIDs, total, distances, err := s.searchService.SearchTasks(ctx, query, searchFilters)
 		if err != nil {
 			log.Printf("[TaskService] Meilisearch error, falling back to DB: %v", err)
-			// Fall through to PostgreSQL LIKE
+			// Fall through to PostgreSQL fallback
 		} else if len(taskIDs) > 0 {
 			tasks, err := s.taskRepo.GetByIDs(ctx, taskIDs)
 			if err != nil {
-				return nil, 0, fmt.Errorf("failed to fetch tasks by IDs: %w", err)
+				return nil, 0, nil, fmt.Errorf("failed to fetch tasks by IDs: %w", err)
 			}
-			return tasks, total, nil
+			return tasks, total, distances, nil
 		} else if total == 0 && err == nil {
-			// Meilisearch returned 0 results (genuinely no matches)
-			// But NoOpSearchService also returns (nil, 0, nil) — distinguish:
-			// if the underlying service is NoOp, fall through to LIKE.
 			if _, isNoOp := s.searchService.(*NoOpSearchService); !isNoOp {
-				return []*models.Task{}, 0, nil
+				return []*models.Task{}, 0, nil, nil
 			}
 		}
 	}
@@ -412,15 +422,51 @@ func (s *TaskService) ListTasks(ctx context.Context, filters repository.TaskFilt
 	// Fallback: existing PostgreSQL LIKE query
 	tasks, err := s.taskRepo.List(ctx, filters)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
+		return nil, 0, nil, fmt.Errorf("failed to list tasks: %w", err)
 	}
 
 	total, err := s.taskRepo.CountByFilters(ctx, filters)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
+		return nil, 0, nil, fmt.Errorf("failed to count tasks: %w", err)
 	}
 
-	return tasks, total, nil
+	// Compute Haversine distances when user has location (fallback for when Meilisearch is down)
+	var distances map[int64]int
+	if filters.Latitude != nil && filters.Longitude != nil {
+		distances = make(map[int64]int, len(tasks))
+		for _, t := range tasks {
+			if t.Latitude != nil && t.Longitude != nil {
+				distances[t.ID] = Haversine(*filters.Latitude, *filters.Longitude, *t.Latitude, *t.Longitude)
+			}
+		}
+		// Sort by distance if requested
+		if filters.SortByDistance {
+			sort.Slice(tasks, func(i, j int) bool {
+				di, oki := distances[tasks[i].ID]
+				dj, okj := distances[tasks[j].ID]
+				if !oki {
+					return false
+				}
+				if !okj {
+					return true
+				}
+				return di < dj
+			})
+		}
+		// Apply radius filter on fallback
+		if filters.RadiusMeters != nil {
+			filtered := make([]*models.Task, 0, len(tasks))
+			for _, t := range tasks {
+				if d, ok := distances[t.ID]; ok && d <= *filters.RadiusMeters {
+					filtered = append(filtered, t)
+				}
+			}
+			total = len(filtered)
+			tasks = filtered
+		}
+	}
+
+	return tasks, total, distances, nil
 }
 
 // ApplyForTaskInput represents input for applying to a task

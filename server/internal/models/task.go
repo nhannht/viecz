@@ -41,7 +41,7 @@ type Task struct {
 	// Associations
 	Requester User     `gorm:"foreignKey:RequesterID" json:"-"`
 	Tasker    *User    `gorm:"foreignKey:TaskerID" json:"-"`
-	Category  Category `gorm:"foreignKey:CategoryID" json:"-"`
+	Category  Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 }
 
 // Validate validates the task model

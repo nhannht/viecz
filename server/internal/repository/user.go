@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByGoogleID(ctx context.Context, googleID string) (*models.User, error)
+	GetByPhone(ctx context.Context, phone string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error
@@ -23,6 +24,7 @@ type UserRepository interface {
 	IncrementTasksPosted(ctx context.Context, userID int64) error
 	IncrementEarnings(ctx context.Context, userID int64, amount int64) error
 	SetEmailVerified(ctx context.Context, userID int64) error
+	SetPhoneVerified(ctx context.Context, userID int64, phone string) error
 }
 
 type userRepository struct {
@@ -150,6 +152,49 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetByPhone retrieves a user by phone number
+func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
+	query := `
+		SELECT id, email, password_hash, name, avatar_url, phone, university, student_id,
+		       is_verified, rating, total_tasks_completed, total_tasks_posted, total_earnings,
+		       is_tasker, tasker_bio, tasker_skills, created_at, updated_at
+		FROM users
+		WHERE phone = $1
+	`
+
+	user := &models.User{}
+	err := r.db.QueryRowContext(ctx, query, phone).Scan(
+		&user.ID,
+		&user.Email,
+		&user.PasswordHash,
+		&user.Name,
+		&user.AvatarURL,
+		&user.Phone,
+		&user.University,
+		&user.StudentID,
+		&user.IsVerified,
+		&user.Rating,
+		&user.TotalTasksCompleted,
+		&user.TotalTasksPosted,
+		&user.TotalEarnings,
+		&user.IsTasker,
+		&user.TaskerBio,
+		pq.Array(&user.TaskerSkills),
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by phone: %w", err)
 	}
 
 	return user, nil
@@ -335,6 +380,27 @@ func (r *userRepository) SetEmailVerified(ctx context.Context, userID int64) err
 	result, err := r.db.ExecContext(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to set email verified: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// SetPhoneVerified marks a user's phone as verified and updates the phone number
+func (r *userRepository) SetPhoneVerified(ctx context.Context, userID int64, phone string) error {
+	query := `UPDATE users SET phone = $1, phone_verified = TRUE WHERE id = $2`
+
+	result, err := r.db.ExecContext(ctx, query, phone, userID)
+	if err != nil {
+		return fmt.Errorf("failed to set phone verified: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()

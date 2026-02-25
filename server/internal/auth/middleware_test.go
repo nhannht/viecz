@@ -18,7 +18,7 @@ func TestAuthRequired(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
 		ID:       123,
-		Email:    "test@example.com",
+		Email:    strPtr("test@example.com"),
 		Name:     "Test User",
 		IsTasker: false,
 	}
@@ -112,7 +112,7 @@ func TestOptionalAuth(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
 		ID:       123,
-		Email:    "test@example.com",
+		Email:    strPtr("test@example.com"),
 		Name:     "Test User",
 		IsTasker: false,
 	}

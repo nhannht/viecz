@@ -17,6 +17,7 @@ type TaskApplicationRepository interface {
 	UpdateStatus(ctx context.Context, id int64, status models.ApplicationStatus) error
 	Delete(ctx context.Context, id int64) error
 	ExistsByTaskAndTasker(ctx context.Context, taskID, taskerID int64) (bool, error)
+	CountByTaskIDs(ctx context.Context, taskIDs []int64) (map[int64]int64, error)
 }
 
 type taskApplicationRepository struct {
@@ -192,4 +193,45 @@ func (r *taskApplicationRepository) ExistsByTaskAndTasker(ctx context.Context, t
 	}
 
 	return exists, nil
+}
+
+func (r *taskApplicationRepository) CountByTaskIDs(ctx context.Context, taskIDs []int64) (map[int64]int64, error) {
+	result := make(map[int64]int64)
+	if len(taskIDs) == 0 {
+		return result, nil
+	}
+
+	// Build placeholder list ($1, $2, ...)
+	placeholders := ""
+	args := make([]interface{}, len(taskIDs))
+	for i, id := range taskIDs {
+		if i > 0 {
+			placeholders += ", "
+		}
+		placeholders += fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT task_id, COUNT(*) as count
+		FROM task_applications
+		WHERE task_id IN (%s)
+		GROUP BY task_id
+	`, placeholders)
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count applications by task IDs: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var taskID, count int64
+		if err := rows.Scan(&taskID, &count); err != nil {
+			return nil, fmt.Errorf("failed to scan application count: %w", err)
+		}
+		result[taskID] = count
+	}
+
+	return result, nil
 }

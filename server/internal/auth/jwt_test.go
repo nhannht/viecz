@@ -12,7 +12,7 @@ func TestGenerateAccessToken(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
 		ID:       123,
-		Email:    "test@example.com",
+		Email:    strPtr("test@example.com"),
 		Name:     "Test User",
 		IsTasker: true,
 	}
@@ -38,8 +38,8 @@ func TestGenerateAccessToken(t *testing.T) {
 		t.Errorf("Expected UserID claim to be %d, got %d", user.ID, claims.UserID)
 	}
 
-	if claims.Email != user.Email {
-		t.Errorf("Expected Email claim to be %s, got %s", user.Email, claims.Email)
+	if claims.Email != userEmail(user) {
+		t.Errorf("Expected Email claim to be %s, got %s", userEmail(user), claims.Email)
 	}
 
 	if claims.Name != user.Name {
@@ -62,7 +62,7 @@ func TestGenerateRefreshToken(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
 		ID:    123,
-		Email: "test@example.com",
+		Email: strPtr("test@example.com"),
 	}
 	expiryDays := 7
 
@@ -86,8 +86,8 @@ func TestGenerateRefreshToken(t *testing.T) {
 		t.Errorf("Expected UserID claim to be %d, got %d", user.ID, claims.UserID)
 	}
 
-	if claims.Email != user.Email {
-		t.Errorf("Expected Email claim to be %s, got %s", user.Email, claims.Email)
+	if claims.Email != userEmail(user) {
+		t.Errorf("Expected Email claim to be %s, got %s", userEmail(user), claims.Email)
 	}
 
 	// Verify token expiration (should be 7 days)
@@ -112,7 +112,7 @@ func TestValidateToken(t *testing.T) {
 			setupToken: func() string {
 				user := &models.User{
 					ID:       123,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					Name:     "Test",
 					IsTasker: false,
 				}
@@ -126,7 +126,7 @@ func TestValidateToken(t *testing.T) {
 			setupToken: func() string {
 				user := &models.User{
 					ID:    123,
-					Email: "test@example.com",
+					Email: strPtr("test@example.com"),
 				}
 				token, _ := GenerateRefreshToken(user, secret, 7)
 				return token
@@ -158,7 +158,7 @@ func TestValidateToken(t *testing.T) {
 			setupToken: func() string {
 				user := &models.User{
 					ID:       123,
-					Email:    "test@example.com",
+					Email:    strPtr("test@example.com"),
 					Name:     "Test",
 					IsTasker: false,
 				}
@@ -294,7 +294,7 @@ func TestValidateEmailVerifyToken_AuthTokenRejected(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 
 	// A regular auth token should be rejected
-	user := &models.User{ID: 42, Email: "auth@example.com", Name: "Test"}
+	user := &models.User{ID: 42, Email: strPtr("auth@example.com"), Name: "Test"}
 	authToken, _ := GenerateAccessToken(user, secret, 30)
 
 	_, err := ValidateEmailVerifyToken(authToken, secret)
@@ -307,7 +307,7 @@ func TestTokenRoundTrip(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
 		ID:       999,
-		Email:    "roundtrip@example.com",
+		Email:    strPtr("roundtrip@example.com"),
 		Name:     "Round Trip User",
 		IsTasker: true,
 	}
@@ -329,8 +329,8 @@ func TestTokenRoundTrip(t *testing.T) {
 		t.Errorf("Expected UserID to be %d, got %d", user.ID, claims.UserID)
 	}
 
-	if claims.Email != user.Email {
-		t.Errorf("Expected Email to be %s, got %s", user.Email, claims.Email)
+	if claims.Email != userEmail(user) {
+		t.Errorf("Expected Email to be %s, got %s", userEmail(user), claims.Email)
 	}
 
 	if claims.Name != user.Name {
