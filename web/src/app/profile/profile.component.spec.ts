@@ -25,6 +25,7 @@ const mockUser: User = {
   is_tasker: false,
   auth_provider: 'email',
   email_verified: true,
+  phone_verified: true,
   bio: 'Hello world',
   tasker_skills: ['Delivery', 'Teaching'],
   created_at: '2026-01-01T00:00:00Z',
@@ -298,7 +299,13 @@ describe('ProfileComponent', () => {
     component.user.set({ ...mockUser, is_verified: false });
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).not.toContain('VERIFIED');
+    // The is_verified "VERIFIED" badge should not appear, though EMAIL/PHONE VERIFIED badges may
+    const hasVerifiedBadge = Array.from(el.querySelectorAll('span'))
+      .some(s => {
+        const text = s.textContent?.trim() ?? '';
+        return text.endsWith('VERIFIED') && !text.includes('EMAIL') && !text.includes('PHONE') && !text.includes('SĐT');
+      });
+    expect(hasVerifiedBadge).toBe(false);
   });
 
   it('should render camera upload label for own profile', () => {
@@ -571,13 +578,21 @@ describe('ProfileComponent', () => {
   });
 
   it('should toggle verified badge (destroys verified block)', () => {
+    // The is_verified badge contains icon "verified" + text "VERIFIED"
+    // Distinct from "EMAIL VERIFIED" and "PHONE VERIFIED" badges
+    const hasVerifiedBadge = () => Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('span'))
+      .some(s => {
+        const text = s.textContent?.trim() ?? '';
+        return text.endsWith('VERIFIED') && !text.includes('EMAIL') && !text.includes('PHONE') && !text.includes('SĐT');
+      });
+
     component.user.set({ ...mockUser, is_verified: true });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('VERIFIED');
+    expect(hasVerifiedBadge()).toBe(true);
 
     component.user.set({ ...mockUser, is_verified: false });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('VERIFIED');
+    expect(hasVerifiedBadge()).toBe(false);
   });
 
   it('should toggle isOwnProfile (destroys own profile block)', () => {
@@ -682,17 +697,23 @@ describe('ProfileComponent', () => {
     });
 
     it('should toggle is_verified true→false→true covering verified badge block', () => {
+      const hasVerifiedBadge = () => Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('span'))
+        .some(s => {
+          const text = s.textContent?.trim() ?? '';
+          return text.endsWith('VERIFIED') && !text.includes('EMAIL') && !text.includes('PHONE') && !text.includes('SĐT');
+        });
+
       component.user.set({ ...mockUser, is_verified: true });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('VERIFIED');
+      expect(hasVerifiedBadge()).toBe(true);
 
       component.user.set({ ...mockUser, is_verified: false });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).not.toContain('VERIFIED');
+      expect(hasVerifiedBadge()).toBe(false);
 
       component.user.set({ ...mockUser, is_verified: true });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('VERIFIED');
+      expect(hasVerifiedBadge()).toBe(true);
     });
 
     it('should set editBio to empty string when user.bio is null (covers ?? fallback)', () => {

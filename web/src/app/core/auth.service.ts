@@ -65,7 +65,7 @@ export class AuthService {
       localStorage.removeItem('viecz_user');
     }
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/phone']);
   }
 
   getAccessToken(): string | null {
@@ -96,6 +96,32 @@ export class AuthService {
   resendVerification(): Observable<{ message: string }> {
     return this.http.post<{ message: string }>('/api/v1/auth/resend-verification', {});
   }
+
+  phoneLogin(idToken: string) {
+    return this.http
+      .post<AuthResponse>('/api/v1/auth/phone', { id_token: idToken })
+      .pipe(tap(res => this.storeAuth(res)));
+  }
+
+  verifyPhone(idToken: string): Observable<{ phone: string; phone_verified: boolean }> {
+    return this.http.post<{ phone: string; phone_verified: boolean }>('/api/v1/auth/verify-phone', { id_token: idToken }).pipe(
+      tap(res => {
+        const user = this.currentUser();
+        if (user) {
+          const updated = { ...user, phone: res.phone, phone_verified: true };
+          this.currentUser.set(updated);
+          if (isPlatformBrowser(this.platformId)) {
+            localStorage.setItem('viecz_user', JSON.stringify(updated));
+          }
+        }
+      }),
+    );
+  }
+
+  needsPhoneVerification = computed(() => {
+    const user = this.currentUser();
+    return user !== null && !user.phone_verified;
+  });
 
   private storeAuth(res: AuthResponse) {
     if (isPlatformBrowser(this.platformId)) {

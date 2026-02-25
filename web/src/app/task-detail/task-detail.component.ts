@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal, input } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, input, ElementRef, ViewChild, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { TaskService } from '../core/task.service';
@@ -6,6 +7,7 @@ import { ApplicationService } from '../core/application.service';
 import { PaymentService } from '../core/payment.service';
 import { AuthService } from '../core/auth.service';
 import { Task, TaskApplication } from '../core/models';
+import { environment } from '../environments/environment';
 import { VndPipe, TimeAgoPipe } from '../core/pipes';
 import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
@@ -38,7 +40,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     <ng-container *transloco="let t">
     @if (loading()) {
       <div class="flex justify-center py-16">
-        <nhannht-metro-spinner [size]="40" />
+        <nhannht-metro-spinner />
       </div>
     } @else if (task()) {
       <div class="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
@@ -79,6 +81,12 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                 <nhannht-metro-icon name="location_on" [size]="18" />
                 <span>{{ task()!.location }}</span>
               </div>
+              @if (task()!.latitude && task()!.longitude) {
+                <div #detailMap class="w-full h-[200px] border border-border"></div>
+                <span class="font-mono text-[11px] text-muted">
+                  {{ task()!.latitude!.toFixed(6) }}, {{ task()!.longitude!.toFixed(6) }}
+                </span>
+              }
               @if (task()!.deadline) {
                 <div class="flex items-center gap-2 text-[13px] text-muted">
                   <nhannht-metro-icon name="schedule" [size]="18" />
@@ -122,10 +130,10 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                     </li>
                   </ul>
                   <div class="flex gap-4 items-center">
-                    <a routerLink="/register">
+                    <a routerLink="/phone">
                       <nhannht-metro-button variant="primary" [label]="t('task.registerToApply')" />
                     </a>
-                    <a routerLink="/login" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
+                    <a routerLink="/phone" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
                       {{ t('task.signInLink') }}
                     </a>
                   </div>
@@ -188,8 +196,10 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     </ng-container>
   `,
 })
-export class TaskDetailComponent implements OnInit {
+export class TaskDetailComponent implements OnInit, OnDestroy {
   id = input.required<string>();
+
+  @ViewChild('detailMap', { static: false }) mapContainer?: ElementRef<HTMLDivElement>;
 
   private taskService = inject(TaskService);
   private applicationService = inject(ApplicationService);
@@ -198,6 +208,7 @@ export class TaskDetailComponent implements OnInit {
   private router = inject(Router);
   private snackbar = inject(NhannhtMetroSnackbarService);
   private transloco = inject(TranslocoService);
+  private platformId = inject(PLATFORM_ID);
 
   task = signal<Task | null>(null);
   applications = signal<TaskApplication[]>([]);
@@ -205,6 +216,7 @@ export class TaskDetailComponent implements OnInit {
   showDeleteDialog = signal(false);
   showEscrowDialog = signal(false);
   pendingAppId = signal(0);
+  private map: any = null;
 
   get isRequester() {
     return () => this.task()?.requester_id === this.auth.currentUser()?.id;
@@ -216,12 +228,49 @@ export class TaskDetailComponent implements OnInit {
     return 'default';
   }
 
+  ngOnDestroy() {
+    if (this.map) {
+      this.map.remove();
+      this.map = null;
+    }
+  }
+
+  private initDetailMap(lat: number, lng: number) {
+    if (!isPlatformBrowser(this.platformId)) return;
+    // Wait for ViewChild to be available after template re-render
+    setTimeout(async () => {
+      if (!this.mapContainer) return;
+      try {
+        const mod = await import('maplibre-gl');
+        const maplibregl = mod.default || mod;
+
+        this.map = new maplibregl.Map({
+          container: this.mapContainer.nativeElement,
+          style: `https://api.maptiler.com/maps/streets/style.json?key=${environment.mapTilerApiKey}`,
+          center: [lng, lat],
+          zoom: 16,
+          attributionControl: false,
+          interactive: false,
+        });
+
+        this.map.on('load', () => {
+          new maplibregl.Marker().setLngLat([lng, lat]).addTo(this.map);
+        });
+      } catch {
+        // WebGL not available
+      }
+    }, 0);
+  }
+
   ngOnInit() {
     const taskId = Number(this.id());
     this.taskService.get(taskId).subscribe({
       next: task => {
         this.task.set(task);
         this.loading.set(false);
+        if (task.latitude && task.longitude) {
+          this.initDetailMap(task.latitude, task.longitude);
+        }
         if (task.requester_id === this.auth.currentUser()?.id) {
           this.applicationService.getForTask(taskId).subscribe({
             next: apps => this.applications.set(apps),
@@ -251,6 +300,10 @@ export class TaskDetailComponent implements OnInit {
   }
 
   acceptApp(appId: number) {
+    if (this.auth.needsPhoneVerification()) {
+      this.snackbar.show(this.transloco.translate('wallet.phoneRequired'), this.transloco.translate('common.close'), { duration: 5000 });
+      return;
+    }
     this.pendingAppId.set(appId);
     this.showEscrowDialog.set(true);
   }

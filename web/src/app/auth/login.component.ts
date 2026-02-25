@@ -65,7 +65,7 @@ import { AuthService } from '../core/auth.service';
             <div class="mt-2">
               @if (loading()) {
                 <div class="flex justify-center py-3">
-                  <nhannht-metro-spinner [size]="20" />
+                  <nhannht-metro-spinner size="sm" />
                 </div>
               } @else {
                 <nhannht-metro-button

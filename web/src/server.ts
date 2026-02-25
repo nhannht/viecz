@@ -42,9 +42,15 @@ app.use(
 app.use((req, res, next) => {
   angularApp
     .handle(req)
-    .then((response) =>
-      response ? writeResponseToNodeResponse(response, res) : next(),
-    )
+    .then((response) => {
+      if (response) {
+        // HTML pages must never be cached — they reference hashed chunk filenames
+        // that change on every build. Stale HTML = broken chunk imports.
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        return writeResponseToNodeResponse(response, res);
+      }
+      return next();
+    })
     .catch(next);
 });
 

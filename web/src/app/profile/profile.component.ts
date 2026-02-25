@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { UserService } from '../core/user.service';
 import { AuthService } from '../core/auth.service';
+import { FirebasePhoneAuthService } from '../core/firebase.service';
 import { User } from '../core/models';
 import { VndPipe } from '../core/pipes';
 import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
@@ -14,7 +15,9 @@ import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-i
 import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
 import { NhannhtMetroBadgeComponent } from '../shared/components/nhannht-metro-badge.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { NhannhtMetroDialogComponent } from '../shared/components/nhannht-metro-dialog.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import google_libphonenumber from 'google-libphonenumber';
 
 @Component({
   selector: 'app-profile',
@@ -32,12 +35,13 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     NhannhtMetroDividerComponent,
     NhannhtMetroBadgeComponent,
     NhannhtMetroSpinnerComponent,
+    NhannhtMetroDialogComponent,
   ],
   template: `
     <ng-container *transloco="let t">
       @if (loading()) {
         <div class="flex justify-center py-16">
-          <nhannht-metro-spinner [size]="40" />
+          <nhannht-metro-spinner />
         </div>
       } @else if (user()) {
         <div class="flex flex-col gap-4 max-w-[700px] mx-auto">
@@ -67,16 +71,39 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                 <p class="flex items-center gap-1 text-muted text-[13px] m-0 mb-2">
                   <nhannht-metro-icon name="school" [size]="16" /> {{ user()!.university }}
                 </p>
-                @if (user()!.is_verified) {
-                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px] mr-2">
-                    <nhannht-metro-icon name="verified" [size]="14" /> {{ t('profile.verified') }}
-                  </span>
-                }
-                @if (user()!.is_tasker) {
-                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px]">
-                    <nhannht-metro-icon name="handyman" [size]="14" /> {{ t('profile.tasker') }}
-                  </span>
-                }
+                <div class="flex flex-wrap gap-2 mb-2">
+                  @if (user()!.email_verified) {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-green-700 text-green-700 text-[11px] font-bold tracking-[1px]">
+                      <nhannht-metro-icon name="mail" [size]="14" /> {{ t('profile.emailVerified') }}
+                    </span>
+                  } @else {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-muted text-muted text-[11px] font-bold tracking-[1px]">
+                      <nhannht-metro-icon name="mail" [size]="14" /> {{ t('profile.emailNotVerified') }}
+                    </span>
+                  }
+                  @if (user()!.phone_verified) {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-green-700 text-green-700 text-[11px] font-bold tracking-[1px]">
+                      <nhannht-metro-icon name="phone" [size]="14" /> {{ t('profile.phoneVerified') }}
+                    </span>
+                  } @else if (isOwnProfile()) {
+                    <button (click)="showPhoneVerifyDialog.set(true)"
+                      class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px] cursor-pointer hover:bg-fg hover:text-bg transition-colors duration-200 bg-transparent">
+                      <nhannht-metro-icon name="phone" [size]="14" /> {{ t('profile.phoneNotVerified') }}
+                    </button>
+                  }
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  @if (user()!.is_verified) {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px]">
+                      <nhannht-metro-icon name="verified" [size]="14" /> {{ t('profile.verified') }}
+                    </span>
+                  }
+                  @if (user()!.is_tasker) {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px]">
+                      <nhannht-metro-icon name="handyman" [size]="14" /> {{ t('profile.tasker') }}
+                    </span>
+                  }
+                </div>
               </div>
             </div>
 
@@ -157,7 +184,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                                      [placeholder]="t('profile.bioPlaceholder')" />
                 <div class="mt-3">
                   @if (saving()) {
-                    <nhannht-metro-spinner [size]="20" [label]="t('profile.saving')" />
+                    <nhannht-metro-spinner size="sm" [label]="t('profile.saving')" />
                   } @else {
                     <nhannht-metro-button variant="primary" [label]="t('profile.saveChanges')"
                       type="submit" />
@@ -168,6 +195,30 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
           }
         </div>
       }
+
+      <!-- Phone verification dialog -->
+      <nhannht-metro-dialog [open]="showPhoneVerifyDialog()" [title]="t('profile.verifyPhoneTitle')"
+        [confirmLabel]="firebasePhone.codeSent() ? t('profile.verifyCode') : t('profile.sendCode')"
+        [cancelLabel]="t('common.cancel')"
+        (confirmed)="onPhoneDialogConfirm()"
+        (cancelled)="closePhoneDialog()">
+        <p class="font-body text-[13px] text-muted mb-4">{{ t('profile.verifyPhoneSubtitle') }}</p>
+        @if (!firebasePhone.codeSent()) {
+          <nhannht-metro-input [label]="t('profile.phoneLabel')" [(ngModel)]="phoneToVerify"
+            [placeholder]="t('profile.phonePlaceholder')" type="tel" />
+          @if (firebasePhone.sending()) {
+            <nhannht-metro-spinner size="sm" [label]="t('profile.sendingCode')" />
+          }
+        } @else {
+          <p class="font-body text-[13px] text-fg mb-2">{{ phoneToVerify }}</p>
+          <nhannht-metro-input [label]="t('profile.codeLabel')" [(ngModel)]="verificationCode"
+            [placeholder]="t('profile.codePlaceholder')" />
+          @if (firebasePhone.verifying()) {
+            <nhannht-metro-spinner size="sm" [label]="t('profile.verifying')" />
+          }
+        }
+        <div id="phone-verify-recaptcha"></div>
+      </nhannht-metro-dialog>
     </ng-container>
   `,
 })
@@ -176,6 +227,7 @@ export class ProfileComponent implements OnInit {
 
   private userService = inject(UserService);
   private auth = inject(AuthService);
+  firebasePhone = inject(FirebasePhoneAuthService);
   private snackbar = inject(NhannhtMetroSnackbarService);
   private transloco = inject(TranslocoService);
 
@@ -186,6 +238,11 @@ export class ProfileComponent implements OnInit {
   editName = '';
   editPhone = '';
   editBio = '';
+
+  // Phone verification
+  showPhoneVerifyDialog = signal(false);
+  phoneToVerify = '';
+  verificationCode = '';
 
   isOwnProfile() {
     return this.user()?.id === this.auth.currentUser()?.id;
@@ -258,5 +315,72 @@ export class ProfileComponent implements OnInit {
       error: err =>
         this.snackbar.show(err.error?.error || this.transloco.translate('common.failed'), undefined, { duration: 3000 }),
     });
+  }
+
+  onPhoneDialogConfirm() {
+    if (!this.firebasePhone.codeSent()) {
+      this.sendPhoneCode();
+    } else {
+      this.verifyPhoneCode();
+    }
+  }
+
+  private normalizePhone(raw: string): string | null {
+    const phoneUtil = google_libphonenumber.PhoneNumberUtil.getInstance();
+    try {
+      const parsed = phoneUtil.parse(raw, 'VN');
+      if (!phoneUtil.isValidNumber(parsed)) return null;
+      return phoneUtil.format(parsed, google_libphonenumber.PhoneNumberFormat.E164);
+    } catch {
+      return null;
+    }
+  }
+
+  async sendPhoneCode() {
+    const raw = this.phoneToVerify.trim();
+    if (!raw) {
+      this.snackbar.show(this.transloco.translate('profile.invalidPhoneFormat'), undefined, { duration: 3000 });
+      return;
+    }
+    const phone = this.normalizePhone(raw);
+    if (!phone) {
+      this.snackbar.show(this.transloco.translate('profile.invalidPhoneFormat'), undefined, { duration: 3000 });
+      return;
+    }
+    this.phoneToVerify = phone;
+    try {
+      await this.firebasePhone.sendVerificationCode(phone, 'phone-verify-recaptcha');
+      this.snackbar.show(this.transloco.translate('profile.codeSent'), undefined, { duration: 3000 });
+    } catch (err: any) {
+      this.snackbar.show(err.message || this.transloco.translate('profile.phoneVerificationFailed'), undefined, { duration: 3000 });
+    }
+  }
+
+  async verifyPhoneCode() {
+    try {
+      const idToken = await this.firebasePhone.confirmCode(this.verificationCode);
+      this.auth.verifyPhone(idToken).subscribe({
+        next: () => {
+          const u = this.user();
+          if (u) {
+            this.user.set({ ...u, phone_verified: true, phone: this.phoneToVerify });
+          }
+          this.closePhoneDialog();
+          this.snackbar.show(this.transloco.translate('profile.phoneVerifiedSuccess'), undefined, { duration: 3000 });
+        },
+        error: err => {
+          this.snackbar.show(err.error?.error || this.transloco.translate('profile.phoneVerificationFailed'), undefined, { duration: 3000 });
+        },
+      });
+    } catch (err: any) {
+      this.snackbar.show(err.message || this.transloco.translate('profile.phoneVerificationFailed'), undefined, { duration: 3000 });
+    }
+  }
+
+  closePhoneDialog() {
+    this.showPhoneVerifyDialog.set(false);
+    this.phoneToVerify = '';
+    this.verificationCode = '';
+    this.firebasePhone.reset();
   }
 }

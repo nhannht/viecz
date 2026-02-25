@@ -8,6 +8,6 @@ export const authGuard: CanActivateFn = () => {
 
   if (auth.getAccessToken()) return true;
 
-  router.navigate(['/login']);
+  router.navigate(['/phone']);
   return false;
 };

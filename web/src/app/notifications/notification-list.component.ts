@@ -42,7 +42,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 
           @if (loading()) {
             <div class="flex justify-center py-8">
-              <nhannht-metro-spinner [size]="40" />
+              <nhannht-metro-spinner />
             </div>
           } @else if (error()) {
             <app-error-fallback [title]="t('notifications.failedToLoadTitle')"

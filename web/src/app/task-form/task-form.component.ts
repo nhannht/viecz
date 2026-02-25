@@ -13,7 +13,9 @@ import { NhannhtMetroDatepickerComponent } from '../shared/components/nhannht-me
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { NhannhtMetroLocationPickerComponent } from '../shared/components/nhannht-metro-location-picker.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { LocationPickerValue } from '../core/models';
 
 @Component({
   selector: 'app-task-form',
@@ -29,11 +31,12 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     NhannhtMetroButtonComponent,
     NhannhtMetroIconComponent,
     NhannhtMetroSpinnerComponent,
+    NhannhtMetroLocationPickerComponent,
   ],
   template: `
     <ng-container *transloco="let t">
       @if (loadingTask()) {
-        <div class="flex justify-center py-16"><nhannht-metro-spinner [size]="40" /></div>
+        <div class="flex justify-center py-16"><nhannht-metro-spinner /></div>
       } @else {
         <nhannht-metro-card class="block max-w-[700px] mx-auto">
           <h2 class="font-display text-[11px] tracking-[1px] text-fg uppercase mb-4">
@@ -89,21 +92,19 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
               </div>
             }
 
-            <div class="flex max-sm:flex-col gap-4">
-              <nhannht-metro-input class="flex-1"
-                [label]="t('taskForm.priceLabel')"
-                type="number"
-                [placeholder]="t('taskForm.pricePlaceholder')"
-                [step]="1000" [min]="1000"
-                [(ngModel)]="price" name="price"
-                [error]="priceError()" />
+            <nhannht-metro-input
+              [label]="t('taskForm.priceLabel')"
+              type="number"
+              [placeholder]="t('taskForm.pricePlaceholder')"
+              [step]="1000" [min]="1000"
+              [(ngModel)]="price" name="price"
+              [error]="priceError()" />
 
-              <nhannht-metro-input class="flex-1"
-                [label]="t('taskForm.locationLabel')"
-                [placeholder]="t('taskForm.locationPlaceholder')"
-                [(ngModel)]="location" name="location"
-                [error]="submitted && !location ? t('taskForm.locationRequired') : ''" />
-            </div>
+            <nhannht-metro-location-picker
+              [label]="t('taskForm.locationLabel')"
+              [placeholder]="t('taskForm.locationPickerHint')"
+              [(ngModel)]="locationValue" name="locationValue"
+              [error]="submitted && !locationValue.location ? t('taskForm.locationRequired') : ''" />
 
             <nhannht-metro-datepicker
               [label]="t('taskForm.deadlineLabel')"
@@ -122,7 +123,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                 [disabled]="saving()"
                 type="submit">
                 @if (saving()) {
-                  <nhannht-metro-spinner [size]="20" />
+                  <nhannht-metro-spinner size="sm" />
                 } @else {
                   <span class="inline-flex items-center gap-2">
                     <nhannht-metro-icon [name]="isEditMode() ? 'save' : 'add'" [size]="18" />
@@ -166,7 +167,7 @@ export class TaskFormComponent implements OnInit {
   description = '';
   categoryId = '';
   price = '';
-  location = '';
+  locationValue: LocationPickerValue = { location: '', latitude: 0, longitude: 0 };
   deadline = '';
 
   ngOnInit() {
@@ -188,7 +189,11 @@ export class TaskFormComponent implements OnInit {
           this.description = task.description;
           this.categoryId = String(task.category_id);
           this.price = String(task.price);
-          this.location = task.location;
+          this.locationValue = {
+            location: task.location,
+            latitude: task.latitude || 0,
+            longitude: task.longitude || 0,
+          };
           this.deadline = task.deadline ? task.deadline.split('T')[0] : '';
           this.loadingTask.set(false);
         },
@@ -219,7 +224,7 @@ export class TaskFormComponent implements OnInit {
   onSubmit() {
     this.submitted = true;
     const p = Number(this.price);
-    if (!this.title || !this.description || !this.categoryId || !this.price || p <= 0 || p % 1000 !== 0 || !this.location) {
+    if (!this.title || !this.description || !this.categoryId || !this.price || p <= 0 || p % 1000 !== 0 || !this.locationValue.location) {
       return;
     }
     if (this.deadline && this.deadline < this.today) {
@@ -232,7 +237,9 @@ export class TaskFormComponent implements OnInit {
       description: this.description,
       category_id: Number(this.categoryId),
       price: Number(this.price),
-      location: this.location,
+      location: this.locationValue.location,
+      latitude: this.locationValue.latitude,
+      longitude: this.locationValue.longitude,
     };
     if (this.deadline) {
       body['deadline'] = new Date(this.deadline).toISOString();

@@ -16,6 +16,10 @@ export class TaskService {
     max_price?: number;
     page?: number;
     limit?: number;
+    lat?: number;
+    lng?: number;
+    radius?: number;
+    sort?: string;
   }) {
     let hp = new HttpParams();
     if (params) {

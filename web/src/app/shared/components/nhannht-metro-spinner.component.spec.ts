@@ -8,7 +8,7 @@ import { NhannhtMetroSpinnerComponent } from './nhannht-metro-spinner.component'
   template: `<nhannht-metro-spinner [size]="size()" [label]="label()" />`,
 })
 class TestHostComponent {
-  size = signal(24);
+  size = signal<'sm' | 'md' | 'lg'>('md');
   label = signal('Loading');
 }
 
@@ -17,18 +17,16 @@ describe('NhannhtMetroSpinnerComponent', () => {
   let host: TestHostComponent;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [TestHostComponent] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [TestHostComponent],
+    }).compileComponents();
     fixture = TestBed.createComponent(TestHostComponent);
     host = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('should apply custom size', () => {
-    host.size.set(48);
-    fixture.detectChanges();
-    const div = fixture.nativeElement.querySelector('[role="progressbar"]');
-    expect(div.style.width).toBe('48px');
-    expect(div.style.height).toBe('48px');
+  afterEach(() => {
+    fixture.destroy();
   });
 
   it('should have role progressbar', () => {
@@ -48,44 +46,62 @@ describe('NhannhtMetroSpinnerComponent', () => {
     expect(div.getAttribute('aria-label')).toBe('Saving');
   });
 
-  it('should handle component destruction', () => {
-    fixture.detectChanges();
-    fixture.destroy();
+  it('should render a pre element for the ASCII cube', () => {
+    const pre = fixture.nativeElement.querySelector('pre');
+    expect(pre).toBeTruthy();
   });
 
-  describe('template conditional toggles', () => {
-    it('should toggle size from default to custom and back', () => {
-      host.size.set(24);
-      fixture.detectChanges();
-      let div = fixture.nativeElement.querySelector('[role="progressbar"]');
-      expect(div.style.width).toBe('24px');
+  it('should populate innerHTML after animation starts', async () => {
+    await new Promise((r) => setTimeout(r, 50));
+    const pre = fixture.nativeElement.querySelector('pre');
+    expect(pre.innerHTML.length).toBeGreaterThan(0);
+  });
 
-      host.size.set(64);
-      fixture.detectChanges();
-      div = fixture.nativeElement.querySelector('[role="progressbar"]');
-      expect(div.style.width).toBe('64px');
+  it('should apply small font size for sm', () => {
+    host.size.set('sm');
+    fixture.detectChanges();
+    const pre = fixture.nativeElement.querySelector('pre');
+    expect(pre.style.fontSize).toBe('6px');
+  });
 
-      host.size.set(16);
-      fixture.detectChanges();
-      div = fixture.nativeElement.querySelector('[role="progressbar"]');
-      expect(div.style.width).toBe('16px');
-    });
+  it('should apply medium font size for md', () => {
+    host.size.set('md');
+    fixture.detectChanges();
+    const pre = fixture.nativeElement.querySelector('pre');
+    expect(pre.style.fontSize).toBe('7px');
+  });
 
-    it('should toggle label from default to custom and back', () => {
-      host.label.set('Loading');
-      fixture.detectChanges();
-      let div = fixture.nativeElement.querySelector('[role="progressbar"]');
-      expect(div.getAttribute('aria-label')).toBe('Loading');
+  it('should apply large font size for lg', () => {
+    host.size.set('lg');
+    fixture.detectChanges();
+    const pre = fixture.nativeElement.querySelector('pre');
+    expect(pre.style.fontSize).toBe('8px');
+  });
 
-      host.label.set('Processing');
-      fixture.detectChanges();
-      div = fixture.nativeElement.querySelector('[role="progressbar"]');
-      expect(div.getAttribute('aria-label')).toBe('Processing');
+  it('should toggle size from sm to lg', () => {
+    host.size.set('sm');
+    fixture.detectChanges();
+    let pre = fixture.nativeElement.querySelector('pre');
+    expect(pre.style.fontSize).toBe('6px');
 
-      host.label.set('');
-      fixture.detectChanges();
-      div = fixture.nativeElement.querySelector('[role="progressbar"]');
-      expect(div.getAttribute('aria-label')).toBe('');
-    });
+    host.size.set('lg');
+    fixture.detectChanges();
+    pre = fixture.nativeElement.querySelector('pre');
+    expect(pre.style.fontSize).toBe('8px');
+  });
+
+  it('should toggle label', () => {
+    let div = fixture.nativeElement.querySelector('[role="progressbar"]');
+    expect(div.getAttribute('aria-label')).toBe('Loading');
+
+    host.label.set('Processing');
+    fixture.detectChanges();
+    div = fixture.nativeElement.querySelector('[role="progressbar"]');
+    expect(div.getAttribute('aria-label')).toBe('Processing');
+
+    host.label.set('');
+    fixture.detectChanges();
+    div = fixture.nativeElement.querySelector('[role="progressbar"]');
+    expect(div.getAttribute('aria-label')).toBe('');
   });
 });

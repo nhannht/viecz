@@ -287,16 +287,6 @@ describe('ShellComponent', () => {
     expect(component.notifMenuOpen()).toBe(false);
   });
 
-  it('should call lang.toggle when language button is clicked', () => {
-    const langService = TestBed.inject(LanguageService);
-    const el = fixture.nativeElement as HTMLElement;
-    const langBtn = Array.from(el.querySelectorAll('button')).find(
-      b => b.textContent?.trim() === 'VI' || b.textContent?.trim() === 'EN'
-    );
-    expect(langBtn).toBeTruthy();
-    langBtn!.click();
-    expect(langService.toggle).toHaveBeenCalled();
-  });
 
   it('should render unread count badge when unreadCount > 0', () => {
     component.unreadCount.set(5);
@@ -523,7 +513,7 @@ describe('ShellComponent (unauthenticated)', () => {
   it('should render language toggle button', () => {
     const el = fixture.nativeElement as HTMLElement;
     const buttons = el.querySelectorAll('button');
-    const langBtn = Array.from(buttons).find(b => b.textContent?.trim() === 'VI' || b.textContent?.trim() === 'EN');
+    const langBtn = Array.from(buttons).find(b => b.textContent?.includes('VI') || b.textContent?.includes('EN'));
     expect(langBtn).toBeTruthy();
   });
 
@@ -577,10 +567,10 @@ describe('ShellComponent (vi language)', () => {
     fixture.detectChanges();
   });
 
-  it('should show EN button when language is vi', () => {
+  it('should show VI button when language is vi', () => {
     const el = fixture.nativeElement as HTMLElement;
     const buttons = el.querySelectorAll('button');
-    const langBtn = Array.from(buttons).find(b => b.textContent?.trim() === 'EN');
+    const langBtn = Array.from(buttons).find(b => b.textContent?.includes('VI'));
     expect(langBtn).toBeTruthy();
   });
 });

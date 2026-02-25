@@ -9,6 +9,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const snackbar = inject(NhannhtMetroSnackbarService);
   const token = auth.getAccessToken();
 
+  // Skip auth header and error handling for external API calls (MapTiler, Nominatim, etc.)
+  const isExternal = req.url.startsWith('http') && !req.url.includes('/api/');
+  if (isExternal) {
+    return next(req);
+  }
+
   if (token) {
     req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
   }

@@ -17,6 +17,7 @@ const mockUser: User = {
   is_tasker: false,
   auth_provider: 'email',
   email_verified: true,
+  phone_verified: true,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };

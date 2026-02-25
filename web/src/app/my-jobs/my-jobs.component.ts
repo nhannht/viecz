@@ -24,7 +24,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
           (tabChanged)="onTabChange($event)">
           @if (loading()) {
             <div class="flex justify-center py-12">
-              <nhannht-metro-spinner [size]="40" />
+              <nhannht-metro-spinner />
             </div>
           } @else if (error()) {
             <app-error-fallback [title]="t('myJobs.failedToLoadTitle')"

@@ -28,7 +28,7 @@ import { VndPipe } from '../core/pipes';
     <ng-container *transloco="let t">
       @if (loading()) {
         <div class="flex justify-center py-16">
-          <nhannht-metro-spinner [size]="40" />
+          <nhannht-metro-spinner />
         </div>
       } @else if (task()) {
         <div class="max-w-[600px] mx-auto">
@@ -65,7 +65,7 @@ import { VndPipe } from '../core/pipes';
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-border">
               <nhannht-metro-button variant="secondary" [label]="t('common.cancel')" (clicked)="cancel()" />
               @if (submitting()) {
-                <nhannht-metro-spinner [size]="20" />
+                <nhannht-metro-spinner size="sm" />
               } @else {
                 <nhannht-metro-button variant="primary" [label]="t('applyTask.submitButton')" (clicked)="submit()" />
               }

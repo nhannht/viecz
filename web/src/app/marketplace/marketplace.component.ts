@@ -13,6 +13,7 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { TaskService } from '../core/task.service';
 import { AuthService } from '../core/auth.service';
+import { GeolocationService } from '../core/geolocation.service';
 import { Task } from '../core/models';
 import { CategoryChipsComponent } from '../shared/components/category-chips.component';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
@@ -20,6 +21,7 @@ import { NhannhtMetroAsciiArtComponent } from '../shared/components/nhannht-metr
 import { TaskCardComponent } from '../shared/components/task-card.component';
 import { LoadingSkeletonComponent } from '../shared/components/loading-skeleton.component';
 import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
+import { MarketplaceMapComponent } from './marketplace-map.component';
 
 @Component({
   selector: 'app-marketplace',
@@ -37,6 +39,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
     TaskCardComponent,
     LoadingSkeletonComponent,
     ErrorFallbackComponent,
+    MarketplaceMapComponent,
   ],
   template: `
     <ng-container *transloco="let t">
@@ -95,10 +98,10 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
           </div>
 
           <div class="flex justify-center gap-4 items-center">
-            <a routerLink="/register">
+            <a routerLink="/phone">
               <nhannht-metro-button variant="primary" [label]="t('marketplace.getStarted')" />
             </a>
-            <a routerLink="/login" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
+            <a routerLink="/phone" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
               {{ t('marketplace.signInLink') }}
             </a>
           </div>
@@ -116,6 +119,54 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 
       <app-category-chips (categorySelected)="onCategoryChange($event)" />
 
+      <div class="flex flex-wrap items-center gap-3 my-4">
+        <button
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 border-2 font-display text-[10px] tracking-[1px] transition-all duration-200"
+          [class]="nearMeActive() ? 'border-fg bg-fg text-bg' : 'border-border text-fg hover:border-fg'"
+          (click)="toggleNearMe()"
+        >
+          <nhannht-metro-icon name="near_me" [size]="14" />
+          @if (geo.loading()) {
+            {{ t('marketplace.nearMeLoading') }}
+          } @else if (geo.isDenied()) {
+            {{ t('marketplace.nearMeDenied') }}
+          } @else {
+            {{ t('marketplace.nearMe') }}
+          }
+        </button>
+
+        @if (nearMeActive()) {
+          <div class="flex items-center gap-2">
+            @for (r of radiusOptions; track r.value) {
+              <button
+                class="px-2.5 py-1 border font-display text-[9px] tracking-[1px] transition-all duration-200"
+                [class]="selectedRadius() === r.value ? 'border-fg bg-fg text-bg' : 'border-border text-muted hover:border-fg hover:text-fg'"
+                (click)="setRadius(r.value)"
+              >
+                {{ r.value === null ? t('marketplace.radiusAll') : r.label }}
+              </button>
+            }
+          </div>
+        }
+
+        <div class="ml-auto flex items-center gap-1">
+          <button
+            class="px-2.5 py-1 border font-display text-[9px] tracking-[1px] transition-all duration-200"
+            [class]="viewMode() === 'list' ? 'border-fg bg-fg text-bg' : 'border-border text-muted hover:border-fg hover:text-fg'"
+            (click)="viewMode.set('list')"
+          >
+            {{ t('marketplace.viewList') }}
+          </button>
+          <button
+            class="px-2.5 py-1 border font-display text-[9px] tracking-[1px] transition-all duration-200"
+            [class]="viewMode() === 'map' ? 'border-fg bg-fg text-bg' : 'border-border text-muted hover:border-fg hover:text-fg'"
+            (click)="viewMode.set('map')"
+          >
+            {{ t('marketplace.viewMap') }}
+          </button>
+        </div>
+      </div>
+
       @if (error()) {
         <app-error-fallback
           [title]="t('marketplace.failedToLoadTitle')"
@@ -129,6 +180,12 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
           <h3 class="font-display text-[11px] tracking-[1px] text-fg mt-3 mb-1">{{ t('marketplace.noTasksFound') }}</h3>
           <p class="font-body text-[13px] text-muted">{{ t('marketplace.noTasksHint') }}</p>
         </div>
+      } @else if (viewMode() === 'map') {
+        <app-marketplace-map
+          [tasks]="tasks()"
+          [userLat]="geo.latitude()"
+          [userLng]="geo.longitude()"
+        />
       } @else {
         <div class="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4 my-4">
           @for (task of tasks(); track task.id) {
@@ -137,7 +194,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
         </div>
         @if (loadingMore()) {
           <div class="flex justify-center py-6">
-            <nhannht-metro-spinner [size]="32" />
+            <nhannht-metro-spinner />
           </div>
         }
         @if (!hasMore()) {
@@ -160,6 +217,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 })
 export class MarketplaceComponent implements OnInit {
   auth = inject(AuthService);
+  geo = inject(GeolocationService);
   private taskService = inject(TaskService);
   private minLoadMs = inject(MINIMUM_LOADING_MS);
 
@@ -173,6 +231,18 @@ export class MarketplaceComponent implements OnInit {
   search = '';
   selectedCategory = 0;
   retryLoad = () => this.resetAndLoad();
+
+  nearMeActive = signal(false);
+  selectedRadius = signal<number | null>(null);
+  viewMode = signal<'list' | 'map'>('list');
+
+  readonly radiusOptions = [
+    { value: null as number | null, label: 'All' },
+    { value: 1000, label: '1 km' },
+    { value: 3000, label: '3 km' },
+    { value: 5000, label: '5 km' },
+    { value: 10000, label: '10 km' },
+  ];
 
   private platformId = inject(PLATFORM_ID);
   private readonly pageSize = 20;
@@ -189,6 +259,27 @@ export class MarketplaceComponent implements OnInit {
 
   onCategoryChange(catId: number) {
     this.selectedCategory = catId;
+    this.resetAndLoad();
+  }
+
+  toggleNearMe() {
+    if (this.nearMeActive()) {
+      this.nearMeActive.set(false);
+      this.selectedRadius.set(null);
+      this.resetAndLoad();
+      return;
+    }
+    // Request geolocation on first activation
+    this.geo.requestLocation().then(() => {
+      this.nearMeActive.set(true);
+      this.resetAndLoad();
+    }).catch(() => {
+      // Denied or error — nearMe stays off
+    });
+  }
+
+  setRadius(value: number | null) {
+    this.selectedRadius.set(value);
     this.resetAndLoad();
   }
 
@@ -212,6 +303,16 @@ export class MarketplaceComponent implements OnInit {
     this.loadTasks();
   }
 
+  private buildGeoParams() {
+    if (!this.nearMeActive()) return {};
+    return {
+      lat: this.geo.latitude() ?? undefined,
+      lng: this.geo.longitude() ?? undefined,
+      radius: this.selectedRadius() ?? undefined,
+      sort: 'distance' as const,
+    };
+  }
+
   private loadTasks() {
     this.loading.set(true);
     const loadStart = Date.now();
@@ -222,6 +323,7 @@ export class MarketplaceComponent implements OnInit {
         status: 'open',
         page: this.page(),
         limit: this.pageSize,
+        ...this.buildGeoParams(),
       })
       .subscribe({
         next: res => {
@@ -252,6 +354,7 @@ export class MarketplaceComponent implements OnInit {
         status: 'open',
         page: nextPage,
         limit: this.pageSize,
+        ...this.buildGeoParams(),
       })
       .subscribe({
         next: res => {

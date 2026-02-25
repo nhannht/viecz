@@ -17,6 +17,8 @@ const mockTask: Task = {
   deadline: '2026-03-15T00:00:00Z',
   created_at: '2026-02-20T10:00:00Z',
   updated_at: '2026-02-20T10:00:00Z',
+  category: { id: 1, name: 'Delivery', name_vi: 'Giao hàng', is_active: true },
+  application_count: 3,
 };
 
 const meta: Meta<TaskCardComponent> = {

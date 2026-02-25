@@ -20,7 +20,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 
         @if (loading()) {
           <div class="flex items-center justify-center min-h-[200px]">
-            <nhannht-metro-spinner [size]="36" />
+            <nhannht-metro-spinner />
           </div>
         } @else if (error()) {
           <app-error-fallback [title]="t('conversationList.failedToLoadTitle')"

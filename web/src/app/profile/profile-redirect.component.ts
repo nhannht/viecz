@@ -16,7 +16,7 @@ export class ProfileRedirectComponent implements OnInit {
     if (user) {
       this.router.navigate(['/profile', user.id], { replaceUrl: true });
     } else {
-      this.router.navigate(['/login'], { replaceUrl: true });
+      this.router.navigate(['/phone'], { replaceUrl: true });
     }
   }
 }

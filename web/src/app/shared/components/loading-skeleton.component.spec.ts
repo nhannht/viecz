@@ -18,33 +18,33 @@ describe('LoadingSkeletonComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render card skeletons by default', () => {
+  it('should render card skeletons by default with braille spinners', () => {
     fixture.detectChanges();
-    const lines = fixture.nativeElement.querySelectorAll('.skeleton-line');
-    // 3 cards × 4 lines each = 12
-    expect(lines.length).toBe(12);
+    const braille = fixture.nativeElement.querySelectorAll('.ascii-braille');
+    expect(braille.length).toBe(3);
   });
 
-  it('should render list skeletons when variant is list', () => {
+  it('should render list skeletons with chunky and bar loaders', () => {
     fixture.componentRef.setInput('variant', 'list');
     fixture.detectChanges();
-    const circles = fixture.nativeElement.querySelectorAll('.skeleton-circle');
-    expect(circles.length).toBe(3);
+    const chunky = fixture.nativeElement.querySelectorAll('.ascii-chunky');
+    const bar = fixture.nativeElement.querySelectorAll('.ascii-bar');
+    expect(chunky.length).toBe(3);
+    expect(bar.length).toBe(3);
   });
 
   it('should render correct count', () => {
     fixture.componentRef.setInput('count', 5);
     fixture.detectChanges();
-    const lines = fixture.nativeElement.querySelectorAll('.skeleton-line');
-    // 5 cards × 4 lines each = 20
-    expect(lines.length).toBe(20);
+    const braille = fixture.nativeElement.querySelectorAll('.ascii-braille');
+    expect(braille.length).toBe(5);
   });
 
-  it('should render line variant', () => {
+  it('should render line variant with braille spinners', () => {
     fixture.componentRef.setInput('variant', 'line');
     fixture.detectChanges();
-    const lines = fixture.nativeElement.querySelectorAll('.skeleton-line');
-    expect(lines.length).toBe(3);
+    const braille = fixture.nativeElement.querySelectorAll('.ascii-braille');
+    expect(braille.length).toBe(3);
   });
 
   it('should handle component destruction', () => {
@@ -53,41 +53,37 @@ describe('LoadingSkeletonComponent', () => {
   });
 
   describe('template conditional toggles', () => {
-    it('should toggle variant from card to list (destroys card block, creates list block)', () => {
-      // Default is card variant
+    it('should toggle variant from card to list', () => {
       fixture.componentRef.setInput('variant', 'card');
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelectorAll('.skeleton-circle').length).toBe(0);
-      expect(fixture.nativeElement.querySelectorAll('.skeleton-line').length).toBeGreaterThan(0);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-braille').length).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-chunky').length).toBe(0);
 
       fixture.componentRef.setInput('variant', 'list');
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelectorAll('.skeleton-circle').length).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-chunky').length).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-bar').length).toBe(3);
     });
 
-    it('should toggle variant from list to line (destroys list block, creates line block)', () => {
+    it('should toggle variant from list to line', () => {
       fixture.componentRef.setInput('variant', 'list');
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelectorAll('.skeleton-circle').length).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-chunky').length).toBe(3);
 
       fixture.componentRef.setInput('variant', 'line');
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelectorAll('.skeleton-circle').length).toBe(0);
-      const lines = fixture.nativeElement.querySelectorAll('.skeleton-line');
-      expect(lines.length).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-chunky').length).toBe(0);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-braille').length).toBe(3);
     });
 
-    it('should toggle variant from line to card (destroys line block, creates card block)', () => {
+    it('should toggle variant from line to card', () => {
       fixture.componentRef.setInput('variant', 'line');
       fixture.detectChanges();
-      const linesBefore = fixture.nativeElement.querySelectorAll('.skeleton-line').length;
-      expect(linesBefore).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-braille').length).toBe(3);
 
       fixture.componentRef.setInput('variant', 'card');
       fixture.detectChanges();
-      // card has 4 lines per item, 3 items = 12
-      const linesAfter = fixture.nativeElement.querySelectorAll('.skeleton-line').length;
-      expect(linesAfter).toBe(12);
+      expect(fixture.nativeElement.querySelectorAll('.ascii-braille').length).toBe(3);
     });
   });
 });

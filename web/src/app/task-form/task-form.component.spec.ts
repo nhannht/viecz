@@ -128,7 +128,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = 'Task description';
       taskForm.categoryId = '1';
       taskForm.price = '50000';
-      taskForm.location = 'Library';
+      taskForm.locationValue = { location: 'Library', latitude: 0, longitude: 0 };
       fixture.detectChanges();
 
       taskForm.onSubmit();
@@ -151,7 +151,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = 'Description';
       taskForm.categoryId = '1';
       taskForm.price = '10000';
-      taskForm.location = 'Here';
+      taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       taskForm.deadline = '2026-12-25';
       fixture.detectChanges();
 
@@ -177,7 +177,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = 'Desc';
       taskForm.categoryId = '1';
       taskForm.price = '0';
-      taskForm.location = 'Here';
+      taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
 
       taskForm.onSubmit();
       httpTesting.expectNone('/api/v1/tasks');
@@ -349,7 +349,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = 'Desc';
       taskForm.categoryId = '1';
       taskForm.price = '1500';
-      taskForm.location = 'Here';
+      taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       taskForm.onSubmit();
       httpTesting.expectNone('/api/v1/tasks');
     });
@@ -361,7 +361,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = 'Desc';
       taskForm.categoryId = '1';
       taskForm.price = '10000';
-      taskForm.location = 'Here';
+      taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       taskForm.onSubmit();
 
       httpTesting.expectOne('/api/v1/tasks').flush(
@@ -431,7 +431,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = 'Desc';
       taskForm.categoryId = '1';
       taskForm.price = '';
-      taskForm.location = 'Here';
+      taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       taskForm.onSubmit();
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
@@ -445,7 +445,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = 'Desc';
       taskForm.categoryId = '1';
       taskForm.price = '10000';
-      taskForm.location = 'Here';
+      taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       taskForm.deadline = '2020-01-01';
       taskForm.onSubmit();
       httpTesting.expectNone('/api/v1/tasks');
@@ -458,7 +458,7 @@ describe('TaskFormComponent', () => {
       taskForm.description = '';
       taskForm.categoryId = '1';
       taskForm.price = '10000';
-      taskForm.location = 'Here';
+      taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       taskForm.onSubmit();
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
@@ -562,14 +562,9 @@ describe('TaskFormComponent', () => {
       }
     });
 
-    it('should update location via DOM input event', () => {
-      const input = fixture.nativeElement.querySelector('nhannht-metro-input[name="location"] input');
-      if (input) {
-        input.value = 'Saigon';
-        input.dispatchEvent(new Event('input'));
-        fixture.detectChanges();
-        expect(getComponent().location).toBe('Saigon');
-      }
+    it('should render location picker component', () => {
+      const picker = fixture.nativeElement.querySelector('nhannht-metro-location-picker');
+      expect(picker).toBeTruthy();
     });
 
     it('should update deadline via DOM datepicker change event', () => {
@@ -588,7 +583,7 @@ describe('TaskFormComponent', () => {
       comp.description = 'Desc';
       comp.categoryId = '1';
       comp.price = '10000';
-      comp.location = 'HCM';
+      comp.locationValue = { location: 'HCM', latitude: 0, longitude: 0 };
       fixture.detectChanges();
 
       const form = fixture.nativeElement.querySelector('form');
@@ -699,7 +694,7 @@ describe('TaskFormComponent', () => {
       comp.title = 'Test';
       comp.categoryId = '1';
       comp.price = '10000';
-      comp.location = 'Here';
+      comp.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       comp.description = ''; // empty
       comp.onSubmit(); // sets submitted=true internally
       fixture.detectChanges();
@@ -763,7 +758,7 @@ describe('TaskFormComponent', () => {
       comp.description = 'Desc';
       comp.categoryId = '1';
       comp.price = '10000';
-      comp.location = 'Here';
+      comp.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
       comp.deadline = '2020-01-01'; // past date
       comp.onSubmit(); // sets submitted=true
       fixture.detectChanges();

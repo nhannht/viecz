@@ -123,14 +123,17 @@ import { resolveNotification } from '../core/notification-i18n';
                     [attr.title]="lang.activeLang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'">
               {{ lang.activeLang === 'vi' ? '\uD83C\uDDFB\uD83C\uDDF3 VI' : '\uD83C\uDDEC\uD83C\uDDE7 EN' }}
             </button>
-            <a routerLink="/login"
+            <a routerLink="/phone"
                class="flex items-center gap-1 px-3 py-2 text-bg no-underline font-body text-[13px] hover:opacity-80 transition-opacity">
               {{ t('common.signIn') }}
             </a>
+            <!-- Register link hidden: phone-first auth handles both login and registration -->
+            <!--
             <a routerLink="/register"
                class="flex items-center px-4 py-2 bg-bg text-fg no-underline font-display text-[11px] tracking-[1px] border border-bg hover:opacity-90 transition-opacity">
               {{ t('common.register') }}
             </a>
+            -->
           </div>
         }
       </nav>

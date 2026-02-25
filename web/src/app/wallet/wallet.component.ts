@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { WalletService } from '../core/wallet.service';
+import { AuthService } from '../core/auth.service';
 import { Wallet, WalletTransaction, BankAccount } from '../core/models';
 import { BankListService, VietQRBank } from '../core/bank-list';
 import { VndPipe } from '../core/pipes';
@@ -36,7 +37,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
     <ng-container *transloco="let t">
       @if (loading()) {
         <div class="flex justify-center py-16">
-          <nhannht-metro-spinner [size]="40" />
+          <nhannht-metro-spinner />
         </div>
       } @else if (error()) {
         <app-error-fallback [title]="t('wallet.failedToLoadTitle')"
@@ -72,7 +73,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                 [(ngModel)]="depositAmount" name="depositAmount"
                 [error]="depositError" />
               @if (depositing()) {
-                <nhannht-metro-spinner [size]="20" [label]="t('wallet.depositing')" />
+                <nhannht-metro-spinner size="sm" [label]="t('wallet.depositing')" />
               } @else {
                 <nhannht-metro-button variant="primary" [label]="t('wallet.depositButton')"
                   (clicked)="deposit()" />
@@ -99,7 +100,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                 [(ngModel)]="withdrawAmount" name="withdrawAmount"
                 [error]="withdrawError" />
               @if (withdrawing()) {
-                <nhannht-metro-spinner [size]="20" [label]="t('wallet.withdrawing')" />
+                <nhannht-metro-spinner size="sm" [label]="t('wallet.withdrawing')" />
               } @else {
                 <nhannht-metro-button variant="primary" [label]="t('wallet.withdrawButton')"
                   (clicked)="withdraw()" />
@@ -144,7 +145,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                     <nhannht-metro-input [label]="t('wallet.accountHolderName')" type="text"
                       [(ngModel)]="newBankAccountHolderName" name="newBankAccountHolderName" />
                     @if (addingBankAccount()) {
-                      <nhannht-metro-spinner [size]="20" />
+                      <nhannht-metro-spinner size="sm" />
                     } @else {
                       <nhannht-metro-button variant="primary" [label]="t('wallet.addBankAccount')"
                         (clicked)="addBankAccount()" />
@@ -200,6 +201,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
 })
 export class WalletComponent implements OnInit {
   private walletService = inject(WalletService);
+  private auth = inject(AuthService);
   private bankListService = inject(BankListService);
   private snackbar = inject(NhannhtMetroSnackbarService);
   private platformId = inject(PLATFORM_ID);
@@ -262,6 +264,10 @@ export class WalletComponent implements OnInit {
   }
 
   deposit() {
+    if (this.auth.needsPhoneVerification()) {
+      this.snackbar.show(this.transloco.translate('wallet.phoneRequired'), undefined, { duration: 5000 });
+      return;
+    }
     const amount = Number(this.depositAmount);
     if (amount < 2000) {
       this.depositError = this.transloco.translate('wallet.minDeposit');
@@ -300,6 +306,10 @@ export class WalletComponent implements OnInit {
   }
 
   withdraw() {
+    if (this.auth.needsPhoneVerification()) {
+      this.snackbar.show(this.transloco.translate('wallet.phoneRequired'), undefined, { duration: 5000 });
+      return;
+    }
     const amount = Number(this.withdrawAmount);
     if (amount < 10000) {
       this.withdrawError = this.transloco.translate('wallet.minWithdrawal', { min: '10,000' });

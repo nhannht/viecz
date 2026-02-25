@@ -49,6 +49,23 @@
       "signInLink": "Đăng nhập",
       "fillAllFields": "Vui lòng điền đầy đủ thông tin",
       "registerFailed": "Đăng ký thất bại"
+    },
+    "phone": {
+      "title": "ĐĂNG NHẬP",
+      "subtitle": "Nhập số điện thoại để đăng nhập hoặc tạo tài khoản",
+      "phoneLabel": "SỐ ĐIỆN THOẠI",
+      "phonePlaceholder": "0371234567 hoặc +84371234567",
+      "continue": "TIẾP TỤC",
+      "sending": "Đang gửi...",
+      "codeSentTo": "Mã đã gửi đến {{phone}}",
+      "codeLabel": "MÃ XÁC THỰC",
+      "codePlaceholder": "123456",
+      "verify": "ĐĂNG NHẬP",
+      "verifying": "Đang xác minh...",
+      "resendCode": "Gửi lại mã",
+      "signInWithEmail": "Đăng nhập bằng email",
+      "invalidPhone": "Số điện thoại không hợp lệ",
+      "verificationFailed": "Xác minh thất bại, vui lòng thử lại"
     }
   },
   "shell": {
@@ -83,7 +100,15 @@
     "noTasksHint": "Hãy thử thay đổi từ khóa hoặc bộ lọc",
     "noMoreTasks": "Đã hết danh sách",
     "createTask": "Tạo việc",
-    "allCategories": "Tất cả"
+    "allCategories": "Tất cả",
+    "nearMe": "Gần tôi",
+    "nearMeLoading": "Đang lấy vị trí...",
+    "nearMeDenied": "Vị trí bị từ chối",
+    "radiusAll": "Tất cả",
+    "radiusKm": "{{distance}} km",
+    "viewList": "Danh sách",
+    "viewMap": "Bản đồ",
+    "distanceAway": "cách {{distance}}"
   },
   "task": {
     "editTask": "Sửa việc",
@@ -144,6 +169,7 @@
     "locationLabel": "ĐỊA ĐIỂM",
     "locationPlaceholder": "Việc ở đâu?",
     "locationRequired": "Địa điểm là bắt buộc",
+    "locationPickerHint": "Tìm địa điểm hoặc nhấn vào bản đồ",
     "deadlineLabel": "HẠN CHÓT",
     "deadlinePast": "Hạn chót không thể trong quá khứ",
     "saveChanges": "Lưu thay đổi",
@@ -199,7 +225,8 @@
     "accountHolderName": "Tên chủ tài khoản",
     "bankAccountAdded": "Đã thêm tài khoản ngân hàng",
     "bankAccountDeleted": "Đã xóa tài khoản ngân hàng",
-    "totalWithdrawn": "TỔNG ĐÃ RÚT"
+    "totalWithdrawn": "TỔNG ĐÃ RÚT",
+    "phoneRequired": "Vui lòng xác thực số điện thoại trước khi thực hiện giao dịch tài chính."
   },
   "chat": {
     "backButton": "←",
@@ -251,7 +278,27 @@
     "avatarUpdated": "Đã cập nhật ảnh đại diện",
     "uploadFailed": "Tải lên thất bại",
     "becameTasker": "Bạn đã trở thành người làm việc!",
-    "taskNotFound": "Không tìm thấy việc"
+    "taskNotFound": "Không tìm thấy việc",
+    "emailVerified": "EMAIL ĐÃ XÁC THỰC",
+    "emailNotVerified": "EMAIL CHƯA XÁC THỰC",
+    "phoneVerified": "SĐT ĐÃ XÁC THỰC",
+    "phoneNotVerified": "XÁC THỰC SĐT",
+    "verifyPhoneTitle": "XÁC THỰC SỐ ĐIỆN THOẠI",
+    "verifyPhoneSubtitle": "Nhập số điện thoại Việt Nam để nhận mã xác thực qua SMS",
+    "phoneLabel": "SỐ ĐIỆN THOẠI",
+    "phonePlaceholder": "0371234567 hoặc +84371234567",
+    "sendCode": "Gửi mã",
+    "sendingCode": "Đang gửi...",
+    "verifyCode": "Xác thực",
+    "verifying": "Đang xác thực...",
+    "codeLabel": "MÃ XÁC THỰC",
+    "codePlaceholder": "Nhập mã 6 số",
+    "phoneVerifiedSuccess": "Xác thực số điện thoại thành công!",
+    "phoneVerificationFailed": "Xác thực thất bại",
+    "invalidPhoneFormat": "Vui lòng nhập số điện thoại Việt Nam hợp lệ",
+    "codeSent": "Đã gửi mã xác thực!",
+    "phoneRequiredForMoney": "Cần xác thực số điện thoại để thực hiện giao dịch tài chính",
+    "verifyPhoneNow": "Xác thực ngay"
   },
   "myJobs": {
     "title": "CÔNG VIỆC CỦA TÔI",
@@ -332,5 +379,8 @@
     "successMessage": "Email đã được xác minh. Bạn có thể sử dụng tất cả tính năng.",
     "errorTitle": "XÁC MINH THẤT BẠI",
     "goToMarketplace": "Đến Chợ việc"
+  },
+  "taskCard": {
+    "applied": "ứng tuyển"
   }
 }

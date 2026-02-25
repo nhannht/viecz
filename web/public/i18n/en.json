@@ -49,6 +49,23 @@
       "signInLink": "Sign In",
       "fillAllFields": "Please fill in all fields",
       "registerFailed": "Registration failed"
+    },
+    "phone": {
+      "title": "SIGN IN",
+      "subtitle": "Enter your phone number to sign in or create an account",
+      "phoneLabel": "PHONE NUMBER",
+      "phonePlaceholder": "0371234567 or +84371234567",
+      "continue": "CONTINUE",
+      "sending": "Sending...",
+      "codeSentTo": "Code sent to {{phone}}",
+      "codeLabel": "VERIFICATION CODE",
+      "codePlaceholder": "123456",
+      "verify": "SIGN IN",
+      "verifying": "Verifying...",
+      "resendCode": "Resend code",
+      "signInWithEmail": "Sign in with email",
+      "invalidPhone": "Invalid phone number",
+      "verificationFailed": "Verification failed, please try again"
     }
   },
   "shell": {
@@ -83,7 +100,15 @@
     "noTasksHint": "Try adjusting your search or filters",
     "noMoreTasks": "No more tasks",
     "createTask": "Create Task",
-    "allCategories": "All"
+    "allCategories": "All",
+    "nearMe": "Near Me",
+    "nearMeLoading": "Getting location...",
+    "nearMeDenied": "Location denied",
+    "radiusAll": "All",
+    "radiusKm": "{{distance}} km",
+    "viewList": "List",
+    "viewMap": "Map",
+    "distanceAway": "{{distance}} away"
   },
   "task": {
     "editTask": "Edit Task",
@@ -144,6 +169,7 @@
     "locationLabel": "LOCATION",
     "locationPlaceholder": "Where is this task?",
     "locationRequired": "Location is required",
+    "locationPickerHint": "Search for a place or click on the map",
     "deadlineLabel": "DEADLINE",
     "deadlinePast": "Deadline cannot be in the past",
     "saveChanges": "Save Changes",
@@ -199,7 +225,8 @@
     "accountHolderName": "Account Holder Name",
     "bankAccountAdded": "Bank account added",
     "bankAccountDeleted": "Bank account removed",
-    "totalWithdrawn": "TOTAL WITHDRAWN"
+    "totalWithdrawn": "TOTAL WITHDRAWN",
+    "phoneRequired": "Please verify your phone number before making financial transactions."
   },
   "chat": {
     "backButton": "←",
@@ -251,7 +278,27 @@
     "avatarUpdated": "Avatar updated",
     "uploadFailed": "Upload failed",
     "becameTasker": "You are now a tasker!",
-    "taskNotFound": "Task not found"
+    "taskNotFound": "Task not found",
+    "emailVerified": "EMAIL VERIFIED",
+    "emailNotVerified": "EMAIL NOT VERIFIED",
+    "phoneVerified": "PHONE VERIFIED",
+    "phoneNotVerified": "VERIFY PHONE",
+    "verifyPhoneTitle": "VERIFY YOUR PHONE",
+    "verifyPhoneSubtitle": "Enter your Vietnamese phone number to receive a verification code via SMS",
+    "phoneLabel": "PHONE NUMBER",
+    "phonePlaceholder": "0371234567 or +84371234567",
+    "sendCode": "Send Code",
+    "sendingCode": "Sending...",
+    "verifyCode": "Verify",
+    "verifying": "Verifying...",
+    "codeLabel": "VERIFICATION CODE",
+    "codePlaceholder": "Enter 6-digit code",
+    "phoneVerifiedSuccess": "Phone number verified!",
+    "phoneVerificationFailed": "Verification failed",
+    "invalidPhoneFormat": "Please enter a valid Vietnamese phone number",
+    "codeSent": "Verification code sent!",
+    "phoneRequiredForMoney": "Phone verification required for financial transactions",
+    "verifyPhoneNow": "Verify Now"
   },
   "myJobs": {
     "title": "MY JOBS",
@@ -332,5 +379,8 @@
     "successMessage": "Your email has been verified successfully. You can now access all features.",
     "errorTitle": "VERIFICATION FAILED",
     "goToMarketplace": "Go to Marketplace"
+  },
+  "taskCard": {
+    "applied": "applied"
   }
 }

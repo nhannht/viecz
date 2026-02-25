@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/register.component').then(m => m.RegisterComponent),
   },
   {
+    path: 'phone',
+    loadComponent: () => import('./auth/phone-login.component').then(m => m.PhoneLoginComponent),
+  },
+  {
     path: '',
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
     children: [

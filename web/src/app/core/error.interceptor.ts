@@ -5,6 +5,12 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
 import { catchError, throwError } from 'rxjs';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  // Skip error handling for external API calls (MapTiler, Nominatim, etc.)
+  const isExternal = req.url.startsWith('http') && !req.url.includes('/api/');
+  if (isExternal) {
+    return next(req);
+  }
+
   const snackbar = inject(NhannhtMetroSnackbarService);
   const transloco = inject(TranslocoService);
 

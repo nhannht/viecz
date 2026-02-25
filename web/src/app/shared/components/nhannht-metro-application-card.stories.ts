@@ -8,6 +8,7 @@ const mockApp: TaskApplication = {
   id: 1,
   task_id: 10,
   tasker_id: 5,
+  tasker: { id: 5, name: 'Tran Minh B', email: 'b@test.com', university: 'ĐHQG-HCM', is_verified: true, rating: 4.5, total_tasks_completed: 12, total_tasks_posted: 0, total_earnings: 0, is_tasker: true, auth_provider: 'email', email_verified: true, phone_verified: false, created_at: '' } as any,
   proposed_price: 180000,
   message: 'I can help with this! I have experience moving heavy items and I am free this Saturday afternoon.',
   status: 'pending',

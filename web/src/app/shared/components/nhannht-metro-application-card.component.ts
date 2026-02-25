@@ -33,7 +33,7 @@ import type { TaskApplication } from '../../core/models';
         <div class="flex items-center justify-between mb-3">
           <a [routerLink]="['/profile', application().tasker_id]"
              class="text-[13px] text-fg font-bold tracking-[1px] hover:text-muted transition-colors duration-200">
-            {{ t('applicationCard.tasker') }}{{ application().tasker_id }}
+            {{ application().tasker?.name || t('applicationCard.tasker') + application().tasker_id }}
           </a>
           <nhannht-metro-badge [label]="application().status.toUpperCase()" [status]="badgeStatus()" />
         </div>

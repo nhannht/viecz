@@ -17,6 +17,7 @@ export interface User {
   tasker_skills?: string[];
   auth_provider: string;
   email_verified: boolean;
+  phone_verified: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +56,9 @@ export interface Task {
   updated_at: string;
   user_has_applied?: boolean;
   is_overdue?: boolean;
+  category?: Category;
+  application_count?: number;
+  distance_km?: number;
 }
 
 export interface TaskListResponse {
@@ -70,6 +74,7 @@ export interface TaskApplication {
   id: number;
   task_id: number;
   tasker_id: number;
+  tasker?: User;
   proposed_price?: number;
   message?: string;
   status: ApplicationStatus;
@@ -179,4 +184,10 @@ export interface Notification {
 export interface NotificationListResponse {
   notifications: Notification[];
   total: number;
+}
+
+export interface LocationPickerValue {
+  location: string;
+  latitude: number;
+  longitude: number;
 }

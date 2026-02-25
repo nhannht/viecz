@@ -22,6 +22,7 @@ const mockUser: User = {
   is_tasker: true,
   auth_provider: 'email',
   email_verified: false,
+  phone_verified: true,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
@@ -65,7 +66,7 @@ class TestHostComponent {
 describe('TaskDetailComponent', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let httpTesting: HttpTestingController;
-  let authService: { currentUser: ReturnType<typeof signal<User | null>>; getAccessToken: () => string | null; isAuthenticated: () => boolean };
+  let authService: { currentUser: ReturnType<typeof signal<User | null>>; getAccessToken: () => string | null; isAuthenticated: () => boolean; needsPhoneVerification: () => boolean };
   let router: Router;
 
   beforeEach(async () => {
@@ -73,6 +74,7 @@ describe('TaskDetailComponent', () => {
       currentUser: signal<User | null>(mockUser),
       getAccessToken: () => 'test-token',
       isAuthenticated: () => true,
+      needsPhoneVerification: () => false,
     };
 
     await TestBed.configureTestingModule({

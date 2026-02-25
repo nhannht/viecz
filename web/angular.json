@@ -31,7 +31,11 @@
               }
             ],
             "styles": [
-              "src/tailwind.css"
+              "src/tailwind.css",
+              "node_modules/maplibre-gl/dist/maplibre-gl.css"
+            ],
+            "allowedCommonJsDependencies": [
+              "maplibre-gl"
             ],
             "server": "src/main.server.ts",
             "outputMode": "server",

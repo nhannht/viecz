@@ -48,7 +48,7 @@ import { MessageBubbleComponent } from '../shared/components/message-bubble.comp
 
         @if (loading()) {
           <div class="flex items-center justify-center flex-1">
-            <nhannht-metro-spinner [size]="30" />
+            <nhannht-metro-spinner />
           </div>
         } @else {
           <!-- Message area -->
