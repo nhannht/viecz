@@ -26,7 +26,12 @@ data class TaskListUiState(
     val hasMore: Boolean = true,
     val selectedCategoryId: Long? = null,
     val searchQuery: String? = null,
-    val currentUserId: Long? = null
+    val currentUserId: Long? = null,
+    val nearMeEnabled: Boolean = false,
+    val selectedRadiusMeters: Int? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val locationStatusMessage: String? = null
 )
 
 @OptIn(FlowPreview::class)
@@ -80,11 +85,20 @@ class TaskListViewModel @Inject constructor(
 
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
+            val currentState = _uiState.value
+            val canUseGeoSearch = currentState.nearMeEnabled &&
+                currentState.latitude != null &&
+                currentState.longitude != null
+
             val result = repository.getTasks(
-                page = _uiState.value.currentPage,
-                categoryId = _uiState.value.selectedCategoryId,
-                search = _uiState.value.searchQuery,
-                status = "open"
+                page = currentState.currentPage,
+                categoryId = currentState.selectedCategoryId,
+                search = currentState.searchQuery,
+                status = "open",
+                lat = if (canUseGeoSearch) currentState.latitude else null,
+                lng = if (canUseGeoSearch) currentState.longitude else null,
+                radius = if (canUseGeoSearch) currentState.selectedRadiusMeters else null,
+                sort = if (canUseGeoSearch) "distance" else null
             )
 
             result.fold(
@@ -131,5 +145,56 @@ class TaskListViewModel @Inject constructor(
 
     fun refresh() {
         loadTasks(refresh = true)
+    }
+
+    fun enableNearMe(latitude: Double, longitude: Double) {
+        _uiState.value = _uiState.value.copy(
+            nearMeEnabled = true,
+            latitude = latitude,
+            longitude = longitude,
+            locationStatusMessage = null
+        )
+        loadTasks(refresh = true)
+    }
+
+    fun disableNearMe() {
+        _uiState.value = _uiState.value.copy(
+            nearMeEnabled = false,
+            latitude = null,
+            longitude = null,
+            locationStatusMessage = null
+        )
+        loadTasks(refresh = true)
+    }
+
+    fun updateNearMeRadius(radiusMeters: Int?) {
+        _uiState.value = _uiState.value.copy(selectedRadiusMeters = radiusMeters)
+        if (_uiState.value.nearMeEnabled) {
+            loadTasks(refresh = true)
+        }
+    }
+
+    fun onLocationPermissionDenied() {
+        _uiState.value = _uiState.value.copy(
+            nearMeEnabled = false,
+            latitude = null,
+            longitude = null,
+            locationStatusMessage = "Location permission denied. Showing all tasks."
+        )
+        loadTasks(refresh = true)
+    }
+
+    fun onLocationUnavailable() {
+        _uiState.value = _uiState.value.copy(
+            nearMeEnabled = false,
+            latitude = null,
+            longitude = null,
+            locationStatusMessage = "Unable to get current location. Showing all tasks."
+        )
+        loadTasks(refresh = true)
+    }
+
+    fun clearLocationStatusMessage() {
+        _uiState.value = _uiState.value.copy(locationStatusMessage = null)
     }
 }

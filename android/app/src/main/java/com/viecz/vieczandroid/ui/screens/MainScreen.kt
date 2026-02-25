@@ -1,7 +1,14 @@
 package com.viecz.vieczandroid.ui.screens
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -20,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
+import androidx.core.content.ContextCompat
 import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.metro.MetroDialog
 import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
@@ -46,9 +54,34 @@ fun MainScreen(
     val depositState by walletViewModel.depositState.collectAsState()
     val profileViewModel: ProfileViewModel = hiltViewModel()
     val profileUiState by profileViewModel.uiState.collectAsState()
+    val taskListUiState by taskListViewModel.uiState.collectAsState()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    fun enableNearMeFromCurrentLocation() {
+        fetchCurrentLocation(
+            context = context,
+            onSuccess = { latitude, longitude ->
+                taskListViewModel.enableNearMe(latitude, longitude)
+            },
+            onFailure = {
+                taskListViewModel.onLocationUnavailable()
+            }
+        )
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val fineGranted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            enableNearMeFromCurrentLocation()
+        } else {
+            taskListViewModel.onLocationPermissionDenied()
+        }
+    }
 
     // Load profile on first composition
     LaunchedEffect(Unit) {
@@ -105,6 +138,21 @@ fun MainScreen(
                     navController.navigate(NavigationRoutes.NOTIFICATIONS)
                 },
                 onSearchToggle = { showSearchBar = !showSearchBar },
+                nearMeEnabled = taskListUiState.nearMeEnabled,
+                onNearMeToggle = {
+                    if (taskListUiState.nearMeEnabled) {
+                        taskListViewModel.disableNearMe()
+                    } else if (hasLocationPermission(context)) {
+                        enableNearMeFromCurrentLocation()
+                    } else {
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                    }
+                },
                 onEditProfile = {
                     navController.navigate(NavigationRoutes.EDIT_PROFILE)
                 }
@@ -246,6 +294,8 @@ fun VieczTopBar(
     onDeposit: () -> Unit,
     onNotifications: () -> Unit,
     onSearchToggle: () -> Unit = {},
+    nearMeEnabled: Boolean = false,
+    onNearMeToggle: () -> Unit = {},
     onEditProfile: () -> Unit = {}
 ) {
     TopAppBar(
@@ -259,6 +309,13 @@ fun VieczTopBar(
             // Contextual action based on current tab
             when (currentTab) {
                 0 -> {
+                    IconButton(onClick = onNearMeToggle) {
+                        Icon(
+                            Icons.Default.MyLocation,
+                            contentDescription = if (nearMeEnabled) "Near Me enabled" else "Near Me",
+                            tint = if (nearMeEnabled) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
+                    }
                     IconButton(onClick = onSearchToggle) {
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     }
@@ -324,5 +381,61 @@ fun VieczBottomBar(
             icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Wallet") },
             label = { Text("Wallet") }
         )
+    }
+}
+
+private fun hasLocationPermission(context: Context): Boolean {
+    val hasFine = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    return hasFine || hasCoarse
+}
+
+@SuppressLint("MissingPermission")
+private fun fetchCurrentLocation(
+    context: Context,
+    onSuccess: (latitude: Double, longitude: Double) -> Unit,
+    onFailure: () -> Unit
+) {
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        ?: run {
+            onFailure()
+            return
+        }
+
+    val provider = when {
+        locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+        locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+        else -> null
+    }
+
+    if (provider == null) {
+        onFailure()
+        return
+    }
+
+    try {
+        val lastKnown = locationManager.getLastKnownLocation(provider)
+        if (lastKnown != null) {
+            onSuccess(lastKnown.latitude, lastKnown.longitude)
+            return
+        }
+
+        locationManager.getCurrentLocation(provider, null, context.mainExecutor) { location ->
+            if (location != null) {
+                onSuccess(location.latitude, location.longitude)
+            } else {
+                onFailure()
+            }
+        }
+    } catch (_: SecurityException) {
+        onFailure()
+    } catch (_: IllegalArgumentException) {
+        onFailure()
     }
 }

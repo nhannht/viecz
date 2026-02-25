@@ -27,15 +27,44 @@ class TaskRepository(
         status: String? = null,
         search: String? = null,
         requesterId: Long? = null,
-        taskerId: Long? = null
+        taskerId: Long? = null,
+        lat: Double? = null,
+        lng: Double? = null,
+        radius: Int? = null,
+        sort: String? = null
     ): Result<TasksResponse> {
         return try {
-            Log.d(TAG, "Fetching tasks from network: page=$page, categoryId=$categoryId, status=$status, search=$search, requesterId=$requesterId, taskerId=$taskerId")
-            val response = api.getTasks(page = page, categoryId = categoryId, status = status, search = search, requesterId = requesterId, taskerId = taskerId)
+            Log.d(
+                TAG,
+                "Fetching tasks from network: page=$page, categoryId=$categoryId, status=$status, search=$search, requesterId=$requesterId, taskerId=$taskerId, lat=$lat, lng=$lng, radius=$radius, sort=$sort"
+            )
+            val response = api.getTasks(
+                page = page,
+                categoryId = categoryId,
+                status = status,
+                search = search,
+                requesterId = requesterId,
+                taskerId = taskerId,
+                lat = lat,
+                lng = lng,
+                radius = radius,
+                sort = sort
+            )
             Log.d(TAG, "Tasks fetched successfully: ${response.data.size} tasks")
 
             // Cache the first page of tasks
-            if (page == 1 && categoryId == null && status == null && search == null && requesterId == null && taskerId == null) {
+            if (
+                page == 1 &&
+                categoryId == null &&
+                status == null &&
+                search == null &&
+                requesterId == null &&
+                taskerId == null &&
+                lat == null &&
+                lng == null &&
+                radius == null &&
+                sort == null
+            ) {
                 taskDao.deleteAllTasks()
                 taskDao.insertTasks(response.data.map { it.toEntity() })
                 Log.d(TAG, "Cached ${response.data.size} tasks to database")
@@ -44,10 +73,10 @@ class TaskRepository(
             Result.success(response)
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error fetching tasks: ${e.code()}", e)
-            tryLoadFromCache(page, categoryId, status, search, requesterId, taskerId, e)
+            tryLoadFromCache(page, categoryId, status, search, requesterId, taskerId, lat, lng, radius, sort, e)
         } catch (e: IOException) {
             Log.e(TAG, "Network error fetching tasks", e)
-            tryLoadFromCache(page, categoryId, status, search, requesterId, taskerId, e)
+            tryLoadFromCache(page, categoryId, status, search, requesterId, taskerId, lat, lng, radius, sort, e)
         } catch (e: Exception) {
             Log.e(TAG, "Unknown error fetching tasks", e)
             Result.failure(e)
@@ -61,10 +90,25 @@ class TaskRepository(
         search: String?,
         requesterId: Long?,
         taskerId: Long?,
+        lat: Double?,
+        lng: Double?,
+        radius: Int?,
+        sort: String?,
         originalError: Exception
     ): Result<TasksResponse> {
         // Only return cache for first page without filters
-        if (page == 1 && categoryId == null && status == null && search == null && requesterId == null && taskerId == null) {
+        if (
+            page == 1 &&
+            categoryId == null &&
+            status == null &&
+            search == null &&
+            requesterId == null &&
+            taskerId == null &&
+            lat == null &&
+            lng == null &&
+            radius == null &&
+            sort == null
+        ) {
             val cachedEntities = taskDao.getAllTasks().firstOrNull()
             if (!cachedEntities.isNullOrEmpty()) {
                 Log.d(TAG, "Returning ${cachedEntities.size} tasks from cache")

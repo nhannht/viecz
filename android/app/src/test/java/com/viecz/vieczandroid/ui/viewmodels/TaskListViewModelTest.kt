@@ -16,6 +16,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -35,7 +36,7 @@ class TaskListViewModelTest {
         mockTokenManager = mockk()
         every { mockTokenManager.userId } returns MutableStateFlow(1L)
         // Mock the initial loadTasks call in init block
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(
             TestData.createTasksResponse()
         )
         viewModel = TaskListViewModel(mockRepository, mockTokenManager)
@@ -53,7 +54,7 @@ class TaskListViewModelTest {
             TestData.createTask(id = 2, title = "Task 2")
         )
         val response = TestData.createTasksResponse(data = tasks, total = 2)
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.loadTasks(refresh = true)
         advanceUntilIdle()
@@ -68,7 +69,7 @@ class TaskListViewModelTest {
 
     @Test
     fun `loadTasks with network error should emit error`() = runTest {
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.failure(
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.failure(
             Exception("Network error")
         )
 
@@ -87,7 +88,7 @@ class TaskListViewModelTest {
         val response = TestData.createTasksResponse(
             data = listOf(TestData.createTask(title = "New Task"))
         )
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.loadTasks(refresh = true)
         advanceUntilIdle()
@@ -102,7 +103,7 @@ class TaskListViewModelTest {
     @Test
     fun `filterByCategory should update category and reload tasks`() = runTest {
         val response = TestData.createTasksResponse()
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.filterByCategory(5L)
         advanceUntilIdle()
@@ -118,7 +119,7 @@ class TaskListViewModelTest {
     @Test
     fun `filterByCategory with null should clear filter`() = runTest {
         val response = TestData.createTasksResponse()
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.filterByCategory(null)
         advanceUntilIdle()
@@ -132,7 +133,7 @@ class TaskListViewModelTest {
     @Test
     fun `updateSearchQuery should update query text and trigger debounced search`() = runTest {
         val response = TestData.createTasksResponse()
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.updateSearchQuery("cleaning")
 
@@ -155,7 +156,7 @@ class TaskListViewModelTest {
             total = 40,
             limit = 20
         )
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         // Create a fresh ViewModel where init returns hasMore=true (20 items >= 20 limit)
         val vm = TaskListViewModel(mockRepository, mockTokenManager)
@@ -174,7 +175,7 @@ class TaskListViewModelTest {
     fun `loadMore should not load when already loading`() = runTest {
         // Set up so hasMore = true but isLoading state
         val response = TestData.createTasksResponse()
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.loadTasks(refresh = true)
         // Don't await - still loading
@@ -191,7 +192,7 @@ class TaskListViewModelTest {
             limit = 20,
             total = 1
         )
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.loadTasks(refresh = true)
         advanceUntilIdle()
@@ -205,7 +206,7 @@ class TaskListViewModelTest {
     @Test
     fun `refresh should reset page to 1 and clear tasks`() = runTest {
         val response = TestData.createTasksResponse()
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.refresh()
         advanceUntilIdle()
@@ -231,7 +232,7 @@ class TaskListViewModelTest {
     @Test
     fun `empty task list should have empty list and no error`() = runTest {
         val response = TestData.createTasksResponse(data = emptyList(), total = 0)
-        coEvery { mockRepository.getTasks(any(), any(), any(), any()) } returns Result.success(response)
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         viewModel.loadTasks(refresh = true)
         advanceUntilIdle()
@@ -240,6 +241,81 @@ class TaskListViewModelTest {
             val state = awaitItem()
             assertTrue(state.tasks.isEmpty())
             assertNull(state.error)
+        }
+    }
+
+    @Test
+    fun `enableNearMe should set coordinates and load distance sorted tasks`() = runTest {
+        val response = TestData.createTasksResponse()
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
+
+        viewModel.enableNearMe(latitude = 10.7758, longitude = 106.7017)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.nearMeEnabled)
+            assertEquals(10.7758, state.latitude)
+            assertEquals(106.7017, state.longitude)
+        }
+
+        coVerify(atLeast = 1) {
+            mockRepository.getTasks(
+                page = 1,
+                categoryId = null,
+                status = "open",
+                search = null,
+                lat = 10.7758,
+                lng = 106.7017,
+                radius = null,
+                sort = "distance"
+            )
+        }
+    }
+
+    @Test
+    fun `updateNearMeRadius should reload tasks with selected radius`() = runTest {
+        val response = TestData.createTasksResponse()
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
+
+        viewModel.enableNearMe(latitude = 10.7758, longitude = 106.7017)
+        advanceUntilIdle()
+        clearMocks(mockRepository, answers = false, recordedCalls = true)
+
+        viewModel.updateNearMeRadius(3000)
+        advanceUntilIdle()
+
+        coVerify {
+            mockRepository.getTasks(
+                page = 1,
+                categoryId = null,
+                status = "open",
+                search = null,
+                lat = 10.7758,
+                lng = 106.7017,
+                radius = 3000,
+                sort = "distance"
+            )
+        }
+    }
+
+    @Test
+    fun `onLocationPermissionDenied should disable near me and set status message`() = runTest {
+        val response = TestData.createTasksResponse()
+        coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
+
+        viewModel.enableNearMe(latitude = 10.7758, longitude = 106.7017)
+        advanceUntilIdle()
+
+        viewModel.onLocationPermissionDenied()
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertFalse(state.nearMeEnabled)
+            assertNull(state.latitude)
+            assertNull(state.longitude)
+            assertNotNull(state.locationStatusMessage)
         }
     }
 }

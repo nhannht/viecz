@@ -195,7 +195,7 @@ Tap "Logout" (confirm) --> Clear tokens --> LoginScreen
 
 | Tab         | Actions                                  |
 |-------------|------------------------------------------|
-| Marketplace | Search toggle, Add Job (+), Notifications |
+| Marketplace | Near Me toggle, Search toggle, Add Job (+), Notifications |
 | Wallet      | Deposit (+), Notifications               |
 | Others      | Notifications only                       |
 
@@ -229,6 +229,16 @@ MainScreen > Marketplace tab (tab 0)
     v
 HomeContent loads tasks via TaskListViewModel
     |
+    +-- Near Me toggle (top bar)
+    |     Request location permission (coarse/fine)
+    |     If granted: get current coordinates
+    |     Send geo query with sort=distance
+    |     If denied/unavailable: show status banner, keep normal list
+    |
+    +-- Radius chips (when Near Me enabled)
+    |     All | 1km | 3km | 5km | 10km
+    |     Updates radius filter in geo query
+    |
     +-- Category filter chips (LazyRow)
     |     All | Viec nha | Van chuyen | Day kem | ...
     |
@@ -244,7 +254,7 @@ Tap TaskCard --> navigate to task_detail/{taskId}
 ```
 
 **Screen:** `HomeScreen.kt` (`HomeContent` composable)
-**API:** `GET /api/v1/tasks?page=N&category_id=X&search=Q`
+**API:** `GET /api/v1/tasks?page=N&category_id=X&search=Q&lat=A&lng=B&radius=R&sort=distance`
 **Features:** Infinite scroll (`loadMore()`), pull-to-refresh, shimmer loading, own-task indicator
 
 **Auto-refresh:** The marketplace uses `repeatOnLifecycle(Lifecycle.State.RESUMED)` to automatically refresh the task list whenever the user returns to the Marketplace tab (e.g., after navigating back from task detail). This ensures that tasks whose status changed (e.g., moved to `in_progress` after accepting an application) disappear from the marketplace list without manual refresh.

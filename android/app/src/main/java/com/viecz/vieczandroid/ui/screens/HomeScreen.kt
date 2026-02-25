@@ -165,6 +165,44 @@ fun HomeContent(
                 )
             }
 
+            if (taskUiState.locationStatusMessage != null) {
+                MetroCard(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = taskUiState.locationStatusMessage ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.muted,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { taskListViewModel.clearLocationStatusMessage() },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Dismiss location message",
+                                tint = colors.muted
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (taskUiState.nearMeEnabled) {
+                NearMeRadiusFilterRow(
+                    selectedRadiusMeters = taskUiState.selectedRadiusMeters,
+                    onRadiusSelected = { radiusMeters ->
+                        taskListViewModel.updateNearMeRadius(radiusMeters)
+                    }
+                )
+            }
+
             // Task list
             if (taskUiState.isLoading && taskUiState.tasks.isEmpty()) {
                 // Show shimmer loading
@@ -228,11 +266,90 @@ fun HomeContent(
 }
 
 @Composable
+fun NearMeRadiusFilterRow(
+    selectedRadiusMeters: Int?,
+    onRadiusSelected: (Int?) -> Unit
+) {
+    val radiusOptions = listOf(
+        null to "All",
+        1000 to "1km",
+        3000 to "3km",
+        5000 to "5km",
+        10000 to "10km"
+    )
+
+    val metroChipColors = FilterChipDefaults.filterChipColors(
+        containerColor = MetroTheme.colors.card,
+        labelColor = MetroTheme.colors.fg,
+        selectedContainerColor = MetroTheme.colors.fg,
+        selectedLabelColor = MetroTheme.colors.card,
+    )
+    val metroChipBorder = FilterChipDefaults.filterChipBorder(
+        borderColor = MetroTheme.colors.border,
+        selectedBorderColor = MetroTheme.colors.fg,
+        borderWidth = 1.dp,
+        selectedBorderWidth = 1.dp,
+        enabled = true,
+        selected = false,
+    )
+    val metroChipBorderSelected = FilterChipDefaults.filterChipBorder(
+        borderColor = MetroTheme.colors.border,
+        selectedBorderColor = MetroTheme.colors.fg,
+        borderWidth = 1.dp,
+        selectedBorderWidth = 1.dp,
+        enabled = true,
+        selected = true,
+    )
+
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(radiusOptions, key = { option -> option.first ?: 0 }) { option ->
+            val isSelected = selectedRadiusMeters == option.first
+            FilterChip(
+                selected = isSelected,
+                onClick = { onRadiusSelected(option.first) },
+                label = { Text(option.second) },
+                shape = RoundedCornerShape(0.dp),
+                colors = metroChipColors,
+                border = if (isSelected) metroChipBorderSelected else metroChipBorder,
+                elevation = null,
+            )
+        }
+    }
+}
+
+@Composable
 fun CategoryFilterRow(
     categories: List<Category>,
     selectedCategoryId: Long?,
     onCategorySelected: (Long?) -> Unit
 ) {
+    val metroChipColors = FilterChipDefaults.filterChipColors(
+        containerColor = MetroTheme.colors.card,
+        labelColor = MetroTheme.colors.fg,
+        selectedContainerColor = MetroTheme.colors.fg,
+        selectedLabelColor = MetroTheme.colors.card,
+    )
+    val metroChipBorder = FilterChipDefaults.filterChipBorder(
+        borderColor = MetroTheme.colors.border,
+        selectedBorderColor = MetroTheme.colors.fg,
+        borderWidth = 1.dp,
+        selectedBorderWidth = 1.dp,
+        enabled = true,
+        selected = false,
+    )
+    val metroChipBorderSelected = FilterChipDefaults.filterChipBorder(
+        borderColor = MetroTheme.colors.border,
+        selectedBorderColor = MetroTheme.colors.fg,
+        borderWidth = 1.dp,
+        selectedBorderWidth = 1.dp,
+        enabled = true,
+        selected = true,
+    )
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -245,14 +362,21 @@ fun CategoryFilterRow(
                 onClick = { onCategorySelected(null) },
                 label = { Text("All") },
                 shape = RoundedCornerShape(0.dp),
+                colors = metroChipColors,
+                border = if (selectedCategoryId == null) metroChipBorderSelected else metroChipBorder,
+                elevation = null,
             )
         }
         items(categories, key = { it.id }) { category ->
+            val isSelected = selectedCategoryId == category.id.toLong()
             FilterChip(
-                selected = selectedCategoryId == category.id.toLong(),
+                selected = isSelected,
                 onClick = { onCategorySelected(category.id.toLong()) },
                 label = { Text(category.nameVi) },
                 shape = RoundedCornerShape(0.dp),
+                colors = metroChipColors,
+                border = if (isSelected) metroChipBorderSelected else metroChipBorder,
+                elevation = null,
             )
         }
     }

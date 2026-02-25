@@ -47,7 +47,7 @@ class TaskRepositoryTest {
             ),
             total = 2
         )
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } returns tasksResponse
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns tasksResponse
 
         val result = repository.getTasks()
 
@@ -59,7 +59,7 @@ class TaskRepositoryTest {
     @Test
     fun `getTasks first page should cache tasks to database`() = runTest {
         val tasksResponse = TestData.createTasksResponse()
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } returns tasksResponse
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns tasksResponse
 
         repository.getTasks(page = 1)
 
@@ -70,7 +70,7 @@ class TaskRepositoryTest {
     @Test
     fun `getTasks with filters should not cache tasks`() = runTest {
         val tasksResponse = TestData.createTasksResponse()
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } returns tasksResponse
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns tasksResponse
 
         repository.getTasks(page = 1, categoryId = 2)
 
@@ -82,7 +82,7 @@ class TaskRepositoryTest {
     fun `getTasks with network error should fallback to cache for first page`() = runTest {
         val cachedTask = TestData.createTask(title = "Cached Task")
         val cachedEntities = listOf(cachedTask.toEntity())
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } throws IOException("No network")
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } throws IOException("No network")
         every { mockTaskDao.getAllTasks() } returns flowOf(cachedEntities)
 
         val result = repository.getTasks(page = 1)
@@ -93,7 +93,7 @@ class TaskRepositoryTest {
 
     @Test
     fun `getTasks with network error and no cache should return failure`() = runTest {
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } throws IOException("No network")
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } throws IOException("No network")
         every { mockTaskDao.getAllTasks() } returns flowOf(emptyList())
 
         val result = repository.getTasks(page = 1)
@@ -104,7 +104,7 @@ class TaskRepositoryTest {
 
     @Test
     fun `getTasks page 2 with network error should not use cache`() = runTest {
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } throws IOException("No network")
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } throws IOException("No network")
 
         val result = repository.getTasks(page = 2)
 
@@ -115,7 +115,7 @@ class TaskRepositoryTest {
     @Test
     fun `getTasks with category filter should pass correct parameter`() = runTest {
         val tasksResponse = TestData.createTasksResponse()
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } returns tasksResponse
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns tasksResponse
 
         repository.getTasks(categoryId = 5L)
 
@@ -125,11 +125,42 @@ class TaskRepositoryTest {
     @Test
     fun `getTasks with search query should pass correct parameter`() = runTest {
         val tasksResponse = TestData.createTasksResponse()
-        coEvery { mockApi.getTasks(any(), any(), any(), any(), any()) } returns tasksResponse
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns tasksResponse
 
         repository.getTasks(search = "cleaning")
 
         coVerify { mockApi.getTasks(page = 1, categoryId = null, status = null, search = "cleaning", limit = any()) }
+    }
+
+    @Test
+    fun `getTasks with near me params should pass geo query and skip cache`() = runTest {
+        val tasksResponse = TestData.createTasksResponse()
+        coEvery { mockApi.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns tasksResponse
+
+        repository.getTasks(
+            lat = 10.7758,
+            lng = 106.7017,
+            radius = 3000,
+            sort = "distance"
+        )
+
+        coVerify {
+            mockApi.getTasks(
+                page = 1,
+                limit = any(),
+                categoryId = null,
+                status = null,
+                search = null,
+                requesterId = null,
+                taskerId = null,
+                lat = 10.7758,
+                lng = 106.7017,
+                radius = 3000,
+                sort = "distance"
+            )
+        }
+        coVerify(exactly = 0) { mockTaskDao.deleteAllTasks() }
+        coVerify(exactly = 0) { mockTaskDao.insertTasks(any()) }
     }
 
     // --- getTask ---

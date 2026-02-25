@@ -12,7 +12,11 @@ interface TaskApi {
         @Query("status") status: String? = null,
         @Query("search") search: String? = null,
         @Query("requester_id") requesterId: Long? = null,
-        @Query("tasker_id") taskerId: Long? = null
+        @Query("tasker_id") taskerId: Long? = null,
+        @Query("lat") lat: Double? = null,
+        @Query("lng") lng: Double? = null,
+        @Query("radius") radius: Int? = null,
+        @Query("sort") sort: String? = null
     ): TasksResponse
 
     @GET("tasks/{id}")

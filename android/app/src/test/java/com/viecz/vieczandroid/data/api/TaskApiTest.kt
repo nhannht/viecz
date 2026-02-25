@@ -118,6 +118,34 @@ class TaskApiTest {
     }
 
     @Test
+    fun `getTasks sends GET with near me geo params`() = runTest {
+        val responseJson = """
+            {
+                "data": [],
+                "page": 1,
+                "limit": 20,
+                "total": 0
+            }
+        """.trimIndent()
+
+        mockWebServer.enqueue(MockResponse().setBody(responseJson))
+
+        taskApi.getTasks(
+            lat = 10.7758439,
+            lng = 106.7017555,
+            radius = 3000,
+            sort = "distance"
+        )
+
+        val request = mockWebServer.takeRequest()
+        assertEquals("GET", request.method)
+        assert(request.path!!.contains("lat=10.7758439"))
+        assert(request.path!!.contains("lng=106.7017555"))
+        assert(request.path!!.contains("radius=3000"))
+        assert(request.path!!.contains("sort=distance"))
+    }
+
+    @Test
     fun `getTask sends GET to tasks_id`() = runTest {
         mockWebServer.enqueue(MockResponse().setBody(taskJson))
 
