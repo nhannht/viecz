@@ -7,6 +7,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.theme.VieczTheme
 
 @Composable
@@ -14,9 +16,11 @@ fun SecondScreen(
     onPreviousClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = MetroTheme.colors
+
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = colors.bg
     ) {
         Column(
             modifier = Modifier
@@ -28,7 +32,7 @@ fun SecondScreen(
             Text(
                 text = "Second Screen",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = colors.fg
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -36,17 +40,16 @@ fun SecondScreen(
             Text(
                 text = "Welcome to the second screen! Material 3 provides beautiful, adaptive design.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.muted
             )
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            Button(
+            MetroButton(
+                label = "Previous",
                 onClick = onPreviousClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Previous")
-            }
+                fullWidth = true,
+            )
         }
     }
 }

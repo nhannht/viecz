@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 
 @Composable
 fun ErrorState(
@@ -15,6 +17,8 @@ fun ErrorState(
     onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val colors = MetroTheme.colors
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -27,18 +31,16 @@ fun ErrorState(
                 imageVector = Icons.Default.ErrorOutline,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                tint = colors.fg.copy(alpha = 0.5f)
             )
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error
+                color = colors.fg
             )
             if (onRetry != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = onRetry) {
-                    Text("Retry")
-                }
+                MetroButton(label = "Retry", onClick = onRetry)
             }
         }
     }

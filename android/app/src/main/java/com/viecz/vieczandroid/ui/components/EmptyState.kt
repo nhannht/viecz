@@ -7,6 +7,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 
 @Composable
 fun EmptyState(
@@ -17,6 +19,8 @@ fun EmptyState(
     onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val colors = MetroTheme.colors
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -29,25 +33,23 @@ fun EmptyState(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                tint = colors.muted.copy(alpha = 0.5f)
             )
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.muted
             )
             if (message != null) {
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = colors.muted.copy(alpha = 0.7f)
                 )
             }
             if (actionLabel != null && onAction != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = onAction) {
-                    Text(actionLabel)
-                }
+                MetroButton(label = actionLabel, onClick = onAction)
             }
         }
     }

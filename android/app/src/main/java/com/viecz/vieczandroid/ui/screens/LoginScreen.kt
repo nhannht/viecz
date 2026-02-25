@@ -2,7 +2,8 @@ package com.viecz.vieczandroid.ui.screens
 
 import android.app.Activity
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -12,11 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.AuthState
 import com.viecz.vieczandroid.ui.viewmodels.AuthViewModel
 
@@ -26,6 +29,7 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -45,6 +49,7 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -52,7 +57,7 @@ fun LoginScreen(
             Text(
                 text = "Welcome Back",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = colors.fg
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -60,42 +65,40 @@ fun LoginScreen(
             Text(
                 text = "Sign in to your account",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.muted
             )
 
             Spacer(modifier = Modifier.height(48.dp))
 
             // Email field
-            OutlinedTextField(
+            MetroInput(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = authState !is AuthState.Loading
+                label = "EMAIL",
+                placeholder = "your@email.com",
+                keyboardType = KeyboardType.Email,
+                enabled = authState !is AuthState.Loading,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Password field
-            OutlinedTextField(
+            MetroInput(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                label = "PASSWORD",
+                isPassword = !passwordVisible,
+                keyboardType = KeyboardType.Password,
+                enabled = authState !is AuthState.Loading,
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            tint = colors.muted,
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = authState !is AuthState.Loading
             )
 
             // Show error if login failed
@@ -111,74 +114,25 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             // Login button
-            Button(
-                onClick = {
-                    viewModel.login(email, password)
-                },
+            MetroButton(
+                label = "SIGN IN",
+                onClick = { viewModel.login(email, password) },
                 enabled = email.isNotBlank() &&
                          password.isNotBlank() &&
                          authState !is AuthState.Loading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (authState is AuthState.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Sign In")
-            }
-
-            // Google Sign-In hidden per user request
-            /*
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Divider with "OR"
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HorizontalDivider(modifier = Modifier.weight(1f))
-                Text(
-                    text = "OR",
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f))
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Google Sign-In button
-            OutlinedButton(
-                onClick = {
-                    viewModel.loginWithGoogle(context as Activity)
-                },
-                enabled = authState !is AuthState.Loading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (authState is AuthState.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Continue with Google")
-            }
-            */
+                fullWidth = true,
+                isLoading = authState is AuthState.Loading,
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Navigate to register
-            TextButton(
+            MetroButton(
+                label = "Don't have an account? Create Account",
                 onClick = onNavigateToRegister,
-                enabled = authState !is AuthState.Loading
-            ) {
-                Text("Don't have an account? Create Account")
-            }
+                variant = MetroButtonVariant.Secondary,
+                enabled = authState !is AuthState.Loading,
+            )
         }
     }
 }

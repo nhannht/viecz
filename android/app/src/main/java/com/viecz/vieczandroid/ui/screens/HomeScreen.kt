@@ -30,6 +30,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.TaskCard
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.components.metro.MetroFab
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.NotificationViewModel
 import com.viecz.vieczandroid.ui.viewmodels.TaskListViewModel
@@ -81,13 +87,11 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            MetroFab(
                 onClick = onNavigateToCreateTask,
                 modifier = Modifier.testTag("fab_create_task"),
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Create Task")
-            }
+                contentDescription = "Create Task",
+            )
         }
     ) { paddingValues ->
         HomeContent(
@@ -108,6 +112,7 @@ fun HomeContent(
     modifier: Modifier = Modifier,
     showSearchBar: Boolean = false
 ) {
+    val colors = MetroTheme.colors
     val taskUiState by taskListViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
     val searchQuery by taskListViewModel.searchQueryText.collectAsState()
@@ -133,14 +138,19 @@ fun HomeContent(
         ) {
             // Search bar with debounced auto-search
             if (showSearchBar) {
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { taskListViewModel.updateSearchQuery(it) },
-                    onClear = { taskListViewModel.clearSearch() },
-                    isSearching = taskUiState.isLoading && taskUiState.searchQuery != null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                MetroInput(
+                    value = searchQuery,
+                    onValueChange = { taskListViewModel.updateSearchQuery(it) },
+                    placeholder = "Search tasks...",
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = colors.muted) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { taskListViewModel.clearSearch() }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear search", tint = colors.muted)
+                            }
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
 
@@ -180,7 +190,7 @@ fun HomeContent(
                     Text(
                         text = "No tasks available",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = colors.muted
                     )
                 }
             } else {
@@ -207,7 +217,7 @@ fun HomeContent(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                MetroSpinner()
                             }
                         }
                     }
@@ -233,110 +243,78 @@ fun CategoryFilterRow(
             FilterChip(
                 selected = selectedCategoryId == null,
                 onClick = { onCategorySelected(null) },
-                label = { Text("All") }
+                label = { Text("All") },
+                shape = RoundedCornerShape(0.dp),
             )
         }
         items(categories, key = { it.id }) { category ->
             FilterChip(
                 selected = selectedCategoryId == category.id.toLong(),
                 onClick = { onCategorySelected(category.id.toLong()) },
-                label = { Text(category.nameVi) }
+                label = { Text(category.nameVi) },
+                shape = RoundedCornerShape(0.dp),
             )
         }
     }
 }
 
 @Composable
-fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit,
-    isSearching: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier,
-        placeholder = { Text("Search tasks...") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = onClear) {
-                    Icon(Icons.Default.Close, contentDescription = "Clear search")
-                }
-            }
-        },
-        singleLine = true,
-        shape = MaterialTheme.shapes.medium,
-        colors = OutlinedTextFieldDefaults.colors()
-    )
-}
-
-@Composable
 fun TaskCardShimmer() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
+    val colors = MetroTheme.colors
+
+    MetroCard(contentPadding = PaddingValues(16.dp)) {
+        // Title shimmer
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(20.dp)
+                .clip(RoundedCornerShape(0.dp))
+                .shimmerEffect()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Description shimmer
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .height(16.dp)
+                .clip(RoundedCornerShape(0.dp))
+                .shimmerEffect()
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .height(16.dp)
+                .clip(RoundedCornerShape(0.dp))
+                .shimmerEffect()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Bottom row shimmer
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Title shimmer
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
+                    .width(100.dp)
+                    .height(16.dp)
+                    .clip(RoundedCornerShape(0.dp))
+                    .shimmerEffect()
+            )
+
+            Box(
+                modifier = Modifier
+                    .width(80.dp)
                     .height(20.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(0.dp))
                     .shimmerEffect()
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Description shimmer
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(16.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .shimmerEffect()
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(16.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .shimmerEffect()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Bottom row shimmer
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(100.dp)
-                        .height(16.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .shimmerEffect()
-                )
-
-                Box(
-                    modifier = Modifier
-                        .width(80.dp)
-                        .height(20.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .shimmerEffect()
-                )
-            }
         }
     }
 }

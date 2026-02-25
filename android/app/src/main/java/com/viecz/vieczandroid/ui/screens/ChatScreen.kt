@@ -21,6 +21,10 @@ import com.viecz.vieczandroid.data.models.Message
 import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.models.WebSocketState
 import com.viecz.vieczandroid.ui.components.ErrorState
+import com.viecz.vieczandroid.ui.components.metro.MetroFab
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.ChatViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
 import kotlinx.coroutines.launch
@@ -32,6 +36,7 @@ fun ChatScreen(
     onNavigateBack: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -71,12 +76,12 @@ fun ChatScreen(
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = if (uiState.isTaskFinished) {
-                                Color.Gray
+                                colors.muted
                             } else {
                                 when (uiState.connectionState) {
                                     WebSocketState.CONNECTED -> Color.Green
                                     WebSocketState.ERROR -> Color.Red
-                                    else -> Color.Gray
+                                    else -> colors.muted
                                 }
                             }
                         )
@@ -94,7 +99,7 @@ fun ChatScreen(
                 Surface(
                     shadowElevation = 8.dp,
                     tonalElevation = 0.dp,
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    color = colors.card
                 ) {
                     Text(
                         text = "This task is ${if (uiState.conversation?.task?.status == TaskStatus.CANCELLED) "cancelled" else "completed"}. Chat is closed.",
@@ -102,14 +107,15 @@ fun ChatScreen(
                             .fillMaxWidth()
                             .padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = colors.muted,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             } else {
                 Surface(
                     shadowElevation = 8.dp,
-                    tonalElevation = 0.dp
+                    tonalElevation = 0.dp,
+                    color = colors.card,
                 ) {
                     Row(
                         modifier = Modifier
@@ -117,11 +123,10 @@ fun ChatScreen(
                             .padding(8.dp),
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        OutlinedTextField(
+                        MetroInput(
                             value = messageText,
                             onValueChange = {
                                 messageText = it
-                                // Send typing indicator
                                 if (it.isNotEmpty()) {
                                     viewModel.sendTypingIndicator()
                                 }
@@ -129,12 +134,12 @@ fun ChatScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(end = 8.dp),
-                            placeholder = { Text("Type a message...") },
-                            maxLines = 4,
-                            enabled = uiState.connectionState == WebSocketState.CONNECTED
+                            placeholder = "Type a message...",
+                            singleLine = false,
+                            enabled = uiState.connectionState == WebSocketState.CONNECTED,
                         )
 
-                        FloatingActionButton(
+                        MetroFab(
                             onClick = {
                                 if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
                                     viewModel.sendMessage(messageText)
@@ -142,22 +147,9 @@ fun ChatScreen(
                                 }
                             },
                             modifier = Modifier.size(56.dp),
-                            containerColor = if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Send,
-                                "Send",
-                                tint = if (messageText.isNotBlank() && uiState.connectionState == WebSocketState.CONNECTED) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
+                            icon = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                        )
                     }
                 }
             }
@@ -169,9 +161,7 @@ fun ChatScreen(
                 .padding(padding)
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                MetroLoadingState()
             } else if (uiState.error != null) {
                 ErrorState(
                     message = uiState.error ?: "An error occurred",
@@ -185,6 +175,7 @@ fun ChatScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(uiState.messages) { message ->
+                        // Chat bubbles stay rounded — intentional UX exception
                         MessageBubble(
                             message = message,
                             currentUserId = uiState.currentUserId
@@ -211,6 +202,7 @@ fun MessageBubble(message: Message, currentUserId: Long) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start
     ) {
+        // Chat bubbles intentionally stay rounded — UX convention
         Surface(
             shape = RoundedCornerShape(
                 topStart = 16.dp,

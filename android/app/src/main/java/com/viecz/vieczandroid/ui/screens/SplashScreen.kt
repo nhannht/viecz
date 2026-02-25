@@ -1,7 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -13,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinnerSize
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.AuthViewModel
 
 @Composable
@@ -21,6 +23,7 @@ fun SplashScreen(
     onNavigateToHome: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle(initialValue = false)
 
     // Check login status and navigate
@@ -37,7 +40,7 @@ fun SplashScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = colors.bg
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -47,7 +50,7 @@ fun SplashScreen(
             Text(
                 text = "Viecz",
                 style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = colors.fg
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -55,12 +58,12 @@ fun SplashScreen(
             Text(
                 text = "Dịch Vụ Nhỏ Cho Sinh Viên",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.muted
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            CircularProgressIndicator()
+            MetroSpinner(size = MetroSpinnerSize.Large)
         }
     }
 }

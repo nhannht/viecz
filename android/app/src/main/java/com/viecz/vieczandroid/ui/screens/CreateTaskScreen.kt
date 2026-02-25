@@ -3,7 +3,6 @@ package com.viecz.vieczandroid.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -18,6 +17,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Category
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.components.metro.MetroDialog
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroTextarea
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.CreateTaskViewModel
 import com.viecz.vieczandroid.utils.formatCurrency
@@ -32,6 +38,7 @@ fun CreateTaskScreen(
     createTaskViewModel: CreateTaskViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val uiState by createTaskViewModel.uiState.collectAsState()
     val categoryUiState by categoryViewModel.uiState.collectAsState()
     var showCategoryDialog by remember { mutableStateOf(false) }
@@ -83,54 +90,42 @@ fun CreateTaskScreen(
                     text = if (uiState.isEditMode) "Update your task details"
                            else "Post a new task and find skilled taskers",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colors.muted
                 )
             }
 
             // Title field
             item {
-                OutlinedTextField(
+                MetroInput(
                     value = uiState.title,
                     onValueChange = { createTaskViewModel.updateTitle(it) },
-                    label = { Text("Task Title *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = uiState.titleError != null,
-                    supportingText = {
-                        uiState.titleError?.let { Text(it) }
-                    },
-                    singleLine = true
+                    label = "TASK TITLE *",
+                    placeholder = "What do you need help with?",
+                    error = uiState.titleError ?: "",
                 )
             }
 
             // Description field
             item {
-                OutlinedTextField(
+                MetroTextarea(
                     value = uiState.description,
                     onValueChange = { createTaskViewModel.updateDescription(it) },
-                    label = { Text("Description *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = uiState.descriptionError != null,
-                    supportingText = {
-                        uiState.descriptionError?.let { Text(it) }
-                    },
-                    minLines = 4,
-                    maxLines = 8
+                    label = "DESCRIPTION *",
+                    placeholder = "Describe the task in detail...",
+                    error = uiState.descriptionError ?: "",
                 )
             }
 
             // Category selector
             item {
-                OutlinedButton(
+                MetroButton(
+                    label = uiState.categoryId?.let { id ->
+                        categoryUiState.categories.find { it.id.toLong() == id }?.nameVi
+                    } ?: "Select Category *",
                     onClick = { showCategoryDialog = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = uiState.categoryId?.let { id ->
-                            categoryUiState.categories.find { it.id.toLong() == id }?.nameVi
-                        } ?: "Select Category *",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                    variant = MetroButtonVariant.Secondary,
+                    fullWidth = true,
+                )
                 uiState.categoryError?.let {
                     Text(
                         text = it,
@@ -147,59 +142,44 @@ fun CreateTaskScreen(
                 val priceValue = uiState.price.toLongOrNull() ?: 0L
                 val isInsufficient = available != null && priceValue > available
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isInsufficient)
-                            MaterialTheme.colorScheme.errorContainer
-                        else
-                            MaterialTheme.colorScheme.secondaryContainer
-                    )
+                MetroCard(
+                    contentPadding = PaddingValues(12.dp),
+                    featured = isInsufficient,
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
                             Icons.Default.AccountBalanceWallet,
                             contentDescription = null,
-                            tint = if (isInsufficient)
-                                MaterialTheme.colorScheme.onErrorContainer
-                            else
-                                MaterialTheme.colorScheme.onSecondaryContainer
+                            tint = if (isInsufficient) MaterialTheme.colorScheme.error else colors.fg
                         )
                         Column {
                             Text(
                                 text = "Available Balance",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (isInsufficient)
-                                    MaterialTheme.colorScheme.onErrorContainer
-                                else
-                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                color = colors.muted
                             )
                             if (uiState.isLoadingBalance) {
                                 Text(
                                     text = "Loading...",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.muted
                                 )
                             } else if (available != null) {
                                 Text(
                                     text = formatCurrency(available),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isInsufficient)
-                                        MaterialTheme.colorScheme.error
-                                    else
-                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    color = if (isInsufficient) MaterialTheme.colorScheme.error else colors.fg
                                 )
                             } else {
                                 Text(
                                     text = "Could not load balance",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = colors.muted
                                 )
                             }
                         }
@@ -209,60 +189,42 @@ fun CreateTaskScreen(
 
             // Price field
             item {
-                OutlinedTextField(
+                MetroInput(
                     value = uiState.price,
                     onValueChange = { createTaskViewModel.updatePrice(it) },
-                    label = { Text("Price (VND) *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = uiState.priceError != null,
-                    supportingText = {
-                        uiState.priceError?.let { Text(it) }
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    prefix = { Text("₫ ") }
+                    label = "PRICE (VND) *",
+                    error = uiState.priceError ?: "",
+                    keyboardType = KeyboardType.Number,
+                    prefix = { Text("₫ ", color = colors.muted) },
                 )
             }
 
             // Location field
             item {
-                OutlinedTextField(
+                MetroInput(
                     value = uiState.location,
                     onValueChange = { createTaskViewModel.updateLocation(it) },
-                    label = { Text("Location *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = uiState.locationError != null,
-                    supportingText = {
-                        uiState.locationError?.let { Text(it) }
-                    },
-                    singleLine = true
+                    label = "LOCATION *",
+                    placeholder = "Where is this task?",
+                    error = uiState.locationError ?: "",
                 )
             }
 
-            // Deadline picker (optional)
+            // Deadline picker (optional) — DatePicker/TimePicker stays Material3
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(
+                    MetroButton(
+                        label = if (uiState.deadlineDisplayText.isNotEmpty())
+                            uiState.deadlineDisplayText
+                        else
+                            "Set Deadline (Optional)",
                         onClick = { showDatePicker = true },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            Icons.Default.DateRange,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (uiState.deadlineDisplayText.isNotEmpty())
-                                uiState.deadlineDisplayText
-                            else
-                                "Set Deadline (Optional)"
-                        )
-                    }
+                        variant = MetroButtonVariant.Secondary,
+                    )
                     if (uiState.deadlineMillis != null) {
                         IconButton(onClick = { createTaskViewModel.clearDeadline() }) {
                             Icon(
@@ -286,16 +248,10 @@ fun CreateTaskScreen(
             // Error message
             uiState.error?.let { error ->
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
+                    MetroCard(contentPadding = PaddingValues(16.dp)) {
                         Text(
                             text = error,
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -305,20 +261,13 @@ fun CreateTaskScreen(
             item {
                 val priceValue = uiState.price.toLongOrNull() ?: 0L
                 val isInsufficient = uiState.availableBalance != null && priceValue > uiState.availableBalance!!
-                Button(
+                MetroButton(
+                    label = if (uiState.isEditMode) "SAVE CHANGES" else "CREATE TASK",
                     onClick = { createTaskViewModel.submitTask() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading && !isInsufficient
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text(if (uiState.isEditMode) "Save Changes" else "Create Task")
-                    }
-                }
+                    fullWidth = true,
+                    enabled = !uiState.isLoading && !isInsufficient,
+                    isLoading = uiState.isLoading,
+                )
             }
         }
     }
@@ -335,7 +284,7 @@ fun CreateTaskScreen(
         )
     }
 
-    // Date picker dialog
+    // Date picker dialog — stays Material3 (complex widget, low ROI)
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState()
         DatePickerDialog(
@@ -359,32 +308,30 @@ fun CreateTaskScreen(
         }
     }
 
-    // Time picker dialog
+    // Time picker dialog — stays Material3
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState()
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("Select Time") },
-            text = { TimePicker(state = timePickerState) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val cal = Calendar.getInstance().apply {
-                            timeInMillis = selectedDateMillis
-                            set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                            set(Calendar.MINUTE, timePickerState.minute)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-                        createTaskViewModel.updateDeadline(cal.timeInMillis)
-                        showTimePicker = false
-                    }
-                ) { Text("Confirm") }
+        MetroDialog(
+            open = true,
+            onDismiss = { showTimePicker = false },
+            title = "Select Time",
+            confirmLabel = "Confirm",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                val cal = Calendar.getInstance().apply {
+                    timeInMillis = selectedDateMillis
+                    set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    set(Calendar.MINUTE, timePickerState.minute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                createTaskViewModel.updateDeadline(cal.timeInMillis)
+                showTimePicker = false
             },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
-            }
-        )
+            onCancel = { showTimePicker = false },
+        ) {
+            TimePicker(state = timePickerState)
+        }
     }
 }
 
@@ -394,29 +341,24 @@ fun CategorySelectionDialog(
     onDismiss: () -> Unit,
     onCategorySelected: (Category) -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Category") },
-        text = {
-            LazyColumn {
-                items(categories, key = { it.id }) { category ->
-                    TextButton(
-                        onClick = { onCategorySelected(category) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = category.nameVi,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+    MetroDialog(
+        open = true,
+        onDismiss = onDismiss,
+        title = "Select Category",
+        confirmLabel = "Cancel",
+        onConfirm = onDismiss,
+        cancelLabel = "",
+        onCancel = onDismiss,
+    ) {
+        LazyColumn {
+            items(categories, key = { it.id }) { category ->
+                MetroButton(
+                    label = category.nameVi,
+                    onClick = { onCategorySelected(category) },
+                    variant = MetroButtonVariant.Secondary,
+                    fullWidth = true,
+                )
             }
         }
-    )
+    }
 }

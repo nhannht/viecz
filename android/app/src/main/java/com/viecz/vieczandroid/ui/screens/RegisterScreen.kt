@@ -1,7 +1,8 @@
 package com.viecz.vieczandroid.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -10,11 +11,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.AuthState
 import com.viecz.vieczandroid.ui.viewmodels.AuthViewModel
 
@@ -24,6 +27,7 @@ fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val authState by viewModel.authState.collectAsStateWithLifecycle()
 
     var name by remember { mutableStateOf("") }
@@ -45,6 +49,7 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -52,25 +57,24 @@ fun RegisterScreen(
             Text(
                 text = "Create Account",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = colors.fg
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             // Name field
-            OutlinedTextField(
+            MetroInput(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Full Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = authState !is AuthState.Loading
+                label = "FULL NAME",
+                placeholder = "John Doe",
+                enabled = authState !is AuthState.Loading,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Email field
-            OutlinedTextField(
+            MetroInput(
                 value = email,
                 onValueChange = {
                     email = it
@@ -78,19 +82,17 @@ fun RegisterScreen(
                         "Invalid email format"
                     } else null
                 },
-                label = { Text("Email") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                isError = emailError != null,
-                supportingText = emailError?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = authState !is AuthState.Loading
+                label = "EMAIL",
+                placeholder = "your@email.com",
+                keyboardType = KeyboardType.Email,
+                error = emailError ?: "",
+                enabled = authState !is AuthState.Loading,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Password field
-            OutlinedTextField(
+            MetroInput(
                 value = password,
                 onValueChange = {
                     password = it
@@ -103,28 +105,20 @@ fun RegisterScreen(
                         else -> null
                     }
                 },
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                label = "PASSWORD",
+                isPassword = !passwordVisible,
+                keyboardType = KeyboardType.Password,
+                error = passwordError ?: if (password.isEmpty()) "Min 8 characters, 1 uppercase, 1 lowercase, 1 digit" else "",
+                enabled = authState !is AuthState.Loading,
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            tint = colors.muted,
                         )
                     }
                 },
-                isError = passwordError != null,
-                supportingText = {
-                    Text(
-                        text = passwordError ?: "Min 8 characters, 1 uppercase, 1 lowercase, 1 digit",
-                        color = if (passwordError != null) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = authState !is AuthState.Loading
             )
 
             // Show error if registration failed
@@ -140,7 +134,8 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             // Register button
-            Button(
+            MetroButton(
+                label = "CREATE ACCOUNT",
                 onClick = {
                     if (emailError == null && passwordError == null) {
                         viewModel.register(email, password, name)
@@ -152,27 +147,19 @@ fun RegisterScreen(
                          emailError == null &&
                          passwordError == null &&
                          authState !is AuthState.Loading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (authState is AuthState.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Create Account")
-            }
+                fullWidth = true,
+                isLoading = authState is AuthState.Loading,
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Navigate to login
-            TextButton(
+            MetroButton(
+                label = "Already have an account? Sign In",
                 onClick = onNavigateToLogin,
-                enabled = authState !is AuthState.Loading
-            ) {
-                Text("Already have an account? Sign In")
-            }
+                variant = MetroButtonVariant.Secondary,
+                enabled = authState !is AuthState.Loading,
+            )
         }
     }
 }

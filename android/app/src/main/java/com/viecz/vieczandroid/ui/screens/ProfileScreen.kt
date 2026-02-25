@@ -25,6 +25,14 @@ import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.User
 import com.viecz.vieczandroid.data.repository.UserRepository
 import com.viecz.vieczandroid.ui.components.ErrorState
+import com.viecz.vieczandroid.ui.components.metro.MetroBadge
+import com.viecz.vieczandroid.ui.components.metro.MetroBadgeStatus
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.components.metro.MetroDialog
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.utils.formatCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -127,6 +135,7 @@ fun ProfileScreen(
     onNavigateToEditProfile: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val uiState by viewModel.uiState.collectAsState()
     var showBecomeTaskerDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -184,9 +193,7 @@ fun ProfileScreen(
         ) {
             when {
                 uiState.isLoading && uiState.user == null -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    MetroLoadingState()
                 }
                 uiState.error != null -> {
                     ErrorState(
@@ -207,55 +214,49 @@ fun ProfileScreen(
 
     // Become tasker confirmation dialog
     if (showBecomeTaskerDialog) {
-        AlertDialog(
-            onDismissRequest = { showBecomeTaskerDialog = false },
-            title = { Text("Become a Tasker") },
-            text = {
-                Text("Do you want to register as a tasker? This will allow you to apply for tasks posted by other users.")
+        MetroDialog(
+            open = true,
+            onDismiss = { showBecomeTaskerDialog = false },
+            title = "Become a Tasker",
+            confirmLabel = "Yes, Register",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                viewModel.becomeTasker()
+                showBecomeTaskerDialog = false
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.becomeTasker()
-                        showBecomeTaskerDialog = false
-                    }
-                ) {
-                    Text("Yes, Register")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBecomeTaskerDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+            onCancel = { showBecomeTaskerDialog = false },
+        ) {
+            Text(
+                text = "Do you want to register as a tasker? This will allow you to apply for tasks posted by other users.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.muted,
+            )
+        }
     }
 
     // Logout confirmation dialog
     if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Logout") },
-            text = { Text("Are you sure you want to logout?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        kotlinx.coroutines.MainScope().launch {
-                            viewModel.logout()
-                            onLogout()
-                        }
-                        showLogoutDialog = false
-                    }
-                ) {
-                    Text("Logout")
+        MetroDialog(
+            open = true,
+            onDismiss = { showLogoutDialog = false },
+            title = "Logout",
+            confirmLabel = "Logout",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                kotlinx.coroutines.MainScope().launch {
+                    viewModel.logout()
+                    onLogout()
                 }
+                showLogoutDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+            onCancel = { showLogoutDialog = false },
+        ) {
+            Text(
+                text = "Are you sure you want to logout?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.muted,
+            )
+        }
     }
 }
 
@@ -267,6 +268,8 @@ fun ProfileContent(
     onNavigateToEditProfile: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null
 ) {
+    val colors = MetroTheme.colors
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -274,18 +277,15 @@ fun ProfileContent(
     ) {
         // Profile header
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            MetroCard(
+                featured = true,
+                contentPadding = PaddingValues(16.dp),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Avatar stays circular — content images, not UI chrome
                     ProfileAvatar(
                         avatarUrl = user.avatarUrl,
                         size = 80
@@ -294,52 +294,42 @@ fun ProfileContent(
                     Text(
                         text = user.name,
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = colors.fg,
                     )
                     Text(
                         text = user.email,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = colors.muted,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     if (!user.bio.isNullOrBlank()) {
                         Text(
                             text = user.bio,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = colors.muted,
                         )
                     } else {
                         Text(
                             text = "No bio yet",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                            color = colors.muted.copy(alpha = 0.6f),
                         )
                     }
                     if (onNavigateToEditProfile != null) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(onClick = onNavigateToEditProfile) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Edit Profile")
-                        }
+                        MetroButton(
+                            label = "Edit Profile",
+                            onClick = onNavigateToEditProfile,
+                            variant = MetroButtonVariant.Secondary,
+                        )
                     }
                     if (user.isTasker) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondary,
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Text(
-                                text = "Tasker",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSecondary
-                            )
-                        }
+                        MetroBadge(
+                            label = "Tasker",
+                            status = MetroBadgeStatus.Open,
+                        )
                     }
                 }
             }
@@ -347,61 +337,54 @@ fun ProfileContent(
 
         // Statistics
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Statistics",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+            MetroCard(contentPadding = PaddingValues(16.dp)) {
+                Text(
+                    text = "Statistics",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        StatisticItem(
-                            icon = Icons.Default.Star,
-                            label = "Rating",
-                            value = String.format("%.1f", user.rating)
-                        )
-                        StatisticItem(
-                            icon = Icons.Default.Check,
-                            label = "Completed",
-                            value = user.totalTasksCompleted.toString()
-                        )
-                        StatisticItem(
-                            icon = Icons.Default.Add,
-                            label = "Posted",
-                            value = user.totalTasksPosted.toString()
-                        )
-                        StatisticItem(
-                            icon = Icons.Default.Payments,
-                            label = "Earned",
-                            value = formatCurrency(user.totalEarnings)
-                        )
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatisticItem(
+                        icon = Icons.Default.Star,
+                        label = "Rating",
+                        value = String.format("%.1f", user.rating)
+                    )
+                    StatisticItem(
+                        icon = Icons.Default.Check,
+                        label = "Completed",
+                        value = user.totalTasksCompleted.toString()
+                    )
+                    StatisticItem(
+                        icon = Icons.Default.Add,
+                        label = "Posted",
+                        value = user.totalTasksPosted.toString()
+                    )
+                    StatisticItem(
+                        icon = Icons.Default.Payments,
+                        label = "Earned",
+                        value = formatCurrency(user.totalEarnings)
+                    )
                 }
             }
         }
 
         // Account info
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            MetroCard(contentPadding = PaddingValues(16.dp)) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = "Account Information",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = colors.fg,
                     )
 
                     InfoRow(
@@ -425,50 +408,35 @@ fun ProfileContent(
 
         // My Jobs
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    MyJobsRow(
-                        icon = Icons.Default.Work,
-                        label = "My Jobs",
-                        onClick = onNavigateToMyJobs
-                    )
-                }
+            MetroCard(contentPadding = PaddingValues(16.dp)) {
+                MyJobsRow(
+                    icon = Icons.Default.Work,
+                    label = "My Jobs",
+                    onClick = onNavigateToMyJobs
+                )
             }
         }
 
         // Become tasker button
         if (!user.isTasker) {
             item {
-                Button(
+                MetroButton(
+                    label = "Become a Tasker",
                     onClick = onBecomeTasker,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Become a Tasker")
-                }
+                    fullWidth = true,
+                )
             }
         }
 
         // Logout button (shown when used inside MainScreen tab)
         if (onLogout != null) {
             item {
-                OutlinedButton(
+                MetroButton(
+                    label = "Logout",
                     onClick = onLogout,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Logout")
-                }
+                    variant = MetroButtonVariant.Secondary,
+                    fullWidth = true,
+                )
             }
         }
     }
@@ -484,6 +452,8 @@ fun ProfileAvatar(
     size: Int,
     modifier: Modifier = Modifier
 ) {
+    val colors = MetroTheme.colors
+
     if (!avatarUrl.isNullOrBlank()) {
         AsyncImage(
             model = resolveAvatarUrl(avatarUrl),
@@ -498,7 +468,7 @@ fun ProfileAvatar(
             imageVector = Icons.Default.Person,
             contentDescription = null,
             modifier = modifier.size(size.dp),
-            tint = MaterialTheme.colorScheme.primary
+            tint = colors.fg
         )
     }
 }
@@ -509,6 +479,8 @@ fun StatisticItem(
     label: String,
     value: String
 ) {
+    val colors = MetroTheme.colors
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -516,18 +488,19 @@ fun StatisticItem(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(32.dp),
-            tint = MaterialTheme.colorScheme.primary
+            tint = colors.fg
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = colors.fg,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = colors.muted,
         )
     }
 }
@@ -538,6 +511,8 @@ fun InfoRow(
     label: String,
     value: String
 ) {
+    val colors = MetroTheme.colors
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -546,19 +521,20 @@ fun InfoRow(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = colors.muted
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.muted,
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = colors.fg,
             )
         }
     }
@@ -570,6 +546,8 @@ fun MyJobsRow(
     label: String,
     onClick: () -> Unit
 ) {
+    val colors = MetroTheme.colors
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -581,19 +559,20 @@ fun MyJobsRow(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.primary
+            tint = colors.fg
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
+            color = colors.fg,
             modifier = Modifier.weight(1f)
         )
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
             modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = colors.muted
         )
     }
 }

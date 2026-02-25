@@ -26,6 +26,10 @@ import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.ui.components.EmptyState
 import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.TaskCard
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
+import com.viecz.vieczandroid.ui.components.metro.MetroTab
+import com.viecz.vieczandroid.ui.components.metro.MetroTabs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -147,7 +151,11 @@ class MyJobsViewModel @Inject constructor(
 }
 
 private val TAB_MODES = listOf("posted", "applied", "completed")
-private val TAB_LABELS = listOf("Posted", "Applied", "Completed")
+private val METRO_TABS = listOf(
+    MetroTab("posted", "Posted"),
+    MetroTab("applied", "Applied"),
+    MetroTab("completed", "Completed"),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -159,7 +167,7 @@ fun MyJobsScreen(
     viewModel: MyJobsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableStateOf("posted") }
 
     Scaffold(
         topBar = {
@@ -172,23 +180,19 @@ fun MyJobsScreen(
                         }
                     }
                 )
-                TabRow(selectedTabIndex = selectedTab) {
-                    TAB_LABELS.forEachIndexed { index, label ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = {
-                                selectedTab = index
-                                viewModel.switchMode(TAB_MODES[index])
-                            },
-                            text = { Text(label) }
-                        )
-                    }
-                }
+                MetroTabs(
+                    tabs = METRO_TABS,
+                    activeTab = selectedTab,
+                    onTabChanged = { tab ->
+                        selectedTab = tab
+                        viewModel.switchMode(tab)
+                    },
+                )
             }
         }
     ) { paddingValues ->
         MyJobsTabContent(
-            mode = TAB_MODES[selectedTab],
+            mode = selectedTab,
             uiState = uiState,
             onRefresh = { viewModel.refresh() },
             onLoadMore = { viewModel.loadMore() },
@@ -231,12 +235,7 @@ private fun MyJobsTabContent(
     ) {
         when {
             uiState.isLoading && uiState.tasks.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MetroLoadingState()
             }
             uiState.error != null && uiState.tasks.isEmpty() -> {
                 ErrorState(
@@ -289,7 +288,7 @@ private fun MyJobsTabContent(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator()
+                                MetroSpinner()
                             }
                         }
                     }

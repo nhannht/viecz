@@ -21,6 +21,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import com.viecz.vieczandroid.ui.components.ErrorState
+import com.viecz.vieczandroid.ui.components.metro.MetroDialog
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
 import com.viecz.vieczandroid.ui.navigation.NavigationRoutes
 import com.viecz.vieczandroid.ui.viewmodels.*
 import kotlinx.coroutines.launch
@@ -141,9 +143,7 @@ fun MainScreen(
                     Box(modifier = Modifier.fillMaxSize()) {
                         when {
                             profileUiState.isLoading && profileUiState.user == null -> {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.align(Alignment.Center)
-                                )
+                                MetroLoadingState()
                             }
                             profileUiState.error != null -> {
                                 ErrorState(
@@ -172,28 +172,20 @@ fun MainScreen(
                     }
 
                     if (showBecomeTaskerDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showBecomeTaskerDialog = false },
-                            title = { Text("Become a Tasker") },
-                            text = {
-                                Text("Do you want to register as a tasker? This will allow you to apply for tasks posted by other users.")
+                        MetroDialog(
+                            open = true,
+                            onDismiss = { showBecomeTaskerDialog = false },
+                            title = "Become a Tasker",
+                            confirmLabel = "Yes, Register",
+                            cancelLabel = "Cancel",
+                            onConfirm = {
+                                profileViewModel.becomeTasker()
+                                showBecomeTaskerDialog = false
                             },
-                            confirmButton = {
-                                Button(
-                                    onClick = {
-                                        profileViewModel.becomeTasker()
-                                        showBecomeTaskerDialog = false
-                                    }
-                                ) {
-                                    Text("Yes, Register")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showBecomeTaskerDialog = false }) {
-                                    Text("Cancel")
-                                }
-                            }
-                        )
+                            onCancel = { showBecomeTaskerDialog = false },
+                        ) {
+                            Text("Do you want to register as a tasker? This will allow you to apply for tasks posted by other users.")
+                        }
                     }
                 }
                 2 -> ConversationListContent(
@@ -223,31 +215,25 @@ fun MainScreen(
 
     // Logout confirmation dialog
     if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Logout") },
-            text = { Text("Are you sure you want to logout?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        kotlinx.coroutines.MainScope().launch {
-                            profileViewModel.logout()
-                            navController.navigate(NavigationRoutes.LOGIN) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
-                        showLogoutDialog = false
+        MetroDialog(
+            open = true,
+            onDismiss = { showLogoutDialog = false },
+            title = "Logout",
+            confirmLabel = "Logout",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                kotlinx.coroutines.MainScope().launch {
+                    profileViewModel.logout()
+                    navController.navigate(NavigationRoutes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
                     }
-                ) {
-                    Text("Logout")
                 }
+                showLogoutDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+            onCancel = { showLogoutDialog = false },
+        ) {
+            Text("Are you sure you want to logout?")
+        }
     }
 }
 
@@ -340,4 +326,3 @@ fun VieczBottomBar(
         )
     }
 }
-

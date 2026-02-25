@@ -2,7 +2,6 @@ package com.viecz.vieczandroid.ui.screens
 
 import com.viecz.vieczandroid.ui.components.formatPrice
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -15,6 +14,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.models.ApplyTaskRequest
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroTextarea
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -111,6 +115,7 @@ fun ApplyTaskScreen(
     onNavigateBack: () -> Unit,
     viewModel: ApplyTaskViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.success) {
@@ -140,79 +145,57 @@ fun ApplyTaskScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Info card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            MetroCard(
+                contentPadding = PaddingValues(16.dp),
+                featured = true,
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Original Price",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = formatPrice(originalPrice),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Text(
+                    text = "Original Price",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.muted
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = formatPrice(originalPrice),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = colors.fg
+                )
             }
 
             Text(
                 text = "Submit your application",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.fg
             )
 
             // Proposed price field (optional)
-            OutlinedTextField(
+            MetroInput(
                 value = uiState.proposedPrice,
                 onValueChange = { viewModel.updateProposedPrice(it) },
-                label = { Text("Proposed Price (Optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                isError = uiState.priceError != null,
-                supportingText = {
-                    uiState.priceError?.let { Text(it) }
-                        ?: Text("Leave empty to accept the original price")
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                prefix = { Text("₫ ") }
+                label = "PROPOSED PRICE (OPTIONAL)",
+                placeholder = "Leave empty to accept the original price",
+                error = uiState.priceError ?: "",
+                keyboardType = KeyboardType.Number,
+                prefix = { Text("₫ ", color = colors.muted) },
             )
 
             // Message field
-            OutlinedTextField(
+            MetroTextarea(
                 value = uiState.message,
                 onValueChange = { viewModel.updateMessage(it) },
-                label = { Text("Message (Optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                isError = uiState.messageError != null,
-                supportingText = {
-                    uiState.messageError?.let { Text(it) }
-                        ?: Text("Tell the requester why you're the right person for this task")
-                },
-                minLines = 4,
-                maxLines = 8
+                label = "MESSAGE (OPTIONAL)",
+                placeholder = "Tell the requester why you're the right person for this task",
+                error = uiState.messageError ?: "",
             )
 
             // Error message
             uiState.error?.let { error ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                MetroCard(
+                    contentPadding = PaddingValues(16.dp),
                 ) {
                     Text(
                         text = error,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -220,20 +203,13 @@ fun ApplyTaskScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // Submit button
-            Button(
+            MetroButton(
+                label = "SUBMIT APPLICATION",
                 onClick = { viewModel.applyForTask(taskId) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading && uiState.priceError == null && uiState.messageError == null
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Submit Application")
-                }
-            }
+                fullWidth = true,
+                enabled = !uiState.isLoading && uiState.priceError == null && uiState.messageError == null,
+                isLoading = uiState.isLoading,
+            )
         }
     }
 }

@@ -29,9 +29,16 @@ import com.viecz.vieczandroid.data.models.ApplicationStatus
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.TaskApplication
 import com.viecz.vieczandroid.data.models.TaskStatus
+import com.viecz.vieczandroid.ui.components.metro.MetroBadge
+import com.viecz.vieczandroid.ui.components.metro.MetroBadgeStatus
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.components.metro.MetroDialog
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.TaskDetailViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
-import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -47,6 +54,7 @@ fun TaskDetailScreen(
     onNavigateToEdit: (Long) -> Unit = {},
     viewModel: TaskDetailViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showAcceptDialog by remember { mutableStateOf<TaskApplication?>(null) }
@@ -137,9 +145,7 @@ fun TaskDetailScreen(
         ) {
             when {
                 uiState.isLoading && uiState.task == null -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    MetroLoadingState()
                 }
                 uiState.error != null -> {
                     ErrorState(
@@ -162,11 +168,9 @@ fun TaskDetailScreen(
                         onCompleteTask = { viewModel.completeTask(taskId) },
                         onCancelOverdue = { showCancelOverdueDialog = true },
                         onMessageClick = {
-                            // Get or create conversation, then navigate
                             if (uiState.conversationId != null) {
                                 onNavigateToChat(uiState.conversationId!!)
                             } else {
-                                // Trigger conversation creation
                                 viewModel.getOrCreateConversation()
                             }
                         }
@@ -183,107 +187,90 @@ fun TaskDetailScreen(
         val isAboveTaskPrice = task != null && application.proposedPrice != null
                 && application.proposedPrice > task.price
 
-        AlertDialog(
-            onDismissRequest = { showAcceptDialog = null },
-            title = { Text("Accept Application & Create Payment") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Are you sure you want to accept this application?")
+        MetroDialog(
+            open = true,
+            onDismiss = { showAcceptDialog = null },
+            title = "Accept Application & Create Payment",
+            confirmLabel = "Accept",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                viewModel.acceptApplication(application.id)
+                showAcceptDialog = null
+            },
+            onCancel = { showAcceptDialog = null },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Are you sure you want to accept this application?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.muted,
+                )
+                Text(
+                    text = "Escrow amount: ${formatPrice(escrowAmount)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg,
+                )
+                if (isAboveTaskPrice) {
+                    val diff = application.proposedPrice!! - task!!.price
                     Text(
-                        text = "Escrow amount: ${formatPrice(escrowAmount)}",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "This is ${formatPrice(diff)} above your original task price (${formatPrice(task.price)})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Bold
                     )
-                    if (isAboveTaskPrice) {
-                        val diff = application.proposedPrice!! - task!!.price
-                        Text(
-                            text = "This is ${formatPrice(diff)} above your original task price (${formatPrice(task.price)})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Text(
-                        text = "• This will assign the tasker to your task\n• Escrow payment will be created\n• Funds will be held until task completion",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.acceptApplication(application.id)
-                        showAcceptDialog = null
-                    }
-                ) {
-                    Text("Accept")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAcceptDialog = null }) {
-                    Text("Cancel")
-                }
+                Text(
+                    text = "\u2022 This will assign the tasker to your task\n\u2022 Escrow payment will be created\n\u2022 Funds will be held until task completion",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.muted,
+                )
             }
-        )
+        }
     }
 
     // Delete task confirmation dialog
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Task") },
-            text = {
-                Text("Are you sure you want to delete this task? This will cancel the task and reject all pending applications.")
+        MetroDialog(
+            open = true,
+            onDismiss = { showDeleteDialog = false },
+            title = "Delete Task",
+            confirmLabel = "Delete",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                viewModel.deleteTask(taskId)
+                showDeleteDialog = false
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.deleteTask(taskId)
-                        showDeleteDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+            onCancel = { showDeleteDialog = false },
+        ) {
+            Text(
+                text = "Are you sure you want to delete this task? This will cancel the task and reject all pending applications.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.muted,
+            )
+        }
     }
 
     // Cancel overdue task confirmation dialog
     if (showCancelOverdueDialog) {
-        AlertDialog(
-            onDismissRequest = { showCancelOverdueDialog = false },
-            title = { Text("Cancel Overdue Task & Get Refund") },
-            text = {
-                Text("The deadline has passed. Cancel this task and get a full escrow refund? The tasker will not receive payment.")
+        MetroDialog(
+            open = true,
+            onDismiss = { showCancelOverdueDialog = false },
+            title = "Cancel Overdue Task & Get Refund",
+            confirmLabel = "Cancel & Refund",
+            cancelLabel = "Keep Task",
+            onConfirm = {
+                viewModel.cancelOverdueTask(taskId)
+                showCancelOverdueDialog = false
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.cancelOverdueTask(taskId)
-                        showCancelOverdueDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Cancel & Refund")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCancelOverdueDialog = false }) {
-                    Text("Keep Task")
-                }
-            }
-        )
+            onCancel = { showCancelOverdueDialog = false },
+        ) {
+            Text(
+                text = "The deadline has passed. Cancel this task and get a full escrow refund? The tasker will not receive payment.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.muted,
+            )
+        }
     }
 }
 
@@ -301,6 +288,8 @@ fun TaskDetailContent(
     onCancelOverdue: () -> Unit = {},
     onMessageClick: () -> Unit
 ) {
+    val colors = MetroTheme.colors
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -308,83 +297,71 @@ fun TaskDetailContent(
     ) {
         // Task header
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+            MetroCard(
+                featured = true,
+                contentPadding = PaddingValues(16.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = task.title,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                        TaskStatusBadge(status = task.status.name)
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     Text(
-                        text = formatPrice(task.price),
-                        style = MaterialTheme.typography.headlineMedium,
+                        text = task.title,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = colors.fg,
+                        modifier = Modifier.weight(1f)
                     )
+                    TaskStatusBadge(status = task.status.name)
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = formatPrice(task.price),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg,
+                )
             }
         }
 
         // Task description
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Description",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = task.description,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            MetroCard(contentPadding = PaddingValues(16.dp)) {
+                Text(
+                    text = "Description",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = task.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.muted,
+                )
             }
         }
 
         // Location
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            MetroCard(contentPadding = PaddingValues(16.dp)) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = colors.fg
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = task.location,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.fg,
                     )
                 }
             }
@@ -405,19 +382,12 @@ fun TaskDetailContent(
                     task.deadline
                 }
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isOverdue)
-                            MaterialTheme.colorScheme.errorContainer
-                        else
-                            MaterialTheme.colorScheme.surface
-                    )
+                MetroCard(
+                    featured = isOverdue,
+                    contentPadding = PaddingValues(16.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -427,13 +397,13 @@ fun TaskDetailContent(
                             tint = if (isOverdue)
                                 MaterialTheme.colorScheme.error
                             else
-                                MaterialTheme.colorScheme.primary
+                                colors.fg
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Deadline",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = colors.muted,
                             )
                             Text(
                                 text = formattedDeadline,
@@ -441,22 +411,14 @@ fun TaskDetailContent(
                                 color = if (isOverdue)
                                     MaterialTheme.colorScheme.error
                                 else
-                                    MaterialTheme.colorScheme.onSurface
+                                    colors.fg,
                             )
                         }
                         if (isOverdue) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.error,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = "OVERDUE",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onError,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            MetroBadge(
+                                label = "OVERDUE",
+                                status = MetroBadgeStatus.Cancelled,
+                            )
                         }
                     }
                 }
@@ -466,31 +428,24 @@ fun TaskDetailContent(
         // Cancel & refund button for own overdue in_progress tasks
         if (isOwnTask && task.status == TaskStatus.IN_PROGRESS && task.isOverdue) {
             item {
-                Button(
+                MetroButton(
+                    label = "Cancel & Get Refund (Overdue)",
                     onClick = onCancelOverdue,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Cancel & Get Refund (Overdue)")
-                }
+                    fullWidth = true,
+                )
             }
         }
 
         // Apply button or status (only if task is open and not own task)
         if (task.status == TaskStatus.OPEN && !isOwnTask && task.isOverdue) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                MetroCard(
+                    featured = true,
+                    contentPadding = PaddingValues(16.dp),
                 ) {
                     Text(
-                        text = "Applications closed — deadline has passed",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        text = "Applications closed \u2014 deadline has passed",
+                        color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -500,66 +455,55 @@ fun TaskDetailContent(
             item {
                 if (!isCurrentUserTasker) {
                     // Non-tasker CTA: suggest registering as a tasker
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
-                    ) {
+                    MetroCard(contentPadding = PaddingValues(16.dp)) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = "You need to be a tasker to apply for tasks.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                                color = colors.muted,
                             )
                             Spacer(modifier = Modifier.height(12.dp))
-                            Button(onClick = onNavigateToProfile) {
-                                Text("Register as Tasker")
-                            }
+                            MetroButton(
+                                label = "Register as Tasker",
+                                onClick = onNavigateToProfile,
+                            )
                         }
                     }
                 } else if (task.userHasApplied) {
                     // Show "Already Applied" status
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
+                    MetroCard(
+                        featured = true,
+                        contentPadding = PaddingValues(16.dp),
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary
+                                tint = colors.fg
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Application Pending",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = colors.fg,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 } else {
                     // Show apply button
-                    Button(
+                    MetroButton(
+                        label = "Apply for this Task",
                         onClick = onApply,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Apply for this Task")
-                    }
+                        fullWidth = true,
+                    )
                 }
             }
         }
@@ -570,7 +514,8 @@ fun TaskDetailContent(
                 Text(
                     text = "Applications (${applications.size})",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg,
                 )
             }
 
@@ -586,34 +531,23 @@ fun TaskDetailContent(
         // Message button (only if task is in progress)
         if (task.status == TaskStatus.IN_PROGRESS) {
             item {
-                Button(
+                MetroButton(
+                    label = "Message",
                     onClick = onMessageClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary
-                    )
-                ) {
-                    Icon(Icons.Outlined.MailOutline, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Message")
-                }
+                    variant = MetroButtonVariant.Secondary,
+                    fullWidth = true,
+                )
             }
         }
 
         // Complete button (only if task is in progress)
         if (task.status == TaskStatus.IN_PROGRESS) {
             item {
-                Button(
+                MetroButton(
+                    label = "Mark as Completed",
                     onClick = onCompleteTask,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Mark as Completed")
-                }
+                    fullWidth = true,
+                )
             }
         }
     }
@@ -625,115 +559,99 @@ fun ApplicationCard(
     taskPrice: Long,
     onAccept: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (application.status) {
-                ApplicationStatus.ACCEPTED -> MaterialTheme.colorScheme.secondaryContainer
-                ApplicationStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer
-                else -> MaterialTheme.colorScheme.surface
-            }
-        )
+    val colors = MetroTheme.colors
+
+    MetroCard(
+        featured = application.status == ApplicationStatus.ACCEPTED,
+        contentPadding = PaddingValues(16.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = colors.fg,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Tasker #${application.taskerId}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.fg,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Tasker #${application.taskerId}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = formatDateTime(application.createdAt),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = formatDateTime(application.createdAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.muted,
+                    )
                 }
-                ApplicationStatusBadge(status = application.status)
             }
+            ApplicationStatusBadge(status = application.status)
+        }
 
-            if (application.message != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+        if (application.message != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = application.message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.fg,
+            )
+        }
+
+        if (application.proposedPrice != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Proposed price: ${formatPrice(application.proposedPrice)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (application.proposedPrice > taskPrice)
+                    MaterialTheme.colorScheme.error
+                else
+                    colors.fg,
+            )
+            if (application.proposedPrice > taskPrice) {
+                val diff = application.proposedPrice - taskPrice
                 Text(
-                    text = application.message,
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "Above task price (${formatPrice(taskPrice)}) by ${formatPrice(diff)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else if (application.proposedPrice < taskPrice) {
+                Text(
+                    text = "Below task price (${formatPrice(taskPrice)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.muted,
                 )
             }
+        }
 
-            if (application.proposedPrice != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Proposed price: ${formatPrice(application.proposedPrice)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (application.proposedPrice > taskPrice)
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.primary
-                )
-                if (application.proposedPrice > taskPrice) {
-                    val diff = application.proposedPrice - taskPrice
-                    Text(
-                        text = "Above task price (${formatPrice(taskPrice)}) by ${formatPrice(diff)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else if (application.proposedPrice < taskPrice) {
-                    Text(
-                        text = "Below task price (${formatPrice(taskPrice)})",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            if (application.status == ApplicationStatus.PENDING) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onAccept,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Accept Application")
-                }
-            }
+        if (application.status == ApplicationStatus.PENDING) {
+            Spacer(modifier = Modifier.height(12.dp))
+            MetroButton(
+                label = "Accept Application",
+                onClick = onAccept,
+                fullWidth = true,
+            )
         }
     }
 }
 
 @Composable
 fun ApplicationStatusBadge(status: ApplicationStatus) {
-    val (color, text) = when (status) {
-        ApplicationStatus.PENDING -> MaterialTheme.colorScheme.primary to "Pending"
-        ApplicationStatus.ACCEPTED -> MaterialTheme.colorScheme.secondary to "Accepted"
-        ApplicationStatus.REJECTED -> MaterialTheme.colorScheme.error to "Rejected"
+    val (badgeStatus, text) = when (status) {
+        ApplicationStatus.PENDING -> MetroBadgeStatus.Open to "Pending"
+        ApplicationStatus.ACCEPTED -> MetroBadgeStatus.Completed to "Accepted"
+        ApplicationStatus.REJECTED -> MetroBadgeStatus.Cancelled to "Rejected"
     }
 
-    Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = color
-        )
-    }
+    MetroBadge(
+        label = text,
+        status = badgeStatus,
+    )
 }
-

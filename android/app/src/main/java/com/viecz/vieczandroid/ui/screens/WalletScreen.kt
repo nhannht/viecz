@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -25,6 +24,15 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.viecz.vieczandroid.data.models.WalletTransaction
 import com.viecz.vieczandroid.data.models.WalletTransactionType
 import com.viecz.vieczandroid.ui.components.EmptyState
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.components.metro.MetroDialog
+import com.viecz.vieczandroid.ui.components.metro.MetroDivider
+import com.viecz.vieczandroid.ui.components.metro.MetroFab
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.*
 import com.viecz.vieczandroid.utils.formatCurrency
 import com.viecz.vieczandroid.utils.formatDateTime
@@ -35,6 +43,7 @@ fun WalletScreen(
     onNavigateBack: () -> Unit,
     viewModel: WalletViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val walletState by viewModel.uiState.collectAsState()
     val transactionsState by viewModel.transactionsState.collectAsState()
     val depositState by viewModel.depositState.collectAsState()
@@ -79,10 +88,10 @@ fun WalletScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            MetroFab(
                 onClick = { showDepositDialog = true },
-                icon = { Icon(Icons.Default.Add, "Deposit") },
-                text = { Text("Deposit") }
+                icon = Icons.Default.Add,
+                contentDescription = "Deposit",
             )
         }
     ) { paddingValues ->
@@ -112,6 +121,7 @@ fun WalletContent(
     viewModel: WalletViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
+    val colors = MetroTheme.colors
     val walletState by viewModel.uiState.collectAsState()
     val transactionsState by viewModel.transactionsState.collectAsState()
 
@@ -125,14 +135,14 @@ fun WalletContent(
         item {
             when (val state = walletState) {
                 is WalletUiState.Loading -> {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    MetroCard {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(24.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator()
+                            MetroSpinner()
                         }
                     }
                 }
@@ -152,7 +162,7 @@ fun WalletContent(
             Text(
                 text = "Min deposit: 2,000 VND \u2022 Max balance: 200,000 VND",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.muted,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
@@ -163,7 +173,8 @@ fun WalletContent(
             Text(
                 text = "Transaction History",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = colors.fg
             )
         }
 
@@ -175,7 +186,7 @@ fun WalletContent(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        MetroSpinner()
                     }
                 }
             }
@@ -193,17 +204,17 @@ fun WalletContent(
                                 imageVector = Icons.Default.Receipt,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                tint = colors.muted.copy(alpha = 0.5f)
                             )
                             Text(
                                 text = "No transactions yet",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = colors.muted
                             )
                             Text(
                                 text = "Deposit funds to get started",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                color = colors.muted.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -226,122 +237,101 @@ fun WalletContent(
 
 @Composable
 fun WalletBalanceCard(wallet: com.viecz.vieczandroid.data.models.Wallet) {
+    val colors = MetroTheme.colors
     val totalBalance = wallet.balance
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+    MetroCard(featured = true) {
+        // Total Balance — hero number
+        Text(
+            text = "Total Balance",
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.muted
         )
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Text(
+            text = formatCurrency(totalBalance),
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Bold,
+            color = colors.fg
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Available + Escrow side by side
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Total Balance — hero number
-            Text(
-                text = "Total Balance",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                text = formatCurrency(totalBalance),
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Available + Escrow side by side
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // Available card
+            MetroCard(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(12.dp),
             ) {
-                // Available card
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp)
-                    ) {
-                        Text(
-                            text = "Available",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = formatCurrency(wallet.availableBalance),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                // Escrow card
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp)
-                    ) {
-                        Text(
-                            text = "In Escrow",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = formatCurrency(wallet.escrowBalance),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
-                }
+                Text(
+                    text = "Available",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.muted
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = formatCurrency(wallet.availableBalance),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg
+                )
             }
 
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
-            )
-
-            // Earned + Spent — secondary stats
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Escrow card
+            MetroCard(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(12.dp),
             ) {
-                Column {
-                    Text(
-                        text = "Earned",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        text = formatCurrency(wallet.totalEarned),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Spent",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        text = formatCurrency(wallet.totalSpent),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    )
-                }
+                Text(
+                    text = "In Escrow",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.muted
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = formatCurrency(wallet.escrowBalance),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.fg
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        MetroDivider()
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Earned + Spent — secondary stats
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "Earned",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.muted.copy(alpha = 0.6f)
+                )
+                Text(
+                    text = formatCurrency(wallet.totalEarned),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.fg.copy(alpha = 0.8f)
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Spent",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.muted.copy(alpha = 0.6f)
+                )
+                Text(
+                    text = formatCurrency(wallet.totalSpent),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.fg.copy(alpha = 0.8f)
+                )
             }
         }
     }
@@ -349,13 +339,11 @@ fun WalletBalanceCard(wallet: com.viecz.vieczandroid.data.models.Wallet) {
 
 @Composable
 fun TransactionItem(transaction: WalletTransaction) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    val colors = MetroTheme.colors
+
+    MetroCard(contentPadding = PaddingValues(16.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -363,18 +351,19 @@ fun TransactionItem(transaction: WalletTransaction) {
                 Text(
                     text = transaction.description,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = colors.fg
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = formatTransactionType(transaction.type),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colors.muted
                 )
                 Text(
                     text = formatDateTime(transaction.createdAt),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colors.muted
                 )
             }
 
@@ -383,16 +372,12 @@ fun TransactionItem(transaction: WalletTransaction) {
                     text = formatCurrency(transaction.amount),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (transaction.amount >= 0) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    }
+                    color = if (transaction.amount >= 0) colors.fg else MaterialTheme.colorScheme.error
                 )
                 Text(
                     text = "Balance: ${formatCurrency(transaction.balanceAfter)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colors.muted
                 )
             }
         }
@@ -410,91 +395,74 @@ fun DepositDialog(
     val amountLong = amount.toLongOrNull()
     val isValidAmount = amountLong != null && amountLong >= 2000
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Deposit Funds") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text("Amount (VND)") },
-                    supportingText = { Text("Min: 2,000 VND | Max balance: 200,000 VND") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    isError = amountLong != null && amountLong < 2000,
-                    modifier = Modifier.fillMaxWidth()
-                )
+    MetroDialog(
+        open = true,
+        onDismiss = onDismiss,
+        title = "Deposit Funds",
+        confirmLabel = "Deposit",
+        cancelLabel = "Cancel",
+        onConfirm = {
+            if (isValidAmount) {
+                onDeposit(amountLong!!, description)
+            }
+        },
+        onCancel = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            MetroInput(
+                value = amount,
+                onValueChange = { amount = it },
+                label = "AMOUNT (VND)",
+                placeholder = "Min: 2,000 VND",
+                keyboardType = KeyboardType.Number,
+                error = if (amountLong != null && amountLong < 2000) "Min: 2,000 VND" else "",
+            )
 
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            MetroInput(
+                value = description,
+                onValueChange = { description = it },
+                label = "DESCRIPTION",
+            )
 
-                when (depositState) {
-                    is DepositUiState.Loading -> {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                    is DepositUiState.Error -> {
-                        Text(
-                            text = depositState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    else -> {}
+            when (depositState) {
+                is DepositUiState.Loading -> {
+                    MetroSpinner()
                 }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (isValidAmount) {
-                        onDeposit(amountLong!!, description)
-                    }
-                },
-                enabled = depositState !is DepositUiState.Loading && isValidAmount
-            ) {
-                Text("Deposit")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                is DepositUiState.Error -> {
+                    Text(
+                        text = depositState.message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                else -> {}
             }
         }
-    )
+    }
 }
 
 @Composable
 fun ErrorCard(message: String, onRetry: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
+    val colors = MetroTheme.colors
+
+    MetroCard(contentPadding = PaddingValues(16.dp)) {
+        Text(
+            text = "Error",
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.fg
         )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Error",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer
-            )
-            TextButton(onClick = onRetry) {
-                Text("Retry")
-            }
-        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.muted
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        MetroButton(
+            label = "Retry",
+            onClick = onRetry,
+            variant = MetroButtonVariant.Secondary,
+        )
     }
 }
 

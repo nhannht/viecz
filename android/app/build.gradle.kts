@@ -285,6 +285,10 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // Design System Catalog (Showkase — debug only)
+    implementation(libs.showkase)
+    ksp(libs.showkase.processor)
+
     // Testing - Unit tests (JVM)
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)

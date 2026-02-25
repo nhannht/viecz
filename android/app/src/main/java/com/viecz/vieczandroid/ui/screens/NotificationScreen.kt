@@ -1,6 +1,5 @@
 package com.viecz.vieczandroid.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +16,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.local.entities.NotificationEntity
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.NotificationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,6 +27,7 @@ fun NotificationScreen(
     onNavigateToTaskDetail: (Long) -> Unit,
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -62,13 +64,13 @@ fun NotificationScreen(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        tint = colors.muted.copy(alpha = 0.5f)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "No notifications yet",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = colors.muted
                     )
                 }
             }
@@ -99,29 +101,22 @@ private fun NotificationItem(
     notification: NotificationEntity,
     onClick: () -> Unit
 ) {
-    val containerColor = if (notification.isRead) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    }
+    val colors = MetroTheme.colors
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
+    MetroCard(
+        onClick = onClick,
+        contentPadding = PaddingValues(16.dp),
+        featured = !notification.isRead,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
                 imageVector = notificationIcon(notification.type),
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = notificationIconColor(notification.type)
+                tint = colors.fg
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -129,13 +124,14 @@ private fun NotificationItem(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (notification.isRead) FontWeight.Normal else FontWeight.Bold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = colors.fg
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = notification.message,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.muted,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -143,7 +139,7 @@ private fun NotificationItem(
                 Text(
                     text = formatRelativeTime(notification.createdAt),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = colors.muted.copy(alpha = 0.7f)
                 )
             }
         }
@@ -157,15 +153,6 @@ private fun notificationIcon(type: String) = when (type) {
     "APPLICATION_ACCEPTED" -> Icons.Default.CheckCircle
     "TASK_COMPLETED" -> Icons.Default.TaskAlt
     else -> Icons.Default.Notifications
-}
-
-@Composable
-private fun notificationIconColor(type: String) = when (type) {
-    "TASK_CREATED" -> MaterialTheme.colorScheme.primary
-    "APPLICATION_SENT" -> MaterialTheme.colorScheme.tertiary
-    "APPLICATION_ACCEPTED" -> MaterialTheme.colorScheme.secondary
-    "TASK_COMPLETED" -> MaterialTheme.colorScheme.secondary
-    else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
 private fun formatRelativeTime(timestamp: Long): String {

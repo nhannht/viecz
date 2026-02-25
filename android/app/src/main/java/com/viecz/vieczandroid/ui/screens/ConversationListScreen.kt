@@ -1,6 +1,5 @@
 package com.viecz.vieczandroid.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,15 +12,18 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.viecz.vieczandroid.data.models.Conversation
 import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.ui.components.EmptyState
 import com.viecz.vieczandroid.ui.components.ErrorState
+import com.viecz.vieczandroid.ui.components.metro.MetroCard
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.ConversationListViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
 
@@ -43,12 +45,7 @@ fun ConversationListContent(
     ) {
         when {
             uiState.isLoading && uiState.conversations.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MetroLoadingState()
             }
             uiState.error != null && uiState.conversations.isEmpty() -> {
                 ErrorState(
@@ -90,6 +87,7 @@ fun ConversationCard(
     currentUserId: Long?,
     onClick: () -> Unit
 ) {
+    val colors = MetroTheme.colors
     val otherUser = if (conversation.posterId == currentUserId) {
         conversation.tasker
     } else {
@@ -100,34 +98,20 @@ fun ConversationCard(
     val isFinished = conversation.task?.status == TaskStatus.COMPLETED ||
             conversation.task?.status == TaskStatus.CANCELLED
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .then(if (isFinished) Modifier.alpha(0.6f) else Modifier),
-        colors = if (isFinished) {
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
-        } else {
-            CardDefaults.cardColors()
-        }
+    MetroCard(
+        onClick = onClick,
+        contentPadding = PaddingValues(16.dp),
+        modifier = if (isFinished) Modifier.alpha(0.6f) else Modifier,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = if (isFinished) {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                } else {
-                    MaterialTheme.colorScheme.primary
-                }
+                tint = if (isFinished) colors.muted.copy(alpha = 0.5f) else colors.fg
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -137,21 +121,13 @@ fun ConversationCard(
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = if (isFinished) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    }
+                    color = if (isFinished) colors.muted else colors.fg
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = taskTitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isFinished) {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        },
+                        color = if (isFinished) colors.muted.copy(alpha = 0.7f) else colors.fg,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
@@ -161,7 +137,7 @@ fun ConversationCard(
                         Text(
                             text = if (conversation.task?.status == TaskStatus.COMPLETED) "Completed" else "Cancelled",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            color = colors.muted.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -169,7 +145,7 @@ fun ConversationCard(
                     Text(
                         text = conversation.lastMessage,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = colors.muted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -179,7 +155,7 @@ fun ConversationCard(
                 Text(
                     text = formatDateTime(conversation.lastMessageAt),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colors.muted
                 )
             }
         }

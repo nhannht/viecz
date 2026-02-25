@@ -11,6 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinnerSize
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.PaymentUiState
 import com.viecz.vieczandroid.ui.viewmodels.PaymentViewModel
 
@@ -18,6 +22,7 @@ import com.viecz.vieczandroid.ui.viewmodels.PaymentViewModel
 fun PaymentScreen(
     viewModel: PaymentViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val context = LocalContext.current
     val uiState = viewModel.uiState
 
@@ -31,7 +36,7 @@ fun PaymentScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = colors.bg
     ) {
         Column(
             modifier = Modifier
@@ -42,34 +47,37 @@ fun PaymentScreen(
         ) {
             Text(
                 text = "PayOS Payment",
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineMedium,
+                color = colors.fg
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             when (uiState) {
                 is PaymentUiState.Idle -> {
-                    Button(
+                    MetroButton(
+                        label = "Pay 2000 VND",
                         onClick = { viewModel.createPayment() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Pay 2000 VND")
-                    }
+                        fullWidth = true,
+                    )
                 }
 
                 is PaymentUiState.Loading -> {
-                    CircularProgressIndicator()
-                    Text("Creating payment link...", Modifier.padding(top = 16.dp))
+                    MetroSpinner(size = MetroSpinnerSize.Large)
+                    Text(
+                        "Creating payment link...",
+                        modifier = Modifier.padding(top = 16.dp),
+                        color = colors.muted,
+                    )
                 }
 
                 is PaymentUiState.Success -> {
-                    Text("Opening payment page...")
-                    Button(
+                    Text("Opening payment page...", color = colors.fg)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MetroButton(
+                        label = "Back",
                         onClick = { viewModel.resetState() },
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Back")
-                    }
+                    )
                 }
 
                 is PaymentUiState.Error -> {
@@ -77,12 +85,11 @@ fun PaymentScreen(
                         text = "Error: ${uiState.message}",
                         color = MaterialTheme.colorScheme.error
                     )
-                    Button(
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MetroButton(
+                        label = "Try Again",
                         onClick = { viewModel.resetState() },
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Try Again")
-                    }
+                    )
                 }
             }
         }

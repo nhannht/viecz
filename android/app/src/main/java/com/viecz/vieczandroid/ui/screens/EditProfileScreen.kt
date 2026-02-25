@@ -26,6 +26,14 @@ import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.viecz.vieczandroid.data.api.UpdateProfileRequest
 import com.viecz.vieczandroid.data.repository.UserRepository
+import com.viecz.vieczandroid.ui.components.metro.MetroButton
+import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
+import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
+import com.viecz.vieczandroid.ui.components.metro.MetroSpinnerSize
+import com.viecz.vieczandroid.ui.components.metro.MetroTextarea
+import com.viecz.vieczandroid.ui.theme.MetroTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -165,6 +173,7 @@ fun EditProfileScreen(
     onNavigateBack: () -> Unit,
     viewModel: EditProfileViewModel = hiltViewModel()
 ) {
+    val colors = MetroTheme.colors
     val uiState by viewModel.uiState.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -210,9 +219,7 @@ fun EditProfileScreen(
         ) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    MetroLoadingState()
                 }
                 else -> {
                     LazyColumn(
@@ -220,7 +227,7 @@ fun EditProfileScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Avatar section
+                        // Avatar section — stays circular (content images, not UI chrome)
                         item {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
@@ -240,7 +247,6 @@ fun EditProfileScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     when {
-                                        // Show selected image preview
                                         uiState.selectedImageUri != null -> {
                                             AsyncImage(
                                                 model = uiState.selectedImageUri,
@@ -251,7 +257,6 @@ fun EditProfileScreen(
                                                     .clip(CircleShape)
                                             )
                                         }
-                                        // Show current avatar
                                         !uiState.avatarUrl.isNullOrBlank() -> {
                                             AsyncImage(
                                                 model = resolveAvatarUrl(uiState.avatarUrl!!),
@@ -262,19 +267,17 @@ fun EditProfileScreen(
                                                     .clip(CircleShape)
                                             )
                                         }
-                                        // Show camera icon placeholder
                                         else -> {
                                             Surface(
                                                 modifier = Modifier.fillMaxSize(),
                                                 shape = CircleShape,
-                                                color = MaterialTheme.colorScheme.surfaceVariant
+                                                color = colors.card
                                             ) {
                                                 Icon(
                                                     Icons.Default.CameraAlt,
                                                     contentDescription = null,
-                                                    modifier = Modifier
-                                                        .padding(24.dp),
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    modifier = Modifier.padding(24.dp),
+                                                    tint = colors.muted
                                                 )
                                             }
                                         }
@@ -283,57 +286,55 @@ fun EditProfileScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                TextButton(
+                                MetroButton(
+                                    label = "Change Photo",
                                     onClick = {
                                         photoPickerLauncher.launch(
                                             PickVisualMediaRequest(
                                                 ActivityResultContracts.PickVisualMedia.ImageOnly
                                             )
                                         )
-                                    }
-                                ) {
-                                    Text("Change Photo")
-                                }
+                                    },
+                                    variant = MetroButtonVariant.Secondary,
+                                )
 
                                 if (uiState.isUploadingAvatar) {
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    LinearProgressIndicator(modifier = Modifier.width(100.dp))
+                                    MetroSpinner(size = MetroSpinnerSize.Small)
                                 }
                             }
                         }
 
                         item {
-                            OutlinedTextField(
+                            MetroInput(
                                 value = uiState.name,
                                 onValueChange = viewModel::onNameChange,
-                                label = { Text("Name") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                isError = uiState.error == "Name is required" && uiState.name.isBlank()
+                                label = "NAME",
+                                error = if (uiState.error == "Name is required" && uiState.name.isBlank()) "Name is required" else "",
                             )
                         }
 
                         item {
-                            OutlinedTextField(
+                            MetroTextarea(
                                 value = uiState.bio,
                                 onValueChange = viewModel::onBioChange,
-                                label = { Text("Bio") },
-                                modifier = Modifier.fillMaxWidth(),
-                                minLines = 3,
-                                maxLines = 5,
-                                supportingText = {
-                                    Text("${uiState.bio.length}/500")
-                                }
+                                label = "BIO",
+                                placeholder = "Tell others about yourself...",
+                            )
+                            Text(
+                                text = "${uiState.bio.length}/500",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.muted,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                             )
                         }
 
                         item {
-                            OutlinedTextField(
+                            MetroInput(
                                 value = uiState.phone,
                                 onValueChange = viewModel::onPhoneChange,
-                                label = { Text("Phone") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                label = "PHONE",
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone,
                             )
                         }
 
@@ -348,21 +349,13 @@ fun EditProfileScreen(
                         }
 
                         item {
-                            Button(
+                            MetroButton(
+                                label = "SAVE",
                                 onClick = { viewModel.saveProfile() },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !uiState.isSaving
-                            ) {
-                                if (uiState.isSaving) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                }
-                                Text("Save")
-                            }
+                                fullWidth = true,
+                                enabled = !uiState.isSaving,
+                                isLoading = uiState.isSaving,
+                            )
                         }
                     }
                 }
