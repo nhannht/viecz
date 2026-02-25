@@ -67,3 +67,16 @@ server/uploads/
 
 # Credentials / MCP configs with secrets
 nhannht-claude/
+
+# Debug screenshots (claudtest, playwright, etc.)
+*.png
+!web/src/**/*.png
+!android/app/src/**/*.png
+!docs/**/*.png
+.playwright-mcp/
+
+# Uploads (root level, runtime data)
+uploads/
+
+# Storybook build output
+web/storybook-static/
