@@ -319,8 +319,8 @@ object TestData {
         bin: String = "970436",
         shortName: String = "Vietcombank",
         logo: String = "https://api.vietqr.io/img/VCB.png",
-        transferSupported: Boolean = true,
-        lookupSupported: Boolean = true
+        transferSupported: Int = 1,
+        lookupSupported: Int = 1
     ) = VietQRBank(
         id = id,
         name = name,

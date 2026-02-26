@@ -19,11 +19,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.api.UpdateProfileRequest
 import com.viecz.vieczandroid.data.repository.UserRepository
 import com.viecz.vieczandroid.ui.components.metro.MetroButton
@@ -195,10 +197,10 @@ fun EditProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Profile") },
+                title = { Text(stringResource(R.string.edit_profile_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.edit_profile_back))
                     }
                 },
                 actions = {
@@ -206,7 +208,7 @@ fun EditProfileScreen(
                         onClick = { viewModel.saveProfile() },
                         enabled = !uiState.isSaving && !uiState.isLoading
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = "Save")
+                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.edit_profile_save))
                     }
                 }
             )
@@ -250,7 +252,7 @@ fun EditProfileScreen(
                                         uiState.selectedImageUri != null -> {
                                             AsyncImage(
                                                 model = uiState.selectedImageUri,
-                                                contentDescription = "Selected photo",
+                                                contentDescription = stringResource(R.string.edit_profile_selected_photo),
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier
                                                     .fillMaxSize()
@@ -260,7 +262,7 @@ fun EditProfileScreen(
                                         !uiState.avatarUrl.isNullOrBlank() -> {
                                             AsyncImage(
                                                 model = resolveAvatarUrl(uiState.avatarUrl!!),
-                                                contentDescription = "Current avatar",
+                                                contentDescription = stringResource(R.string.edit_profile_current_avatar),
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier
                                                     .fillMaxSize()
@@ -287,7 +289,7 @@ fun EditProfileScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 MetroButton(
-                                    label = "Change Photo",
+                                    label = stringResource(R.string.edit_profile_change_photo),
                                     onClick = {
                                         photoPickerLauncher.launch(
                                             PickVisualMediaRequest(
@@ -309,8 +311,8 @@ fun EditProfileScreen(
                             MetroInput(
                                 value = uiState.name,
                                 onValueChange = viewModel::onNameChange,
-                                label = "NAME",
-                                error = if (uiState.error == "Name is required" && uiState.name.isBlank()) "Name is required" else "",
+                                label = stringResource(R.string.edit_profile_name_label),
+                                error = if (uiState.error == "Name is required" && uiState.name.isBlank()) stringResource(R.string.edit_profile_name_required) else "",
                             )
                         }
 
@@ -318,11 +320,11 @@ fun EditProfileScreen(
                             MetroTextarea(
                                 value = uiState.bio,
                                 onValueChange = viewModel::onBioChange,
-                                label = "BIO",
-                                placeholder = "Tell others about yourself...",
+                                label = stringResource(R.string.edit_profile_bio_label),
+                                placeholder = stringResource(R.string.edit_profile_bio_placeholder),
                             )
                             Text(
-                                text = "${uiState.bio.length}/500",
+                                text = stringResource(R.string.edit_profile_bio_count, uiState.bio.length),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.muted,
                                 modifier = Modifier.padding(start = 4.dp, top = 4.dp),
@@ -333,7 +335,7 @@ fun EditProfileScreen(
                             MetroInput(
                                 value = uiState.phone,
                                 onValueChange = viewModel::onPhoneChange,
-                                label = "PHONE",
+                                label = stringResource(R.string.edit_profile_phone_label),
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone,
                             )
                         }
@@ -350,7 +352,7 @@ fun EditProfileScreen(
 
                         item {
                             MetroButton(
-                                label = "SAVE",
+                                label = stringResource(R.string.edit_profile_save_button),
                                 onClick = { viewModel.saveProfile() },
                                 fullWidth = true,
                                 enabled = !uiState.isSaving,

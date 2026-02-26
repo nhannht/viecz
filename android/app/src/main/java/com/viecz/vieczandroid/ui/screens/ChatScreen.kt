@@ -15,8 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.models.Message
 import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.data.models.WebSocketState
@@ -62,16 +64,19 @@ fun ChatScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Chat")
+                        Text(stringResource(R.string.chat_title))
                         Text(
                             text = if (uiState.isTaskFinished) {
-                                "Task ${if (uiState.conversation?.task?.status == TaskStatus.CANCELLED) "cancelled" else "completed"}"
+                                if (uiState.conversation?.task?.status == TaskStatus.CANCELLED)
+                                    stringResource(R.string.chat_task_cancelled)
+                                else
+                                    stringResource(R.string.chat_task_completed)
                             } else {
                                 when (uiState.connectionState) {
-                                    WebSocketState.CONNECTED -> "Connected"
-                                    WebSocketState.CONNECTING -> "Connecting..."
-                                    WebSocketState.DISCONNECTED -> "Disconnected"
-                                    WebSocketState.ERROR -> "Connection Error"
+                                    WebSocketState.CONNECTED -> stringResource(R.string.chat_connected)
+                                    WebSocketState.CONNECTING -> stringResource(R.string.chat_connecting)
+                                    WebSocketState.DISCONNECTED -> stringResource(R.string.chat_disconnected)
+                                    WebSocketState.ERROR -> stringResource(R.string.chat_error)
                                 }
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -89,7 +94,7 @@ fun ChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.chat_back))
                     }
                 }
             )
@@ -102,7 +107,10 @@ fun ChatScreen(
                     color = colors.card
                 ) {
                     Text(
-                        text = "This task is ${if (uiState.conversation?.task?.status == TaskStatus.CANCELLED) "cancelled" else "completed"}. Chat is closed.",
+                        text = if (uiState.conversation?.task?.status == TaskStatus.CANCELLED)
+                            stringResource(R.string.chat_closed_cancelled)
+                        else
+                            stringResource(R.string.chat_closed_completed),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
@@ -134,7 +142,7 @@ fun ChatScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(end = 8.dp),
-                            placeholder = "Type a message...",
+                            placeholder = stringResource(R.string.chat_input_placeholder),
                             singleLine = false,
                             enabled = uiState.connectionState == WebSocketState.CONNECTED,
                         )
@@ -148,7 +156,7 @@ fun ChatScreen(
                             },
                             modifier = Modifier.size(56.dp),
                             icon = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
+                            contentDescription = stringResource(R.string.chat_send),
                         )
                     }
                 }
@@ -164,7 +172,7 @@ fun ChatScreen(
                 MetroLoadingState()
             } else if (uiState.error != null) {
                 ErrorState(
-                    message = uiState.error ?: "An error occurred",
+                    message = uiState.error ?: stringResource(R.string.chat_error_occurred),
                     onRetry = { viewModel.loadConversation(conversationId) }
                 )
             } else {

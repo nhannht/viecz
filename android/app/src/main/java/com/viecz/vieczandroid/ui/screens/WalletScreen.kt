@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.models.BankAccount
 import com.viecz.vieczandroid.data.models.VietQRBank
 import com.viecz.vieczandroid.data.models.WalletTransaction
@@ -90,15 +92,15 @@ fun WalletScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Wallet") },
+                title = { Text(stringResource(R.string.wallet_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.wallet_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.loadWallet() }) {
-                        Icon(Icons.Default.Refresh, "Refresh")
+                        Icon(Icons.Default.Refresh, stringResource(R.string.wallet_refresh))
                     }
                 }
             )
@@ -111,12 +113,12 @@ fun WalletScreen(
                 MetroFab(
                     onClick = { showWithdrawDialog = true },
                     icon = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Withdraw",
+                    contentDescription = stringResource(R.string.wallet_withdraw),
                 )
                 MetroFab(
                     onClick = { showDepositDialog = true },
                     icon = Icons.Default.Add,
-                    contentDescription = "Deposit",
+                    contentDescription = stringResource(R.string.wallet_deposit),
                 )
             }
         }
@@ -208,7 +210,7 @@ fun WalletContent(
         // Deposit/Withdrawal limits info
         item {
             Text(
-                text = "Deposit min: 2,000 VND \u2022 Withdraw: 10,000\u2013200,000 VND",
+                text = stringResource(R.string.wallet_limits),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.muted,
                 modifier = Modifier.fillMaxWidth(),
@@ -233,7 +235,7 @@ fun WalletContent(
         // Transaction History Header
         item {
             Text(
-                text = "Transaction History",
+                text = stringResource(R.string.wallet_transaction_history),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.fg
@@ -269,12 +271,12 @@ fun WalletContent(
                                 tint = colors.muted.copy(alpha = 0.5f)
                             )
                             Text(
-                                text = "No transactions yet",
+                                text = stringResource(R.string.wallet_no_transactions),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = colors.muted
                             )
                             Text(
-                                text = "Deposit funds to get started",
+                                text = stringResource(R.string.wallet_deposit_to_start),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.muted.copy(alpha = 0.7f)
                             )
@@ -317,7 +319,7 @@ fun BankAccountsSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Bank Accounts",
+                text = stringResource(R.string.wallet_bank_accounts),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.fg
@@ -325,7 +327,7 @@ fun BankAccountsSection(
             IconButton(onClick = { expanded = !expanded }) {
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    contentDescription = if (expanded) stringResource(R.string.wallet_collapse) else stringResource(R.string.wallet_expand),
                     tint = colors.fg
                 )
             }
@@ -348,7 +350,7 @@ fun BankAccountsSection(
                     is BankAccountsUiState.Success -> {
                         if (bankAccountsState.accounts.isEmpty()) {
                             Text(
-                                text = "No bank accounts saved",
+                                text = stringResource(R.string.wallet_no_bank_accounts),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.muted
                             )
@@ -405,7 +407,7 @@ fun BankAccountItem(
                 color = colors.fg
             )
             Text(
-                text = "${account.accountNumber} - ${account.accountHolderName}",
+                text = stringResource(R.string.wallet_bank_account_detail, account.accountNumber, account.accountHolderName),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.muted
             )
@@ -413,7 +415,7 @@ fun BankAccountItem(
         IconButton(onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Delete,
-                contentDescription = "Delete",
+                contentDescription = stringResource(R.string.wallet_delete),
                 tint = MaterialTheme.colorScheme.error
             )
         }
@@ -432,9 +434,9 @@ fun AddBankAccountForm(
     var accountNumber by remember { mutableStateOf("") }
     var accountHolderName by remember { mutableStateOf("") }
 
-    val selectedBank = banks.find { it.bin == selectedBankBin && it.transferSupported }
-    val bankOptions = buildBankOptions(banks)
-    val binValidationError = validateSelectedBankBin(selectedBankBin, banks)
+    val selectedBank = banks.find { it.bin == selectedBankBin && it.transferSupported == 1 }
+    val bankOptions = buildBankOptions(banks, stringResource(R.string.wallet_bank_bin, "%s"))
+    val binValidationError = validateSelectedBankBin(selectedBankBin, banks, stringResource(R.string.wallet_invalid_bank))
 
     val isValid = selectedBankBin.isNotEmpty() &&
             binValidationError.isEmpty() &&
@@ -453,7 +455,7 @@ fun AddBankAccountForm(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Add Bank Account",
+            text = stringResource(R.string.wallet_add_bank_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = colors.fg
@@ -463,24 +465,24 @@ fun AddBankAccountForm(
             selected = selectedBankBin,
             onSelected = { selectedBankBin = it },
             options = bankOptions,
-            label = "BANK",
-            placeholder = "Select a bank",
+            label = stringResource(R.string.wallet_bank_label),
+            placeholder = stringResource(R.string.wallet_bank_placeholder),
             error = binValidationError,
         )
 
         MetroInput(
             value = accountNumber,
             onValueChange = { accountNumber = it },
-            label = "ACCOUNT NUMBER",
-            placeholder = "Enter account number",
+            label = stringResource(R.string.wallet_account_number_label),
+            placeholder = stringResource(R.string.wallet_account_number_placeholder),
             keyboardType = KeyboardType.Number,
         )
 
         MetroInput(
             value = accountHolderName,
             onValueChange = { accountHolderName = it },
-            label = "ACCOUNT HOLDER NAME",
-            placeholder = "Enter account holder name",
+            label = stringResource(R.string.wallet_account_holder_label),
+            placeholder = stringResource(R.string.wallet_account_holder_placeholder),
         )
 
         when (addState) {
@@ -498,7 +500,7 @@ fun AddBankAccountForm(
         }
 
         MetroButton(
-            label = "Add Account",
+            label = stringResource(R.string.wallet_add_account_button),
             onClick = {
                 if (isValid && selectedBank != null) {
                     onAdd(selectedBankBin, selectedBank.shortName, accountNumber, accountHolderName)
@@ -518,7 +520,7 @@ fun WalletBalanceCard(wallet: com.viecz.vieczandroid.data.models.Wallet) {
     MetroCard(featured = true) {
         // Total Balance — hero number
         Text(
-            text = "Total Balance",
+            text = stringResource(R.string.wallet_total_balance),
             style = MaterialTheme.typography.titleMedium,
             color = colors.muted
         )
@@ -542,7 +544,7 @@ fun WalletBalanceCard(wallet: com.viecz.vieczandroid.data.models.Wallet) {
                 contentPadding = PaddingValues(12.dp),
             ) {
                 Text(
-                    text = "Available",
+                    text = stringResource(R.string.wallet_available),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.muted
                 )
@@ -561,7 +563,7 @@ fun WalletBalanceCard(wallet: com.viecz.vieczandroid.data.models.Wallet) {
                 contentPadding = PaddingValues(12.dp),
             ) {
                 Text(
-                    text = "In Escrow",
+                    text = stringResource(R.string.wallet_in_escrow),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.muted
                 )
@@ -586,7 +588,7 @@ fun WalletBalanceCard(wallet: com.viecz.vieczandroid.data.models.Wallet) {
         ) {
             Column {
                 Text(
-                    text = "Earned",
+                    text = stringResource(R.string.wallet_earned),
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.muted.copy(alpha = 0.6f)
                 )
@@ -598,7 +600,7 @@ fun WalletBalanceCard(wallet: com.viecz.vieczandroid.data.models.Wallet) {
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "Spent",
+                    text = stringResource(R.string.wallet_spent),
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.muted.copy(alpha = 0.6f)
                 )
@@ -650,7 +652,7 @@ fun TransactionItem(transaction: WalletTransaction) {
                     color = if (transaction.amount >= 0) colors.fg else MaterialTheme.colorScheme.error
                 )
                 Text(
-                    text = "Balance: ${formatCurrency(transaction.balanceAfter)}",
+                    text = stringResource(R.string.wallet_balance_after, formatCurrency(transaction.balanceAfter)),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.muted
                 )
@@ -674,16 +676,21 @@ fun WithdrawDialog(
     val accountOptions = bankAccounts.map {
         MetroSelectOption(
             value = it.id.toString(),
-            label = "${it.bankName} - ${it.accountNumber}"
+            label = stringResource(R.string.wallet_bank_option, it.bankName, it.accountNumber)
         )
     }
 
+    val withdrawMinError = stringResource(R.string.wallet_withdraw_min)
+    val withdrawMaxError = stringResource(R.string.wallet_withdraw_max)
+    val withdrawMultiplesError = stringResource(R.string.wallet_withdraw_multiples)
+    val withdrawExceedsError = stringResource(R.string.wallet_withdraw_exceeds, formatCurrency(availableBalance))
+
     val amountError = when {
         amountLong == null -> ""
-        amountLong < 10000 -> "Min: 10,000 VND"
-        amountLong > 200000 -> "Max: 200,000 VND"
-        amountLong % 1000 != 0L -> "Must be multiples of 1,000"
-        amountLong > availableBalance -> "Exceeds available balance (${formatCurrency(availableBalance)})"
+        amountLong < 10000 -> withdrawMinError
+        amountLong > 200000 -> withdrawMaxError
+        amountLong % 1000 != 0L -> withdrawMultiplesError
+        amountLong > availableBalance -> withdrawExceedsError
         else -> ""
     }
 
@@ -696,9 +703,9 @@ fun WithdrawDialog(
     MetroDialog(
         open = true,
         onDismiss = onDismiss,
-        title = "Withdraw Funds",
-        confirmLabel = "Withdraw",
-        cancelLabel = "Cancel",
+        title = stringResource(R.string.wallet_withdraw_title),
+        confirmLabel = stringResource(R.string.wallet_withdraw_confirm),
+        cancelLabel = stringResource(R.string.wallet_withdraw_cancel),
         onConfirm = {
             if (isValid) {
                 onWithdraw(amountLong!!, selectedAccountId.toLong())
@@ -709,7 +716,7 @@ fun WithdrawDialog(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (bankAccounts.isEmpty()) {
                 Text(
-                    text = "No bank accounts saved. Add one in the Bank Accounts section below.",
+                    text = stringResource(R.string.wallet_withdraw_no_accounts),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -718,22 +725,22 @@ fun WithdrawDialog(
                     selected = selectedAccountId,
                     onSelected = { selectedAccountId = it },
                     options = accountOptions,
-                    label = "BANK ACCOUNT",
-                    placeholder = "Select a bank account",
+                    label = stringResource(R.string.wallet_withdraw_bank_label),
+                    placeholder = stringResource(R.string.wallet_withdraw_bank_placeholder),
                 )
             }
 
             MetroInput(
                 value = amount,
                 onValueChange = { amount = it },
-                label = "AMOUNT (VND)",
-                placeholder = "10,000 - 200,000 VND",
+                label = stringResource(R.string.wallet_withdraw_amount_label),
+                placeholder = stringResource(R.string.wallet_withdraw_amount_placeholder),
                 keyboardType = KeyboardType.Number,
                 error = amountError,
             )
 
             Text(
-                text = "Available: ${formatCurrency(availableBalance)}",
+                text = stringResource(R.string.wallet_withdraw_available, formatCurrency(availableBalance)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MetroTheme.colors.muted
             )
@@ -762,16 +769,19 @@ fun DepositDialog(
     onDismiss: () -> Unit
 ) {
     var amount by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("Wallet deposit") }
+    val defaultDescription = stringResource(R.string.wallet_deposit_description)
+    var description by remember { mutableStateOf(defaultDescription) }
     val amountLong = amount.toLongOrNull()
     val isValidAmount = amountLong != null && amountLong >= 2000
+
+    val depositMinError = stringResource(R.string.wallet_deposit_min)
 
     MetroDialog(
         open = true,
         onDismiss = onDismiss,
-        title = "Deposit Funds",
-        confirmLabel = "Deposit",
-        cancelLabel = "Cancel",
+        title = stringResource(R.string.wallet_deposit_title),
+        confirmLabel = stringResource(R.string.wallet_deposit_confirm),
+        cancelLabel = stringResource(R.string.wallet_deposit_cancel),
         onConfirm = {
             if (isValidAmount) {
                 onDeposit(amountLong!!, description)
@@ -783,16 +793,16 @@ fun DepositDialog(
             MetroInput(
                 value = amount,
                 onValueChange = { amount = it },
-                label = "AMOUNT (VND)",
-                placeholder = "Min: 2,000 VND",
+                label = stringResource(R.string.wallet_deposit_amount_label),
+                placeholder = stringResource(R.string.wallet_deposit_amount_placeholder),
                 keyboardType = KeyboardType.Number,
-                error = if (amountLong != null && amountLong < 2000) "Min: 2,000 VND" else "",
+                error = if (amountLong != null && amountLong < 2000) depositMinError else "",
             )
 
             MetroInput(
                 value = description,
                 onValueChange = { description = it },
-                label = "DESCRIPTION",
+                label = stringResource(R.string.wallet_deposit_description_label),
             )
 
             when (depositState) {
@@ -818,7 +828,7 @@ fun ErrorCard(message: String, onRetry: () -> Unit) {
 
     MetroCard(contentPadding = PaddingValues(16.dp)) {
         Text(
-            text = "Error",
+            text = stringResource(R.string.wallet_error_title),
             style = MaterialTheme.typography.titleMedium,
             color = colors.fg
         )
@@ -830,7 +840,7 @@ fun ErrorCard(message: String, onRetry: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         MetroButton(
-            label = "Retry",
+            label = stringResource(R.string.wallet_retry),
             onClick = onRetry,
             variant = MetroButtonVariant.Secondary,
         )
@@ -838,39 +848,40 @@ fun ErrorCard(message: String, onRetry: () -> Unit) {
 }
 
 // Helper functions
-internal fun buildBankOptions(banks: List<VietQRBank>): List<MetroSelectOption> {
+internal fun buildBankOptions(banks: List<VietQRBank>, binFormat: String = "BIN %s"): List<MetroSelectOption> {
     return banks
-        .filter { it.transferSupported }
+        .filter { it.transferSupported == 1 }
         .map {
             MetroSelectOption(
                 value = it.bin,
                 label = it.shortName,
-                supportingText = "BIN ${it.bin}",
+                supportingText = String.format(binFormat, it.bin),
                 imageUrl = it.logo,
             )
         }
 }
 
-internal fun validateSelectedBankBin(selectedBankBin: String, banks: List<VietQRBank>): String {
+internal fun validateSelectedBankBin(selectedBankBin: String, banks: List<VietQRBank>, invalidBinMessage: String = "Invalid bank BIN selected"): String {
     if (selectedBankBin.isEmpty()) return ""
 
     val validBins = banks
         .asSequence()
-        .filter { it.transferSupported }
+        .filter { it.transferSupported == 1 }
         .map { it.bin }
         .toSet()
 
-    return if (selectedBankBin in validBins) "" else "Invalid bank BIN selected"
+    return if (selectedBankBin in validBins) "" else invalidBinMessage
 }
 
+@Composable
 fun formatTransactionType(type: WalletTransactionType): String {
     return when (type) {
-        WalletTransactionType.DEPOSIT -> "Deposit"
-        WalletTransactionType.WITHDRAWAL -> "Withdrawal"
-        WalletTransactionType.ESCROW_HOLD -> "Escrow Hold"
-        WalletTransactionType.ESCROW_RELEASE -> "Escrow Release"
-        WalletTransactionType.ESCROW_REFUND -> "Refund"
-        WalletTransactionType.PAYMENT_RECEIVED -> "Payment Received"
-        WalletTransactionType.PLATFORM_FEE -> "Platform Fee"
+        WalletTransactionType.DEPOSIT -> stringResource(R.string.wallet_type_deposit)
+        WalletTransactionType.WITHDRAWAL -> stringResource(R.string.wallet_type_withdrawal)
+        WalletTransactionType.ESCROW_HOLD -> stringResource(R.string.wallet_type_escrow_hold)
+        WalletTransactionType.ESCROW_RELEASE -> stringResource(R.string.wallet_type_escrow_release)
+        WalletTransactionType.ESCROW_REFUND -> stringResource(R.string.wallet_type_escrow_refund)
+        WalletTransactionType.PAYMENT_RECEIVED -> stringResource(R.string.wallet_type_payment_received)
+        WalletTransactionType.PLATFORM_FEE -> stringResource(R.string.wallet_type_platform_fee)
     }
 }

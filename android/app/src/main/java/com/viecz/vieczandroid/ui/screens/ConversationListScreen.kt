@@ -15,8 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.models.Conversation
 import com.viecz.vieczandroid.data.models.TaskStatus
 import com.viecz.vieczandroid.ui.components.EmptyState
@@ -49,16 +51,16 @@ fun ConversationListContent(
             }
             uiState.error != null && uiState.conversations.isEmpty() -> {
                 ErrorState(
-                    message = uiState.error ?: "An error occurred",
+                    message = uiState.error ?: stringResource(R.string.chat_error_occurred),
                     onRetry = { viewModel.refresh() }
                 )
             }
             uiState.conversations.isEmpty() -> {
                 EmptyState(
                     icon = Icons.Default.ChatBubbleOutline,
-                    title = "No conversations yet",
-                    message = "Apply to tasks to start chatting",
-                    actionLabel = "Browse Marketplace",
+                    title = stringResource(R.string.conversations_empty),
+                    message = stringResource(R.string.conversations_empty_subtitle),
+                    actionLabel = stringResource(R.string.conversations_browse),
                     onAction = onNavigateToMarketplace
                 )
             }
@@ -94,7 +96,7 @@ fun ConversationCard(
         conversation.poster
     }
     val otherUserName = otherUser?.name ?: "Unknown"
-    val taskTitle = conversation.task?.title ?: "Task #${conversation.taskId}"
+    val taskTitle = conversation.task?.title ?: stringResource(R.string.conversations_task_id, conversation.taskId)
     val isFinished = conversation.task?.status == TaskStatus.COMPLETED ||
             conversation.task?.status == TaskStatus.CANCELLED
 
@@ -135,7 +137,7 @@ fun ConversationCard(
                     if (isFinished) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (conversation.task?.status == TaskStatus.COMPLETED) "Completed" else "Cancelled",
+                            text = if (conversation.task?.status == TaskStatus.COMPLETED) stringResource(R.string.conversations_status_completed) else stringResource(R.string.conversations_status_cancelled),
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.muted.copy(alpha = 0.6f)
                         )

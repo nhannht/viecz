@@ -13,8 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.local.entities.NotificationEntity
 import com.viecz.vieczandroid.ui.components.metro.MetroCard
 import com.viecz.vieczandroid.ui.theme.MetroTheme
@@ -33,19 +35,19 @@ fun NotificationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notifications") },
+                title = { Text(stringResource(R.string.notification_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.notification_back))
                     }
                 },
                 actions = {
                     if (uiState.notifications.isNotEmpty()) {
                         IconButton(onClick = { viewModel.markAllAsRead() }) {
-                            Icon(Icons.Default.DoneAll, contentDescription = "Mark all read")
+                            Icon(Icons.Default.DoneAll, contentDescription = stringResource(R.string.notification_mark_all_read))
                         }
                         IconButton(onClick = { viewModel.clearAll() }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear all")
+                            Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.notification_clear_all))
                         }
                     }
                 }
@@ -68,7 +70,7 @@ fun NotificationScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No notifications yet",
+                        text = stringResource(R.string.notification_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = colors.muted
                     )
@@ -155,6 +157,7 @@ private fun notificationIcon(type: String) = when (type) {
     else -> Icons.Default.Notifications
 }
 
+@Composable
 private fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
@@ -164,10 +167,10 @@ private fun formatRelativeTime(timestamp: Long): String {
     val days = hours / 24
 
     return when {
-        seconds < 60 -> "Just now"
-        minutes < 60 -> "${minutes}m ago"
-        hours < 24 -> "${hours}h ago"
-        days < 7 -> "${days}d ago"
-        else -> "${days / 7}w ago"
+        seconds < 60 -> stringResource(R.string.notification_just_now)
+        minutes < 60 -> stringResource(R.string.notification_minutes_ago, minutes)
+        hours < 24 -> stringResource(R.string.notification_hours_ago, hours)
+        days < 7 -> stringResource(R.string.notification_days_ago, days)
+        else -> stringResource(R.string.notification_weeks_ago, days / 7)
     }
 }

@@ -9,9 +9,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
 import com.viecz.vieczandroid.ui.components.metro.MetroSpinnerSize
 import com.viecz.vieczandroid.ui.theme.MetroTheme
@@ -48,7 +50,7 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Viecz",
+                text = stringResource(R.string.splash_title),
                 style = MaterialTheme.typography.displayMedium,
                 color = colors.fg
             )
@@ -56,7 +58,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Dịch Vụ Nhỏ Cho Sinh Viên",
+                text = stringResource(R.string.splash_tagline),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.muted
             )

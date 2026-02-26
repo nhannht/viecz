@@ -35,12 +35,18 @@ const (
 // a webhook to auto-credit the wallet after a short delay.
 // Payouts are auto-completed (stored in memory, GetPayout returns SUCCEEDED).
 type mockPayOS struct {
-	payouts sync.Map // payoutID -> true (all payouts auto-succeed)
+	payouts    sync.Map // payoutID -> true (all payouts auto-succeed)
+	returnURLs sync.Map // orderCode -> returnURL (for mock checkout redirect)
 }
 
 var _ services.PayOSServicer = (*mockPayOS)(nil)
 
 func (m *mockPayOS) CreatePaymentLink(_ context.Context, orderCode int64, amount int, description, returnURL, cancelURL string) (*services.PaymentLinkResponse, error) {
+	// Store returnURL for mock checkout page redirect
+	if returnURL != "" {
+		m.returnURLs.Store(orderCode, returnURL)
+	}
+
 	// Fire webhook in background to auto-complete deposit
 	go func() {
 		time.Sleep(100 * time.Millisecond)
@@ -240,8 +246,15 @@ func main() {
 	// Bank account repository
 	bankAccountRepo := repository.NewBankAccountGormRepository(db)
 
+	// Firebase phone auth (real verification, same as production)
+	firebaseVerifier, err := auth.NewFirebaseService("firebase-service-account.json")
+	if err != nil {
+		log.Fatalf("Failed to initialize Firebase: %v\nHint: place firebase-service-account.json in server/", err)
+	}
+	log.Println("Firebase phone auth enabled")
+
 	// 6. Handlers
-	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil, &auth.NoOpFirebaseVerifier{}, userRepo) // nil Turnstile, mock Firebase
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil, firebaseVerifier, userRepo)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL) // serverURL used as payosReturnBaseURL for test
 	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
@@ -266,6 +279,44 @@ func main() {
 
 	// Serve uploaded files (avatars, etc.)
 	router.Static("/uploads", "./uploads")
+
+	// Mock checkout page — simulates PayOS payment page, redirects back to app
+	// Uses Android Intent URI because Chrome blocks custom scheme (viecz://) navigation
+	router.GET("/mock-checkout/:orderCode", func(c *gin.Context) {
+		orderCode := c.Param("orderCode")
+
+		// Android Intent URI — Chrome will open the app via intent filter
+		intentURI := fmt.Sprintf("intent://payment/return?status=success&orderCode=%s#Intent;scheme=viecz;end", orderCode)
+
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.String(http.StatusOK, fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mock Payment</title>
+    <style>
+        body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
+        .card { background: white; border-radius: 12px; padding: 32px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 400px; }
+        h2 { color: #16a34a; margin-bottom: 8px; }
+        p { color: #666; margin-bottom: 24px; }
+        .amount { font-size: 24px; font-weight: bold; color: #1a1a1a; }
+        a { display: inline-block; background: #16a34a; color: white; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; }
+        .auto { color: #999; font-size: 14px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Payment Successful</h2>
+        <p>Order #%s</p>
+        <p class="amount">Mock PayOS — Auto-completed</p>
+        <a id="returnBtn" href="%s">Return to App</a>
+        <p class="auto">Redirecting automatically in 2 seconds...</p>
+    </div>
+    <script>setTimeout(function(){ window.location.href = "%s"; }, 2000);</script>
+</body>
+</html>`, orderCode, intentURI, intentURI))
+	})
 
 	api := router.Group("/api/v1")
 	{

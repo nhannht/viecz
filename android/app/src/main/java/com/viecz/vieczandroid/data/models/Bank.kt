@@ -11,8 +11,8 @@ data class VietQRBank(
     val bin: String,
     @Json(name = "shortName") val shortName: String,
     val logo: String,
-    @Json(name = "transferSupported") val transferSupported: Boolean,
-    @Json(name = "lookupSupported") val lookupSupported: Boolean
+    @Json(name = "transferSupported") val transferSupported: Int,
+    @Json(name = "lookupSupported") val lookupSupported: Int
 )
 
 @JsonClass(generateAdapter = true)

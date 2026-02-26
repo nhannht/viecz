@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
+import com.viecz.vieczandroid.R
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,7 +61,7 @@ fun PhoneLoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Sign In",
+                text = stringResource(R.string.phone_login_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = colors.fg
             )
@@ -67,7 +69,7 @@ fun PhoneLoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Enter your phone number to continue",
+                text = stringResource(R.string.phone_login_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.muted
             )
@@ -107,7 +109,7 @@ fun PhoneLoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             MetroButton(
-                label = "Sign in with email",
+                label = stringResource(R.string.phone_login_with_email),
                 onClick = onNavigateToEmailLogin,
                 variant = MetroButtonVariant.Secondary,
                 enabled = state !is PhoneAuthState.SendingCode && state !is PhoneAuthState.VerifyingCode,
@@ -127,8 +129,8 @@ private fun PhoneInputStep(
     MetroInput(
         value = phoneNumber,
         onValueChange = onPhoneChange,
-        label = "PHONE NUMBER",
-        placeholder = "0371234567",
+        label = stringResource(R.string.phone_login_phone_label),
+        placeholder = stringResource(R.string.phone_login_phone_placeholder),
         keyboardType = KeyboardType.Phone,
         enabled = !isLoading,
     )
@@ -145,7 +147,7 @@ private fun PhoneInputStep(
     Spacer(modifier = Modifier.height(32.dp))
 
     MetroButton(
-        label = "CONTINUE",
+        label = stringResource(R.string.phone_login_continue),
         onClick = onContinue,
         enabled = phoneNumber.isNotBlank() && !isLoading,
         fullWidth = true,
@@ -167,7 +169,7 @@ private fun CodeInputStep(
     val colors = MetroTheme.colors
 
     Text(
-        text = "Code sent to $normalizedPhone",
+        text = stringResource(R.string.phone_login_code_sent, normalizedPhone),
         style = MaterialTheme.typography.bodyMedium,
         color = colors.muted
     )
@@ -177,8 +179,8 @@ private fun CodeInputStep(
     MetroInput(
         value = otpCode,
         onValueChange = onCodeChange,
-        label = "VERIFICATION CODE",
-        placeholder = "123456",
+        label = stringResource(R.string.phone_login_code_label),
+        placeholder = stringResource(R.string.phone_login_code_placeholder),
         keyboardType = KeyboardType.Number,
         enabled = !isLoading,
     )
@@ -195,7 +197,7 @@ private fun CodeInputStep(
     Spacer(modifier = Modifier.height(32.dp))
 
     MetroButton(
-        label = "SIGN IN",
+        label = stringResource(R.string.phone_login_sign_in),
         onClick = onVerify,
         enabled = otpCode.length >= 6 && !isLoading,
         fullWidth = true,
@@ -205,7 +207,7 @@ private fun CodeInputStep(
     Spacer(modifier = Modifier.height(16.dp))
 
     MetroButton(
-        label = "Resend code",
+        label = stringResource(R.string.phone_login_resend),
         onClick = onResend,
         variant = MetroButtonVariant.Secondary,
         enabled = !isLoading,
@@ -214,7 +216,7 @@ private fun CodeInputStep(
     Spacer(modifier = Modifier.height(8.dp))
 
     MetroButton(
-        label = "Change phone number",
+        label = stringResource(R.string.phone_login_change_phone),
         onClick = onBack,
         variant = MetroButtonVariant.Secondary,
         enabled = !isLoading,

@@ -10,7 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.models.computeIsOverdue
 import com.viecz.vieczandroid.ui.components.metro.MetroBadge
@@ -74,7 +76,7 @@ fun TaskCard(
                     },
                 )
                 if (isOwnTask) {
-                    MetroBadge(label = "Your Task")
+                    MetroBadge(label = stringResource(R.string.task_card_your_task))
                 }
             }
         }
@@ -136,7 +138,7 @@ fun TaskCard(
                 if (overdue) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "OVERDUE",
+                        text = stringResource(R.string.task_card_overdue),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Bold

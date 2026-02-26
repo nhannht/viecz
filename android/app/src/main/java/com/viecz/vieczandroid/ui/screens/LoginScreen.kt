@@ -13,9 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.components.metro.MetroButton
 import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
 import com.viecz.vieczandroid.ui.components.metro.MetroInput
@@ -56,7 +58,7 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Welcome Back",
+                text = stringResource(R.string.login_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = colors.fg
             )
@@ -64,7 +66,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Sign in to your account",
+                text = stringResource(R.string.login_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.muted
             )
@@ -75,8 +77,8 @@ fun LoginScreen(
             MetroInput(
                 value = email,
                 onValueChange = { email = it },
-                label = "EMAIL",
-                placeholder = "your@email.com",
+                label = stringResource(R.string.login_email_label),
+                placeholder = stringResource(R.string.login_email_placeholder),
                 keyboardType = KeyboardType.Email,
                 enabled = authState !is AuthState.Loading,
             )
@@ -87,7 +89,7 @@ fun LoginScreen(
             MetroInput(
                 value = password,
                 onValueChange = { password = it },
-                label = "PASSWORD",
+                label = stringResource(R.string.login_password_label),
                 isPassword = !passwordVisible,
                 keyboardType = KeyboardType.Password,
                 enabled = authState !is AuthState.Loading,
@@ -95,7 +97,7 @@ fun LoginScreen(
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            contentDescription = if (passwordVisible) stringResource(R.string.login_hide_password) else stringResource(R.string.login_show_password),
                             tint = colors.muted,
                         )
                     }
@@ -116,7 +118,7 @@ fun LoginScreen(
 
             // Login button
             MetroButton(
-                label = "SIGN IN",
+                label = stringResource(R.string.login_button),
                 onClick = { viewModel.login(email, password) },
                 enabled = email.isNotBlank() &&
                          password.isNotBlank() &&
@@ -129,7 +131,7 @@ fun LoginScreen(
 
             // Navigate to register
             MetroButton(
-                label = "Don't have an account? Create Account",
+                label = stringResource(R.string.login_no_account),
                 onClick = onNavigateToRegister,
                 variant = MetroButtonVariant.Secondary,
                 enabled = authState !is AuthState.Loading,
@@ -139,7 +141,7 @@ fun LoginScreen(
 
             // Navigate to phone login
             MetroButton(
-                label = "Sign in with phone",
+                label = stringResource(R.string.login_with_phone),
                 onClick = onNavigateToPhoneLogin,
                 variant = MetroButtonVariant.Secondary,
                 enabled = authState !is AuthState.Loading,

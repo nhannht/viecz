@@ -12,14 +12,14 @@ class WalletScreenValidationTest {
             bin = "970436",
             shortName = "Vietcombank",
             logo = "https://api.vietqr.io/img/VCB.png",
-            transferSupported = true
+            transferSupported = 1
         )
         val unsupportedBank = TestData.createVietQRBank(
             id = 2,
             bin = "970418",
             shortName = "BIDV",
             logo = "https://api.vietqr.io/img/BIDV.png",
-            transferSupported = false
+            transferSupported = 0
         )
 
         val options = buildBankOptions(listOf(supportedBank, unsupportedBank))
@@ -33,7 +33,7 @@ class WalletScreenValidationTest {
 
     @Test
     fun `validateSelectedBankBin should return no error when selected BIN is empty`() {
-        val banks = listOf(TestData.createVietQRBank(transferSupported = true))
+        val banks = listOf(TestData.createVietQRBank(transferSupported = 1))
 
         val error = validateSelectedBankBin("", banks)
 
@@ -42,7 +42,7 @@ class WalletScreenValidationTest {
 
     @Test
     fun `validateSelectedBankBin should return no error for valid transfer-supported BIN`() {
-        val banks = listOf(TestData.createVietQRBank(bin = "970436", transferSupported = true))
+        val banks = listOf(TestData.createVietQRBank(bin = "970436", transferSupported = 1))
 
         val error = validateSelectedBankBin("970436", banks)
 
@@ -52,8 +52,8 @@ class WalletScreenValidationTest {
     @Test
     fun `validateSelectedBankBin should return error for invalid or unsupported BIN`() {
         val banks = listOf(
-            TestData.createVietQRBank(bin = "970436", transferSupported = true),
-            TestData.createVietQRBank(id = 2, bin = "970418", transferSupported = false)
+            TestData.createVietQRBank(bin = "970436", transferSupported = 1),
+            TestData.createVietQRBank(id = 2, bin = "970418", transferSupported = 0)
         )
 
         val invalidError = validateSelectedBankBin("999999", banks)

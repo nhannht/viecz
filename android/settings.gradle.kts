@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "vieczandroid"
 include(":app")
+include(":benchmark")
  

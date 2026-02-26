@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import com.viecz.vieczandroid.R
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -69,10 +71,10 @@ fun CreateTaskScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.isEditMode) "Edit Task" else "Create New Task") },
+                title = { Text(if (uiState.isEditMode) stringResource(R.string.create_task_title_edit) else stringResource(R.string.create_task_title_new)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.create_task_back))
                     }
                 }
             )
@@ -87,8 +89,8 @@ fun CreateTaskScreen(
         ) {
             item {
                 Text(
-                    text = if (uiState.isEditMode) "Update your task details"
-                           else "Post a new task and find skilled taskers",
+                    text = if (uiState.isEditMode) stringResource(R.string.create_task_subtitle_edit)
+                           else stringResource(R.string.create_task_subtitle_new),
                     style = MaterialTheme.typography.bodyLarge,
                     color = colors.muted
                 )
@@ -99,8 +101,8 @@ fun CreateTaskScreen(
                 MetroInput(
                     value = uiState.title,
                     onValueChange = { createTaskViewModel.updateTitle(it) },
-                    label = "TASK TITLE *",
-                    placeholder = "What do you need help with?",
+                    label = stringResource(R.string.create_task_name_label),
+                    placeholder = stringResource(R.string.create_task_name_placeholder),
                     error = uiState.titleError ?: "",
                 )
             }
@@ -110,8 +112,8 @@ fun CreateTaskScreen(
                 MetroTextarea(
                     value = uiState.description,
                     onValueChange = { createTaskViewModel.updateDescription(it) },
-                    label = "DESCRIPTION *",
-                    placeholder = "Describe the task in detail...",
+                    label = stringResource(R.string.create_task_description_label),
+                    placeholder = stringResource(R.string.create_task_description_placeholder),
                     error = uiState.descriptionError ?: "",
                 )
             }
@@ -121,7 +123,7 @@ fun CreateTaskScreen(
                 MetroButton(
                     label = uiState.categoryId?.let { id ->
                         categoryUiState.categories.find { it.id.toLong() == id }?.nameVi
-                    } ?: "Select Category *",
+                    } ?: stringResource(R.string.create_task_category_label),
                     onClick = { showCategoryDialog = true },
                     variant = MetroButtonVariant.Secondary,
                     fullWidth = true,
@@ -158,13 +160,13 @@ fun CreateTaskScreen(
                         )
                         Column {
                             Text(
-                                text = "Available Balance",
+                                text = stringResource(R.string.create_task_available_balance),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = colors.muted
                             )
                             if (uiState.isLoadingBalance) {
                                 Text(
-                                    text = "Loading...",
+                                    text = stringResource(R.string.create_task_loading_balance),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.muted
                                 )
@@ -177,7 +179,7 @@ fun CreateTaskScreen(
                                 )
                             } else {
                                 Text(
-                                    text = "Could not load balance",
+                                    text = stringResource(R.string.create_task_balance_error),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.muted
                                 )
@@ -192,7 +194,7 @@ fun CreateTaskScreen(
                 MetroInput(
                     value = uiState.price,
                     onValueChange = { createTaskViewModel.updatePrice(it) },
-                    label = "PRICE (VND) *",
+                    label = stringResource(R.string.create_task_price_label),
                     error = uiState.priceError ?: "",
                     keyboardType = KeyboardType.Number,
                     prefix = { Text("₫ ", color = colors.muted) },
@@ -204,8 +206,8 @@ fun CreateTaskScreen(
                 MetroInput(
                     value = uiState.location,
                     onValueChange = { createTaskViewModel.updateLocation(it) },
-                    label = "LOCATION *",
-                    placeholder = "Where is this task?",
+                    label = stringResource(R.string.create_task_location_label),
+                    placeholder = stringResource(R.string.create_task_location_placeholder),
                     error = uiState.locationError ?: "",
                 )
             }
@@ -221,7 +223,7 @@ fun CreateTaskScreen(
                         label = if (uiState.deadlineDisplayText.isNotEmpty())
                             uiState.deadlineDisplayText
                         else
-                            "Set Deadline (Optional)",
+                            stringResource(R.string.create_task_deadline_label),
                         onClick = { showDatePicker = true },
                         variant = MetroButtonVariant.Secondary,
                     )
@@ -229,7 +231,7 @@ fun CreateTaskScreen(
                         IconButton(onClick = { createTaskViewModel.clearDeadline() }) {
                             Icon(
                                 Icons.Default.Clear,
-                                contentDescription = "Clear deadline",
+                                contentDescription = stringResource(R.string.create_task_clear_deadline),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -262,7 +264,7 @@ fun CreateTaskScreen(
                 val priceValue = uiState.price.toLongOrNull() ?: 0L
                 val isInsufficient = uiState.availableBalance != null && priceValue > uiState.availableBalance!!
                 MetroButton(
-                    label = if (uiState.isEditMode) "SAVE CHANGES" else "CREATE TASK",
+                    label = if (uiState.isEditMode) stringResource(R.string.create_task_save) else stringResource(R.string.create_task_submit),
                     onClick = { createTaskViewModel.submitTask() },
                     fullWidth = true,
                     enabled = !uiState.isLoading && !isInsufficient,
@@ -310,7 +312,7 @@ fun CreateTaskScreen(
             colors = metroDatePickerColors,
             confirmButton = {
                 MetroButton(
-                    label = "Next",
+                    label = stringResource(R.string.create_task_date_next),
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             selectedDateMillis = millis
@@ -322,7 +324,7 @@ fun CreateTaskScreen(
             },
             dismissButton = {
                 MetroButton(
-                    label = "Cancel",
+                    label = stringResource(R.string.create_task_date_cancel),
                     onClick = { showDatePicker = false },
                     variant = MetroButtonVariant.Secondary,
                 )
@@ -354,9 +356,9 @@ fun CreateTaskScreen(
         MetroDialog(
             open = true,
             onDismiss = { showTimePicker = false },
-            title = "Select Time",
-            confirmLabel = "Confirm",
-            cancelLabel = "Cancel",
+            title = stringResource(R.string.create_task_time_title),
+            confirmLabel = stringResource(R.string.create_task_time_confirm),
+            cancelLabel = stringResource(R.string.create_task_time_cancel),
             onConfirm = {
                 val cal = Calendar.getInstance().apply {
                     timeInMillis = selectedDateMillis
@@ -384,8 +386,8 @@ fun CategorySelectionDialog(
     MetroDialog(
         open = true,
         onDismiss = onDismiss,
-        title = "Select Category",
-        confirmLabel = "Cancel",
+        title = stringResource(R.string.create_task_category_title),
+        confirmLabel = stringResource(R.string.create_task_category_cancel),
         onConfirm = onDismiss,
         cancelLabel = "",
         onCancel = onDismiss,

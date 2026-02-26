@@ -3,6 +3,7 @@ package com.viecz.vieczandroid
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import androidx.compose.ui.res.stringResource
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -82,21 +83,21 @@ class MainActivity : ComponentActivity() {
                         _paymentResult.value = PaymentResult(
                             success = true,
                             orderCode = orderCode,
-                            message = message ?: "Payment successful"
+                            message = message ?: getString(R.string.payment_successful)
                         )
                     }
                     "cancel", "CANCELLED" -> {
                         _paymentResult.value = PaymentResult(
                             success = false,
                             orderCode = orderCode,
-                            message = message ?: "Payment cancelled"
+                            message = message ?: getString(R.string.payment_cancelled)
                         )
                     }
                     else -> {
                         _paymentResult.value = PaymentResult(
                             success = false,
                             orderCode = orderCode,
-                            message = message ?: "Unknown payment status"
+                            message = message ?: getString(R.string.payment_unknown)
                         )
                     }
                 }
@@ -120,16 +121,21 @@ fun VieczApp(
     val scope = rememberCoroutineScope()
     val paymentResult by paymentResultFlow.collectAsStateWithLifecycle()
 
+    // Resolve string resources at Composable scope for use in coroutines
+    val sessionExpiredMessage = stringResource(R.string.session_expired)
+    val paymentSuccessfulMessage = stringResource(R.string.payment_successful)
+    val paymentCancelledMessage = stringResource(R.string.payment_cancelled)
+
     // Handle 401 Unauthorized — redirect to login
     LaunchedEffect(Unit) {
         authEvents.collect { event ->
             when (event) {
                 is AuthEvent.Unauthorized -> {
-                    navController.navigate(NavigationRoutes.LOGIN) {
+                    navController.navigate(NavigationRoutes.PHONE_LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
                     snackbarHostState.showSnackbar(
-                        message = "Session expired. Please log in again.",
+                        message = sessionExpiredMessage,
                         duration = SnackbarDuration.Short,
                         withDismissAction = true
                     )
@@ -138,14 +144,27 @@ fun VieczApp(
         }
     }
 
-    // Handle payment result
+    // Handle payment result — navigate to wallet tab and show snackbar
     LaunchedEffect(paymentResult) {
         paymentResult?.let { result ->
+            // Navigate to main screen's wallet tab
+            try {
+                val mainEntry = navController.getBackStackEntry(NavigationRoutes.MAIN)
+                mainEntry.savedStateHandle["switchToTab"] = 3 // Wallet tab
+                mainEntry.savedStateHandle["refresh"] = true
+                navController.navigate(NavigationRoutes.MAIN) {
+                    popUpTo(NavigationRoutes.MAIN) { inclusive = true }
+                }
+            } catch (_: Exception) {
+                // Not on main screen yet, just navigate there
+                navController.navigate(NavigationRoutes.MAIN)
+            }
+
             scope.launch {
                 val message = if (result.success) {
-                    "✅ ${result.message}"
+                    paymentSuccessfulMessage
                 } else {
-                    "❌ ${result.message}"
+                    paymentCancelledMessage
                 }
                 snackbarHostState.showSnackbar(
                     message = message,

@@ -292,6 +292,9 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // Benchmark profile installer
+    implementation(libs.profileinstaller)
+
     // Design System Catalog (Showkase — debug only)
     implementation(libs.showkase)
     ksp(libs.showkase.processor)

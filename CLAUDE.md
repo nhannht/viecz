@@ -374,7 +374,7 @@ cd android
 #### Product Flavors
 
 The project uses two product flavors:
-- **`dev`** — Points to localhost test server (`http://10.0.2.2:9999/api/v1/`), app name "Viecz Dev", separate applicationId (`.dev` suffix)
+- **`dev`** — Points to localhost test server (`http://localhost:9999/api/v1/`), app name "Viecz Dev", separate applicationId (`.dev` suffix). Requires `adb reverse tcp:9999 tcp:9999` on ALL devices (emulators and physical)
 - **`prod`** — Points to production server, app name "Viecz"
 
 Build variants: `devDebug`, `devRelease`, `prodDebug`, `prodRelease`
@@ -403,32 +403,22 @@ Build variants: `devDebug`, `devRelease`, `prodDebug`, `prodRelease`
 
 #### Dev Workflow (Local Development)
 
-**For Emulator:**
 ```bash
-# 1. Start test server on host machine
-docker compose -f docker-compose.testdb.yml up -d && cd server && go build -o bin/testserver ./cmd/testserver && ./bin/testserver
+# 1. Start test DB + Meilisearch, build and start test server
+sudo docker compose -f docker-compose.testdb.yml up -d && cd server && go build -o bin/testserver ./cmd/testserver && ./bin/testserver
 
-# 2. Build and install dev APK on emulator
-cd android && ./gradlew installDevDebug
-
-# App shows "Viecz Dev", talks to localhost:9999, mock PayOS auto-completes deposits
-# Both "Viecz Dev" and "Viecz" can coexist on the same device
-```
-
-**For Physical Device:**
-```bash
-# 1. Start test server on host machine
-docker compose -f docker-compose.testdb.yml up -d && cd server && go build -o bin/testserver ./cmd/testserver && ./bin/testserver
-
-# 2. Set up port forwarding (CRITICAL for physical devices)
+# 2. Set up port forwarding (CRITICAL — required for ALL devices, emulators AND physical)
 adb reverse tcp:9999 tcp:9999
 
-# 3. Build and install dev APK on device
+# 3. Build and install dev APK
 cd android && ./gradlew installDevDebug
 
-# App connects to test server via forwarded port 9999
+# App shows "Viecz Dev", uses localhost:9999 via adb reverse
+# Both "Viecz Dev" and "Viecz" can coexist on the same device
 # Verify forwarding: adb reverse --list
 ```
+
+**Why `adb reverse` for emulators too?** The Docker emulator (`budtmo/docker-android`) cannot reach the host via `10.0.2.2` like a standard Android Studio emulator. `adb reverse` works universally — Docker emulators, standard emulators, and physical devices. The dev flavor uses `localhost:9999` as the API URL.
 
 #### Testing
 
@@ -517,27 +507,16 @@ android/E2E_TESTING_GUIDE.md
   2. **App logs**: `adb logcat -d --pid=$(adb shell pidof com.viecz.vieczandroid.dev) | tail -100` — look for network errors, HTTP status codes, crash stack traces
 - **Never guess at the root cause** — read the logs first. Many test failures (e.g., chat, wallet, task operations) are caused by server-side errors that are invisible from the UI alone.
 
-**MANDATORY — Physical Device Port Forwarding & Test Server Host**:
-- **Always use `adb reverse` to connect physical devices to the test server**
-- Physical devices cannot reach `10.0.2.2` — they need port forwarding
-- **Before running E2E tests on a physical device**, run:
+**MANDATORY — Port Forwarding for ALL Devices**:
+- **ALWAYS run `adb reverse tcp:9999 tcp:9999` before launching the dev app or running E2E tests** — this applies to emulators AND physical devices
+- The dev flavor uses `localhost:9999` as API URL; `adb reverse` makes the device's localhost map to the host's localhost
+- **Before running E2E tests**, run:
   ```bash
   adb reverse tcp:9999 tcp:9999
   ```
-- **CRITICAL**: `RealServerRule` defaults to `10.0.2.2` (emulator-only). For physical devices, you MUST pass `testServerHost=localhost`:
-  ```bash
-  # Emulator (default — no extra args needed):
-  ./gradlew connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<TestClass>
-
-  # Physical device (MUST add testServerHost):
-  ./gradlew connectedDevDebugAndroidTest \
-    -Pandroid.testInstrumentationRunnerArguments.class=<TestClass> \
-    -Pandroid.testInstrumentationRunnerArguments.testServerHost=localhost
-  ```
-- Without `testServerHost=localhost`, real-server tests silently fail (no API requests reach the server, registration/login times out)
 - Verify forwarding: `adb reverse --list`
 - Remove forwarding: `adb reverse --remove tcp:9999`
-- **Emulators do NOT need `adb reverse` or `testServerHost`** — they reach `10.0.2.2:9999` directly
+- Without `adb reverse`, the app gets `SocketTimeoutException` trying to connect to localhost
 
 #### Code Quality
 

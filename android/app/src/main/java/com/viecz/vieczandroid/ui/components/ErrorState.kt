@@ -7,7 +7,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.components.metro.MetroButton
 import com.viecz.vieczandroid.ui.theme.MetroTheme
 
@@ -40,7 +42,7 @@ fun ErrorState(
             )
             if (onRetry != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                MetroButton(label = "Retry", onClick = onRetry)
+                MetroButton(label = stringResource(R.string.error_retry), onClick = onRetry)
             }
         }
     }

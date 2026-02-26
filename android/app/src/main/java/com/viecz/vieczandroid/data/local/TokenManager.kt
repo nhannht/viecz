@@ -54,15 +54,15 @@ class TokenManager(context: Context) {
         _refreshToken.value = refreshToken
     }
 
-    suspend fun saveUserInfo(userId: Long, email: String, name: String, isTasker: Boolean = false) {
+    suspend fun saveUserInfo(userId: Long, email: String?, name: String, isTasker: Boolean = false) {
         prefs.edit()
             .putString(USER_ID_KEY, userId.toString())
-            .putString(USER_EMAIL_KEY, email)
+            .putString(USER_EMAIL_KEY, email ?: "")
             .putString(USER_NAME_KEY, name)
             .putBoolean(IS_TASKER_KEY, isTasker)
             .apply()
         _userId.value = userId
-        _userEmail.value = email
+        _userEmail.value = email ?: ""
         _userName.value = name
         _isTasker.value = isTasker
     }

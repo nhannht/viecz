@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
@@ -34,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.viecz.vieczandroid.BuildConfig
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.models.Category
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.ui.components.ErrorState
@@ -82,7 +84,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Viecz - Task Marketplace") },
+                title = { Text(stringResource(R.string.home_title)) },
                 actions = {
                     IconButton(onClick = onNavigateToNotifications) {
                         BadgedBox(
@@ -92,14 +94,14 @@ fun HomeScreen(
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                            Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.home_notifications))
                         }
                     }
                     IconButton(onClick = onNavigateToWallet) {
-                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Wallet")
+                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = stringResource(R.string.home_wallet))
                     }
                     IconButton(onClick = onNavigateToProfile) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile")
+                        Icon(Icons.Default.Person, contentDescription = stringResource(R.string.home_profile))
                     }
                 }
             )
@@ -108,7 +110,7 @@ fun HomeScreen(
             MetroFab(
                 onClick = onNavigateToCreateTask,
                 modifier = Modifier.testTag("fab_create_task"),
-                contentDescription = "Create Task",
+                contentDescription = stringResource(R.string.home_create_task),
             )
         }
     ) { paddingValues ->
@@ -160,12 +162,12 @@ fun HomeContent(
                 MetroInput(
                     value = searchQuery,
                     onValueChange = { taskListViewModel.updateSearchQuery(it) },
-                    placeholder = "Search tasks...",
+                    placeholder = stringResource(R.string.home_search_placeholder),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = colors.muted) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { taskListViewModel.clearSearch() }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear search", tint = colors.muted)
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.home_clear_search), tint = colors.muted)
                             }
                         }
                     },
@@ -205,7 +207,7 @@ fun HomeContent(
                         ) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Dismiss location message",
+                                contentDescription = stringResource(R.string.home_dismiss_location),
                                 tint = colors.muted
                             )
                         }
@@ -236,7 +238,7 @@ fun HomeContent(
                 }
             } else if (taskUiState.error != null && taskUiState.tasks.isEmpty()) {
                 ErrorState(
-                    message = taskUiState.error ?: "An error occurred",
+                    message = taskUiState.error ?: stringResource(R.string.common_error),
                     onRetry = { taskListViewModel.refresh() }
                 )
             } else if (taskUiState.tasks.isEmpty()) {
@@ -245,7 +247,7 @@ fun HomeContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No tasks available",
+                        text = stringResource(R.string.home_no_tasks),
                         style = MaterialTheme.typography.bodyLarge,
                         color = colors.muted
                     )
@@ -433,7 +435,7 @@ fun TaskMapView(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "No tasks with map coordinates",
+                    text = stringResource(R.string.home_no_tasks_map),
                     style = MaterialTheme.typography.bodySmall,
                     color = MetroTheme.colors.muted
                 )
@@ -463,11 +465,11 @@ fun NearMeRadiusFilterRow(
     onRadiusSelected: (Int?) -> Unit
 ) {
     val radiusOptions = listOf(
-        null to "All",
-        1000 to "1km",
-        3000 to "3km",
-        5000 to "5km",
-        10000 to "10km"
+        null to stringResource(R.string.home_filter_all),
+        1000 to stringResource(R.string.home_filter_1km),
+        3000 to stringResource(R.string.home_filter_3km),
+        5000 to stringResource(R.string.home_filter_5km),
+        10000 to stringResource(R.string.home_filter_10km)
     )
 
     val metroChipColors = FilterChipDefaults.filterChipColors(
@@ -552,7 +554,7 @@ fun CategoryFilterRow(
             FilterChip(
                 selected = selectedCategoryId == null,
                 onClick = { onCategorySelected(null) },
-                label = { Text("All") },
+                label = { Text(stringResource(R.string.home_filter_all)) },
                 shape = RoundedCornerShape(0.dp),
                 colors = metroChipColors,
                 border = if (selectedCategoryId == null) metroChipBorderSelected else metroChipBorder,

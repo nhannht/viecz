@@ -1,39 +1,398 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="action_settings">Settings</string>
-    <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
-    <string name="second_fragment_label">Second Fragment</string>
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
+    <string name="app_name">Viecz</string>
+    <string name="app_tagline">Dịch Vụ Nhỏ Cho Sinh Viên</string>
 
-    <string name="lorem_ipsum">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris volutpat, dolor id
-        interdum ullamcorper, risus dolor egestas lectus, sit amet mattis purus dui nec risus. Maecenas non sodales
-        nisi, vel dictum dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-        himenaeos. Suspendisse blandit eleifend diam, vel rutrum tellus vulputate quis. Aliquam eget libero aliquet,
-        imperdiet nisl a, ornare ex. Sed rhoncus est ut libero porta lobortis. Fusce in dictum tellus.\n\n
-        Suspendisse interdum ornare ante. Aliquam nec cursus lorem. Morbi id magna felis. Vivamus egestas, est a
-        condimentum egestas, turpis nisl iaculis ipsum, in dictum tellus dolor sed neque. Morbi tellus erat, dapibus ut
-        sem a, iaculis tincidunt dui. Interdum et malesuada fames ac ante ipsum primis in faucibus. Curabitur et eros
-        porttitor, ultricies urna vitae, molestie nibh. Phasellus at commodo eros, non aliquet metus. Sed maximus nisl
-        nec dolor bibendum, vel congue leo egestas.\n\n
-        Sed interdum tortor nibh, in sagittis risus mollis quis. Curabitur mi odio, condimentum sit amet auctor at,
-        mollis non turpis. Nullam pretium libero vestibulum, finibus orci vel, molestie quam. Fusce blandit tincidunt
-        nulla, quis sollicitudin libero facilisis et. Integer interdum nunc ligula, et fermentum metus hendrerit id.
-        Vestibulum lectus felis, dictum at lacinia sit amet, tristique id quam. Cras eu consequat dui. Suspendisse
-        sodales nunc ligula, in lobortis sem porta sed. Integer id ultrices magna, in luctus elit. Sed a pellentesque
-        est.\n\n
-        Aenean nunc velit, lacinia sed dolor sed, ultrices viverra nulla. Etiam a venenatis nibh. Morbi laoreet, tortor
-        sed facilisis varius, nibh orci rhoncus nulla, id elementum leo dui non lorem. Nam mollis ipsum quis auctor
-        varius. Quisque elementum eu libero sed commodo. In eros nisl, imperdiet vel imperdiet et, scelerisque a mauris.
-        Pellentesque varius ex nunc, quis imperdiet eros placerat ac. Duis finibus orci et est auctor tincidunt. Sed non
-        viverra ipsum. Nunc quis augue egestas, cursus lorem at, molestie sem. Morbi a consectetur ipsum, a placerat
-        diam. Etiam vulputate dignissim convallis. Integer faucibus mauris sit amet finibus convallis.\n\n
-        Phasellus in aliquet mi. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis
-        egestas. In volutpat arcu ut felis sagittis, in finibus massa gravida. Pellentesque id tellus orci. Integer
-        dictum, lorem sed efficitur ullamcorper, libero justo consectetur ipsum, in mollis nisl ex sed nisl. Donec
-        maximus ullamcorper sodales. Praesent bibendum rhoncus tellus nec feugiat. In a ornare nulla. Donec rhoncus
-        libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus vestibulum. Fusce
-        dictum libero quis erat maximus, vitae volutpat diam dignissim.
-    </string>
+    <!-- ==================== SPLASH ==================== -->
+    <string name="splash_title">Viecz</string>
+    <string name="splash_tagline">Dịch Vụ Nhỏ Cho Sinh Viên</string>
+
+    <!-- ==================== LOGIN ==================== -->
+    <string name="login_title">Chào Mừng Trở Lại</string>
+    <string name="login_subtitle">Đăng nhập vào tài khoản của bạn</string>
+    <string name="login_email_label">EMAIL</string>
+    <string name="login_email_placeholder">email@example.com</string>
+    <string name="login_password_label">MẬT KHẨU</string>
+    <string name="login_hide_password">Ẩn mật khẩu</string>
+    <string name="login_show_password">Hiện mật khẩu</string>
+    <string name="login_button">ĐĂNG NHẬP</string>
+    <string name="login_no_account">Chưa có tài khoản? Tạo tài khoản</string>
+    <string name="login_with_phone">Đăng nhập bằng số điện thoại</string>
+
+    <!-- ==================== PHONE LOGIN ==================== -->
+    <string name="phone_login_title">Đăng Nhập</string>
+    <string name="phone_login_subtitle">Nhập số điện thoại để tiếp tục</string>
+    <string name="phone_login_phone_label">SỐ ĐIỆN THOẠI</string>
+    <string name="phone_login_phone_placeholder">0371234567</string>
+    <string name="phone_login_continue">TIẾP TỤC</string>
+    <string name="phone_login_code_sent">Mã đã gửi đến %1$s</string>
+    <string name="phone_login_code_label">MÃ XÁC NHẬN</string>
+    <string name="phone_login_code_placeholder">123456</string>
+    <string name="phone_login_sign_in">ĐĂNG NHẬP</string>
+    <string name="phone_login_resend">Gửi lại mã</string>
+    <string name="phone_login_change_phone">Đổi số điện thoại</string>
+    <string name="phone_login_with_email">Đăng nhập bằng email</string>
+
+    <!-- ==================== REGISTER ==================== -->
+    <string name="register_title">Tạo Tài Khoản</string>
+    <string name="register_name_label">HỌ VÀ TÊN</string>
+    <string name="register_name_placeholder">Nguyễn Văn A</string>
+    <string name="register_email_label">EMAIL</string>
+    <string name="register_email_placeholder">email@example.com</string>
+    <string name="register_email_invalid">Định dạng email không hợp lệ</string>
+    <string name="register_password_label">MẬT KHẨU</string>
+    <string name="register_password_hint">Tối thiểu 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số</string>
+    <string name="register_password_min_length">Mật khẩu phải có ít nhất 8 ký tự</string>
+    <string name="register_password_uppercase">Phải có chữ hoa</string>
+    <string name="register_password_lowercase">Phải có chữ thường</string>
+    <string name="register_password_digit">Phải có số</string>
+    <string name="register_hide_password">Ẩn mật khẩu</string>
+    <string name="register_show_password">Hiện mật khẩu</string>
+    <string name="register_button">TẠO TÀI KHOẢN</string>
+    <string name="register_have_account">Đã có tài khoản? Đăng Nhập</string>
+
+    <!-- ==================== MAIN SCREEN ==================== -->
+    <string name="main_title">Viecz</string>
+    <string name="main_list_view">Dạng danh sách</string>
+    <string name="main_map_view">Dạng bản đồ</string>
+    <string name="main_near_me">Gần tôi</string>
+    <string name="main_near_me_enabled">Đã bật Gần tôi</string>
+    <string name="main_search">Tìm kiếm</string>
+    <string name="main_add_job">Đăng việc</string>
+    <string name="main_edit_profile">Chỉnh sửa hồ sơ</string>
+    <string name="main_deposit">Nạp tiền</string>
+    <string name="main_notifications">Thông báo</string>
+    <string name="main_nav_market">Chợ việc</string>
+    <string name="main_nav_profile">Hồ sơ</string>
+    <string name="main_nav_chat">Tin nhắn</string>
+    <string name="main_nav_wallet">Ví tiền</string>
+
+    <!-- Main Screen - Tasker Registration Dialog -->
+    <string name="main_tasker_success">Bạn đã đăng ký làm tasker thành công!</string>
+    <string name="main_error_occurred">Đã xảy ra lỗi</string>
+    <string name="main_become_tasker">Trở thành Tasker</string>
+    <string name="main_tasker_confirm">Đồng ý</string>
+    <string name="main_tasker_cancel">Hủy</string>
+    <string name="main_tasker_description">Bạn có muốn đăng ký làm tasker không? Điều này sẽ cho phép bạn ứng tuyển các công việc do người dùng khác đăng.</string>
+
+    <!-- Main Screen - Logout Dialog -->
+    <string name="main_logout">Đăng xuất</string>
+    <string name="main_logout_confirm">Đăng xuất</string>
+    <string name="main_logout_cancel">Hủy</string>
+    <string name="main_logout_message">Bạn có chắc chắn muốn đăng xuất không?</string>
+
+    <!-- ==================== HOME SCREEN ==================== -->
+    <string name="home_title">Viecz - Chợ Việc Làm</string>
+    <string name="home_notifications">Thông báo</string>
+    <string name="home_wallet">Ví tiền</string>
+    <string name="home_profile">Hồ sơ</string>
+    <string name="home_create_task">Tạo việc</string>
+    <string name="home_search_placeholder">Tìm kiếm việc...</string>
+    <string name="home_clear_search">Xóa tìm kiếm</string>
+    <string name="home_dismiss_location">Đóng thông báo vị trí</string>
+    <string name="home_no_tasks">Chưa có việc nào</string>
+    <string name="home_no_tasks_map">Chưa có việc nào có tọa độ bản đồ</string>
+    <string name="home_filter_all">Tất cả</string>
+    <string name="home_filter_1km">1km</string>
+    <string name="home_filter_3km">3km</string>
+    <string name="home_filter_5km">5km</string>
+    <string name="home_filter_10km">10km</string>
+
+    <!-- ==================== PROFILE SCREEN ==================== -->
+    <string name="profile_title">Hồ sơ</string>
+    <string name="profile_back">Quay lại</string>
+    <string name="profile_edit">Chỉnh sửa hồ sơ</string>
+    <string name="profile_logout">Đăng xuất</string>
+    <string name="profile_error_load">Không thể tải hồ sơ</string>
+    <string name="profile_error_tasker">Không thể đăng ký tasker</string>
+    <string name="profile_error_occurred">Đã xảy ra lỗi</string>
+    <string name="profile_no_bio">Chưa có giới thiệu</string>
+    <string name="profile_tasker_badge">Tasker</string>
+    <string name="profile_statistics">Thống kê</string>
+    <string name="profile_stat_rating">Đánh giá</string>
+    <string name="profile_stat_completed">Hoàn thành</string>
+    <string name="profile_stat_posted">Đã đăng</string>
+    <string name="profile_stat_earned">Thu nhập</string>
+    <string name="profile_account_info">Thông tin tài khoản</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_not_set">Chưa cài đặt</string>
+    <string name="profile_university">Trường đại học</string>
+    <string name="profile_verified">Đã xác minh</string>
+    <string name="profile_verified_yes">Có</string>
+    <string name="profile_verified_no">Không</string>
+    <string name="profile_my_jobs">Việc của tôi</string>
+    <string name="profile_become_tasker">Trở thành Tasker</string>
+    <string name="profile_picture">Ảnh hồ sơ</string>
+
+    <!-- Profile - Tasker Registration Dialog -->
+    <string name="profile_tasker_success">Bạn đã đăng ký làm tasker thành công!</string>
+    <string name="profile_tasker_dialog_title">Trở thành Tasker</string>
+    <string name="profile_tasker_dialog_confirm">Đồng ý</string>
+    <string name="profile_tasker_dialog_cancel">Hủy</string>
+    <string name="profile_tasker_dialog_message">Bạn có muốn đăng ký làm tasker không? Điều này sẽ cho phép bạn ứng tuyển các công việc do người dùng khác đăng.</string>
+
+    <!-- Profile - Logout Dialog -->
+    <string name="profile_logout_dialog_title">Đăng xuất</string>
+    <string name="profile_logout_dialog_confirm">Đăng xuất</string>
+    <string name="profile_logout_dialog_cancel">Hủy</string>
+    <string name="profile_logout_dialog_message">Bạn có chắc chắn muốn đăng xuất không?</string>
+
+    <!-- ==================== EDIT PROFILE ==================== -->
+    <string name="edit_profile_title">Chỉnh sửa hồ sơ</string>
+    <string name="edit_profile_back">Quay lại</string>
+    <string name="edit_profile_save">Lưu</string>
+    <string name="edit_profile_error_load">Không thể tải hồ sơ</string>
+    <string name="edit_profile_error_upload">Không thể tải ảnh lên</string>
+    <string name="edit_profile_error_update">Không thể cập nhật hồ sơ</string>
+    <string name="edit_profile_name_required">Tên là bắt buộc</string>
+    <string name="edit_profile_selected_photo">Ảnh đã chọn</string>
+    <string name="edit_profile_current_avatar">Ảnh đại diện hiện tại</string>
+    <string name="edit_profile_change_photo">Đổi ảnh</string>
+    <string name="edit_profile_name_label">TÊN</string>
+    <string name="edit_profile_bio_label">GIỚI THIỆU</string>
+    <string name="edit_profile_bio_placeholder">Giới thiệu về bản thân...</string>
+    <string name="edit_profile_bio_count">%1$d/500</string>
+    <string name="edit_profile_phone_label">SỐ ĐIỆN THOẠI</string>
+    <string name="edit_profile_save_button">LƯU</string>
+
+    <!-- ==================== WALLET SCREEN ==================== -->
+    <string name="wallet_title">Ví Của Tôi</string>
+    <string name="wallet_back">Quay lại</string>
+    <string name="wallet_refresh">Làm mới</string>
+    <string name="wallet_withdraw">Rút tiền</string>
+    <string name="wallet_deposit">Nạp tiền</string>
+    <string name="wallet_limits">Nạp tối thiểu: 2.000 VND • Rút: 10.000–200.000 VND</string>
+    <string name="wallet_transaction_history">Lịch sử giao dịch</string>
+    <string name="wallet_no_transactions">Chưa có giao dịch nào</string>
+    <string name="wallet_deposit_to_start">Nạp tiền để bắt đầu</string>
+    <string name="wallet_bank_accounts">Tài khoản ngân hàng</string>
+    <string name="wallet_collapse">Thu gọn</string>
+    <string name="wallet_expand">Mở rộng</string>
+    <string name="wallet_no_bank_accounts">Chưa có tài khoản ngân hàng</string>
+    <string name="wallet_bank_account_detail">%1$s - %2$s</string>
+    <string name="wallet_delete">Xóa</string>
+    <string name="wallet_add_bank_title">Thêm tài khoản ngân hàng</string>
+    <string name="wallet_bank_label">NGÂN HÀNG</string>
+    <string name="wallet_bank_placeholder">Chọn ngân hàng</string>
+    <string name="wallet_account_number_label">SỐ TÀI KHOẢN</string>
+    <string name="wallet_account_number_placeholder">Nhập số tài khoản</string>
+    <string name="wallet_account_holder_label">TÊN CHỦ TÀI KHOẢN</string>
+    <string name="wallet_account_holder_placeholder">Nhập tên chủ tài khoản</string>
+    <string name="wallet_add_account_button">Thêm tài khoản</string>
+    <string name="wallet_total_balance">Tổng số dư</string>
+    <string name="wallet_available">Khả dụng</string>
+    <string name="wallet_in_escrow">Tạm giữ</string>
+    <string name="wallet_earned">Thu nhập</string>
+    <string name="wallet_spent">Chi tiêu</string>
+    <string name="wallet_balance_after">Số dư: %1$s</string>
+    <string name="wallet_bank_option">%1$s - %2$s</string>
+    <string name="wallet_bank_bin">BIN %1$s</string>
+    <string name="wallet_invalid_bank">Mã BIN ngân hàng không hợp lệ</string>
+    <string name="wallet_error_title">Lỗi</string>
+    <string name="wallet_retry">Thử lại</string>
+
+    <!-- Wallet - Transaction Types -->
+    <string name="wallet_type_deposit">Nạp tiền</string>
+    <string name="wallet_type_withdrawal">Rút tiền</string>
+    <string name="wallet_type_escrow_hold">Tạm giữ ký quỹ</string>
+    <string name="wallet_type_escrow_release">Giải phóng ký quỹ</string>
+    <string name="wallet_type_escrow_refund">Hoàn tiền</string>
+    <string name="wallet_type_payment_received">Nhận thanh toán</string>
+    <string name="wallet_type_platform_fee">Phí nền tảng</string>
+
+    <!-- Wallet - Withdraw Dialog -->
+    <string name="wallet_withdraw_title">Rút Tiền</string>
+    <string name="wallet_withdraw_confirm">Rút tiền</string>
+    <string name="wallet_withdraw_cancel">Hủy</string>
+    <string name="wallet_withdraw_no_accounts">Chưa có tài khoản ngân hàng. Vui lòng thêm tài khoản ở mục Tài khoản ngân hàng bên dưới.</string>
+    <string name="wallet_withdraw_bank_label">TÀI KHOẢN NGÂN HÀNG</string>
+    <string name="wallet_withdraw_bank_placeholder">Chọn tài khoản ngân hàng</string>
+    <string name="wallet_withdraw_amount_label">SỐ TIỀN (VND)</string>
+    <string name="wallet_withdraw_amount_placeholder">10.000 - 200.000 VND</string>
+    <string name="wallet_withdraw_min">Tối thiểu: 10.000 VND</string>
+    <string name="wallet_withdraw_max">Tối đa: 200.000 VND</string>
+    <string name="wallet_withdraw_multiples">Phải là bội số của 1.000</string>
+    <string name="wallet_withdraw_exceeds">Vượt quá số dư khả dụng (%1$s)</string>
+    <string name="wallet_withdraw_available">Khả dụng: %1$s</string>
+
+    <!-- Wallet - Deposit Dialog -->
+    <string name="wallet_deposit_title">Nạp Tiền</string>
+    <string name="wallet_deposit_confirm">Nạp tiền</string>
+    <string name="wallet_deposit_cancel">Hủy</string>
+    <string name="wallet_deposit_description">Nạp tiền vào ví</string>
+    <string name="wallet_deposit_amount_label">SỐ TIỀN (VND)</string>
+    <string name="wallet_deposit_amount_placeholder">Tối thiểu: 2.000 VND</string>
+    <string name="wallet_deposit_min">Tối thiểu: 2.000 VND</string>
+    <string name="wallet_deposit_description_label">MÔ TẢ</string>
+
+    <!-- ==================== TASK DETAIL ==================== -->
+    <string name="task_detail_title">Chi tiết việc</string>
+    <string name="task_detail_back">Quay lại</string>
+    <string name="task_detail_edit">Chỉnh sửa việc</string>
+    <string name="task_detail_delete_icon">Xóa việc</string>
+    <string name="task_detail_error">Đã xảy ra lỗi</string>
+    <string name="task_detail_payment_success">Thanh toán thành công!</string>
+    <string name="task_detail_payment_failed">Thanh toán thất bại: %1$s</string>
+    <string name="task_detail_description">Mô tả</string>
+    <string name="task_detail_deadline">Hạn chót</string>
+    <string name="task_detail_overdue">QUÁ HẠN</string>
+
+    <!-- Task Detail - Accept Application Dialog -->
+    <string name="task_detail_accept_dialog_title">Chấp nhận ứng tuyển &amp; Tạo thanh toán</string>
+    <string name="task_detail_accept_dialog_confirm">Chấp nhận</string>
+    <string name="task_detail_accept_dialog_cancel">Hủy</string>
+    <string name="task_detail_accept_dialog_message">Bạn có chắc chắn muốn chấp nhận ứng tuyển này không?</string>
+    <string name="task_detail_escrow_amount">Số tiền ký quỹ: %1$s</string>
+    <string name="task_detail_price_above">Số tiền này cao hơn giá ban đầu (%2$s) %1$s</string>
+    <string name="task_detail_accept_bullets">\u2022 Tasker sẽ được giao việc\n\u2022 Thanh toán ký quỹ sẽ được tạo\n\u2022 Tiền sẽ được giữ cho đến khi hoàn thành</string>
+
+    <!-- Task Detail - Delete Dialog -->
+    <string name="task_detail_delete_dialog_title">Xóa Việc</string>
+    <string name="task_detail_delete_dialog_confirm">Xóa</string>
+    <string name="task_detail_delete_dialog_cancel">Hủy</string>
+    <string name="task_detail_delete_dialog_message">Bạn có chắc chắn muốn xóa việc này không? Tất cả ứng tuyển đang chờ sẽ bị từ chối.</string>
+
+    <!-- Task Detail - Cancel Overdue Dialog -->
+    <string name="task_detail_cancel_overdue_title">Hủy việc quá hạn &amp; Hoàn tiền</string>
+    <string name="task_detail_cancel_overdue_confirm">Hủy &amp; Hoàn tiền</string>
+    <string name="task_detail_cancel_overdue_cancel">Giữ lại</string>
+    <string name="task_detail_cancel_overdue_message">Hạn chót đã qua. Hủy việc này và nhận hoàn tiền ký quỹ? Tasker sẽ không nhận được thanh toán.</string>
+
+    <string name="task_detail_cancel_refund_button">Hủy &amp; Hoàn tiền (Quá hạn)</string>
+    <string name="task_detail_deadline_passed">Đã đóng ứng tuyển — hạn chót đã qua</string>
+    <string name="task_detail_not_tasker">Bạn cần đăng ký làm tasker để ứng tuyển.</string>
+    <string name="task_detail_register_tasker">Đăng ký Tasker</string>
+    <string name="task_detail_application_pending">Đang chờ duyệt</string>
+    <string name="task_detail_apply_button">Ứng tuyển việc này</string>
+    <string name="task_detail_applications_count">Ứng tuyển (%1$d)</string>
+    <string name="task_detail_message">Tin nhắn</string>
+    <string name="task_detail_mark_completed">Đánh dấu hoàn thành</string>
+
+    <!-- Task Detail - Applications -->
+    <string name="task_detail_tasker_id">Tasker #%1$d</string>
+    <string name="task_detail_proposed_price">Giá đề xuất: %1$s</string>
+    <string name="task_detail_price_above_by">Cao hơn giá gốc (%1$s) %2$s</string>
+    <string name="task_detail_price_below">Thấp hơn giá gốc (%1$s)</string>
+    <string name="task_detail_accept_application">Chấp nhận ứng tuyển</string>
+    <string name="task_detail_status_pending">Đang chờ</string>
+    <string name="task_detail_status_accepted">Đã chấp nhận</string>
+    <string name="task_detail_status_rejected">Đã từ chối</string>
+
+    <!-- ==================== CREATE TASK ==================== -->
+    <string name="create_task_title_new">Tạo Việc Mới</string>
+    <string name="create_task_title_edit">Chỉnh Sửa Việc</string>
+    <string name="create_task_back">Quay lại</string>
+    <string name="create_task_subtitle_new">Đăng việc mới và tìm tasker phù hợp</string>
+    <string name="create_task_subtitle_edit">Cập nhật thông tin việc</string>
+    <string name="create_task_name_label">TÊN VIỆC *</string>
+    <string name="create_task_name_placeholder">Bạn cần giúp gì?</string>
+    <string name="create_task_description_label">MÔ TẢ *</string>
+    <string name="create_task_description_placeholder">Mô tả chi tiết công việc...</string>
+    <string name="create_task_category_label">Chọn danh mục *</string>
+    <string name="create_task_available_balance">Số dư khả dụng</string>
+    <string name="create_task_loading_balance">Đang tải...</string>
+    <string name="create_task_balance_error">Không thể tải số dư</string>
+    <string name="create_task_price_label">GIÁ (VND) *</string>
+    <string name="create_task_location_label">ĐỊA ĐIỂM *</string>
+    <string name="create_task_location_placeholder">Việc này ở đâu?</string>
+    <string name="create_task_deadline_label">Đặt hạn chót (Tùy chọn)</string>
+    <string name="create_task_clear_deadline">Xóa hạn chót</string>
+    <string name="create_task_save">LƯU THAY ĐỔI</string>
+    <string name="create_task_submit">TẠO VIỆC</string>
+    <string name="create_task_date_next">Tiếp</string>
+    <string name="create_task_date_cancel">Hủy</string>
+    <string name="create_task_time_title">Chọn giờ</string>
+    <string name="create_task_time_confirm">Xác nhận</string>
+    <string name="create_task_time_cancel">Hủy</string>
+    <string name="create_task_category_title">Chọn danh mục</string>
+    <string name="create_task_category_cancel">Hủy</string>
+
+    <!-- ==================== APPLY TASK ==================== -->
+    <string name="apply_task_title">Ứng Tuyển Việc</string>
+    <string name="apply_task_back">Quay lại</string>
+    <string name="apply_task_original_price">Giá gốc</string>
+    <string name="apply_task_subtitle">Gửi đơn ứng tuyển</string>
+    <string name="apply_task_price_label">GIÁ ĐỀ XUẤT (TÙY CHỌN)</string>
+    <string name="apply_task_price_placeholder">Để trống để chấp nhận giá gốc</string>
+    <string name="apply_task_message_label">LỜI NHẮN (TÙY CHỌN)</string>
+    <string name="apply_task_message_placeholder">Cho người đăng biết tại sao bạn phù hợp</string>
+    <string name="apply_task_submit">GỬI ỨNG TUYỂN</string>
+    <string name="apply_task_price_error">Giá phải là một số</string>
+    <string name="apply_task_price_positive">Giá phải lớn hơn 0</string>
+    <string name="apply_task_message_too_long">Lời nhắn phải dưới 500 ký tự</string>
+    <string name="apply_task_failed">Ứng tuyển thất bại</string>
+
+    <!-- ==================== MY JOBS ==================== -->
+    <string name="my_jobs_title">Việc Của Tôi</string>
+    <string name="my_jobs_back">Quay lại</string>
+    <string name="my_jobs_tab_posted">Đã đăng</string>
+    <string name="my_jobs_tab_applied">Đã ứng tuyển</string>
+    <string name="my_jobs_tab_completed">Hoàn thành</string>
+    <string name="my_jobs_error">Đã xảy ra lỗi</string>
+    <string name="my_jobs_not_logged_in">Chưa đăng nhập</string>
+    <string name="my_jobs_load_failed">Không thể tải danh sách việc</string>
+    <string name="my_jobs_no_posted">Chưa đăng việc nào</string>
+    <string name="my_jobs_no_posted_subtitle">Đăng việc để tìm người giúp</string>
+    <string name="my_jobs_post_task">Đăng việc</string>
+    <string name="my_jobs_no_applied">Chưa có việc nào</string>
+    <string name="my_jobs_no_applied_subtitle">Tìm việc trên chợ việc làm</string>
+    <string name="my_jobs_browse">Duyệt chợ việc</string>
+    <string name="my_jobs_no_completed">Chưa hoàn thành việc nào</string>
+    <string name="my_jobs_no_completed_subtitle">Hoàn thành việc để xem ở đây</string>
+
+    <!-- ==================== CHAT ==================== -->
+    <string name="chat_title">Tin nhắn</string>
+    <string name="chat_task_cancelled">Việc đã bị hủy</string>
+    <string name="chat_task_completed">Việc đã hoàn thành</string>
+    <string name="chat_connected">Đã kết nối</string>
+    <string name="chat_connecting">Đang kết nối...</string>
+    <string name="chat_disconnected">Mất kết nối</string>
+    <string name="chat_error">Lỗi kết nối</string>
+    <string name="chat_back">Quay lại</string>
+    <string name="chat_closed_cancelled">Việc này đã bị hủy. Cuộc trò chuyện đã đóng.</string>
+    <string name="chat_closed_completed">Việc này đã hoàn thành. Cuộc trò chuyện đã đóng.</string>
+    <string name="chat_input_placeholder">Nhập tin nhắn...</string>
+    <string name="chat_send">Gửi</string>
+    <string name="chat_error_occurred">Đã xảy ra lỗi</string>
+
+    <!-- ==================== CONVERSATION LIST ==================== -->
+    <string name="conversations_empty">Chưa có cuộc trò chuyện nào</string>
+    <string name="conversations_empty_subtitle">Ứng tuyển việc để bắt đầu trò chuyện</string>
+    <string name="conversations_browse">Duyệt chợ việc</string>
+    <string name="conversations_task_id">Việc #%1$d</string>
+    <string name="conversations_status_completed">Hoàn thành</string>
+    <string name="conversations_status_cancelled">Đã hủy</string>
+
+    <!-- ==================== NOTIFICATION ==================== -->
+    <string name="notification_title">Thông báo</string>
+    <string name="notification_back">Quay lại</string>
+    <string name="notification_mark_all_read">Đọc tất cả</string>
+    <string name="notification_clear_all">Xóa tất cả</string>
+    <string name="notification_empty">Chưa có thông báo nào</string>
+    <string name="notification_just_now">Vừa xong</string>
+    <string name="notification_minutes_ago">%1$d phút trước</string>
+    <string name="notification_hours_ago">%1$d giờ trước</string>
+    <string name="notification_days_ago">%1$d ngày trước</string>
+    <string name="notification_weeks_ago">%1$d tuần trước</string>
+
+    <!-- ==================== COMPONENTS ==================== -->
+    <!-- ErrorState -->
+    <string name="error_retry">Thử lại</string>
+
+    <!-- TaskCard -->
+    <string name="task_card_your_task">Việc của bạn</string>
+    <string name="task_card_overdue">QUÁ HẠN</string>
+
+    <!-- ==================== MAIN ACTIVITY ==================== -->
+    <string name="session_expired">Phiên đã hết hạn. Vui lòng đăng nhập lại.</string>
+    <string name="payment_successful">Thanh toán thành công</string>
+    <string name="payment_cancelled">Thanh toán đã bị hủy</string>
+    <string name="payment_unknown">Trạng thái thanh toán không xác định</string>
+
+    <!-- ==================== COMMON ==================== -->
+    <string name="common_back">Quay lại</string>
+    <string name="common_cancel">Hủy</string>
+    <string name="common_confirm">Xác nhận</string>
+    <string name="common_loading">Đang tải...</string>
+    <string name="common_error">Đã xảy ra lỗi</string>
 </resources>

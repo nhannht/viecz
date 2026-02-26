@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.TaskStatusBadge
 import com.viecz.vieczandroid.ui.components.formatPrice
@@ -22,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -88,7 +90,7 @@ fun TaskDetailScreen(
     LaunchedEffect(uiState.paymentSuccess) {
         if (uiState.paymentSuccess) {
             snackbarHostState.showSnackbar(
-                message = "Payment processed successfully!",
+                message = context.getString(R.string.task_detail_payment_success),
                 duration = SnackbarDuration.Short,
                 withDismissAction = true
             )
@@ -100,7 +102,7 @@ fun TaskDetailScreen(
     LaunchedEffect(uiState.paymentError) {
         uiState.paymentError?.let { error ->
             snackbarHostState.showSnackbar(
-                message = "Payment failed: $error",
+                message = context.getString(R.string.task_detail_payment_failed, error),
                 duration = SnackbarDuration.Long,
                 withDismissAction = true
             )
@@ -111,10 +113,10 @@ fun TaskDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Task Details") },
+                title = { Text(stringResource(R.string.task_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.task_detail_back))
                     }
                 },
                 actions = {
@@ -122,13 +124,13 @@ fun TaskDetailScreen(
                         IconButton(onClick = { onNavigateToEdit(taskId) }) {
                             Icon(
                                 Icons.Default.Edit,
-                                contentDescription = "Edit Task"
+                                contentDescription = stringResource(R.string.task_detail_edit)
                             )
                         }
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Delete Task",
+                                contentDescription = stringResource(R.string.task_detail_delete_icon),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -149,7 +151,7 @@ fun TaskDetailScreen(
                 }
                 uiState.error != null -> {
                     ErrorState(
-                        message = uiState.error ?: "An error occurred",
+                        message = uiState.error ?: stringResource(R.string.task_detail_error),
                         onRetry = { viewModel.loadTask(taskId) }
                     )
                 }
@@ -190,9 +192,9 @@ fun TaskDetailScreen(
         MetroDialog(
             open = true,
             onDismiss = { showAcceptDialog = null },
-            title = "Accept Application & Create Payment",
-            confirmLabel = "Accept",
-            cancelLabel = "Cancel",
+            title = stringResource(R.string.task_detail_accept_dialog_title),
+            confirmLabel = stringResource(R.string.task_detail_accept_dialog_confirm),
+            cancelLabel = stringResource(R.string.task_detail_accept_dialog_cancel),
             onConfirm = {
                 viewModel.acceptApplication(application.id)
                 showAcceptDialog = null
@@ -201,12 +203,12 @@ fun TaskDetailScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Are you sure you want to accept this application?",
+                    text = stringResource(R.string.task_detail_accept_dialog_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.muted,
                 )
                 Text(
-                    text = "Escrow amount: ${formatPrice(escrowAmount)}",
+                    text = stringResource(R.string.task_detail_escrow_amount, formatPrice(escrowAmount)),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.fg,
@@ -214,14 +216,14 @@ fun TaskDetailScreen(
                 if (isAboveTaskPrice) {
                     val diff = application.proposedPrice!! - task!!.price
                     Text(
-                        text = "This is ${formatPrice(diff)} above your original task price (${formatPrice(task.price)})",
+                        text = stringResource(R.string.task_detail_price_above, formatPrice(diff), formatPrice(task.price)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Text(
-                    text = "\u2022 This will assign the tasker to your task\n\u2022 Escrow payment will be created\n\u2022 Funds will be held until task completion",
+                    text = stringResource(R.string.task_detail_accept_bullets),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.muted,
                 )
@@ -234,9 +236,9 @@ fun TaskDetailScreen(
         MetroDialog(
             open = true,
             onDismiss = { showDeleteDialog = false },
-            title = "Delete Task",
-            confirmLabel = "Delete",
-            cancelLabel = "Cancel",
+            title = stringResource(R.string.task_detail_delete_dialog_title),
+            confirmLabel = stringResource(R.string.task_detail_delete_dialog_confirm),
+            cancelLabel = stringResource(R.string.task_detail_delete_dialog_cancel),
             onConfirm = {
                 viewModel.deleteTask(taskId)
                 showDeleteDialog = false
@@ -244,7 +246,7 @@ fun TaskDetailScreen(
             onCancel = { showDeleteDialog = false },
         ) {
             Text(
-                text = "Are you sure you want to delete this task? This will cancel the task and reject all pending applications.",
+                text = stringResource(R.string.task_detail_delete_dialog_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.muted,
             )
@@ -256,9 +258,9 @@ fun TaskDetailScreen(
         MetroDialog(
             open = true,
             onDismiss = { showCancelOverdueDialog = false },
-            title = "Cancel Overdue Task & Get Refund",
-            confirmLabel = "Cancel & Refund",
-            cancelLabel = "Keep Task",
+            title = stringResource(R.string.task_detail_cancel_overdue_title),
+            confirmLabel = stringResource(R.string.task_detail_cancel_overdue_confirm),
+            cancelLabel = stringResource(R.string.task_detail_cancel_overdue_cancel),
             onConfirm = {
                 viewModel.cancelOverdueTask(taskId)
                 showCancelOverdueDialog = false
@@ -266,7 +268,7 @@ fun TaskDetailScreen(
             onCancel = { showCancelOverdueDialog = false },
         ) {
             Text(
-                text = "The deadline has passed. Cancel this task and get a full escrow refund? The tasker will not receive payment.",
+                text = stringResource(R.string.task_detail_cancel_overdue_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.muted,
             )
@@ -331,7 +333,7 @@ fun TaskDetailContent(
         item {
             MetroCard(contentPadding = PaddingValues(16.dp)) {
                 Text(
-                    text = "Description",
+                    text = stringResource(R.string.task_detail_description),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.fg,
@@ -401,7 +403,7 @@ fun TaskDetailContent(
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Deadline",
+                                text = stringResource(R.string.task_detail_deadline),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = colors.muted,
                             )
@@ -416,7 +418,7 @@ fun TaskDetailContent(
                         }
                         if (isOverdue) {
                             MetroBadge(
-                                label = "OVERDUE",
+                                label = stringResource(R.string.task_detail_overdue),
                                 status = MetroBadgeStatus.Cancelled,
                             )
                         }
@@ -429,7 +431,7 @@ fun TaskDetailContent(
         if (isOwnTask && task.status == TaskStatus.IN_PROGRESS && task.isOverdue) {
             item {
                 MetroButton(
-                    label = "Cancel & Get Refund (Overdue)",
+                    label = stringResource(R.string.task_detail_cancel_refund_button),
                     onClick = onCancelOverdue,
                     fullWidth = true,
                 )
@@ -444,7 +446,7 @@ fun TaskDetailContent(
                     contentPadding = PaddingValues(16.dp),
                 ) {
                     Text(
-                        text = "Applications closed \u2014 deadline has passed",
+                        text = stringResource(R.string.task_detail_deadline_passed),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
@@ -461,13 +463,13 @@ fun TaskDetailContent(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "You need to be a tasker to apply for tasks.",
+                                text = stringResource(R.string.task_detail_not_tasker),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.muted,
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             MetroButton(
-                                label = "Register as Tasker",
+                                label = stringResource(R.string.task_detail_register_tasker),
                                 onClick = onNavigateToProfile,
                             )
                         }
@@ -490,7 +492,7 @@ fun TaskDetailContent(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Application Pending",
+                                text = stringResource(R.string.task_detail_application_pending),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colors.fg,
                                 fontWeight = FontWeight.Bold
@@ -500,7 +502,7 @@ fun TaskDetailContent(
                 } else {
                     // Show apply button
                     MetroButton(
-                        label = "Apply for this Task",
+                        label = stringResource(R.string.task_detail_apply_button),
                         onClick = onApply,
                         fullWidth = true,
                     )
@@ -512,7 +514,7 @@ fun TaskDetailContent(
         if (applications.isNotEmpty()) {
             item {
                 Text(
-                    text = "Applications (${applications.size})",
+                    text = stringResource(R.string.task_detail_applications_count, applications.size),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = colors.fg,
@@ -532,7 +534,7 @@ fun TaskDetailContent(
         if (task.status == TaskStatus.IN_PROGRESS) {
             item {
                 MetroButton(
-                    label = "Message",
+                    label = stringResource(R.string.task_detail_message),
                     onClick = onMessageClick,
                     variant = MetroButtonVariant.Secondary,
                     fullWidth = true,
@@ -544,7 +546,7 @@ fun TaskDetailContent(
         if (task.status == TaskStatus.IN_PROGRESS) {
             item {
                 MetroButton(
-                    label = "Mark as Completed",
+                    label = stringResource(R.string.task_detail_mark_completed),
                     onClick = onCompleteTask,
                     fullWidth = true,
                 )
@@ -580,7 +582,7 @@ fun ApplicationCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "Tasker #${application.taskerId}",
+                        text = stringResource(R.string.task_detail_tasker_id, application.taskerId),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = colors.fg,
@@ -607,7 +609,7 @@ fun ApplicationCard(
         if (application.proposedPrice != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Proposed price: ${formatPrice(application.proposedPrice)}",
+                text = stringResource(R.string.task_detail_proposed_price, formatPrice(application.proposedPrice)),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (application.proposedPrice > taskPrice)
@@ -618,13 +620,13 @@ fun ApplicationCard(
             if (application.proposedPrice > taskPrice) {
                 val diff = application.proposedPrice - taskPrice
                 Text(
-                    text = "Above task price (${formatPrice(taskPrice)}) by ${formatPrice(diff)}",
+                    text = stringResource(R.string.task_detail_price_above_by, formatPrice(taskPrice), formatPrice(diff)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
             } else if (application.proposedPrice < taskPrice) {
                 Text(
-                    text = "Below task price (${formatPrice(taskPrice)})",
+                    text = stringResource(R.string.task_detail_price_below, formatPrice(taskPrice)),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.muted,
                 )
@@ -634,7 +636,7 @@ fun ApplicationCard(
         if (application.status == ApplicationStatus.PENDING) {
             Spacer(modifier = Modifier.height(12.dp))
             MetroButton(
-                label = "Accept Application",
+                label = stringResource(R.string.task_detail_accept_application),
                 onClick = onAccept,
                 fullWidth = true,
             )
@@ -645,9 +647,9 @@ fun ApplicationCard(
 @Composable
 fun ApplicationStatusBadge(status: ApplicationStatus) {
     val (badgeStatus, text) = when (status) {
-        ApplicationStatus.PENDING -> MetroBadgeStatus.Open to "Pending"
-        ApplicationStatus.ACCEPTED -> MetroBadgeStatus.Completed to "Accepted"
-        ApplicationStatus.REJECTED -> MetroBadgeStatus.Cancelled to "Rejected"
+        ApplicationStatus.PENDING -> MetroBadgeStatus.Open to stringResource(R.string.task_detail_status_pending)
+        ApplicationStatus.ACCEPTED -> MetroBadgeStatus.Completed to stringResource(R.string.task_detail_status_accepted)
+        ApplicationStatus.REJECTED -> MetroBadgeStatus.Cancelled to stringResource(R.string.task_detail_status_rejected)
     }
 
     MetroBadge(

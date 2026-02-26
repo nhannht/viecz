@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.components.formatPrice
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -7,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -19,7 +21,9 @@ import com.viecz.vieczandroid.ui.components.metro.MetroCard
 import com.viecz.vieczandroid.ui.components.metro.MetroInput
 import com.viecz.vieczandroid.ui.components.metro.MetroTextarea
 import com.viecz.vieczandroid.ui.theme.MetroTheme
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +42,8 @@ data class ApplyTaskUiState(
 
 @HiltViewModel
 class ApplyTaskViewModel @Inject constructor(
-    private val repository: TaskRepository
+    private val repository: TaskRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ApplyTaskUiState())
@@ -61,15 +66,15 @@ class ApplyTaskViewModel @Inject constructor(
     private fun validatePrice(price: String): String? {
         if (price.isBlank()) return null // Optional field
         return when {
-            price.toLongOrNull() == null -> "Price must be a number"
-            price.toLong() <= 0 -> "Price must be greater than 0"
+            price.toLongOrNull() == null -> context.getString(R.string.apply_task_price_error)
+            price.toLong() <= 0 -> context.getString(R.string.apply_task_price_positive)
             else -> null
         }
     }
 
     private fun validateMessage(message: String): String? {
         return when {
-            message.length > 500 -> "Message must be less than 500 characters"
+            message.length > 500 -> context.getString(R.string.apply_task_message_too_long)
             else -> null
         }
     }
@@ -95,7 +100,7 @@ class ApplyTaskViewModel @Inject constructor(
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = error.message ?: "Failed to apply for task"
+                        error = error.message ?: context.getString(R.string.apply_task_failed)
                     )
                 }
             )
@@ -128,10 +133,10 @@ fun ApplyTaskScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Apply for Task") },
+                title = { Text(stringResource(R.string.apply_task_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.apply_task_back))
                     }
                 }
             )
@@ -150,7 +155,7 @@ fun ApplyTaskScreen(
                 featured = true,
             ) {
                 Text(
-                    text = "Original Price",
+                    text = stringResource(R.string.apply_task_original_price),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.muted
                 )
@@ -163,7 +168,7 @@ fun ApplyTaskScreen(
             }
 
             Text(
-                text = "Submit your application",
+                text = stringResource(R.string.apply_task_subtitle),
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.fg
             )
@@ -172,8 +177,8 @@ fun ApplyTaskScreen(
             MetroInput(
                 value = uiState.proposedPrice,
                 onValueChange = { viewModel.updateProposedPrice(it) },
-                label = "PROPOSED PRICE (OPTIONAL)",
-                placeholder = "Leave empty to accept the original price",
+                label = stringResource(R.string.apply_task_price_label),
+                placeholder = stringResource(R.string.apply_task_price_placeholder),
                 error = uiState.priceError ?: "",
                 keyboardType = KeyboardType.Number,
                 prefix = { Text("₫ ", color = colors.muted) },
@@ -183,8 +188,8 @@ fun ApplyTaskScreen(
             MetroTextarea(
                 value = uiState.message,
                 onValueChange = { viewModel.updateMessage(it) },
-                label = "MESSAGE (OPTIONAL)",
-                placeholder = "Tell the requester why you're the right person for this task",
+                label = stringResource(R.string.apply_task_message_label),
+                placeholder = stringResource(R.string.apply_task_message_placeholder),
                 error = uiState.messageError ?: "",
             )
 
@@ -204,7 +209,7 @@ fun ApplyTaskScreen(
 
             // Submit button
             MetroButton(
-                label = "SUBMIT APPLICATION",
+                label = stringResource(R.string.apply_task_submit),
                 onClick = { viewModel.applyForTask(taskId) },
                 fullWidth = true,
                 enabled = !uiState.isLoading && uiState.priceError == null && uiState.messageError == null,

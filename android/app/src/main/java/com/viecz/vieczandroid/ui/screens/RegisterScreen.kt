@@ -11,9 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.components.metro.MetroButton
 import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
 import com.viecz.vieczandroid.ui.components.metro.MetroInput
@@ -37,6 +39,13 @@ fun RegisterScreen(
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
 
+    // Pre-resolve strings for use in non-composable lambdas
+    val emailInvalidStr = stringResource(R.string.register_email_invalid)
+    val passwordMinLengthStr = stringResource(R.string.register_password_min_length)
+    val passwordUppercaseStr = stringResource(R.string.register_password_uppercase)
+    val passwordLowercaseStr = stringResource(R.string.register_password_lowercase)
+    val passwordDigitStr = stringResource(R.string.register_password_digit)
+
     // Handle auth state changes
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
@@ -55,7 +64,7 @@ fun RegisterScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Create Account",
+                text = stringResource(R.string.register_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = colors.fg
             )
@@ -66,8 +75,8 @@ fun RegisterScreen(
             MetroInput(
                 value = name,
                 onValueChange = { name = it },
-                label = "FULL NAME",
-                placeholder = "John Doe",
+                label = stringResource(R.string.register_name_label),
+                placeholder = stringResource(R.string.register_name_placeholder),
                 enabled = authState !is AuthState.Loading,
             )
 
@@ -79,11 +88,11 @@ fun RegisterScreen(
                 onValueChange = {
                     email = it
                     emailError = if (!isValidEmail(it) && it.isNotEmpty()) {
-                        "Invalid email format"
+                        emailInvalidStr
                     } else null
                 },
-                label = "EMAIL",
-                placeholder = "your@email.com",
+                label = stringResource(R.string.register_email_label),
+                placeholder = stringResource(R.string.register_email_placeholder),
                 keyboardType = KeyboardType.Email,
                 error = emailError ?: "",
                 enabled = authState !is AuthState.Loading,
@@ -98,23 +107,23 @@ fun RegisterScreen(
                     password = it
                     passwordError = when {
                         it.isEmpty() -> null
-                        it.length < 8 -> "Password must be at least 8 characters"
-                        !it.any { c -> c.isUpperCase() } -> "Must contain uppercase letter"
-                        !it.any { c -> c.isLowerCase() } -> "Must contain lowercase letter"
-                        !it.any { c -> c.isDigit() } -> "Must contain number"
+                        it.length < 8 -> passwordMinLengthStr
+                        !it.any { c -> c.isUpperCase() } -> passwordUppercaseStr
+                        !it.any { c -> c.isLowerCase() } -> passwordLowercaseStr
+                        !it.any { c -> c.isDigit() } -> passwordDigitStr
                         else -> null
                     }
                 },
-                label = "PASSWORD",
+                label = stringResource(R.string.register_password_label),
                 isPassword = !passwordVisible,
                 keyboardType = KeyboardType.Password,
-                error = passwordError ?: if (password.isEmpty()) "Min 8 characters, 1 uppercase, 1 lowercase, 1 digit" else "",
+                error = passwordError ?: if (password.isEmpty()) stringResource(R.string.register_password_hint) else "",
                 enabled = authState !is AuthState.Loading,
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            contentDescription = if (passwordVisible) stringResource(R.string.register_hide_password) else stringResource(R.string.register_show_password),
                             tint = colors.muted,
                         )
                     }
@@ -135,7 +144,7 @@ fun RegisterScreen(
 
             // Register button
             MetroButton(
-                label = "CREATE ACCOUNT",
+                label = stringResource(R.string.register_button),
                 onClick = {
                     if (emailError == null && passwordError == null) {
                         viewModel.register(email, password, name)
@@ -155,7 +164,7 @@ fun RegisterScreen(
 
             // Navigate to login
             MetroButton(
-                label = "Already have an account? Sign In",
+                label = stringResource(R.string.register_have_account),
                 onClick = onNavigateToLogin,
                 variant = MetroButtonVariant.Secondary,
                 enabled = authState !is AuthState.Loading,

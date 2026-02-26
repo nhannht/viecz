@@ -1,5 +1,6 @@
 package com.viecz.vieczandroid.ui.screens
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +17,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -30,7 +32,9 @@ import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
 import com.viecz.vieczandroid.ui.components.metro.MetroSpinner
 import com.viecz.vieczandroid.ui.components.metro.MetroTab
 import com.viecz.vieczandroid.ui.components.metro.MetroTabs
+import com.viecz.vieczandroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,7 +53,8 @@ data class MyJobsUiState(
 @HiltViewModel
 class MyJobsViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private var currentMode: String = "posted"
@@ -87,7 +92,7 @@ class MyJobsViewModel @Inject constructor(
             if (userId == null) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Not logged in"
+                    error = context.getString(R.string.my_jobs_not_logged_in)
                 )
                 return@launch
             }
@@ -131,7 +136,7 @@ class MyJobsViewModel @Inject constructor(
                     Log.e(TAG, "Failed to load jobs ($currentMode)", error)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = error.message ?: "Failed to load jobs"
+                        error = error.message ?: context.getString(R.string.my_jobs_load_failed)
                     )
                 }
             )
@@ -151,11 +156,6 @@ class MyJobsViewModel @Inject constructor(
 }
 
 private val TAB_MODES = listOf("posted", "applied", "completed")
-private val METRO_TABS = listOf(
-    MetroTab("posted", "Posted"),
-    MetroTab("applied", "Applied"),
-    MetroTab("completed", "Completed"),
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -168,20 +168,30 @@ fun MyJobsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableStateOf("posted") }
+    val tabPosted = stringResource(R.string.my_jobs_tab_posted)
+    val tabApplied = stringResource(R.string.my_jobs_tab_applied)
+    val tabCompleted = stringResource(R.string.my_jobs_tab_completed)
+    val metroTabs = remember(tabPosted, tabApplied, tabCompleted) {
+        listOf(
+            MetroTab("posted", tabPosted),
+            MetroTab("applied", tabApplied),
+            MetroTab("completed", tabCompleted),
+        )
+    }
 
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("My Jobs") },
+                    title = { Text(stringResource(R.string.my_jobs_title)) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.my_jobs_back))
                         }
                     }
                 )
                 MetroTabs(
-                    tabs = METRO_TABS,
+                    tabs = metroTabs,
                     activeTab = selectedTab,
                     onTabChanged = { tab ->
                         selectedTab = tab
@@ -239,7 +249,7 @@ private fun MyJobsTabContent(
             }
             uiState.error != null && uiState.tasks.isEmpty() -> {
                 ErrorState(
-                    message = uiState.error ?: "An error occurred",
+                    message = uiState.error ?: stringResource(R.string.my_jobs_error),
                     onRetry = onRefresh
                 )
             }
@@ -247,22 +257,22 @@ private fun MyJobsTabContent(
                 when (mode) {
                     "posted" -> EmptyState(
                         icon = Icons.Default.Assignment,
-                        title = "No posted tasks yet",
-                        message = "Post a task to find help",
-                        actionLabel = "Post a Task",
+                        title = stringResource(R.string.my_jobs_no_posted),
+                        message = stringResource(R.string.my_jobs_no_posted_subtitle),
+                        actionLabel = stringResource(R.string.my_jobs_post_task),
                         onAction = onNavigateToCreateTask
                     )
                     "applied" -> EmptyState(
                         icon = Icons.Default.WorkOutline,
-                        title = "No active jobs",
-                        message = "Browse the marketplace to find tasks",
-                        actionLabel = "Browse Marketplace",
+                        title = stringResource(R.string.my_jobs_no_applied),
+                        message = stringResource(R.string.my_jobs_no_applied_subtitle),
+                        actionLabel = stringResource(R.string.my_jobs_browse),
                         onAction = onNavigateToMarketplace
                     )
                     else -> EmptyState(
                         icon = Icons.Default.DoneAll,
-                        title = "No completed jobs yet",
-                        message = "Complete tasks to see them here"
+                        title = stringResource(R.string.my_jobs_no_completed),
+                        message = stringResource(R.string.my_jobs_no_completed_subtitle)
                     )
                 }
             }

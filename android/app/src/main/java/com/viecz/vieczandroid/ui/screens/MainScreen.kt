@@ -9,7 +9,14 @@ import android.location.LocationManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -18,9 +25,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,6 +38,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavHostController
 import androidx.core.content.ContextCompat
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.ui.components.ErrorState
 import com.viecz.vieczandroid.ui.components.metro.MetroDialog
 import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
@@ -41,7 +52,16 @@ fun MainScreen(
     navController: NavHostController,
     refreshTrigger: Boolean = false
 ) {
-    var currentTab by remember { mutableIntStateOf(0) }
+    // Check if we should switch to a specific tab (e.g. after payment deep link)
+    val switchToTab = navController.currentBackStackEntry
+        ?.savedStateHandle?.get<Int>("switchToTab")
+    var currentTab by remember { mutableIntStateOf(switchToTab ?: 0) }
+    LaunchedEffect(switchToTab) {
+        switchToTab?.let {
+            currentTab = it
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Int>("switchToTab")
+        }
+    }
     var showDepositDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSearchBar by remember { mutableStateOf(false) }
@@ -198,10 +218,11 @@ fun MainScreen(
                     val snackbarHostState = remember { SnackbarHostState() }
                     var showBecomeTaskerDialog by remember { mutableStateOf(false) }
 
+                    val taskerSuccessMsg = stringResource(R.string.main_tasker_success)
                     LaunchedEffect(profileUiState.becomeTaskerSuccess) {
                         if (profileUiState.becomeTaskerSuccess) {
                             snackbarHostState.showSnackbar(
-                                message = "You are now registered as a tasker!",
+                                message = taskerSuccessMsg,
                                 withDismissAction = true
                             )
                             profileViewModel.clearBecomeTaskerSuccess()
@@ -215,7 +236,7 @@ fun MainScreen(
                             }
                             profileUiState.error != null -> {
                                 ErrorState(
-                                    message = profileUiState.error ?: "An error occurred",
+                                    message = profileUiState.error ?: stringResource(R.string.main_error_occurred),
                                     onRetry = { profileViewModel.loadProfile() }
                                 )
                             }
@@ -243,16 +264,16 @@ fun MainScreen(
                         MetroDialog(
                             open = true,
                             onDismiss = { showBecomeTaskerDialog = false },
-                            title = "Become a Tasker",
-                            confirmLabel = "Yes, Register",
-                            cancelLabel = "Cancel",
+                            title = stringResource(R.string.main_become_tasker),
+                            confirmLabel = stringResource(R.string.main_tasker_confirm),
+                            cancelLabel = stringResource(R.string.main_tasker_cancel),
                             onConfirm = {
                                 profileViewModel.becomeTasker()
                                 showBecomeTaskerDialog = false
                             },
                             onCancel = { showBecomeTaskerDialog = false },
                         ) {
-                            Text("Do you want to register as a tasker? This will allow you to apply for tasks posted by other users.")
+                            Text(stringResource(R.string.main_tasker_description))
                         }
                     }
                 }
@@ -286,9 +307,9 @@ fun MainScreen(
         MetroDialog(
             open = true,
             onDismiss = { showLogoutDialog = false },
-            title = "Logout",
-            confirmLabel = "Logout",
-            cancelLabel = "Cancel",
+            title = stringResource(R.string.main_logout),
+            confirmLabel = stringResource(R.string.main_logout_confirm),
+            cancelLabel = stringResource(R.string.main_logout_cancel),
             onConfirm = {
                 kotlinx.coroutines.MainScope().launch {
                     profileViewModel.logout()
@@ -300,7 +321,7 @@ fun MainScreen(
             },
             onCancel = { showLogoutDialog = false },
         ) {
-            Text("Are you sure you want to logout?")
+            Text(stringResource(R.string.main_logout_message))
         }
     }
 }
@@ -324,7 +345,7 @@ fun VieczTopBar(
     TopAppBar(
         title = {
             Text(
-                text = "Viecz",
+                text = stringResource(R.string.main_title),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -335,39 +356,39 @@ fun VieczTopBar(
                     IconButton(onClick = onShowListView) {
                         Icon(
                             Icons.Default.ViewList,
-                            contentDescription = "List view",
+                            contentDescription = stringResource(R.string.main_list_view),
                             tint = if (!isMapView) MaterialTheme.colorScheme.primary else LocalContentColor.current
                         )
                     }
                     IconButton(onClick = onShowMapView) {
                         Icon(
                             Icons.Default.Map,
-                            contentDescription = "Map view",
+                            contentDescription = stringResource(R.string.main_map_view),
                             tint = if (isMapView) MaterialTheme.colorScheme.primary else LocalContentColor.current
                         )
                     }
                     IconButton(onClick = onNearMeToggle) {
                         Icon(
                             Icons.Default.MyLocation,
-                            contentDescription = if (nearMeEnabled) "Near Me enabled" else "Near Me",
+                            contentDescription = stringResource(if (nearMeEnabled) R.string.main_near_me_enabled else R.string.main_near_me),
                             tint = if (nearMeEnabled) MaterialTheme.colorScheme.primary else LocalContentColor.current
                         )
                     }
                     IconButton(onClick = onSearchToggle) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.main_search))
                     }
                     IconButton(onClick = onAddJob) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Job")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.main_add_job))
                     }
                 }
                 1 -> {
                     IconButton(onClick = onEditProfile) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.main_edit_profile))
                     }
                 }
                 3 -> {
                     IconButton(onClick = onDeposit) {
-                        Icon(Icons.Default.Add, contentDescription = "Deposit")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.main_deposit))
                     }
                 }
             }
@@ -381,43 +402,107 @@ fun VieczTopBar(
                         }
                     }
                 ) {
-                    Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.main_notifications))
                 }
             }
         }
     )
 }
 
+private data class NavItem(
+    val icon: ImageVector,
+    val labelResId: Int,
+)
+
+private val navItems = listOf(
+    NavItem(Icons.Default.Home, R.string.main_nav_market),
+    NavItem(Icons.Default.Person, R.string.main_nav_profile),
+    NavItem(Icons.AutoMirrored.Filled.Chat, R.string.main_nav_chat),
+    NavItem(Icons.Default.AccountBalanceWallet, R.string.main_nav_wallet),
+)
+
 @Composable
 fun VieczBottomBar(
     currentTab: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    NavigationBar {
-        NavigationBarItem(
-            selected = currentTab == 0,
-            onClick = { onTabSelected(0) },
-            icon = { Icon(Icons.Default.Home, contentDescription = "Marketplace") },
-            label = { Text("Marketplace") }
-        )
-        NavigationBarItem(
-            selected = currentTab == 1,
-            onClick = { onTabSelected(1) },
-            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-            label = { Text("Profile") }
-        )
-        NavigationBarItem(
-            selected = currentTab == 2,
-            onClick = { onTabSelected(2) },
-            icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Messages") },
-            label = { Text("Messages") }
-        )
-        NavigationBarItem(
-            selected = currentTab == 3,
-            onClick = { onTabSelected(3) },
-            icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Wallet") },
-            label = { Text("Wallet") }
-        )
+    val colors = com.viecz.vieczandroid.ui.theme.MetroTheme.colors
+
+    Surface(
+        color = colors.card,
+        shadowElevation = 8.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .navigationBarsPadding(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            navItems.forEachIndexed { index, item ->
+                PillNavItem(
+                    icon = item.icon,
+                    label = stringResource(item.labelResId),
+                    selected = currentTab == index,
+                    onClick = { onTabSelected(index) },
+                    colors = colors,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PillNavItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    colors: com.viecz.vieczandroid.ui.theme.MetroColors,
+) {
+    val horizontalPadding by animateDpAsState(
+        targetValue = if (selected) 16.dp else 12.dp,
+        animationSpec = tween(250),
+        label = "pillPadding",
+    )
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(if (selected) colors.fg else colors.card)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = horizontalPadding, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (selected) colors.bg else colors.muted,
+                modifier = Modifier.size(22.dp),
+            )
+            AnimatedVisibility(
+                visible = selected,
+                enter = fadeIn(tween(200)) + expandHorizontally(tween(250)),
+                exit = fadeOut(tween(150)) + shrinkHorizontally(tween(200)),
+            ) {
+                Text(
+                    text = label,
+                    color = colors.bg,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+        }
     }
 }
 

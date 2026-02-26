@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,6 +22,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.viecz.vieczandroid.BuildConfig
+import com.viecz.vieczandroid.R
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.User
 import com.viecz.vieczandroid.data.repository.UserRepository
@@ -155,10 +157,11 @@ fun ProfileScreen(
         }
     }
 
+    val taskerSuccessMsg = stringResource(R.string.profile_tasker_success)
     LaunchedEffect(uiState.becomeTaskerSuccess) {
         if (uiState.becomeTaskerSuccess) {
             snackbarHostState.showSnackbar(
-                message = "You are now registered as a tasker!",
+                message = taskerSuccessMsg,
                 withDismissAction = true
             )
             viewModel.clearBecomeTaskerSuccess()
@@ -168,18 +171,18 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text(stringResource(R.string.profile_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.profile_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToEditProfile) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.profile_edit))
                     }
                     IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = stringResource(R.string.profile_logout))
                     }
                 }
             )
@@ -197,7 +200,7 @@ fun ProfileScreen(
                 }
                 uiState.error != null -> {
                     ErrorState(
-                        message = uiState.error ?: "An error occurred",
+                        message = uiState.error ?: stringResource(R.string.profile_error_occurred),
                         onRetry = { viewModel.loadProfile() }
                     )
                 }
@@ -217,9 +220,9 @@ fun ProfileScreen(
         MetroDialog(
             open = true,
             onDismiss = { showBecomeTaskerDialog = false },
-            title = "Become a Tasker",
-            confirmLabel = "Yes, Register",
-            cancelLabel = "Cancel",
+            title = stringResource(R.string.profile_tasker_dialog_title),
+            confirmLabel = stringResource(R.string.profile_tasker_dialog_confirm),
+            cancelLabel = stringResource(R.string.profile_tasker_dialog_cancel),
             onConfirm = {
                 viewModel.becomeTasker()
                 showBecomeTaskerDialog = false
@@ -227,7 +230,7 @@ fun ProfileScreen(
             onCancel = { showBecomeTaskerDialog = false },
         ) {
             Text(
-                text = "Do you want to register as a tasker? This will allow you to apply for tasks posted by other users.",
+                text = stringResource(R.string.profile_tasker_dialog_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.muted,
             )
@@ -239,9 +242,9 @@ fun ProfileScreen(
         MetroDialog(
             open = true,
             onDismiss = { showLogoutDialog = false },
-            title = "Logout",
-            confirmLabel = "Logout",
-            cancelLabel = "Cancel",
+            title = stringResource(R.string.profile_logout_dialog_title),
+            confirmLabel = stringResource(R.string.profile_logout_dialog_confirm),
+            cancelLabel = stringResource(R.string.profile_logout_dialog_cancel),
             onConfirm = {
                 kotlinx.coroutines.MainScope().launch {
                     viewModel.logout()
@@ -252,7 +255,7 @@ fun ProfileScreen(
             onCancel = { showLogoutDialog = false },
         ) {
             Text(
-                text = "Are you sure you want to logout?",
+                text = stringResource(R.string.profile_logout_dialog_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.muted,
             )
@@ -298,7 +301,7 @@ fun ProfileContent(
                         color = colors.fg,
                     )
                     Text(
-                        text = user.email,
+                        text = user.email ?: user.phone ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.muted,
                     )
@@ -311,7 +314,7 @@ fun ProfileContent(
                         )
                     } else {
                         Text(
-                            text = "No bio yet",
+                            text = stringResource(R.string.profile_no_bio),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.muted.copy(alpha = 0.6f),
                         )
@@ -319,7 +322,7 @@ fun ProfileContent(
                     if (onNavigateToEditProfile != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         MetroButton(
-                            label = "Edit Profile",
+                            label = stringResource(R.string.profile_edit),
                             onClick = onNavigateToEditProfile,
                             variant = MetroButtonVariant.Secondary,
                         )
@@ -327,7 +330,7 @@ fun ProfileContent(
                     if (user.isTasker) {
                         Spacer(modifier = Modifier.height(8.dp))
                         MetroBadge(
-                            label = "Tasker",
+                            label = stringResource(R.string.profile_tasker_badge),
                             status = MetroBadgeStatus.Open,
                         )
                     }
@@ -339,7 +342,7 @@ fun ProfileContent(
         item {
             MetroCard(contentPadding = PaddingValues(16.dp)) {
                 Text(
-                    text = "Statistics",
+                    text = stringResource(R.string.profile_statistics),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.fg,
@@ -352,22 +355,22 @@ fun ProfileContent(
                 ) {
                     StatisticItem(
                         icon = Icons.Default.Star,
-                        label = "Rating",
+                        label = stringResource(R.string.profile_stat_rating),
                         value = String.format("%.1f", user.rating)
                     )
                     StatisticItem(
                         icon = Icons.Default.Check,
-                        label = "Completed",
+                        label = stringResource(R.string.profile_stat_completed),
                         value = user.totalTasksCompleted.toString()
                     )
                     StatisticItem(
                         icon = Icons.Default.Add,
-                        label = "Posted",
+                        label = stringResource(R.string.profile_stat_posted),
                         value = user.totalTasksPosted.toString()
                     )
                     StatisticItem(
                         icon = Icons.Default.Payments,
-                        label = "Earned",
+                        label = stringResource(R.string.profile_stat_earned),
                         value = formatCurrency(user.totalEarnings)
                     )
                 }
@@ -381,7 +384,7 @@ fun ProfileContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Account Information",
+                        text = stringResource(R.string.profile_account_info),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = colors.fg,
@@ -389,18 +392,18 @@ fun ProfileContent(
 
                     InfoRow(
                         icon = Icons.Default.Email,
-                        label = "Email",
-                        value = user.email
+                        label = stringResource(R.string.profile_email),
+                        value = user.email ?: stringResource(R.string.profile_not_set)
                     )
                     InfoRow(
                         icon = Icons.Default.LocationOn,
-                        label = "University",
-                        value = user.university
+                        label = stringResource(R.string.profile_university),
+                        value = user.university ?: stringResource(R.string.profile_not_set)
                     )
                     InfoRow(
                         icon = Icons.Default.CheckCircle,
-                        label = "Verified",
-                        value = if (user.isVerified) "Yes" else "No"
+                        label = stringResource(R.string.profile_verified),
+                        value = if (user.isVerified) stringResource(R.string.profile_verified_yes) else stringResource(R.string.profile_verified_no)
                     )
                 }
             }
@@ -411,7 +414,7 @@ fun ProfileContent(
             MetroCard(contentPadding = PaddingValues(16.dp)) {
                 MyJobsRow(
                     icon = Icons.Default.Work,
-                    label = "My Jobs",
+                    label = stringResource(R.string.profile_my_jobs),
                     onClick = onNavigateToMyJobs
                 )
             }
@@ -421,7 +424,7 @@ fun ProfileContent(
         if (!user.isTasker) {
             item {
                 MetroButton(
-                    label = "Become a Tasker",
+                    label = stringResource(R.string.profile_become_tasker),
                     onClick = onBecomeTasker,
                     fullWidth = true,
                 )
@@ -432,7 +435,7 @@ fun ProfileContent(
         if (onLogout != null) {
             item {
                 MetroButton(
-                    label = "Logout",
+                    label = stringResource(R.string.profile_logout),
                     onClick = onLogout,
                     variant = MetroButtonVariant.Secondary,
                     fullWidth = true,
@@ -457,7 +460,7 @@ fun ProfileAvatar(
     if (!avatarUrl.isNullOrBlank()) {
         AsyncImage(
             model = resolveAvatarUrl(avatarUrl),
-            contentDescription = "Profile picture",
+            contentDescription = stringResource(R.string.profile_picture),
             contentScale = ContentScale.Crop,
             modifier = modifier
                 .size(size.dp)
