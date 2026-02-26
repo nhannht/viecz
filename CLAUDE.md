@@ -2,42 +2,58 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Serena MCP Tool Priority (CRITICAL - ALWAYS FOLLOW)
+## Serena + JetBrains Is the Default (CRITICAL - ALWAYS FOLLOW)
 
-**MANDATORY**: Serena is a passive tool — it only activates when explicitly called. You MUST proactively use Serena's semantic tools for code work. Never default to raw file reads when Serena can do it better.
+**MANDATORY**: Serena (powered by JetBrains IDEA) is the **primary tool for ALL code work** in this project. It MUST be used for reading, searching, navigating, and editing code. Claude Code built-in tools (`Read`, `Grep`, `Glob`, `Edit`) are **only** for files outside this project or non-code files (config, YAML, JSON, markdown, `.md`).
 
-### Decision Matrix: When to Use Which Tool
+### The Rule Is Simple
 
-| Task | Use This | NOT This | Why |
-|---|---|---|---|
-| Understand a file's structure | `mcp__serena__get_symbols_overview` | `Read` entire file | ~90% fewer tokens, semantic view |
-| Find a class/function by name | `mcp__serena__find_symbol` | `Grep` for name | LSP-aware, understands scope/nesting |
-| Find all callers of a function | `mcp__serena__find_referencing_symbols` | `Grep` for function name | Cross-file LSP references, not text match |
-| Replace an entire function/method | `mcp__serena__replace_symbol_body` | `Edit` with full body | Knows exact symbol boundaries |
-| Add new code next to existing | `mcp__serena__insert_before/after_symbol` | Manual line counting | Structural insertion, no line numbers needed |
-| Rename a symbol across codebase | `mcp__serena__rename_symbol` | Find-and-replace | LSP refactoring, handles all references correctly |
-| Search with regex across files | `mcp__serena__search_for_pattern` | `Grep` | Better file filtering (code-only, globs) |
-| Edit 3 lines inside a big function | Claude Code `Edit` | `replace_symbol_body` | Surgical edit, don't reproduce entire body |
-| Read config/YAML/non-code files | Claude Code `Read` | Serena tools | No LSP intelligence for non-code |
-| Run commands / shell ops | Claude Code `Bash` | N/A | Serena has no shell in claude-code context |
+- **Inside project, code files** → Serena. Always.
+- **Inside project, non-code files** (`.md`, `.yml`, `.json`, `.gitignore`, etc.) → Claude Code `Read`/`Edit`
+- **Outside project** (`~/.claude/`, `/etc/`, system files) → Claude Code tools
+- **Shell commands** → Claude Code `Bash` (Serena has no shell)
 
-### Standard Code Exploration Workflow
+### What Serena Does
 
-1. **Overview first**: `get_symbols_overview(file, depth=1)` to see all symbols in a file
-2. **Drill down**: `find_symbol(name, include_body=True)` only for the specific symbol you need
-3. **Trace usage**: `find_referencing_symbols(name, file)` to understand call graph
-4. **Edit precisely**: `replace_symbol_body` for whole symbols, Claude Code `Edit` for small patches
+| Task | Serena Tool |
+|---|---|
+| Understand a file's structure | `jet_brains_get_symbols_overview(file, depth=1)` |
+| Find a class/function by name | `jet_brains_find_symbol(name)` |
+| Read a function's source code | `jet_brains_find_symbol(name, include_body=True)` |
+| Find all callers of a function | `jet_brains_find_referencing_symbols(name, file)` |
+| See inheritance/implementations | `jet_brains_type_hierarchy(name, file)` |
+| Check library API signatures | `jet_brains_find_symbol(name, search_deps=True)` |
+| Search code with regex | `search_for_pattern(pattern)` |
+| Find files by name | `find_file(mask, path)` |
+| List directory contents | `list_dir(path)` |
+| Replace an entire function/method | `replace_symbol_body(name, file, body)` |
+| Add code next to existing symbol | `insert_before/after_symbol(name, file, content)` |
+| Rename across codebase | `rename_symbol(name, file, new_name)` |
+
+### When Claude Code `Edit` Is Still OK
+
+- **Surgical edits** (3-5 lines inside a large function) — `Edit` is more precise than reproducing the entire symbol body
+- **Non-code files** — Serena has no IDE intelligence for config/markdown
+
+### Standard Workflow
+
+1. **Overview first**: `get_symbols_overview(file, depth=1)`
+2. **Drill down**: `find_symbol(name, include_body=True)` only for what you need
+3. **Trace usage**: `find_referencing_symbols(name, file)`
+4. **Check hierarchy**: `type_hierarchy(name, file, "sub")`
+5. **Check library API**: `find_symbol(name, search_deps=True)`
+6. **Edit**: `replace_symbol_body` for whole symbols, Claude Code `Edit` for small patches
 
 ### Key Rules
 
-- **ALWAYS call `get_symbols_overview` before reading any code file** — understand structure first, read bodies second
-- **ALWAYS use `find_referencing_symbols`** before renaming or changing a symbol's signature — check what depends on it
-- **Use `find_symbol` with `include_body=False` first**, then `include_body=True` only for the specific symbol you need
-- **Pass `relative_path`** whenever possible — restricts search scope, faster results, fewer tokens
+- **ALWAYS `get_symbols_overview` before reading any code file** — understand structure first, read bodies second
+- **ALWAYS `find_referencing_symbols`** before renaming or changing a symbol's signature
+- **ALWAYS `type_hierarchy`** before modifying an interface or base class
+- **Use `find_symbol(search_deps=True)`** to check library APIs instead of web search
+- **Pass `relative_path`** whenever possible — restricts search scope, faster results
 - **`find_referencing_symbols` requires a file path**, not a directory — use `find_symbol` first if you don't know the file
-- **No cross-language references** — Go LSP won't find TypeScript references and vice versa (unverified; may work in some configurations but not guaranteed by LSP specification)
-- **NEVER use Grep/Glob for code exploration when Serena can do it** — This includes finding files (`find_file` not `Glob`), searching code patterns (`search_for_pattern` not `Grep`), and understanding file structure (`get_symbols_overview` not `Read` entire file). Grep/Glob are only acceptable for non-code files (config, YAML, JSON, markdown) or when Serena's LSP has no coverage for the file type
-- **This rule applies in ALL modes** — planning, exploring, implementing, delegating to sub-agents. Even when gathering context for a plan, use Serena tools first. Do NOT fall back to `Read`/`Grep`/`Glob` out of habit. If you need a function body, use `find_symbol(include_body=True)`, not `Read` with line offsets
+- **Cross-language**: JetBrains indexes Go, TypeScript, and Kotlin together, but `find_referencing_symbols` works within a single language's scope
+- **This applies in ALL modes** — planning, exploring, implementing, delegating to sub-agents. No exceptions. Never fall back to `Read`/`Grep`/`Glob` for code files out of habit
 
 ### Serena Memories
 
@@ -48,40 +64,11 @@ Serena has persistent cross-session memories in `.serena/memories/`. At session 
 
 Current memories: `project_overview`, `suggested_commands`, `architecture/go_backend`, `architecture/angular_web`, `conventions/go_style`, `conventions/angular_style`, `task_completion_checklist`, `gotchas`
 
-### Working with Serena - Best Practices
+### When Bash/Grep Is Acceptable (Exceptions)
 
-**Key Pattern**: Serena for *understanding* code structure and symbol relationships. Use raw Bash/Grep for *counting* things or searching for specific text patterns that aren't symbol boundaries (like route registrations in main.go).
-
-| Task | Best Tool | Why |
-|-------|------------|-----|
-| What handler methods exist? | Serena `get_symbols_overview` | See all methods at once, structured output |
-| How many routes registered? | Bash `grep -c` | Route patterns like `GET/POST` not in symbol AST |
-| File inventory/count | Bash `find \| wc -l` | Simple counting, no need for LSP analysis |
-| Find where a function is used | Serena `find_referencing_symbols` | Cross-file LSP references |
-| Get specific function body | Serena `find_symbol(include_body=true)` | Precise boundary extraction |
-
-**When Serena is Most Effective**:
-- Symbol overview for quick file structure (`get_symbols_overview(file, depth=1)`)
-- Finding specific symbols (use `include_body=False` first, then read only what you need)
-- Finding references across files (`find_referencing_symbols`)
-- List directory for inventory (`list_dir()`)
-
-**When Raw Bash/Grep is Actually Better**:
-- Counting registered routes in main.go (route patterns like `api.GET()` not in symbol AST)
-- Simple file counts (`find | wc -l` for counting files by pattern)
-- Searching for text that's not a symbol boundary (like comments, strings)
-
-**Cross-Language Limitation (Expected, Not a Bug)**:
-- Go LSP won't find TypeScript references and vice versa
-- This is expected behavior, not something to "work around"
-- Use project-specific `Grep` or `search_for_pattern` for cross-platform searches
-
-**Memory Value**:
-- Serena memories (especially `architecture/go_backend`) provide instant context on:
-  - Expected model count, handlers structure, service/repository patterns
-  - This context saves 10+ minutes of file reading per session
-
----
+- Counting things (`grep -c`, `wc -l`) — pure text counting, not code understanding
+- Route registration patterns in `main.go` — `api.GET()` calls aren't in the symbol AST
+- Text in comments, strings, non-code content — not symbols
 
 ## UI/UX Issue Investigation (CRITICAL - ALWAYS FOLLOW)
 
@@ -118,6 +105,37 @@ Viecz is a multi-package project containing:
 ## Code Documentation (CRITICAL - ALWAYS FOLLOW)
 
 **Primary source of truth is the code itself.** Use CLI doc tools instead of hand-written docs for models, APIs, components, and services — they're always accurate and never drift.
+
+### Doc Comments Are Mandatory (CRITICAL)
+
+The CLI tools (`go doc`, `compodoc`) read doc comments from source code. These comments **must** be kept accurate when modifying code.
+
+**Go** — every exported type, function, and method must have a doc comment:
+```go
+// CreateTask handles POST /api/v1/tasks
+// Requires authentication. Creates a new task and deducts escrow from wallet.
+func (h *TaskHandler) CreateTask(c *gin.Context)
+
+// Wallet represents a user's wallet for payments
+type Wallet struct {
+```
+
+**Angular/TypeScript** — JSDoc before `@Component()`, `@Injectable()`, and public methods:
+```typescript
+/**
+ * Manages wallet balance, deposits, and transaction history.
+ * Communicates with GET/POST /api/v1/wallet endpoints.
+ */
+@Injectable({ providedIn: 'root' })
+export class WalletService {
+```
+
+**Rules:**
+- **When modifying a function/method** — update its doc comment if behavior changed
+- **When adding a new exported symbol** — always add a doc comment
+- **When changing an endpoint's route or method** — update the `// handles POST /api/v1/...` comment
+- **When adding/removing @Input/@Output** — the decorator is self-documenting, but add JSDoc if the purpose isn't obvious from the name
+- **Never write redundant comments** — `// GetUser gets a user` adds nothing. Describe *what it does* beyond the name: route handled, side effects, auth requirements
 
 ### Code-First Documentation (Use These Instead of Reading docs/technical/)
 
