@@ -35,7 +35,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Use `find_symbol` with `include_body=False` first**, then `include_body=True` only for the specific symbol you need
 - **Pass `relative_path`** whenever possible — restricts search scope, faster results, fewer tokens
 - **`find_referencing_symbols` requires a file path**, not a directory — use `find_symbol` first if you don't know the file
-- **No cross-language references** — Go LSP won't find TypeScript references and vice versa
+- **No cross-language references** — Go LSP won't find TypeScript references and vice versa (unverified; may work in some configurations but not guaranteed by LSP specification)
 - **NEVER use Grep/Glob for code exploration when Serena can do it** — This includes finding files (`find_file` not `Glob`), searching code patterns (`search_for_pattern` not `Grep`), and understanding file structure (`get_symbols_overview` not `Read` entire file). Grep/Glob are only acceptable for non-code files (config, YAML, JSON, markdown) or when Serena's LSP has no coverage for the file type
 - **This rule applies in ALL modes** — planning, exploring, implementing, delegating to sub-agents. Even when gathering context for a plan, use Serena tools first. Do NOT fall back to `Read`/`Grep`/`Glob` out of habit. If you need a function body, use `find_symbol(include_body=True)`, not `Read` with line offsets
 
