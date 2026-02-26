@@ -295,9 +295,9 @@ dependencies {
     // Benchmark profile installer
     implementation(libs.profileinstaller)
 
-    // Design System Catalog (Showkase — debug only)
-    implementation(libs.showkase)
-    ksp(libs.showkase.processor)
+    // Design System Catalog (Showkase — dev flavor only)
+    "devImplementation"(libs.showkase)
+    "kspDev"(libs.showkase.processor)
 
     // Testing - Unit tests (JVM)
     testImplementation(libs.junit)

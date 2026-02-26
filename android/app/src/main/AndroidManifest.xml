@@ -17,17 +17,6 @@
             android:supportsRtl="true"
             android:theme="@style/Theme.Vieczandroid"
             android:networkSecurityConfig="@xml/network_security_config">
-        <!-- Showkase component browser launcher (appears in app drawer) -->
-        <activity
-                android:name=".ui.catalog.ShowkaseLauncherActivity"
-                android:exported="true"
-                android:label="Viecz Showkase">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity>
-
         <activity
                 android:name=".MainActivity"
                 android:exported="true"
