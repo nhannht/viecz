@@ -1,7 +1,7 @@
 # Technical Documentation
 
 **Project:** Viecz - Dịch Vụ Nhỏ Cho Sinh Viên
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-02-25
 **Stack:** Go (Gin) backend + Native Kotlin/Jetpack Compose Android app + Angular 21 web client
 
 ---
@@ -12,18 +12,19 @@
 |----------|-------------|------------|
 | **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** | System architecture & design | High-level architecture, tech stack, patterns |
 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Package structure & patterns | Go backend layers, Android MVVM, ER diagram |
-| **[DATA_STRUCTURE.md](./DATA_STRUCTURE.md)** | Data models | 10 GORM models, schemas, relationships |
-| **[API_REFERENCE.md](./API_REFERENCE.md)** | API endpoint reference | 39 REST endpoints + WebSocket, request/response examples |
+| **[DATA_STRUCTURE.md](./DATA_STRUCTURE.md)** | Data models | 11 GORM models, schemas, relationships |
+| **[API_REFERENCE.md](./API_REFERENCE.md)** | API endpoint reference | 47 documented endpoints (REST + WebSocket), request/response examples |
 | **[USER_FLOW.md](./USER_FLOW.md)** | User journey documentation | Auth, task, payment, chat flows |
 | **[ALGORITHM.md](./ALGORITHM.md)** | Core algorithms & complexity | JWT, escrow, WebSocket routing, wallet management |
 | **[SECURITY.md](./SECURITY.md)** | Security measures | JWT auth, bcrypt, CORS, PayOS webhook verification |
 | **[DEPLOYMENT.md](./DEPLOYMENT.md)** | Deployment & infrastructure | Docker Compose, Cloudflare tunnel, Android build flavors |
 | **[FIREBASE_DISTRIBUTION.md](./FIREBASE_DISTRIBUTION.md)** | App distribution | Firebase App Distribution workflow, tester management |
+| **[FDROID_REPO.md](./FDROID_REPO.md)** | F-Droid repository setup | Local F-Droid index, repo publishing workflow, app metadata |
 | **[SECURITY_AUDIT_2026_02_20.md](./SECURITY_AUDIT_2026_02_20.md)** | Security audit | 6 CRITICAL, 7 HIGH, 14 MEDIUM, 10 LOW findings |
 | **[ASCII_ART_SVG.md](./ASCII_ART_SVG.md)** | Image to ASCII art SVG | image2ascii pipeline, colored SVG generation, canvas glitch effects |
 | **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** | nhannht-metro-meow design system | Tokens, components, layout patterns, Tailwind 4 mapping, Storybook catalog |
 | **[WEB_MIGRATION.md](./WEB_MIGRATION.md)** | Web client migration guide | Angular Material → Tailwind 4 + Storybook, phase-by-phase plan |
-| **[UI_COMPONENT_CATALOG.md](./UI_COMPONENT_CATALOG.md)** | UI component API reference | 28 shared components + 1 service, inputs/outputs, usage examples |
+| **[UI_COMPONENT_CATALOG.md](./UI_COMPONENT_CATALOG.md)** | UI component API reference | 30 shared components + 1 service, inputs/outputs, usage examples |
 | **[UI_PATTERNS.md](./UI_PATTERNS.md)** | Page-level UI patterns | Loading/empty/error states, forms, grids, navigation, feedback |
 | **[UI_RESPONSIVE.md](./UI_RESPONSIVE.md)** | Responsive design patterns | Breakpoints, grid strategies, container widths, mobile behavior |
 | **[UI_ACCESSIBILITY.md](./UI_ACCESSIBILITY.md)** | Accessibility audit | ARIA per component, known gaps, keyboard nav, testing tools |
@@ -60,7 +61,7 @@ Read in this order:
 ### For Web Developers
 
 1. **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** - nhannht-metro-meow design tokens, components, patterns
-2. **[UI_COMPONENT_CATALOG.md](./UI_COMPONENT_CATALOG.md)** - Full API reference for all 28 shared components
+2. **[UI_COMPONENT_CATALOG.md](./UI_COMPONENT_CATALOG.md)** - Full API reference for all 30 shared components
 3. **[UI_PATTERNS.md](./UI_PATTERNS.md)** - Page-level patterns (states, forms, grids, navigation)
 4. **[UI_RESPONSIVE.md](./UI_RESPONSIVE.md)** - Breakpoints, container widths, mobile behavior
 5. **[UI_ACCESSIBILITY.md](./UI_ACCESSIBILITY.md)** - ARIA audit, keyboard nav, known gaps

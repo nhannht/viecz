@@ -1,7 +1,7 @@
 # Technical Architecture - Viecz
 
 **Version:** 2.6
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-25
 
 ---
 
@@ -28,7 +28,7 @@ Viecz is a P2P marketplace connecting university students for small services. Th
 
 - **Go backend** (Gin + GORM) serving REST and WebSocket APIs
 - **Native Android app** (Kotlin + Jetpack Compose) with MVVM architecture
-- **Angular web client** (Angular 21 + Material Design 3) with SSR support
+- **Angular web client** (Angular 21 + nhannht-metro-meow + Tailwind CSS 4) with SSR support
 - **PostgreSQL** (production, port 5432) / **PostgreSQL** (test server, port 5433, Docker tmpfs) for persistence
 - **PayOS** for payment processing (deposit via payment links, escrow via wallet)
 - **Meilisearch** (optional) for full-text task search with relevance ranking; falls back to PostgreSQL LIKE when not configured
@@ -53,7 +53,7 @@ graph TD
     end
 
     subgraph WEB_CLIENT["WEB CLIENT (Angular 21)"]
-        AngularComponents["Components<br/>(Material 3)"]
+        AngularComponents["Components<br/>(nhannht-metro-meow + Tailwind 4)"]
         AngularServices["Services<br/>(RxJS + Signals)"]
         HttpClient["HttpClient<br/>+ Interceptors"]
         WsService["WebSocket<br/>Service"]
@@ -160,8 +160,8 @@ graph TD
 |------------------|-------------------------|-----------|
 | Language         | TypeScript              | 5.9       |
 | Framework        | Angular                 | 21.1      |
-| UI Framework     | Angular Material (M3)   | 21.1      |
-| Design System    | nhannht-metro-meow (13 components) | -  |
+| UI Framework     | nhannht-metro-meow + Tailwind CSS 4 | - |
+| Design System    | nhannht-metro-meow (24 components) | - |
 | CSS Framework    | Tailwind CSS 4          | 4.2       |
 | State            | Angular Signals + RxJS  | 7.8       |
 | HTTP Client      | Angular HttpClient      | 21.1      |
@@ -571,7 +571,7 @@ DataModule (@Singleton)
 ```
 web/src/app/
 ├── app.routes.ts                # Route definitions (lazy-loaded)
-├── app.config.ts                # Provider configuration (HttpClient, Router, Material)
+├── app.config.ts                # Provider configuration (HttpClient, Router, hydration)
 ├── app.config.server.ts         # SSR server config
 ├── app.ts                       # Root component
 │
@@ -579,7 +579,7 @@ web/src/app/
 │   ├── auth.service.ts          # Login, register, token management (localStorage)
 │   ├── auth.guard.ts            # Route protection (functional CanActivateFn)
 │   ├── auth.interceptor.ts      # JWT Bearer injection + 401 refresh with rotation
-│   ├── error.interceptor.ts     # Global error handler (MatSnackBar)
+│   ├── error.interceptor.ts     # Global error handler (NhannhtMetroSnackbarService)
 │   ├── task.service.ts          # Task CRUD, applications, completion
 │   ├── wallet.service.ts        # Balance, transactions, deposit
 │   ├── payment.service.ts       # Escrow creation, release, refund
@@ -594,6 +594,7 @@ web/src/app/
 │
 ├── auth/                        # Auth screens (public)
 │   ├── login.component.ts
+│   ├── phone-login.component.ts
 │   └── register.component.ts
 │
 ├── layout/
@@ -609,7 +610,7 @@ web/src/app/
 ├── notifications/               # Notification center
 ├── profile/                     # User profile + redirect component
 │
-├── shared/components/           # Reusable UI components (28 total)
+├── shared/components/           # Reusable UI components (30 total)
 │   ├── task-card.component.ts
 │   ├── nhannht-metro-task-card.component.ts
 │   ├── nhannht-metro-application-card.component.ts
@@ -619,11 +620,13 @@ web/src/app/
 │   ├── error-fallback.component.ts
 │   ├── loading-skeleton.component.ts
 │   ├── category-chips.component.ts
-│   ├── nhannht-metro-button.component.ts    # Design system components (20)
+│   ├── nhannht-metro-button.component.ts    # Design system components (24)
 │   ├── nhannht-metro-input.component.ts
 │   ├── nhannht-metro-textarea.component.ts
 │   ├── nhannht-metro-select.component.ts
 │   ├── nhannht-metro-datepicker.component.ts
+│   ├── nhannht-metro-bank-select.component.ts
+│   ├── nhannht-metro-location-picker.component.ts
 │   ├── nhannht-metro-card.component.ts
 │   ├── nhannht-metro-price-card.component.ts
 │   ├── nhannht-metro-dialog.component.ts
@@ -652,7 +655,7 @@ web/src/app/
 
 **Functional Interceptors**: HTTP interceptors use the `HttpInterceptorFn` pattern:
 - `authInterceptor` — Attaches `Authorization: Bearer <token>`, handles 401 with token refresh and retry
-- `errorInterceptor` — Catches non-401 errors, shows MatSnackBar notifications
+- `errorInterceptor` — Catches non-401 errors (skips external map/geocoding calls), surfaces API failures consistently
 
 **Token Storage**: JWT tokens stored in `localStorage` with keys `viecz_access_token`, `viecz_refresh_token`, `viecz_user`. Checks `isPlatformBrowser()` for SSR safety.
 
@@ -663,15 +666,18 @@ web/src/app/
 | Path | Component | Auth Required |
 |------|-----------|---------------|
 | `/login` | LoginComponent | No |
-| `/register` | RegisterComponent | No |
-| `/` (root) | ShellComponent (layout) | Yes (authGuard) |
-| `` (default child) | MarketplaceComponent | Yes |
+| `/phone` | PhoneLoginComponent | No |
+| `/register` | Redirect to `/phone` | No |
+| `/` (root) | ShellComponent (layout) | No |
+| `` (default child) | MarketplaceComponent | No (optional auth context) |
 | `/tasks/new` | TaskFormComponent | Yes |
 | `/tasks/:id/edit` | TaskFormComponent | Yes |
 | `/tasks/:id/apply` | ApplyTaskComponent | Yes |
-| `/tasks/:id` | TaskDetailComponent | Yes |
+| `/tasks/:id` | TaskDetailComponent | No (optional auth context) |
+| `/verify-email` | VerifyEmailComponent | No |
+| `/payment/return` | PaymentReturnComponent | No |
 | `/wallet` | WalletComponent | Yes |
-| `/chat` | ChatComponent | Yes |
+| `/chat` | Redirect to `/messages` | Yes |
 | `/messages` | ConversationListComponent | Yes |
 | `/messages/:conversationId` | ChatComponent | Yes |
 | `/my-jobs/:mode` | MyJobsComponent | Yes |
@@ -681,7 +687,7 @@ web/src/app/
 
 ### Navigation
 
-Sticky Material toolbar with: Logo, nav links (Marketplace, Wallet, Chat), notifications menu with badge, user menu (Profile, Logout). Responsive — hides nav labels on mobile (<600px).
+Sticky nhannht-metro navbar with: logo, nav links (Marketplace, Wallet, Chat), notifications menu with badge, user menu (Profile, Logout). Responsive — hides nav labels on mobile (<600px).
 
 ### SSR (Server-Side Rendering)
 

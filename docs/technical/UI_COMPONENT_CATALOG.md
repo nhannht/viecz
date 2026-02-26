@@ -1,6 +1,6 @@
 # UI Component Catalog
 
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-02-25
 **Framework:** Angular 21 | **Design System:** nhannht-metro-meow
 **Source:** `web/src/app/shared/components/` | **Service:** `web/src/app/shared/services/`
 
@@ -19,25 +19,27 @@
 | 7 | `nhannht-metro-textarea` | `NhannhtMetroTextareaComponent` | Form | `label`, `rows`, `error` | Active |
 | 8 | `nhannht-metro-select` | `NhannhtMetroSelectComponent` | Form | `label`, `options`, `error` | Active |
 | 9 | `nhannht-metro-datepicker` | `NhannhtMetroDatepickerComponent` | Form | `label`, `min`, `max`, `error` | Active |
-| 10 | `nhannht-metro-card` | `NhannhtMetroCardComponent` | Layout | `featured`, `hoverable` | Active |
-| 11 | `nhannht-metro-dialog` | `NhannhtMetroDialogComponent` | Layout | `open`, `title` | Active |
-| 12 | `nhannht-metro-snackbar` | `NhannhtMetroSnackbarComponent` | Layout | `visible`, `message` | Active |
-| 13 | `nhannht-metro-tabs` | `NhannhtMetroTabsComponent` | Layout | `tabs`, `activeTab` | Active |
-| 14 | `nhannht-metro-nav` | `NhannhtMetroNavComponent` | Layout | `logo`, `links` | Active |
-| 15 | `nhannht-metro-menu` | `NhannhtMetroMenuComponent` | Layout | `open` | Active |
-| 16 | `nhannht-metro-task-card` | `NhannhtMetroTaskCardComponent` | Domain | `task`, `isOwner` | Active |
-| 17 | `nhannht-metro-application-card` | `NhannhtMetroApplicationCardComponent` | Domain | `application`, `showAccept` | Active |
-| 18 | `nhannht-metro-chat-bubble` | `NhannhtMetroChatBubbleComponent` | Domain | `message`, `isMine` | Active |
-| 19 | `nhannht-metro-transaction-row` | `NhannhtMetroTransactionRowComponent` | Domain | `transaction` | Active |
-| 20 | `nhannht-metro-price-card` | `NhannhtMetroPriceCardComponent` | Domain | `tier`, `price`, `features` | Active |
-| 21 | `nhannht-metro-step` | `NhannhtMetroStepComponent` | Domain | `number`, `title` | Active |
-| 22 | `app-empty-state` | `EmptyStateComponent` | Utility | `icon`, `title`, `actionLabel` | Active |
-| 23 | `app-error-fallback` | `ErrorFallbackComponent` | Utility | `title`, `message`, `retryFn` | Active |
-| 24 | `app-loading-skeleton` | `LoadingSkeletonComponent` | Utility | `variant`, `count` | Active |
-| 25 | `app-message-bubble` | `MessageBubbleComponent` | Utility | `message`, `isMine` | Legacy |
-| 26 | `app-task-card` | `TaskCardComponent` | Legacy | `task` | Legacy |
-| 27 | `app-category-chips` | `CategoryChipsComponent` | Legacy | (none) | Legacy |
-| 28 | `app-application-card` | `ApplicationCardComponent` | Legacy | `application`, `showAccept` | Legacy |
+| 10 | `nhannht-metro-bank-select` | `NhannhtMetroBankSelectComponent` | Form | `label`, `banks`, `error` | Active |
+| 11 | `nhannht-metro-location-picker` | `NhannhtMetroLocationPickerComponent` | Form | `label`, `placeholder`, `error` | Active |
+| 12 | `nhannht-metro-card` | `NhannhtMetroCardComponent` | Layout | `featured`, `hoverable` | Active |
+| 13 | `nhannht-metro-dialog` | `NhannhtMetroDialogComponent` | Layout | `open`, `title` | Active |
+| 14 | `nhannht-metro-snackbar` | `NhannhtMetroSnackbarComponent` | Layout | `visible`, `message` | Active |
+| 15 | `nhannht-metro-tabs` | `NhannhtMetroTabsComponent` | Layout | `tabs`, `activeTab` | Active |
+| 16 | `nhannht-metro-nav` | `NhannhtMetroNavComponent` | Layout | `logo`, `links` | Active |
+| 17 | `nhannht-metro-menu` | `NhannhtMetroMenuComponent` | Layout | `open` | Active |
+| 18 | `nhannht-metro-task-card` | `NhannhtMetroTaskCardComponent` | Domain | `task`, `isOwner` | Active |
+| 19 | `nhannht-metro-application-card` | `NhannhtMetroApplicationCardComponent` | Domain | `application`, `showAccept` | Active |
+| 20 | `nhannht-metro-chat-bubble` | `NhannhtMetroChatBubbleComponent` | Domain | `message`, `isMine` | Active |
+| 21 | `nhannht-metro-transaction-row` | `NhannhtMetroTransactionRowComponent` | Domain | `transaction` | Active |
+| 22 | `nhannht-metro-price-card` | `NhannhtMetroPriceCardComponent` | Domain | `tier`, `price`, `features` | Active |
+| 23 | `nhannht-metro-step` | `NhannhtMetroStepComponent` | Domain | `number`, `title` | Active |
+| 24 | `nhannht-metro-ascii-art` | `NhannhtMetroAsciiArtComponent` | Domain | `src`, `width`, `height` | Active |
+| 25 | `app-empty-state` | `EmptyStateComponent` | Utility | `icon`, `title`, `actionLabel` | Active |
+| 26 | `app-error-fallback` | `ErrorFallbackComponent` | Utility | `title`, `message`, `retryFn` | Active |
+| 27 | `app-loading-skeleton` | `LoadingSkeletonComponent` | Utility | `variant`, `count` | Active |
+| 28 | `app-message-bubble` | `MessageBubbleComponent` | Utility | `message`, `isMine` | Legacy |
+| 29 | `app-task-card` | `TaskCardComponent` | Legacy | `task` | Legacy |
+| 30 | `app-category-chips` | `CategoryChipsComponent` | Legacy | (none) | Legacy |
 
 ---
 
@@ -262,6 +264,65 @@ Uses native `<input type="date">` for OS-level date picker UI.
   [min]="today"
   [error]="form.controls.deadline.hasError('required') ? 'Required' : ''">
 </nhannht-metro-datepicker>
+```
+
+---
+
+#### nhannht-metro-bank-select
+
+**Selector:** `nhannht-metro-bank-select` | **Class:** `NhannhtMetroBankSelectComponent`
+**Replaces:** custom `<select>` + bank option rendering
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `label` | `string` | `''` | Field label |
+| `placeholder` | `string` | `''` | Placeholder text |
+| `banks` | `VietQRBank[]` | `[]` | Bank options from VietQR list |
+| `error` | `string` | `''` | Validation error |
+
+| CVA Value | Type | Description |
+|-----------|------|-------------|
+| model | `string` | Selected bank BIN |
+
+```html
+<nhannht-metro-bank-select
+  [label]="'Bank'"
+  [placeholder]="'Select bank'"
+  [banks]="vietnamBanks"
+  [(ngModel)]="bankBin"
+  [error]="bankError">
+</nhannht-metro-bank-select>
+```
+
+---
+
+#### nhannht-metro-location-picker
+
+**Selector:** `nhannht-metro-location-picker` | **Class:** `NhannhtMetroLocationPickerComponent`
+**Replaces:** text-only location input (adds map + autocomplete)
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `label` | `string` | `''` | Field label |
+| `placeholder` | `string` | `''` | Search placeholder |
+| `error` | `string` | `''` | Validation error |
+
+| CVA Value | Type | Description |
+|-----------|------|-------------|
+| model | `LocationPickerValue` | `{ location, latitude, longitude }` |
+
+Features:
+- Nominatim-based search autocomplete via `GeocodingService`
+- MapLibre map with click-to-select + draggable marker
+- Reverse geocoding to fill human-readable location
+
+```html
+<nhannht-metro-location-picker
+  label="Location"
+  placeholder="Search location"
+  [(ngModel)]="locationValue"
+  [error]="locationError">
+</nhannht-metro-location-picker>
 ```
 
 ---
@@ -585,6 +646,33 @@ Auto-computes icon, sign (+/-), and color based on `transaction.type`.
 
 ---
 
+#### nhannht-metro-ascii-art
+
+**Selector:** `nhannht-metro-ascii-art` | **Class:** `NhannhtMetroAsciiArtComponent`
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `src` | `string` | *required* | Source image URL |
+| `width` | `number` | `452` | Canvas width |
+| `height` | `number` | `380` | Canvas height |
+| `alt` | `string` | `''` | Accessible label for canvas output |
+
+Renders animated canvas ASCII-art style visuals with:
+- scanlines + periodic glitch bursts
+- reduced-motion fallback (`prefers-reduced-motion`)
+- hover-triggered glitch intensification
+
+```html
+<nhannht-metro-ascii-art
+  src="/assets/mascot.png"
+  [width]="452"
+  [height]="380"
+  alt="Viecz mascot in ASCII art style">
+</nhannht-metro-ascii-art>
+```
+
+---
+
 ## 3. Utility Components
 
 #### app-empty-state
@@ -666,7 +754,7 @@ Auto-computes icon, sign (+/-), and color based on `transaction.type`.
 
 ## 4. Legacy Components
 
-These components predate the nhannht-metro design system. They should be migrated to their metro equivalents.
+These components predate the nhannht-metro design system and remain in selective flows.
 
 #### app-task-card (LEGACY)
 
@@ -693,23 +781,6 @@ Similar to `nhannht-metro-task-card` but determines ownership internally via `Au
 No inputs. Auto-loads categories via `CategoryService` on init.
 
 > **Note:** No direct metro replacement yet. Consider migrating to `nhannht-metro-badge` with click handlers or a dedicated filter component.
-
----
-
-#### app-application-card (LEGACY)
-
-**Selector:** `app-application-card` | **Class:** `ApplicationCardComponent`
-
-| Input | Type | Default | Description |
-|-------|------|---------|-------------|
-| `application` | `TaskApplication` | *required* | Application data |
-| `showAccept` | `boolean` | `false` | Show accept button |
-
-| Output | Type | Description |
-|--------|------|-------------|
-| `acceptClick` | `number` | Emits application ID |
-
-> **Migrate to:** `nhannht-metro-application-card`
 
 ---
 
@@ -772,15 +843,17 @@ Wire the service to the snackbar component in the shell/root template:
 | `MatFormField` + `textarea` | `nhannht-metro-textarea` | Migrated |
 | `MatSelect` + `MatOption` | `nhannht-metro-select` | Migrated |
 | `MatDatepicker` | `nhannht-metro-datepicker` | Migrated |
+| Bank dropdown `<select>` + manual logo rendering | `nhannht-metro-bank-select` | Migrated |
 | `MatCard` | `nhannht-metro-card` | Migrated |
 | `MatDialog` | `nhannht-metro-dialog` | Migrated |
 | `MatSnackBar` | `nhannht-metro-snackbar` + service | Migrated |
 | `MatTabGroup` + `MatTab` | `nhannht-metro-tabs` | Migrated |
 | `MatToolbar` | `nhannht-metro-nav` | Migrated |
 | `MatMenu` + `MatMenuTrigger` | `nhannht-metro-menu` | Migrated |
+| Text-only location input | `nhannht-metro-location-picker` | Migrated |
+| Hero/mascot static image | `nhannht-metro-ascii-art` | Migrated |
 | `app-task-card` | `nhannht-metro-task-card` | Legacy (pending migration) |
 | `app-message-bubble` | `nhannht-metro-chat-bubble` | Legacy (pending migration) |
-| `app-application-card` | `nhannht-metro-application-card` | Legacy (pending migration) |
 | `app-category-chips` | -- | No replacement yet |
 | `app-empty-state` | -- | N/A (utility, no Material original) |
 | `app-error-fallback` | -- | N/A (utility, no Material original) |

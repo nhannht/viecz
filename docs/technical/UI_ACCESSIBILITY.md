@@ -1,7 +1,7 @@
 # UI Accessibility Audit
 
 **Project:** Viecz - Angular Web Client
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-02-25
 **Scope:** nhannht-metro design system + shared components + shell layout
 
 ---
@@ -54,7 +54,6 @@ The nhannht-metro design system has good foundational accessibility: proper ARIA
 | app-message-bubble | None | `<div>` | Partial (no semantic structure) |
 | app-task-card | None needed | `<a>` link, `<h3>` heading | Done |
 | app-category-chips | None | `<button>` elements | Partial (no aria-pressed/aria-current for selected state) |
-| app-application-card | None | Material MatCard | Missing (needs migration to nhannht-metro) |
 
 ### Shell Layout
 

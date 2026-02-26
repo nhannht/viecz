@@ -1,10 +1,10 @@
 # UI Patterns -- Angular Web Client
 
-> Last Updated: 2026-02-21
+> Last Updated: 2026-02-25
 
 Page-level UI patterns used across the Viecz Angular web client. Covers state management, forms, layout, navigation, feedback, and data display.
 
-**Design system context**: The web client is migrating from Angular Material to the **nhannht-metro-meow** design system (Tailwind 4). Both coexist -- tables below mark which system each pattern uses.
+**Design system context**: The web client uses the **nhannht-metro-meow** design system with Tailwind 4. Legacy component wrappers still exist in a few screens, but Angular Material runtime components are no longer used.
 
 ---
 
@@ -30,7 +30,7 @@ Every data-driven page renders one of four mutually exclusive states:
 |------|-----------|--------|-------|
 | Marketplace | `<app-loading-skeleton variant="card" [count]="6">` | Custom | Skeleton cards matching card grid |
 | My Jobs | `<nhannht-metro-spinner [size]="40">` | nhannht-metro | Centered |
-| Wallet | `<mat-progress-spinner diameter="40">` | Material (legacy) | Centered |
+| Wallet | `<nhannht-metro-spinner [size]="40">` | nhannht-metro | Centered |
 | Chat | `<nhannht-metro-spinner [size]="30">` | nhannht-metro | Inline |
 | Conversation List | `<nhannht-metro-spinner [size]="36">` | nhannht-metro | Centered |
 | Apply Task | `<nhannht-metro-spinner [size]="40">` | nhannht-metro | Centered |
@@ -53,15 +53,15 @@ Every data-driven page renders one of four mutually exclusive states:
 | Pattern | System | Usage |
 |---------|--------|-------|
 | `<app-error-fallback [title] [message] [retryFn]>` | Custom | Most pages -- inline retry |
-| Snackbar + `router.navigate` | nhannht-metro / Material | Task Form, Apply Task -- redirect on error |
+| Snackbar + `router.navigate` | nhannht-metro | Task Form, Apply Task -- redirect on error |
 
 ---
 
 ## 2. Form Patterns
 
-### Centered Auth Form (Login, Register)
+### Centered Auth Form (Login, Register, Phone Login)
 
-Used by `LoginComponent` and `RegisterComponent`.
+Used by `LoginComponent`, `RegisterComponent` (legacy path), and `PhoneLoginComponent` (default flow).
 
 ```
 +---------------------------------------+
@@ -103,9 +103,9 @@ Used by `TaskFormComponent`.
 | Element | Implementation | System |
 |---------|---------------|--------|
 | Container | `max-width: 700px; margin: 0 auto` | Inline CSS |
-| Wrapper | `MatCard` with `MatCardHeader`, `MatCardContent`, `MatCardActions` | Material (legacy) |
+| Wrapper | `nhannht-metro-card` (`max-w-[700px] mx-auto`) | nhannht-metro |
 | Two-column row | `flex gap-16px` for Price + Location; `flex-direction: column` at 600px | CSS media query |
-| Balance card | Colored alert (`primary-container` or `error-container`) | Material tokens |
+| Balance card | Utility classes (`bg-fg text-bg` / `bg-card border border-fg text-fg`) | Tailwind |
 
 ### Modal-Style Form (Apply Task)
 
@@ -248,15 +248,11 @@ Square, no border-radius -- consistent with nhannht-metro design language.
 
 | Method | System | Usage |
 |--------|--------|-------|
-| `NhannhtMetroSnackbarService.show(msg, action, opts)` | nhannht-metro | Preferred for new code |
-| `MatSnackBar.open(msg, action, opts)` | Material (legacy) | Still present in some pages |
+| `NhannhtMetroSnackbarService.show(msg, action, opts)` | nhannht-metro | Standard feedback channel |
 
 ```typescript
-// nhannht-metro (preferred)
+// nhannht-metro
 this.snackbar.show('Task created successfully', 'Close', { duration: 3000 });
-
-// Material (legacy)
-this.snackBar.open('Error message', 'Close', { duration: 3000 });
 ```
 
 Global snackbar rendered in shell:
@@ -360,16 +356,15 @@ Unread items get `font-bold` on the title.
 
 ---
 
-## Quick Reference: System Migration Status
+## Quick Reference: Current System Status
 
-| Pattern | Current System | Migration Target |
-|---------|---------------|-----------------|
-| Spinners (most pages) | nhannht-metro | Done |
-| Wallet spinner | Material (`mat-progress-spinner`) | nhannht-metro |
-| Task Form | Material (`MatCard`) | nhannht-metro |
-| Snackbar | Both (nhannht-metro preferred) | nhannht-metro |
-| Auth forms | nhannht-metro | Done |
-| Task cards | Both (`app-task-card` + `nhannht-metro-task-card`) | nhannht-metro |
-| Icons | nhannht-metro (`nhannht-metro-icon`) | Done |
-| Inputs | nhannht-metro (`NhannhtMetroInput`) | Done |
-| Buttons | nhannht-metro (`nhannht-metro-button`) | Done |
+| Pattern | Current System | Status |
+|---------|---------------|--------|
+| Spinners | nhannht-metro | Stable |
+| Task Form wrapper | nhannht-metro-card | Stable |
+| Snackbar | nhannht-metro service + component | Stable |
+| Auth forms | nhannht-metro + Tailwind | Stable |
+| Task cards | `app-task-card` + `nhannht-metro-task-card` | Mixed (legacy + new) |
+| Icons | `nhannht-metro-icon` | Stable |
+| Inputs | `nhannht-metro-input` / `nhannht-metro-location-picker` | Stable |
+| Buttons | `nhannht-metro-button` | Stable |

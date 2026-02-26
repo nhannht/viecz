@@ -284,33 +284,73 @@ fun CreateTaskScreen(
         )
     }
 
-    // Date picker dialog — stays Material3 (complex widget, low ROI)
+    // Date picker dialog — Metro-themed
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState()
+        val metroDatePickerColors = DatePickerDefaults.colors(
+            containerColor = colors.card,
+            titleContentColor = colors.fg,
+            headlineContentColor = colors.fg,
+            weekdayContentColor = colors.muted,
+            subheadContentColor = colors.muted,
+            navigationContentColor = colors.fg,
+            yearContentColor = colors.fg,
+            currentYearContentColor = colors.fg,
+            selectedYearContentColor = colors.card,
+            selectedYearContainerColor = colors.fg,
+            dayContentColor = colors.fg,
+            selectedDayContentColor = colors.card,
+            selectedDayContainerColor = colors.fg,
+            todayContentColor = colors.fg,
+            todayDateBorderColor = colors.fg,
+            dividerColor = colors.border,
+        )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
+            colors = metroDatePickerColors,
             confirmButton = {
-                TextButton(
+                MetroButton(
+                    label = "Next",
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             selectedDateMillis = millis
                             showDatePicker = false
                             showTimePicker = true
                         }
-                    }
-                ) { Text("Next") }
+                    },
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                MetroButton(
+                    label = "Cancel",
+                    onClick = { showDatePicker = false },
+                    variant = MetroButtonVariant.Secondary,
+                )
             }
         ) {
-            DatePicker(state = datePickerState)
+            DatePicker(state = datePickerState, colors = metroDatePickerColors)
         }
     }
 
-    // Time picker dialog — stays Material3
+    // Time picker dialog — Metro-themed
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState()
+        val metroTimePickerColors = TimePickerDefaults.colors(
+            clockDialColor = colors.bg,
+            clockDialSelectedContentColor = colors.card,
+            clockDialUnselectedContentColor = colors.fg,
+            selectorColor = colors.fg,
+            containerColor = colors.card,
+            periodSelectorBorderColor = colors.border,
+            periodSelectorSelectedContainerColor = colors.fg,
+            periodSelectorSelectedContentColor = colors.card,
+            periodSelectorUnselectedContainerColor = colors.card,
+            periodSelectorUnselectedContentColor = colors.fg,
+            timeSelectorSelectedContainerColor = colors.fg,
+            timeSelectorSelectedContentColor = colors.card,
+            timeSelectorUnselectedContainerColor = colors.bg,
+            timeSelectorUnselectedContentColor = colors.fg,
+        )
         MetroDialog(
             open = true,
             onDismiss = { showTimePicker = false },
@@ -330,7 +370,7 @@ fun CreateTaskScreen(
             },
             onCancel = { showTimePicker = false },
         ) {
-            TimePicker(state = timePickerState)
+            TimePicker(state = timePickerState, colors = metroTimePickerColors)
         }
     }
 }
