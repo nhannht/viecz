@@ -48,6 +48,39 @@ Serena has persistent cross-session memories in `.serena/memories/`. At session 
 
 Current memories: `project_overview`, `suggested_commands`, `architecture/go_backend`, `architecture/angular_web`, `conventions/go_style`, `conventions/angular_style`, `task_completion_checklist`, `gotchas`
 
+### Working with Serena - Best Practices (Learned from Experience)
+
+**Key Pattern**: Serena for *understanding* code structure and symbol relationships. Use raw Bash/Grep for *counting* things or searching for specific text patterns that aren't symbol boundaries (like route registrations in main.go).
+
+| Task | Best Tool | Why |
+|-------|------------|-----|
+| What handler methods exist? | Serena `get_symbols_overview` | See all methods at once, structured output |
+| How many routes registered? | Bash `grep -c` | Route patterns like `GET/POST` not in symbol AST |
+| File inventory/count | Bash `find \| wc -l` | Simple counting, no need for LSP analysis |
+| Find where a function is used | Serena `find_referencing_symbols` | Cross-file LSP references |
+| Get specific function body | Serena `find_symbol(include_body=true)` | Precise boundary extraction |
+
+**When Serena is Most Effective**:
+- Symbol overview for quick file structure (`get_symbols_overview(file, depth=1)`)
+- Finding specific symbols (use `include_body=False` first, then read only what you need)
+- Finding references across files (`find_referencing_symbols`)
+- List directory for inventory (`list_dir()`)
+
+**When Raw Bash/Grep is Actually Better**:
+- Counting registered routes in main.go (route patterns like `api.GET()` not in symbol AST)
+- Simple file counts (`find | wc -l` for counting files by pattern)
+- Searching for text that's not a symbol boundary (like comments, strings)
+
+**Cross-Language Limitation (Expected, Not a Bug)**:
+- Go LSP won't find TypeScript references and vice versa
+- This is expected behavior, not something to "work around"
+- Use project-specific `Grep` or `search_for_pattern` for cross-platform searches
+
+**Memory Value**:
+- Serena memories (especially `architecture/go_backend`) provide instant context on:
+  - Expected model count, handlers structure, service/repository patterns
+  - This context saves 10+ minutes of file reading per session
+
 ## UI/UX Issue Investigation (CRITICAL - ALWAYS FOLLOW)
 
 **MANDATORY**: When the user asks about UI/UX behavior, visual bugs, or app navigation issues, follow this order:
