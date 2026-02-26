@@ -1,6 +1,8 @@
 package com.viecz.vieczandroid.data.repository
 
 import android.content.ContentResolver
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import com.viecz.vieczandroid.data.api.UpdateProfileRequest
@@ -77,12 +79,33 @@ class UserRepository(
     suspend fun uploadAvatar(contentResolver: ContentResolver, imageUri: Uri): Result<User> {
         return try {
             Log.d(TAG, "Uploading avatar")
-            val mimeType = contentResolver.getType(imageUri) ?: "image/jpeg"
             val inputStream = contentResolver.openInputStream(imageUri)
                 ?: return Result.failure(IOException("Failed to open image"))
-            val bytes = inputStream.use { it.readBytes() }
-            val requestBody = bytes.toRequestBody(mimeType.toMediaType())
-            val part = MultipartBody.Part.createFormData("avatar", "avatar.${mimeType.substringAfter("/")}", requestBody)
+            val originalBitmap = inputStream.use { BitmapFactory.decodeStream(it) }
+                ?: return Result.failure(IOException("Failed to decode image"))
+
+            // Resize to max 1024px on longest side
+            val maxDim = 1024
+            val bitmap = if (originalBitmap.width > maxDim || originalBitmap.height > maxDim) {
+                val scale = maxDim.toFloat() / maxOf(originalBitmap.width, originalBitmap.height)
+                val w = (originalBitmap.width * scale).toInt()
+                val h = (originalBitmap.height * scale).toInt()
+                Bitmap.createScaledBitmap(originalBitmap, w, h, true).also {
+                    if (it !== originalBitmap) originalBitmap.recycle()
+                }
+            } else {
+                originalBitmap
+            }
+
+            // Compress to JPEG 85%
+            val outputStream = java.io.ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+            bitmap.recycle()
+            val bytes = outputStream.toByteArray()
+            Log.d(TAG, "Compressed avatar: ${bytes.size / 1024}KB")
+
+            val requestBody = bytes.toRequestBody("image/jpeg".toMediaType())
+            val part = MultipartBody.Part.createFormData("avatar", "avatar.jpg", requestBody)
             val user = api.uploadAvatar(part)
             Log.d(TAG, "Avatar uploaded successfully")
             Result.success(user)
