@@ -48,7 +48,7 @@ Serena has persistent cross-session memories in `.serena/memories/`. At session 
 
 Current memories: `project_overview`, `suggested_commands`, `architecture/go_backend`, `architecture/angular_web`, `conventions/go_style`, `conventions/angular_style`, `task_completion_checklist`, `gotchas`
 
-### Working with Serena - Best Practices (Learned from Experience)
+### Working with Serena - Best Practices
 
 **Key Pattern**: Serena for *understanding* code structure and symbol relationships. Use raw Bash/Grep for *counting* things or searching for specific text patterns that aren't symbol boundaries (like route registrations in main.go).
 
@@ -83,52 +83,6 @@ Current memories: `project_overview`, `suggested_commands`, `architecture/go_bac
 
 ---
 
-## Session Learnings (Documentation Audit + Serena Usage)
-
-### When to Research vs. Assume
-
-**Mistake made**: Stated "Go LSP won't find TypeScript references" as fact without verifying
-
-**Correct approach**:
-```
-# When making technical claims about tool behavior:
-1. State "based on my understanding" if unverified
-2. Search first, then confirm/deny claim
-3. Distinguish "LSP spec" vs. "tool implementation quirks"
-```
-
-### Serena Usage Patterns
-
-| Scenario | Best Tool | Alternative |
-|----------|------------|------------|
-| Find handler methods | `get_symbols_overview` | N/A (Serena is best) |
-| Count models/files | `list_dir()` + counting | N/A (Serena is best) |
-| Find specific function body | `find_symbol(include_body=true)` | N/A |
-| Find route registrations | Bash `grep -c "api\.GET\|POST"` | Serena won't show route patterns (not in AST) |
-| Verify documented vs. actual | Read docs + grep code | N/A (use both for accuracy) |
-
-### Key Takeaway
-
-**Serena excels at understanding code structure**. Use it first for exploration. Use Bash/Grep only for:
-- Counting things (lines, files, grep matches)
-- Searching for text patterns that aren't symbols
-- Running shell commands
-
-### Documentation Audit Learnings
-
-**Workflow** - 3-layer delegation:
-1. Scope (diff-based, skip what hasn't changed) - use `git log --since` to detect code changes
-2. Programmatic pre-check - count/compare mechanically before expensive agent audits
-3. Agent audit + verification - Serena explores, YOU decide what's wrong
-4. Fix (delegate to agents) - for multiple docs, fix in parallel
-5. Verify fixes - never trust agent findings blindly, check with Read/Grep
-
-**Git log trick** - `git log --since=<doc-date> --name-only` shows what code changed since doc was last updated. Focus audit only on changed files.
-
-**Important**: Always replace entire section when updating, don't just append. This prevents accumulating redundant content.
-
----
-
 ## UI/UX Issue Investigation (CRITICAL - ALWAYS FOLLOW)
 
 **MANDATORY**: When the user asks about UI/UX behavior, visual bugs, or app navigation issues, follow this order:
@@ -144,58 +98,6 @@ Current memories: `project_overview`, `suggested_commands`, `architecture/go_bac
 
 **Why**: UI/UX issues are best understood by observing the real app. Code reading alone can miss runtime state, timing, and visual layout problems.
 
-## Stack Overflow API Access
-
-**Stack Overflow and Stack Exchange content can be accessed programmatically via the official Stack Exchange API.**
-
-### Official API Endpoint
-
-```bash
-https://api.stackexchange.com/2.2/
-```
-
-### Common Use Cases
-
-**Fetch a specific question with body:**
-```bash
-curl -s "https://api.stackexchange.com/2.2/questions/{question_id}?site=stackoverflow&filter=withbody" | jq
-```
-
-**Fetch answers for a question:**
-```bash
-curl -s "https://api.stackexchange.com/2.2/questions/{question_id}/answers?site=stackoverflow&filter=withbody&sort=votes" | jq
-```
-
-**Example:**
-```bash
-# Get question 76823978 with body
-curl -s "https://api.stackexchange.com/2.2/questions/76823978?site=stackoverflow&filter=withbody" | jq -r '.items[0].body'
-
-# Get all answers sorted by votes
-curl -s "https://api.stackexchange.com/2.2/questions/76823978/answers?site=stackoverflow&filter=withbody&sort=votes" | jq -r '.items[].body'
-```
-
-### Alternative Tools
-
-**Python:**
-- `stackapi` package - Python binding to StackExchange APIs
-- `beautifulsoup4` + `requests` - For HTML scraping
-
-**Node.js:**
-- `crawlee` - Web scraping and browser automation framework
-
-**CLI:**
-- Stack Overflow CLI search tools available via npm/pip
-
-### Why Use the API
-
-- **No web scraping needed** - Official, reliable access
-- **Rate limits** - Free tier: 300 requests/day (no auth), 10,000/day (with auth)
-- **Structured data** - Clean JSON responses
-- **No parsing** - Pre-formatted content
-
-**Reference:** [Stack Exchange API Documentation](https://api.stackexchange.com/docs)
-
 ## Project Overview
 
 Viecz is a multi-package project containing:
@@ -206,56 +108,67 @@ Viecz is a multi-package project containing:
 
 **Current Status**: Active development on Go backend, Android app, and web client
 
-## Technical Documentation (CRITICAL - ALWAYS FOLLOW)
+### Platform Status
 
-**Location:** `docs/technical/`
+- **Android app** - Native Kotlin with Jetpack Compose (Active development)
+- **Go Backend** - Fully implemented with ~70%+ test coverage (Production ready)
+- **Web client** - Angular 21 with SSR, Material Design 3, full feature parity with Android
+- **iOS app** - Not planned
 
-**MANDATORY**: Always consult the technical docs in `docs/technical/` for context **before** working on tasks, and always update them **after** making code changes. These docs must stay in sync with the codebase — outdated docs are worse than no docs.
+## Code Documentation (CRITICAL - ALWAYS FOLLOW)
 
-### When to Read
+**Primary source of truth is the code itself.** Use CLI doc tools instead of hand-written docs for models, APIs, components, and services — they're always accurate and never drift.
 
-- **Before implementing a feature** — check relevant docs for existing patterns, models, and endpoints
-- **Before debugging** — understand the architecture and data flow from the docs
-- **Before writing or running tests** — read `TESTING.md` for coverage targets, platform commands, and test patterns
-- **When onboarding to an unfamiliar area** — read the relevant doc before diving into code
+### Code-First Documentation (Use These Instead of Reading docs/technical/)
 
-### When to Update
+**Go backend** — `scripts/godoc-query.sh`:
+```bash
+bash scripts/godoc-query.sh models          # All models with fields, tags, methods
+bash scripts/godoc-query.sh model User       # Specific model
+bash scripts/godoc-query.sh handlers         # All handler types and methods
+bash scripts/godoc-query.sh services         # All service interfaces
+bash scripts/godoc-query.sh routes           # All registered routes (from main.go)
+bash scripts/godoc-query.sh search wallet    # Search across all packages
+```
 
-- **After adding/modifying API endpoints** — update `API_REFERENCE.md`
-- **After adding/modifying database models** — update `DATA_STRUCTURE.md`
-- **After changing architecture or package structure** — update `ARCHITECTURE.md` and/or `SYSTEM_DESIGN.md`
-- **After adding/modifying user-facing flows** — update `USER_FLOW.md`
-- **After changing business logic or algorithms** — update `ALGORITHM.md`
-- **After changing auth, security, or middleware** — update `SECURITY.md`
-- **After changing deployment, Docker, or infra config** — update `DEPLOYMENT.md`
-- **After changing test patterns, coverage targets, or test infrastructure** — update `TESTING.md`
-- **After updating any technical doc** — update the Document Index table in this `CLAUDE.md` if the doc's content scope changed
+**Angular web client** — `scripts/compodoc-query.py`:
+```bash
+python3 scripts/compodoc-query.py stats              # Project statistics
+python3 scripts/compodoc-query.py components          # All components with selectors
+python3 scripts/compodoc-query.py component TaskCard   # Component inputs/outputs/methods
+python3 scripts/compodoc-query.py services            # All services
+python3 scripts/compodoc-query.py service Auth         # Service methods and signatures
+python3 scripts/compodoc-query.py interfaces          # All interfaces
+python3 scripts/compodoc-query.py routes              # App routes
+python3 scripts/compodoc-query.py search wallet        # Search all symbols
+python3 scripts/compodoc-query.py generate            # Regenerate docs (auto on first query)
+```
 
-### Document Index
+**Android** — Use Serena LSP tools (`get_symbols_overview`, `find_symbol`) for Kotlin code exploration.
 
-| Document | Content |
-|----------|---------|
-| `SYSTEM_DESIGN.md` | High-level architecture, tech stack, patterns, web client overview |
-| `ARCHITECTURE.md` | Go backend layers, Android MVVM, Angular web client, ER diagram, service dependencies |
-| `DATA_STRUCTURE.md` | 11 GORM models, schemas, relationships |
-| `API_REFERENCE.md` | 43 REST endpoints + WebSocket |
-| `USER_FLOW.md` | Auth, task, payment, chat flows (Android + Web) |
-| `ALGORITHM.md` | JWT, escrow, WebSocket routing, wallet, available balance validation |
-| `SECURITY.md` | JWT auth, bcrypt, CORS, PayOS verification, web client token storage |
-| `DEPLOYMENT.md` | Docker Compose, Cloudflare tunnel, Android flavors, web client build |
-| `FIREBASE_DISTRIBUTION.md` | Firebase App Distribution workflow, tester management |
-| `SECURITY_AUDIT_2026_02_20.md` | Full repository security audit: 6 CRITICAL, 7 HIGH, 14 MEDIUM, 10 LOW |
-| `ASCII_ART_SVG.md` | Image → colored ASCII art SVG pipeline, canvas glitch effects |
-| `DESIGN_SYSTEM.md` | nhannht-metro-meow design system: tokens, components, Tailwind 4 mapping |
-| `WEB_MIGRATION.md` | Migration guide: Angular Material → Tailwind 4 + Storybook |
-| `UI_COMPONENT_CATALOG.md` | Full API reference: 28 shared components + 1 service, inputs/outputs, usage examples |
-| `UI_PATTERNS.md` | Page-level UI patterns: four-state rendering, forms, layout, navigation, feedback, data display |
-| `UI_RESPONSIVE.md` | Responsive design: breakpoints, grid strategies, container widths, mobile behavior |
-| `UI_ACCESSIBILITY.md` | Accessibility audit: ARIA per component, known gaps, keyboard nav, testing tools |
-| `UI_PLATFORM_PARITY.md` | Android vs Web: screen-by-screen comparison, navigation, design language |
-| `UI_ANIMATION.md` | Animation patterns: duration scale, hover effects, loading animations, guidelines |
-| `TESTING.md` | Testing standards: tiered coverage targets (75% business logic, 50% data layer), platform commands, patterns |
-| `README.md` | Index and navigation guide |
+### When to Use CLI Docs vs Serena vs docs/technical/
+
+| Need | Use This | Why |
+|------|----------|-----|
+| Model fields, types, tags | `godoc-query.sh model X` | Exact struct with GORM/JSON tags |
+| All API routes | `godoc-query.sh routes` | Parsed from actual main.go |
+| Component inputs/outputs | `compodoc-query.py component X` | Parsed from actual TypeScript |
+| Service methods | `compodoc-query.py service X` | Full method signatures |
+| Symbol relationships | Serena `find_referencing_symbols` | LSP cross-file references |
+| High-level architecture | `docs/technical/ARCHITECTURE.md` | Rarely changes, explains *why* |
+| Testing commands/patterns | `docs/technical/TESTING.md` | Operational reference |
+| Deployment procedures | Deployment section in this file | Operational reference |
+| Security audit findings | `docs/technical/SECURITY_AUDIT_2026_02_20.md` | Point-in-time audit |
+| Design system tokens | `docs/technical/DESIGN_SYSTEM.md` | Design decisions |
+
+### docs/technical/ — Reference Only, Not Mandatory
+
+`docs/technical/` contains 22 documents. They are **reference material for humans** (onboarding, design reviews), NOT the primary way Claude Code should understand the codebase. Do not spend time updating them after every code change — the CLI tools above are always accurate.
+
+**Update docs/technical/ only when:**
+- Architecture fundamentally changes (new services, major restructuring)
+- Security audit findings are addressed
+- A teammate specifically asks for documentation updates
 
 ## YouTrack Project Management
 
@@ -559,15 +472,15 @@ android/E2E_TESTING_GUIDE.md
 
 **E2E Test Naming Convention** (CRITICAL - ALWAYS FOLLOW):
 - All E2E test files MUST use the `S<number>_<Name>E2ETest.kt` format
-- `<number>` is the primary scenario number (01, 02, 04, 06, 08, 13, 14, 15)
-- Use two-digit zero-padded numbers (e.g., `S01_`, not `S1_`)
-- Class name MUST match the file name (e.g., `class S01_AuthFlowE2ETest`)
-- Examples:
-  - `S01_AuthFlowE2ETest.kt` — Scenarios 1, 2 (auth flow)
-  - `S04_BrowseTasksE2ETest.kt` — Scenarios 4, 5, 7 (browse)
-  - `S13_FullJobLifecycleE2ETest.kt` — Scenario 13 (full lifecycle)
+- `<number>` is the primary scenario number (13, 14, 15, 16, 18, 19, ...)
+- Class name MUST match the file name (e.g., `class S13_FullJobLifecycleE2ETest`)
+- Examples (actual tests in the repo):
+  - `S13_FullJobLifecycleE2ETest.kt` — Full job lifecycle (register, create, apply, escrow, complete)
+  - `S14_ChatMessagingE2ETest.kt` — Chat messaging
+  - `S16_EscrowNegotiationE2ETest.kt` — Escrow negotiation
+  - `S19_TaskDeletionE2ETest.kt` — Task deletion
 - Base classes (`BaseE2ETest`, `RealServerBaseE2ETest`, `E2ETest`) do NOT use the `S<number>_` prefix
-- When creating new E2E tests, assign the next available scenario number
+- When creating new E2E tests, assign the next available scenario number (currently: S20)
 
 **MANDATORY — Dev Server & Log Checking**:
 - **Always start test PostgreSQL, Meilisearch, and the Go test server** before running E2E tests:
@@ -674,7 +587,7 @@ All Gradle commands use the existing daemon - no restart needed.
 
 ### Go Backend Development
 - Primary location: `server/`
-- **Language**: Go 1.21+
+- **Language**: Go 1.25+
 - **Framework**: Gin web framework
 - **Database**: PostgreSQL with GORM ORM
 - **Package**: `viecz.vieczserver`
@@ -795,11 +708,6 @@ npm run build                    # Production build with SSR
 npm run serve:ssr:web            # Serve SSR build locally
 ```
 
-### Shared UI Components (Not Yet Implemented)
-- Planned location: `packages/ui/`
-- Will contain reusable UI components shared across packages
-- Currently placeholder only
-
 ## Adding Dependencies
 
 ### Using Version Catalog (Recommended)
@@ -878,6 +786,37 @@ ssh -f <ssh-alias> "cd <remote-project-path> && nohup ./server/bin/server-linux 
 
 **Server details**: See `sg` in global CLAUDE.md for SSH alias, IP, and connection details.
 
+### Production Ports
+
+**MANDATORY**: Before restarting any service, check the port it was running on. Never assume default dev ports.
+
+| Service | Production Port | Nginx upstream | Dev Port |
+|---------|----------------|----------------|----------|
+| Go API server | 8080 | `127.0.0.1:8080` (via `/api/` in nginx) | 8080 |
+| Web SSR (Express/Node) | **4001** | `127.0.0.1:4001` | 4200 |
+
+### Production Restart Commands
+
+```bash
+# Go server
+pkill -f './server/bin/server-linux' || true
+cd /home/ubuntu/nhannht-projects/viecz && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &
+
+# Web client — PORT=4001, NOT 4000 or 4200
+pkill -f 'node.*dist/web/server/server.mjs' || true
+cd /home/ubuntu/nhannht-projects/viecz/web && PORT=4001 nohup node dist/web/server/server.mjs > /tmp/viecz-web.log 2>&1 &
+```
+
+### Pre-deployment Checklist
+
+1. `ps aux | grep -E 'server-linux|node.*dist/web' | grep -v grep` — check current ports
+2. Build binaries/assets
+3. Kill old process
+4. Start new process on the **same port**
+5. Verify: `curl -s --max-time 5 -o /dev/null -w "%{http_code}" https://viecz.fishcmus.io.vn`
+
+**Learned the hard way**: Starting the web client on port 4000 instead of 4001 caused a production outage because nginx proxies to 4001. Always verify the nginx upstream port before deploying.
+
 ## Learned Patterns (Project-Specific)
 
 ### Storybook Angular + Compodoc Setup
@@ -913,14 +852,6 @@ When proposing layout or visual changes, follow this workflow:
 5. **Never implement multiple variants in worktrees just to screenshot them** — That's overengineered. ASCII mockups in the terminal are faster and good enough for layout decisions
 6. **Keep it simple** — The goal is quick feedback loops. Print mockup → user picks → implement → verify
 
-### Debugging Discipline (Learned from Mistakes)
-
-- **Read terminal warnings during `yarn install` / `npm install`** — "unmet peer dependency" warnings are often the root cause of runtime failures, not just noise. The missing `@angular/platform-browser-dynamic` was printed in every `yarn install` output but was ignored repeatedly.
-- **Browser DevTools FIRST for rendering failures** — Storybook's webpack log only shows build/compile errors. If the build succeeds (100%) but components don't render, the error is a **runtime JavaScript error** visible only in the browser console. Always open DevTools before guessing.
-- **Correlation is not causation** — "I added package X and it broke" does NOT mean package X broke it. The breakage may have existed before and only became visible. Verify the actual error before reverting changes.
-- **Stop guessing, start reading** — Every "quick fix" attempt that fails (clear cache, kill process, revert file, remove package) costs more time than the 30 seconds of reading the actual error message. The debugging loop should be: **observe error → research → understand → fix**, not: **guess → try → fail → guess again**.
-- **Never revert working code without understanding why it broke** — Reverting compodoc/addon-docs was wrong because they weren't the cause. The revert wasted multiple cycles and had to be re-applied afterward.
-
 ### PayOS Integration Patterns
 
 - **PayOS sends test webhooks when verifying URLs** — When you update the webhook URL in the PayOS dashboard, PayOS sends a test payload with `description: "Ma giao dich thu nghiem"` or `"VQRIO123"`. Your webhook handler must detect these and return `200 OK` **before** signature verification, otherwise PayOS reports "webhook url cua ban khong hoat dong" (your webhook URL is not working). See `webhook.go` lines 55-63.
@@ -929,8 +860,9 @@ When proposing layout or visual changes, follow this workflow:
 
 ### Infrastructure Routing
 
-- **Go API has no direct public ingress** — The only cloudflared ingress is `viecz.fishcmus.io.vn → localhost:4000` (Angular SSR/Express). The Go server at `localhost:8080` is only reachable through the Express proxy (`/api → localhost:8080`). This means webhook URLs, return URLs, and all external callbacks must use `https://viecz.fishcmus.io.vn/api/v1/...`, not a separate API domain.
-- **The old domain `viecz-api-dev.fishcmus.io.vn` is dead** — No cloudflared ingress exists for it. Any PayOS settings (webhook URL, etc.) pointing to this domain must be updated to `viecz.fishcmus.io.vn`.
+- **Nginx handles `viecz.fishcmus.io.vn`** — TLS via Let's Encrypt, not cloudflared. Nginx config at `/etc/nginx/sites-enabled/viecz-web` routes `/api/` to Go server at `127.0.0.1:8080` and everything else to Angular SSR at `127.0.0.1:4001`.
+- **Separate nginx configs exist for other subdomains** — `viecz-api.fishcmus.io.vn` (direct Go API access via `/etc/nginx/sites-enabled/viecz-api`), `viecz-apk-dev.fishcmus.io.vn` (APK downloads via `/etc/nginx/sites-enabled/viecz-apk-dev`).
+- **Webhook/callback URLs must use `https://viecz.fishcmus.io.vn/api/v1/...`** — This is the primary public ingress for the Go API (proxied through nginx).
 
 ### Dual Component Architecture (nhannht-metro vs shared)
 
@@ -938,26 +870,6 @@ When proposing layout or visual changes, follow this workflow:
 - **`nhannht-metro-*` components are design system references** — They will eventually move to a standalone project. They may duplicate `shared/` components with slight API differences (e.g., `isOwner` as input vs auto-detected from `AuthService`). Both should stay in sync feature-wise, but the `shared/` version is what production uses.
 - **Always trace imports from page components before modifying a shared component** — Run `Grep` for the component selector (e.g., `app-task-card`) in page templates to confirm which component the app actually renders. Storybook rendering ≠ production rendering.
 - **Same pattern applies to all shared components** — If both `app-X` and `nhannht-metro-X` exist, the `app-X` version is the production one.
-
-## Project Status
-
-- ✅ **Android app** - Native Kotlin with Jetpack Compose (Active development)
-- ✅ **Go Backend** - Fully implemented with ~70%+ test coverage (Production ready)
-  - Authentication & JWT
-  - Payment processing (PayOS integration)
-  - Wallet & transaction management
-  - Task management system
-  - Real-time messaging (WebSocket)
-  - User profiles & categories
-- ✅ **Web client** - Angular 21 with SSR, Material Design 3, full feature parity with Android
-  - Auth (login, register, token refresh)
-  - Marketplace (browse, search, create/edit tasks)
-  - Task applications and escrow flow
-  - Wallet (balance, deposit, transaction history)
-  - Real-time chat (WebSocket)
-  - Profile and notifications
-- ⏳ **Shared UI component library** - Planned, not yet implemented
-- ❌ **iOS app** - Not planned
 
 ## Claudtest - ADB-Based Device Interaction Testing (CRITICAL - ALWAYS FOLLOW)
 
@@ -1065,36 +977,5 @@ adb exec-out screencap -p > /tmp/home.png
 - **Check logcat** when interactions don't produce expected results
 - **Report results** with screenshots so the user can see what happened
 - Claudtest is for **verification and debugging**, not a replacement for unit tests
-
-## Production Deployment Ports (CRITICAL - ALWAYS FOLLOW)
-
-**MANDATORY**: Before restarting any service, check the port it was running on. Never assume default dev ports.
-
-| Service | Production Port | Nginx upstream | Dev Port |
-|---------|----------------|----------------|----------|
-| Go API server | 8080 | N/A (proxied by Express) | 8080 |
-| Web SSR (Express/Node) | **4001** | `127.0.0.1:4001` | 4200 |
-
-### Deployment Commands
-
-```bash
-# Go server
-pkill -f './server/bin/server-linux' || true
-cd /home/ubuntu/nhannht-projects/viecz && nohup ./server/bin/server-linux > /tmp/viecz-server.log 2>&1 &
-
-# Web client — PORT=4001, NOT 4000 or 4200
-pkill -f 'node.*dist/web/server/server.mjs' || true
-cd /home/ubuntu/nhannht-projects/viecz/web && PORT=4001 nohup node dist/web/server/server.mjs > /tmp/viecz-web.log 2>&1 &
-```
-
-### Pre-deployment Checklist
-
-1. `ps aux | grep -E 'server-linux|node.*dist/web' | grep -v grep` — check current ports
-2. Build binaries/assets
-3. Kill old process
-4. Start new process on the **same port**
-5. Verify: `curl -s --max-time 5 -o /dev/null -w "%{http_code}" https://viecz.fishcmus.io.vn`
-
-**Learned the hard way**: Starting the web client on port 4000 instead of 4001 caused a production outage because nginx proxies to 4001. Always verify the nginx upstream port before deploying.
 
 
