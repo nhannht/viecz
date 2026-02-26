@@ -1,10 +1,10 @@
 # UI Platform Parity: Android vs Web
 
-> **Last Updated:** 2026-02-21
+> **Last Updated:** 2026-02-26
 
 Cross-platform comparison of the Viecz Android app (Kotlin/Jetpack Compose) and web client (Angular 21). Both platforms share the same Go backend API.
 
-**Overall parity: ~95%** -- 28/30 core features have full parity.
+**Overall parity: High (~95%+)** -- core marketplace, payment, chat, and profile flows are implemented on both platforms. Remaining differences are mostly UX-level.
 
 | Platform | Stack |
 |----------|-------|
@@ -18,9 +18,11 @@ Cross-platform comparison of the Viecz Android app (Kotlin/Jetpack Compose) and 
 | Feature | Android Screen | Web Component | Parity |
 |---------|---------------|---------------|--------|
 | Login | `LoginScreen` | `login.component` | Full |
-| Register | `RegisterScreen` | `register.component` | Full |
+| Phone / OTP Login | `PhoneLoginScreen` | `phone-login.component` | Full |
+| Register (email/password) | `RegisterScreen` | `/register` redirects to `/phone` (email register UI hidden) | Partial |
 | Splash / Auth Guard | `SplashScreen` | Auth guard (route-based) | Partial |
-| Browse Tasks | `MainScreen` (tab 0) / `HomeScreen` | `marketplace.component` | Full |
+| Browse Tasks (List + Map) | `MainScreen` (tab 0) / `HomeScreen` | `marketplace.component` + `marketplace-map.component` | Full |
+| Near-Me Filtering | `MainScreen` location toggle | `marketplace.component` geolocation + radius filters | Full |
 | Task Detail | `TaskDetailScreen` | `task-detail.component` | Full |
 | Create Task | `CreateTaskScreen` | `task-form.component` | Full |
 | Edit Task | `CreateTaskScreen` (taskId param) | `task-form.component` (route param) | Full |
@@ -103,8 +105,11 @@ Unused/demo Android screens (not in web): `PaymentScreen`, `FirstScreen`, `Secon
 
 | Feature | Android | Web |
 |---------|:-------:|:---:|
+| Phone-first authentication | Yes | Yes |
 | Browse and search tasks | Yes | Yes |
 | Category filtering | Yes | Yes |
+| Map view for tasks | Yes | Yes |
+| Near-me geolocation filtering | Yes | Yes |
 | Infinite scroll / pagination | Yes | Yes |
 | Create/Edit/Delete task | Yes | Yes |
 | Task detail with applications | Yes | Yes |
@@ -115,6 +120,7 @@ Unused/demo Android screens (not in web): `PaymentScreen`, `FirstScreen`, `Secon
 | My Jobs (Posted/Applied/Completed) | Yes | Yes |
 | Wallet balance display | Yes | Yes |
 | Deposit funds (PayOS) | Yes | Yes |
+| Bank withdrawal (PayOS) | Yes | Yes |
 | Transaction history | Yes | Yes |
 | Real-time chat (WebSocket) | Yes | Yes |
 | Conversation list | Yes | Yes |
@@ -141,6 +147,8 @@ Unused/demo Android screens (not in web): `PaymentScreen`, `FirstScreen`, `Secon
 | Splash screen | Explicit `SplashScreen` composable; web uses auth guard redirect |
 | Bottom navigation | Platform convention; web uses top navbar |
 | Native date picker | System-level picker; web uses `<input type="date">` |
+| MapLibre marketplace map | Android uses MapLibre with OpenStreetMap tiles; web uses Google Maps component |
+| Near-Me radius chips | Android shows radius chips (500m, 1km, 3km, 5km) when Near Me enabled; web uses numeric radius input |
 
 ### Web-Only
 

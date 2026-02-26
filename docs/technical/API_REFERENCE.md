@@ -3,7 +3,7 @@
 **Project:** Viecz - Mini Services for Students
 **Base URL:** `http://localhost:8080/api/v1` (production) | `http://localhost:9999/api/v1` (test server)
 **WebSocket URL:** `ws://localhost:{port}/api/v1/ws`
-**Last Updated:** 2026-02-23 (Wallet withdrawal/payout, email verification, banks endpoints added)
+**Last Updated:** 2026-02-26 (Added geocoding and maps proxy endpoints)
 
 ---
 
@@ -22,8 +22,10 @@
 11. [WebSocket](#11-websocket)
 12. [Notifications](#12-notifications)
 13. [Banks](#13-banks)
-14. [Error Responses](#14-error-responses)
-15. [Appendices](#15-appendices)
+14. [Geocoding](#14-geocoding)
+15. [Maps](#15-maps)
+16. [Error Responses](#16-error-responses)
+17. [Appendices](#17-appendices)
 
 ---
 
@@ -1792,7 +1794,145 @@ The response contains only banks where `transferSupported == 1`. The full bank l
 
 ---
 
-## 14. Error Responses
+## 14. Geocoding
+
+The geocoding endpoints proxy requests to a self-hosted Nominatim instance (OpenStreetMap geocoding). Results are cached for 1 hour on the server and can be cached at the Cloudflare edge.
+
+### 14.1. Forward Geocoding (Search)
+
+Convert a place name or address into coordinates.
+
+**Endpoint:** `GET /api/v1/geocode/search`
+**Auth:** None
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `q` | string | Yes | Query string (place name or address) |
+| `limit` | integer | No | Maximum number of results (default: Nominatim default) |
+| `language` | string | No | Result language (e.g., `vi`, `en`) |
+| `countrycodes` | string | No | Filter by country code (e.g., `vn`) |
+| `viewbox` | string | No | Viewbox bounding box |
+| `bounded` | string | No | Restrict results to viewbox (1 or 0) |
+
+#### Response: 200 OK
+
+Returns Nominatim search results in JSON format:
+
+```json
+[
+  {
+    "place_id": 123456789,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0. https://osm.org/copyright",
+    "osm_type": "node",
+    "osm_id": 12345678,
+    "lat": "10.7763897",
+    "lon": "106.7011391",
+    "place_rank": 30,
+    "importance": 0.5,
+    "addresstype": "city",
+    "name": "Ho Chi Minh City",
+    "display_name": "Ho Chi Minh City, Vietnam",
+    "boundingbox": ["10.6380190", "10.8904100", "106.5913090", "106.8584600"]
+  }
+]
+```
+
+#### Errors
+
+- `400` - Missing required `q` parameter
+- `502` - Geocoding service unavailable (upstream error)
+
+---
+
+### 14.2. Reverse Geocoding
+
+Convert coordinates into a place name or address.
+
+**Endpoint:** `GET /api/v1/geocode/reverse`
+**Auth:** None
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `lat` | number | Yes | Latitude (-90 to 90) |
+| `lon` | number | Yes | Longitude (-180 to 180) |
+| `language` | string | No | Result language (e.g., `vi`, `en`) |
+
+#### Response: 200 OK
+
+```json
+{
+  "place_id": 123456789,
+  "licence": "Data © OpenStreetMap contributors, ODbL 1.0. https://osm.org/copyright",
+  "osm_type": "node",
+  "osm_id": 12345678,
+  "lat": "10.7763897",
+  "lon": "106.7011391",
+  "place_rank": 30,
+  "importance": 0.5,
+  "addresstype": "city",
+  "name": "Ho Chi Minh City",
+  "display_name": "Ho Chi Minh City, Vietnam",
+  "address": {
+    "city": "Ho Chi Minh City",
+    "country": "Vietnam",
+    "country_code": "vn"
+  }
+}
+```
+
+#### Errors
+
+- `400` - Missing or invalid `lat` or `lon` parameters
+- `502` - Geocoding service unavailable (upstream error)
+
+---
+
+## 15. Maps
+
+The maps endpoint proxies Google Static Maps API requests through the server to leverage Cloudflare edge caching and avoid exposing the server-side API key to clients. Images are cached for 30 days.
+
+### 15.1. Static Map Image
+
+Get a static map image with a marker at the specified location.
+
+**Endpoint:** `GET /api/v1/maps/static`
+**Auth:** None
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `lat` | number | Yes | Latitude (-90 to 90) |
+| `lng` | number | Yes | Longitude (-180 to 180) |
+| `zoom` | integer | No | Zoom level (1-20, default: 15) |
+| `size` | string | No | Image dimensions (default: `600x200`) |
+
+#### Response: 200 OK
+
+Returns a PNG image with Cache-Control headers set for edge caching.
+
+**Response Headers:**
+- `Content-Type`: `image/png`
+- `Cache-Control`: `public, max-age=2592000` (30 days)
+
+#### Usage Example
+
+```
+GET /api/v1/maps/static?lat=10.7763897&lng=106.7011391&zoom=15&size=600x200
+```
+
+#### Errors
+
+- `400` - Missing `lat` or `lng`, or invalid values
+- `502` - Failed to fetch map from Google Maps API
+
+---
+
+## 16. Error Responses
 
 ### Standard Error Format
 
@@ -1827,7 +1967,7 @@ Or with message detail:
 
 ---
 
-## 15. Appendices
+## 17. Appendices
 
 ### A. Health Check
 

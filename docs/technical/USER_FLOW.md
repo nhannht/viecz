@@ -2,7 +2,7 @@
 
 > **Viecz** -- P2P task marketplace for university students.
 >
-> Last updated: 2026-02-25
+> Last updated: 2026-02-26 (added phone authentication flow)
 
 ### Platform Note
 
@@ -11,7 +11,7 @@ Viecz has two clients that share the same Go backend API:
 | Platform | Technology | Navigation | Token Storage |
 |----------|-----------|------------|---------------|
 | **Android** | Kotlin + Jetpack Compose | Bottom tabs + NavHost | EncryptedSharedPreferences |
-| **Web** | Angular 21 + Material 3 | Sticky navbar + Router | localStorage |
+| **Web** | Angular 21 + nhannht-metro-meow + Tailwind 4 | Sticky navbar + Router | localStorage |
 
 All user flows below apply to **both platforms** unless noted otherwise. The flows reference Android screen names (e.g., `LoginScreen.kt`); the web equivalents are Angular components in `web/src/app/` (e.g., `auth/login.component.ts`).
 
@@ -122,7 +122,70 @@ JWT tokens saved --> MainScreen
 **API:** `POST /api/v1/auth/login` -- `{ email, password }`
 **Web note:** Email login is kept for legacy accounts; the default unauthenticated flow redirects to `/phone`.
 
-### 1.4 Google OAuth Login
+### 1.4 Phone / Firebase Authentication
+
+**Note:** Phone-first authentication is the primary auth flow. Email/password login is kept for legacy accounts.
+
+```
+LoginScreen (Android) / Phone Login Screen (Web)
+    |
+    v
+Tap "Sign in with phone number"
+    |
+    v
+PhoneLoginScreen
+    |  Fields:
+    |    - Phone number (with country code, e.g., +84)
+    |    - OTP verification (6-digit code)
+    |
+    v
+Enter phone number --> Tap "Send OTP"
+    |
+    v
+Firebase Phone Auth sends OTP to user's phone
+    |
+    v
+Enter OTP code --> Tap "Verify"
+    |
+    v
+POST /api/v1/auth/phone  { id_token }
+    |
+    v
+Server-side:
+    1. Verify Firebase ID token with Firebase Auth
+    2. Extract user info (phone number, Firebase UID)
+    3. Look up user by Firebase UID:
+       - Existing user: return JWT tokens
+       - New user: create account (auth_provider="phone", phone_verified=true), return JWT
+    |
+    v
+JWT tokens saved --> MainScreen
+```
+
+**Screens:**
+- Android: `PhoneLoginScreen.kt`
+- Web: `phone-login.component.ts`
+
+**API:** `POST /api/v1/auth/phone` -- `{ id_token }`
+**Response:** `{ access_token, refresh_token, user }`
+
+**Notes:**
+- Phone users do not have a password; `PasswordHash` is null
+- `AuthProvider` field is set to `"phone"` (vs `"email"` or `"google"`)
+- `PhoneVerified` is automatically `true` (Firebase pre-verifies phone numbers)
+- OTP is handled by Firebase Phone Auth SDK; server only validates the final ID token
+- On Android, Firebase requires phone verification before creating the account
+- On web, Firebase Phone Auth uses reCAPTCHA verification (invisible)
+
+**Server Requirements:**
+- `FIREBASE_CREDENTIALS_FILE` environment variable must point to a valid Firebase service account JSON
+- Firebase service account must have `firebaseauth.users.verifyIdToken` permission
+
+**Fallback:**
+- If Firebase is not configured (`FIREBASE_CREDENTIALS_FILE` not set), phone auth is disabled on the server
+- Phone login button is hidden in UI when server reports Firebase unavailable
+
+### 1.5 Google OAuth Login
 
 ```
 LoginScreen
@@ -164,7 +227,7 @@ JWT tokens saved --> MainScreen
 - `EmailVerified` is automatically `true` (Google pre-verifies emails)
 - If a Google user's name or avatar changes on Google's side, it is updated on next login
 
-### 1.5 Logout
+### 1.6 Logout
 
 ```
 ProfileContent (Profile tab or standalone ProfileScreen)
@@ -1003,5 +1066,4 @@ Scenario docs: `android/e2escenarios/`
 
 ---
 
-**Last Updated:** 2026-02-18
 **Version:** 2.5
