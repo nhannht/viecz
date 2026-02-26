@@ -81,6 +81,41 @@ Current memories: `project_overview`, `suggested_commands`, `architecture/go_bac
   - Expected model count, handlers structure, service/repository patterns
   - This context saves 10+ minutes of file reading per session
 
+---
+
+## Session Learnings (Documentation Audit + Serena Usage)
+
+### When to Research vs. Assume
+
+**Mistake made**: Stated "Go LSP won't find TypeScript references" as fact without verifying
+
+**Correct approach**:
+```
+# When making technical claims about tool behavior:
+1. State "based on my understanding" if unverified
+2. Search first, then confirm/deny claim
+3. Distinguish "LSP spec" vs. "tool implementation quirks"
+```
+
+### Serena Usage Patterns
+
+| Scenario | Best Tool | Alternative |
+|----------|------------|------------|
+| Find handler methods | `get_symbols_overview` | N/A (Serena is best) |
+| Count models/files | `list_dir()` + counting | N/A (Serena is best) |
+| Find specific function body | `find_symbol(include_body=true)` | N/A |
+| Find route registrations | Bash `grep -c "api\.GET\|POST"` | Serena won't show route patterns (not in AST) |
+| Verify documented vs. actual | Read docs + grep code | N/A (use both for accuracy) |
+
+### Key Takeaway
+
+**Serena excels at understanding code structure**. Use it first for exploration. Use Bash/Grep only for:
+- Counting things (lines, files, grep matches)
+- Searching for text patterns that aren't symbols
+- Running shell commands
+
+---
+
 ## UI/UX Issue Investigation (CRITICAL - ALWAYS FOLLOW)
 
 **MANDATORY**: When the user asks about UI/UX behavior, visual bugs, or app navigation issues, follow this order:
