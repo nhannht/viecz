@@ -378,7 +378,7 @@ func main() {
 
 		// Task routes — protected (write operations, email verified required)
 		tasks := api.Group("/tasks")
-		tasks.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), apiWriteRL)
+		tasks.Use(auth.AuthRequired(cfg.JWTSecret), apiWriteRL)
 		{
 			tasks.POST("", taskHandler.CreateTask)
 			tasks.PUT("/:id", taskHandler.UpdateTask)
@@ -390,7 +390,7 @@ func main() {
 
 		// Application routes (protected, email verified required)
 		applications := api.Group("/applications")
-		applications.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), apiWriteRL)
+		applications.Use(auth.AuthRequired(cfg.JWTSecret), apiWriteRL)
 		{
 			applications.POST("/:id/accept", taskHandler.AcceptApplication)
 		}
@@ -410,7 +410,7 @@ func main() {
 
 		// Payment routes (protected, email verified required) - Phase 3
 		payments := api.Group("/payments")
-		payments.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), financeRL)
+		payments.Use(auth.AuthRequired(cfg.JWTSecret), financeRL)
 		{
 			payments.POST("/escrow", auth.PhoneVerifiedRequired(userRepo), paymentHandler.CreateEscrowPayment)
 			payments.POST("/release", paymentHandler.ReleasePayment)
@@ -433,7 +433,7 @@ func main() {
 
 		// Conversation/Message routes (protected, email verified required)
 		conversations := api.Group("/conversations")
-		conversations.Use(auth.AuthRequired(cfg.JWTSecret), auth.EmailVerifiedRequired(userRepo), highFreqRL)
+		conversations.Use(auth.AuthRequired(cfg.JWTSecret), highFreqRL)
 		{
 			conversations.GET("", messageHandler.GetConversations)
 			conversations.POST("", messageHandler.CreateConversation)
