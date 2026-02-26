@@ -38,6 +38,7 @@ import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
 import com.viecz.vieczandroid.ui.components.metro.MetroCard
 import com.viecz.vieczandroid.ui.components.metro.MetroDialog
 import com.viecz.vieczandroid.ui.components.metro.MetroLoadingState
+import com.viecz.vieczandroid.ui.components.metro.MetroLocationPreview
 import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.TaskDetailViewModel
 import com.viecz.vieczandroid.utils.formatDateTime
@@ -364,6 +365,23 @@ fun TaskDetailContent(
                         text = task.location,
                         style = MaterialTheme.typography.bodyLarge,
                         color = colors.fg,
+                    )
+                }
+                // Map preview when coordinates are available
+                if (task.latitude != null && task.longitude != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    MetroLocationPreview(
+                        latitude = task.latitude,
+                        longitude = task.longitude,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${String.format("%.6f", task.latitude)}, ${String.format("%.6f", task.longitude)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.muted,
                     )
                 }
             }

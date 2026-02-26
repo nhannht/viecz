@@ -133,4 +133,10 @@ object NetworkModule {
     fun provideBankApi(retrofit: Retrofit): BankApi {
         return retrofit.create(BankApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideGeocodingApi(retrofit: Retrofit): GeocodingApi {
+        return retrofit.create(GeocodingApi::class.java)
+    }
 }

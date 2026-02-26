@@ -389,6 +389,10 @@
     <string name="payment_cancelled">Thanh toán đã bị hủy</string>
     <string name="payment_unknown">Trạng thái thanh toán không xác định</string>
 
+    <!-- ==================== LOCATION PICKER ==================== -->
+    <string name="location_picker_search_placeholder">Tìm kiếm địa điểm...</string>
+    <string name="location_picker_tap_hint">Nhấn vào bản đồ để chọn vị trí</string>
+
     <!-- ==================== COMMON ==================== -->
     <string name="common_back">Quay lại</string>
     <string name="common_cancel">Hủy</string>

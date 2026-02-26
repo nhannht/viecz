@@ -124,4 +124,12 @@ object DataModule {
     ): PaymentRepository {
         return PaymentRepository(paymentApi)
     }
+
+    @Provides
+    @Singleton
+    fun provideGeocodingRepository(
+        geocodingApi: GeocodingApi
+    ): GeocodingRepository {
+        return GeocodingRepository(geocodingApi)
+    }
 }

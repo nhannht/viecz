@@ -24,6 +24,8 @@ import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
 import com.viecz.vieczandroid.ui.components.metro.MetroCard
 import com.viecz.vieczandroid.ui.components.metro.MetroDialog
 import com.viecz.vieczandroid.ui.components.metro.MetroInput
+import com.viecz.vieczandroid.ui.components.metro.MetroLocationPicker
+import com.viecz.vieczandroid.ui.components.metro.LocationPickerValue
 import com.viecz.vieczandroid.ui.components.metro.MetroTextarea
 import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
@@ -201,13 +203,24 @@ fun CreateTaskScreen(
                 )
             }
 
-            // Location field
+            // Location picker with map
             item {
-                MetroInput(
-                    value = uiState.location,
-                    onValueChange = { createTaskViewModel.updateLocation(it) },
+                MetroLocationPicker(
+                    value = LocationPickerValue(
+                        location = uiState.location,
+                        latitude = uiState.latitude,
+                        longitude = uiState.longitude
+                    ),
+                    onValueChange = { pickerValue ->
+                        createTaskViewModel.updateLocation(
+                            pickerValue.location,
+                            pickerValue.latitude,
+                            pickerValue.longitude
+                        )
+                    },
+                    onSearch = { query -> createTaskViewModel.searchLocation(query) },
+                    onReverseGeocode = { lat, lon -> createTaskViewModel.reverseGeocode(lat, lon) },
                     label = stringResource(R.string.create_task_location_label),
-                    placeholder = stringResource(R.string.create_task_location_placeholder),
                     error = uiState.locationError ?: "",
                 )
             }

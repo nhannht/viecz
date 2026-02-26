@@ -3,8 +3,10 @@ package com.viecz.vieczandroid.ui.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.viecz.vieczandroid.data.api.NominatimResult
 import com.viecz.vieczandroid.data.models.CreateTaskRequest
 import com.viecz.vieczandroid.data.models.Task
+import com.viecz.vieczandroid.data.repository.GeocodingRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.data.repository.WalletRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +26,8 @@ data class CreateTaskUiState(
     val categoryId: Long? = null,
     val price: String = "",
     val location: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val createdTask: Task? = null,
@@ -45,7 +49,8 @@ data class CreateTaskUiState(
 @HiltViewModel
 class CreateTaskViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val walletRepository: WalletRepository
+    private val walletRepository: WalletRepository,
+    private val geocodingRepository: GeocodingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateTaskUiState())
@@ -105,11 +110,21 @@ class CreateTaskViewModel @Inject constructor(
         )
     }
 
-    fun updateLocation(location: String) {
+    fun updateLocation(location: String, latitude: Double? = null, longitude: Double? = null) {
         _uiState.value = _uiState.value.copy(
             location = location,
+            latitude = latitude,
+            longitude = longitude,
             locationError = validateLocation(location)
         )
+    }
+
+    suspend fun searchLocation(query: String): List<NominatimResult> {
+        return geocodingRepository.search(query).getOrDefault(emptyList())
+    }
+
+    suspend fun reverseGeocode(lat: Double, lon: Double): String? {
+        return geocodingRepository.reverse(lat, lon).getOrNull()?.displayName
     }
 
     fun updateDeadline(millis: Long) {
@@ -218,6 +233,8 @@ class CreateTaskViewModel @Inject constructor(
                         categoryId = task.categoryId,
                         price = task.price.toString(),
                         location = task.location,
+                        latitude = task.latitude,
+                        longitude = task.longitude,
                         deadlineMillis = deadlineMillis,
                         deadlineDisplayText = deadlineDisplay
                     )
@@ -259,6 +276,8 @@ class CreateTaskViewModel @Inject constructor(
                 categoryId = _uiState.value.categoryId!!,
                 price = _uiState.value.price.toLong(),
                 location = _uiState.value.location,
+                latitude = _uiState.value.latitude,
+                longitude = _uiState.value.longitude,
                 deadline = deadlineRfc3339
             )
 
@@ -303,6 +322,8 @@ class CreateTaskViewModel @Inject constructor(
                 categoryId = _uiState.value.categoryId!!,
                 price = _uiState.value.price.toLong(),
                 location = _uiState.value.location,
+                latitude = _uiState.value.latitude,
+                longitude = _uiState.value.longitude,
                 deadline = deadlineRfc3339
             )
 
