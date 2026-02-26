@@ -29,16 +29,23 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
-import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.Point
 
 private const val TAG = "MetroLocationPicker"
 private const val HCMC_LAT = 10.7769
 private const val HCMC_LNG = 106.7009
+private const val MARKER_SOURCE_ID = "marker-source"
+private const val MARKER_LAYER_ID = "marker-layer"
 
 data class LocationPickerValue(
     val location: String = "",
@@ -263,7 +270,16 @@ private fun LocationPickerMap(
                 mapTapState?.invoke(latLng.latitude, latLng.longitude)
                 mapTapState != null
             }
-            maplibreMap.setStyle(mapStyleUrl) {
+            maplibreMap.setStyle(mapStyleUrl) { style ->
+                val source = GeoJsonSource(MARKER_SOURCE_ID, FeatureCollection.fromFeatures(emptyList()))
+                style.addSource(source)
+                val circleLayer = CircleLayer(MARKER_LAYER_ID, MARKER_SOURCE_ID).withProperties(
+                    PropertyFactory.circleRadius(10f),
+                    PropertyFactory.circleColor("#FF4444"),
+                    PropertyFactory.circleStrokeColor("#FFFFFF"),
+                    PropertyFactory.circleStrokeWidth(2f)
+                )
+                style.addLayer(circleLayer)
                 mapReady = true
             }
         }
@@ -312,12 +328,12 @@ private fun LocationPickerMap(
             500
         )
 
-        maplibreMap.clear()
+        val source = maplibreMap.style?.getSourceAs<GeoJsonSource>(MARKER_SOURCE_ID)
         if (latitude != null && longitude != null) {
-            maplibreMap.addMarker(
-                MarkerOptions()
-                    .position(LatLng(latitude, longitude))
-            )
+            val point = Point.fromLngLat(longitude, latitude)
+            source?.setGeoJson(FeatureCollection.fromFeature(Feature.fromGeometry(point)))
+        } else {
+            source?.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
         }
     }
 
