@@ -114,6 +114,17 @@ Current memories: `project_overview`, `suggested_commands`, `architecture/go_bac
 - Searching for text patterns that aren't symbols
 - Running shell commands
 
+### Additional Learnings (Documentation Audit)
+
+**Documentation audit workflow** - 3-layer delegation:
+1. Scope (diff-based, skip what hasn't changed) - use `git log --since` to detect code changes
+2. Programmatic pre-check - count/compare mechanically before expensive agent audits
+3. Agent audit + verification - Serena explores, YOU decide what's wrong
+4. Fix (delegate to agents) - for multiple docs, fix in parallel
+5. Verify fixes - never trust agent findings blindly, check with Read/Grep
+
+**Git log trick** - `git log --since=<doc-date> --name-only` shows what code changed since doc was last updated. Focus audit only on changed files.
+
 ---
 
 ## UI/UX Issue Investigation (CRITICAL - ALWAYS FOLLOW)
