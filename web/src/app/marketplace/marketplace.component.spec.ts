@@ -227,6 +227,50 @@ describe('MarketplaceComponent', () => {
     expect(component.loadingMore()).toBe(false);
   });
 
+  it('should switch to map view when toggling nearMe on', async () => {
+    fixture.detectChanges();
+    httpTesting.match('/api/v1/categories').forEach(r => r.flush([]));
+    httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
+
+    expect(component.viewMode()).toBe('list');
+
+    // Mock geolocation to resolve immediately
+    component.geo = {
+      ...component.geo,
+      requestLocation: () => Promise.resolve({ latitude: 10.77, longitude: 106.70 }),
+      loading: () => false,
+      isDenied: () => false,
+      latitude: () => 10.77,
+      longitude: () => 106.70,
+    } as any;
+    component.toggleNearMe();
+
+    // viewMode switches to map immediately (before geolocation resolves)
+    expect(component.viewMode()).toBe('map');
+
+    // Wait for geo promise to resolve and flush the resulting reload
+    await Promise.resolve();
+    httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
+  });
+
+  it('should switch back to list view when toggling nearMe off', () => {
+    fixture.detectChanges();
+    httpTesting.match('/api/v1/categories').forEach(r => r.flush([]));
+    httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
+
+    // Set to map mode
+    component.viewMode.set('map');
+    component.nearMeActive.set(true);
+
+    component.toggleNearMe();
+
+    expect(component.viewMode()).toBe('list');
+    expect(component.nearMeActive()).toBe(false);
+
+    // Should trigger a reload
+    httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
+  });
+
   it('should show hero section when unauthenticated', () => {
     // auth.isAuthenticated() returns false by default (no AuthService override)
     fixture.detectChanges();

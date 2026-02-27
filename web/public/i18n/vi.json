@@ -108,7 +108,14 @@
     "radiusKm": "{{distance}} km",
     "viewList": "Danh sách",
     "viewMap": "Bản đồ",
-    "distanceAway": "cách {{distance}}"
+    "distanceAway": "cách {{distance}}",
+    "mapTasksCount": "{{count}} việc",
+    "mapNoTasksInArea": "Không có việc nào trong khu vực này",
+    "mapSearchThisArea": "Tìm kiếm khu vực này",
+    "mapMyLocation": "Vị trí của tôi",
+    "mapSearchPlaceholder": "Tìm địa điểm...",
+    "mapLoading": "Đang tải bản đồ...",
+    "mapRadius": "Bán kính tìm kiếm"
   },
   "task": {
     "editTask": "Sửa việc",

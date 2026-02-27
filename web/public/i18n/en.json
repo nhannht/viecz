@@ -108,7 +108,14 @@
     "radiusKm": "{{distance}} km",
     "viewList": "List",
     "viewMap": "Map",
-    "distanceAway": "{{distance}} away"
+    "distanceAway": "{{distance}} away",
+    "mapTasksCount": "{{count}} tasks",
+    "mapNoTasksInArea": "No tasks in this area",
+    "mapSearchThisArea": "Search this area",
+    "mapMyLocation": "My Location",
+    "mapSearchPlaceholder": "Search location...",
+    "mapLoading": "Loading map...",
+    "mapRadius": "Search radius"
   },
   "task": {
     "editTask": "Edit Task",
