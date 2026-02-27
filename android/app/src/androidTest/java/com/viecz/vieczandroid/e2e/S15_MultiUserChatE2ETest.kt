@@ -143,21 +143,6 @@ class S15_MultiUserChatE2ETest : RealServerBaseE2ETest() {
         Thread.sleep(1000)
     }
 
-    private fun becomeTasker() {
-        composeRule.onNodeWithText("Profile").performClick()
-        waitForText("Statistics")
-
-        composeRule.onAllNodes(hasScrollToNodeAction()).onFirst()
-            .performScrollToNode(hasText("Become a Tasker"))
-        Thread.sleep(500)
-        composeRule.onNode(hasText("Become a Tasker") and hasClickAction())
-            .performSemanticsAction(SemanticsActions.OnClick)
-        waitForText("Become a Tasker") // Dialog title
-        composeRule.onNodeWithText("Yes, Register").performClick()
-        Thread.sleep(2000)
-        dismissSnackbarIfPresent()
-    }
-
     private fun openChatViaMessageButton() {
         waitForText("Message", timeoutMillis = 10000)
         composeRule.onNodeWithText("Message").performClick()
@@ -249,9 +234,8 @@ class S15_MultiUserChatE2ETest : RealServerBaseE2ETest() {
         waitForText("Marketplace")
         navigateToProfileAndLogout()
 
-        // 1d. Bob registers, becomes tasker, applies to Task1
+        // 1d. Bob registers, applies to Task1
         registerUser(bobName, bobEmail, bobPassword)
-        becomeTasker()
 
         composeRule.onNodeWithText("Marketplace").performClick()
         waitForText("Viecz")
@@ -269,9 +253,8 @@ class S15_MultiUserChatE2ETest : RealServerBaseE2ETest() {
         waitForText("Marketplace")
         navigateToProfileAndLogout()
 
-        // 1e. Carol registers, becomes tasker, applies to Task2
+        // 1e. Carol registers, applies to Task2
         registerUser(carolName, carolEmail, carolPassword)
-        becomeTasker()
 
         composeRule.onNodeWithText("Marketplace").performClick()
         waitForText("Viecz")

@@ -18,8 +18,6 @@ data class User(
     @Json(name = "total_tasks_completed") val totalTasksCompleted: Int,
     @Json(name = "total_tasks_posted") val totalTasksPosted: Int,
     @Json(name = "total_earnings") val totalEarnings: Long,
-    @Json(name = "is_tasker") val isTasker: Boolean,
-    @Json(name = "tasker_bio") val taskerBio: String? = null,
     @Json(name = "created_at") val createdAt: String,
     @Json(name = "updated_at") val updatedAt: String
 )

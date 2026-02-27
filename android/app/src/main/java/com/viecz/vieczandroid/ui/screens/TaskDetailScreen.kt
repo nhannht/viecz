@@ -162,7 +162,6 @@ fun TaskDetailScreen(
                         applications = uiState.applications,
                         conversationId = uiState.conversationId,
                         isOwnTask = uiState.isOwnTask,
-                        isCurrentUserTasker = uiState.isCurrentUserTasker,
                         onApply = { onNavigateToApply(taskId, uiState.task!!.price) },
                         onNavigateToProfile = onNavigateToProfile,
                         onAcceptApplication = { application ->
@@ -283,7 +282,6 @@ fun TaskDetailContent(
     applications: List<TaskApplication>,
     conversationId: Long?,
     isOwnTask: Boolean = false,
-    isCurrentUserTasker: Boolean = false,
     onApply: () -> Unit,
     onNavigateToProfile: () -> Unit = {},
     onAcceptApplication: (TaskApplication) -> Unit,
@@ -473,26 +471,7 @@ fun TaskDetailContent(
             }
         } else if (task.status == TaskStatus.OPEN && !isOwnTask) {
             item {
-                if (!isCurrentUserTasker) {
-                    // Non-tasker CTA: suggest registering as a tasker
-                    MetroCard(contentPadding = PaddingValues(16.dp)) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = stringResource(R.string.task_detail_not_tasker),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.muted,
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            MetroButton(
-                                label = stringResource(R.string.task_detail_register_tasker),
-                                onClick = onNavigateToProfile,
-                            )
-                        }
-                    }
-                } else if (task.userHasApplied) {
+                if (task.userHasApplied) {
                     // Show "Already Applied" status
                     MetroCard(
                         featured = true,

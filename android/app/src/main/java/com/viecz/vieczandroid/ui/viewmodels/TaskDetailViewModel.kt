@@ -28,7 +28,6 @@ data class TaskDetailUiState(
     val paymentError: String? = null,
     val conversationId: Long? = null,
     val isOwnTask: Boolean = false,
-    val isCurrentUserTasker: Boolean = false,
     val deleteSuccess: Boolean = false
 )
 
@@ -83,7 +82,6 @@ class TaskDetailViewModel @Inject constructor(
 
             val result = repository.getTask(taskId)
             val currentUserId = tokenManager.userId.firstOrNull()
-            val isTasker = tokenManager.isTasker.firstOrNull() ?: false
             result.fold(
                 onSuccess = { task ->
                     Log.d(TAG, "Task loaded successfully: ${task.title}")
@@ -91,8 +89,7 @@ class TaskDetailViewModel @Inject constructor(
                         task = task,
                         isLoading = false,
                         error = null,
-                        isOwnTask = currentUserId != null && task.requesterId == currentUserId,
-                        isCurrentUserTasker = isTasker
+                        isOwnTask = currentUserId != null && task.requesterId == currentUserId
                     )
                     // If user is the requester, load applications
                     loadApplications(taskId)

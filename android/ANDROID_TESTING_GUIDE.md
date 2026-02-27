@@ -380,7 +380,6 @@ object TestData {
         name = name,
         avatarUrl = null,
         phone = null,
-        isTasker = false,
         rating = 0.0
     )
 

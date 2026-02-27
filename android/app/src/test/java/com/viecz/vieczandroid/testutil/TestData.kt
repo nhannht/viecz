@@ -21,8 +21,6 @@ object TestData {
         totalTasksCompleted: Int = 0,
         totalTasksPosted: Int = 0,
         totalEarnings: Long = 0L,
-        isTasker: Boolean = false,
-        taskerBio: String? = null,
         createdAt: String = "2024-01-01T00:00:00Z",
         updatedAt: String = "2024-01-01T00:00:00Z"
     ) = User(
@@ -38,8 +36,6 @@ object TestData {
         totalTasksCompleted = totalTasksCompleted,
         totalTasksPosted = totalTasksPosted,
         totalEarnings = totalEarnings,
-        isTasker = isTasker,
-        taskerBio = taskerBio,
         createdAt = createdAt,
         updatedAt = updatedAt
     )

@@ -187,8 +187,6 @@ class FakeApiDispatcher : Dispatcher() {
             "total_tasks_completed": 10,
             "total_tasks_posted": 5,
             "total_earnings": 300000,
-            "is_tasker": true,
-            "tasker_bio": "Experienced tasker",
             "created_at": "2025-01-01T00:00:00Z",
             "updated_at": "2025-01-15T00:00:00Z"
         }

@@ -56,7 +56,7 @@ class AuthRepository(
 
             // Save tokens
             tokenManager.saveTokens(response.accessToken, response.refreshToken)
-            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name, response.user.isTasker)
+            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name)
 
             Log.d(TAG, "Registration successful for user ID: ${response.user.id}")
             Result.success(response.user)
@@ -77,7 +77,7 @@ class AuthRepository(
 
             // Save tokens
             tokenManager.saveTokens(response.accessToken, response.refreshToken)
-            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name, response.user.isTasker)
+            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name)
 
             Log.d(TAG, "Login successful for user ID: ${response.user.id}")
             Result.success(response.user)
@@ -98,7 +98,7 @@ class AuthRepository(
 
             // Save tokens
             tokenManager.saveTokens(response.accessToken, response.refreshToken)
-            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name, response.user.isTasker)
+            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name)
 
             Log.d(TAG, "Google login successful for user ID: ${response.user.id}")
             Result.success(response.user)
@@ -119,7 +119,7 @@ class AuthRepository(
 
             // Save tokens
             tokenManager.saveTokens(response.accessToken, response.refreshToken)
-            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name, response.user.isTasker)
+            tokenManager.saveUserInfo(response.user.id, response.user.email, response.user.name)
 
             Log.d(TAG, "Phone login successful for user ID: ${response.user.id}")
             Result.success(response.user)

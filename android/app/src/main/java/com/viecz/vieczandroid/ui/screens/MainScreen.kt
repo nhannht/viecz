@@ -215,20 +215,6 @@ fun MainScreen(
                     showSearchBar = showSearchBar
                 )
                 1 -> {
-                    val snackbarHostState = remember { SnackbarHostState() }
-                    var showBecomeTaskerDialog by remember { mutableStateOf(false) }
-
-                    val taskerSuccessMsg = stringResource(R.string.main_tasker_success)
-                    LaunchedEffect(profileUiState.becomeTaskerSuccess) {
-                        if (profileUiState.becomeTaskerSuccess) {
-                            snackbarHostState.showSnackbar(
-                                message = taskerSuccessMsg,
-                                withDismissAction = true
-                            )
-                            profileViewModel.clearBecomeTaskerSuccess()
-                        }
-                    }
-
                     Box(modifier = Modifier.fillMaxSize()) {
                         when {
                             profileUiState.isLoading && profileUiState.user == null -> {
@@ -243,7 +229,6 @@ fun MainScreen(
                             profileUiState.user != null -> {
                                 ProfileContent(
                                     user = profileUiState.user!!,
-                                    onBecomeTasker = { showBecomeTaskerDialog = true },
                                     onNavigateToMyJobs = {
                                         navController.navigate(NavigationRoutes.MY_JOBS)
                                     },
@@ -253,27 +238,6 @@ fun MainScreen(
                                     onLogout = { showLogoutDialog = true }
                                 )
                             }
-                        }
-                        SnackbarHost(
-                            hostState = snackbarHostState,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
-                    }
-
-                    if (showBecomeTaskerDialog) {
-                        MetroDialog(
-                            open = true,
-                            onDismiss = { showBecomeTaskerDialog = false },
-                            title = stringResource(R.string.main_become_tasker),
-                            confirmLabel = stringResource(R.string.main_tasker_confirm),
-                            cancelLabel = stringResource(R.string.main_tasker_cancel),
-                            onConfirm = {
-                                profileViewModel.becomeTasker()
-                                showBecomeTaskerDialog = false
-                            },
-                            onCancel = { showBecomeTaskerDialog = false },
-                        ) {
-                            Text(stringResource(R.string.main_tasker_description))
                         }
                     }
                 }

@@ -27,8 +27,6 @@ import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.User
 import com.viecz.vieczandroid.data.repository.UserRepository
 import com.viecz.vieczandroid.ui.components.ErrorState
-import com.viecz.vieczandroid.ui.components.metro.MetroBadge
-import com.viecz.vieczandroid.ui.components.metro.MetroBadgeStatus
 import com.viecz.vieczandroid.ui.components.metro.MetroButton
 import com.viecz.vieczandroid.ui.components.metro.MetroButtonVariant
 import com.viecz.vieczandroid.ui.components.metro.MetroCard
@@ -46,8 +44,7 @@ import javax.inject.Inject
 data class ProfileUiState(
     val user: User? = null,
     val isLoading: Boolean = false,
-    val error: String? = null,
-    val becomeTaskerSuccess: Boolean = false
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -82,38 +79,10 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun becomeTasker() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
-            val result = repository.becomeTasker()
-            result.fold(
-                onSuccess = { user ->
-                    tokenManager.updateIsTasker(true)
-                    _uiState.value = _uiState.value.copy(
-                        user = user,
-                        isLoading = false,
-                        becomeTaskerSuccess = true,
-                        error = null
-                    )
-                },
-                onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = error.message ?: "Failed to become tasker"
-                    )
-                }
-            )
-        }
-    }
-
     suspend fun logout() {
         tokenManager.clearTokens()
     }
 
-    fun clearBecomeTaskerSuccess() {
-        _uiState.value = _uiState.value.copy(becomeTaskerSuccess = false)
-    }
 }
 
 /**
@@ -139,7 +108,6 @@ fun ProfileScreen(
 ) {
     val colors = MetroTheme.colors
     val uiState by viewModel.uiState.collectAsState()
-    var showBecomeTaskerDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -154,17 +122,6 @@ fun ProfileScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    val taskerSuccessMsg = stringResource(R.string.profile_tasker_success)
-    LaunchedEffect(uiState.becomeTaskerSuccess) {
-        if (uiState.becomeTaskerSuccess) {
-            snackbarHostState.showSnackbar(
-                message = taskerSuccessMsg,
-                withDismissAction = true
-            )
-            viewModel.clearBecomeTaskerSuccess()
         }
     }
 
@@ -207,33 +164,10 @@ fun ProfileScreen(
                 uiState.user != null -> {
                     ProfileContent(
                         user = uiState.user!!,
-                        onBecomeTasker = { showBecomeTaskerDialog = true },
                         onNavigateToMyJobs = onNavigateToMyJobs
                     )
                 }
             }
-        }
-    }
-
-    // Become tasker confirmation dialog
-    if (showBecomeTaskerDialog) {
-        MetroDialog(
-            open = true,
-            onDismiss = { showBecomeTaskerDialog = false },
-            title = stringResource(R.string.profile_tasker_dialog_title),
-            confirmLabel = stringResource(R.string.profile_tasker_dialog_confirm),
-            cancelLabel = stringResource(R.string.profile_tasker_dialog_cancel),
-            onConfirm = {
-                viewModel.becomeTasker()
-                showBecomeTaskerDialog = false
-            },
-            onCancel = { showBecomeTaskerDialog = false },
-        ) {
-            Text(
-                text = stringResource(R.string.profile_tasker_dialog_message),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.muted,
-            )
         }
     }
 
@@ -266,7 +200,6 @@ fun ProfileScreen(
 @Composable
 fun ProfileContent(
     user: User,
-    onBecomeTasker: () -> Unit,
     onNavigateToMyJobs: () -> Unit = {},
     onNavigateToEditProfile: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null
@@ -325,13 +258,6 @@ fun ProfileContent(
                             label = stringResource(R.string.profile_edit),
                             onClick = onNavigateToEditProfile,
                             variant = MetroButtonVariant.Secondary,
-                        )
-                    }
-                    if (user.isTasker) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        MetroBadge(
-                            label = stringResource(R.string.profile_tasker_badge),
-                            status = MetroBadgeStatus.Open,
                         )
                     }
                 }
@@ -416,17 +342,6 @@ fun ProfileContent(
                     icon = Icons.Default.Work,
                     label = stringResource(R.string.profile_my_jobs),
                     onClick = onNavigateToMyJobs
-                )
-            }
-        }
-
-        // Become tasker button
-        if (!user.isTasker) {
-            item {
-                MetroButton(
-                    label = stringResource(R.string.profile_become_tasker),
-                    onClick = onBecomeTasker,
-                    fullWidth = true,
                 )
             }
         }

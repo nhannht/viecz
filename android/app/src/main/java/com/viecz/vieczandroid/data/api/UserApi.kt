@@ -19,9 +19,6 @@ interface UserApi {
     @Multipart
     @POST("users/me/avatar")
     suspend fun uploadAvatar(@Part avatar: MultipartBody.Part): User
-
-    @POST("users/become-tasker")
-    suspend fun becomeTasker(): User
 }
 
 @JsonClass(generateAdapter = true)

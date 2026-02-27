@@ -42,7 +42,6 @@ class TaskDetailViewModelTest {
         mockMessageRepository = mockk()
         mockTokenManager = mockk()
         every { mockTokenManager.userId } returns MutableStateFlow(1L)
-        every { mockTokenManager.isTasker } returns MutableStateFlow(true)
         viewModel = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository, mockTokenManager)
     }
 
@@ -281,37 +280,4 @@ class TaskDetailViewModelTest {
         }
     }
 
-    @Test
-    fun `loadTask should set isCurrentUserTasker true when user is tasker`() = runTest {
-        val task = TestData.createTask(id = 5, requesterId = 99)
-        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
-        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(emptyList())
-
-        viewModel.loadTask(5)
-        advanceUntilIdle()
-
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertTrue(state.isCurrentUserTasker)
-        }
-    }
-
-    @Test
-    fun `loadTask should set isCurrentUserTasker false when user is not tasker`() = runTest {
-        // Override mock to return false for isTasker
-        every { mockTokenManager.isTasker } returns MutableStateFlow(false)
-        val vm = TaskDetailViewModel(mockTaskRepository, mockPaymentRepository, mockMessageRepository, mockTokenManager)
-
-        val task = TestData.createTask(id = 5, requesterId = 99)
-        coEvery { mockTaskRepository.getTask(5) } returns Result.success(task)
-        coEvery { mockTaskRepository.getTaskApplications(5) } returns Result.success(emptyList())
-
-        vm.loadTask(5)
-        advanceUntilIdle()
-
-        vm.uiState.test {
-            val state = awaitItem()
-            assertFalse(state.isCurrentUserTasker)
-        }
-    }
 }

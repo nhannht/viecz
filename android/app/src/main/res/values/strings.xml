@@ -67,13 +67,7 @@
     <string name="main_nav_chat">Tin nhắn</string>
     <string name="main_nav_wallet">Ví tiền</string>
 
-    <!-- Main Screen - Tasker Registration Dialog -->
-    <string name="main_tasker_success">Bạn đã đăng ký làm tasker thành công!</string>
     <string name="main_error_occurred">Đã xảy ra lỗi</string>
-    <string name="main_become_tasker">Trở thành Tasker</string>
-    <string name="main_tasker_confirm">Đồng ý</string>
-    <string name="main_tasker_cancel">Hủy</string>
-    <string name="main_tasker_description">Bạn có muốn đăng ký làm tasker không? Điều này sẽ cho phép bạn ứng tuyển các công việc do người dùng khác đăng.</string>
 
     <!-- Main Screen - Logout Dialog -->
     <string name="main_logout">Đăng xuất</string>
@@ -112,10 +106,8 @@
     <string name="profile_edit">Chỉnh sửa hồ sơ</string>
     <string name="profile_logout">Đăng xuất</string>
     <string name="profile_error_load">Không thể tải hồ sơ</string>
-    <string name="profile_error_tasker">Không thể đăng ký tasker</string>
     <string name="profile_error_occurred">Đã xảy ra lỗi</string>
     <string name="profile_no_bio">Chưa có giới thiệu</string>
-    <string name="profile_tasker_badge">Tasker</string>
     <string name="profile_statistics">Thống kê</string>
     <string name="profile_stat_rating">Đánh giá</string>
     <string name="profile_stat_completed">Hoàn thành</string>
@@ -129,15 +121,7 @@
     <string name="profile_verified_yes">Có</string>
     <string name="profile_verified_no">Không</string>
     <string name="profile_my_jobs">Việc của tôi</string>
-    <string name="profile_become_tasker">Trở thành Tasker</string>
     <string name="profile_picture">Ảnh hồ sơ</string>
-
-    <!-- Profile - Tasker Registration Dialog -->
-    <string name="profile_tasker_success">Bạn đã đăng ký làm tasker thành công!</string>
-    <string name="profile_tasker_dialog_title">Trở thành Tasker</string>
-    <string name="profile_tasker_dialog_confirm">Đồng ý</string>
-    <string name="profile_tasker_dialog_cancel">Hủy</string>
-    <string name="profile_tasker_dialog_message">Bạn có muốn đăng ký làm tasker không? Điều này sẽ cho phép bạn ứng tuyển các công việc do người dùng khác đăng.</string>
 
     <!-- Profile - Logout Dialog -->
     <string name="profile_logout_dialog_title">Đăng xuất</string>
@@ -268,8 +252,6 @@
 
     <string name="task_detail_cancel_refund_button">Hủy &amp; Hoàn tiền (Quá hạn)</string>
     <string name="task_detail_deadline_passed">Đã đóng ứng tuyển — hạn chót đã qua</string>
-    <string name="task_detail_not_tasker">Bạn cần đăng ký làm tasker để ứng tuyển.</string>
-    <string name="task_detail_register_tasker">Đăng ký Tasker</string>
     <string name="task_detail_application_pending">Đang chờ duyệt</string>
     <string name="task_detail_apply_button">Ứng tuyển việc này</string>
     <string name="task_detail_applications_count">Ứng tuyển (%1$d)</string>

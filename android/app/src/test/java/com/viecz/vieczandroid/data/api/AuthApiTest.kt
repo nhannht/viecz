@@ -56,7 +56,6 @@ class AuthApiTest {
                     "total_tasks_completed": 0,
                     "total_tasks_posted": 0,
                     "total_earnings": 0,
-                    "is_tasker": false,
                     "created_at": "2024-01-01T00:00:00Z",
                     "updated_at": "2024-01-01T00:00:00Z"
                 }
@@ -103,8 +102,6 @@ class AuthApiTest {
                     "total_tasks_completed": 10,
                     "total_tasks_posted": 5,
                     "total_earnings": 500000,
-                    "is_tasker": true,
-                    "tasker_bio": "Experienced tasker",
                     "created_at": "2024-01-01T00:00:00Z",
                     "updated_at": "2024-06-01T00:00:00Z"
                 }
@@ -124,7 +121,6 @@ class AuthApiTest {
         assertEquals("login-refresh-token", result.refreshToken)
         assertEquals(2L, result.user.id)
         assertEquals("user@example.com", result.user.email)
-        assertEquals(true, result.user.isTasker)
 
         val request = mockWebServer.takeRequest()
         assertEquals("POST", request.method)

@@ -16,7 +16,6 @@ class TokenManager(context: Context) {
         private const val USER_ID_KEY = "user_id"
         private const val USER_EMAIL_KEY = "user_email"
         private const val USER_NAME_KEY = "user_name"
-        private const val IS_TASKER_KEY = "is_tasker"
     }
 
     private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
@@ -35,14 +34,12 @@ class TokenManager(context: Context) {
     private val _userId = MutableStateFlow(prefs.getString(USER_ID_KEY, null)?.toLongOrNull())
     private val _userEmail = MutableStateFlow(prefs.getString(USER_EMAIL_KEY, null))
     private val _userName = MutableStateFlow(prefs.getString(USER_NAME_KEY, null))
-    private val _isTasker = MutableStateFlow(prefs.getBoolean(IS_TASKER_KEY, false))
 
     val accessToken: Flow<String?> = _accessToken
     val refreshToken: Flow<String?> = _refreshToken
     val userId: Flow<Long?> = _userId
     val userEmail: Flow<String?> = _userEmail
     val userName: Flow<String?> = _userName
-    val isTasker: Flow<Boolean> = _isTasker
     val isLoggedIn: Flow<Boolean> = _accessToken.map { it != null }
 
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
@@ -54,22 +51,15 @@ class TokenManager(context: Context) {
         _refreshToken.value = refreshToken
     }
 
-    suspend fun saveUserInfo(userId: Long, email: String?, name: String, isTasker: Boolean = false) {
+    suspend fun saveUserInfo(userId: Long, email: String?, name: String) {
         prefs.edit()
             .putString(USER_ID_KEY, userId.toString())
             .putString(USER_EMAIL_KEY, email ?: "")
             .putString(USER_NAME_KEY, name)
-            .putBoolean(IS_TASKER_KEY, isTasker)
             .apply()
         _userId.value = userId
         _userEmail.value = email ?: ""
         _userName.value = name
-        _isTasker.value = isTasker
-    }
-
-    suspend fun updateIsTasker(isTasker: Boolean) {
-        prefs.edit().putBoolean(IS_TASKER_KEY, isTasker).apply()
-        _isTasker.value = isTasker
     }
 
     suspend fun clearTokens() {
@@ -79,7 +69,6 @@ class TokenManager(context: Context) {
         _userId.value = null
         _userEmail.value = null
         _userName.value = null
-        _isTasker.value = false
     }
 
     suspend fun updateAccessToken(accessToken: String) {

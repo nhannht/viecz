@@ -47,8 +47,6 @@ class AuthRepositoryTest {
         totalTasksCompleted = 0,
         totalTasksPosted = 0,
         totalEarnings = 0L,
-        isTasker = false,
-        taskerBio = null,
         createdAt = "2024-01-01T00:00:00Z",
         updatedAt = "2024-01-01T00:00:00Z"
     )

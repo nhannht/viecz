@@ -140,37 +140,4 @@ class UserRepositoryTest {
         assertTrue(result.isFailure)
     }
 
-    // --- becomeTasker ---
-
-    @Test
-    fun `becomeTasker should return user with isTasker true on success`() = runTest {
-        val taskerUser = TestData.createUser(isTasker = true)
-        coEvery { mockApi.becomeTasker() } returns taskerUser
-
-        val result = repository.becomeTasker()
-
-        assertTrue(result.isSuccess)
-        assertTrue(result.getOrNull()?.isTasker == true)
-    }
-
-    @Test
-    fun `becomeTasker with HTTP error should return failure`() = runTest {
-        val httpException = mockk<HttpException> {
-            every { code() } returns 409
-        }
-        coEvery { mockApi.becomeTasker() } throws httpException
-
-        val result = repository.becomeTasker()
-
-        assertTrue(result.isFailure)
-    }
-
-    @Test
-    fun `becomeTasker with network error should return failure`() = runTest {
-        coEvery { mockApi.becomeTasker() } throws IOException("No network")
-
-        val result = repository.becomeTasker()
-
-        assertTrue(result.isFailure)
-    }
 }

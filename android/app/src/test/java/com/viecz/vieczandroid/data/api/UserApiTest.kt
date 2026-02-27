@@ -38,8 +38,6 @@ class UserApiTest {
             "total_tasks_completed": 15,
             "total_tasks_posted": 3,
             "total_earnings": 1500000,
-            "is_tasker": true,
-            "tasker_bio": "Professional tasker",
             "created_at": "2024-01-01T00:00:00Z",
             "updated_at": "2024-06-01T00:00:00Z"
         }
@@ -72,7 +70,6 @@ class UserApiTest {
         assertEquals("user@example.com", result.email)
         assertEquals("Test User", result.name)
         assertEquals(4.8, result.rating)
-        assertTrue(result.isTasker)
 
         val request = mockWebServer.takeRequest()
         assertEquals("GET", request.method)
@@ -113,19 +110,6 @@ class UserApiTest {
         val body = request.body.readUtf8()
         assert(body.contains("\"name\":\"Updated Name\""))
         assert(body.contains("\"phone\":\"0987654321\""))
-    }
-
-    @Test
-    fun `becomeTasker sends POST to users_become-tasker`() = runTest {
-        mockWebServer.enqueue(MockResponse().setBody(userJson))
-
-        val result = userApi.becomeTasker()
-
-        assertTrue(result.isTasker)
-
-        val request = mockWebServer.takeRequest()
-        assertEquals("POST", request.method)
-        assertEquals("/api/v1/users/become-tasker", request.path)
     }
 
     @Test

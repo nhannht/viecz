@@ -121,21 +121,4 @@ class UserRepository(
         }
     }
 
-    suspend fun becomeTasker(): Result<User> {
-        return try {
-            Log.d(TAG, "Becoming tasker")
-            val user = api.becomeTasker()
-            Log.d(TAG, "Successfully became tasker")
-            Result.success(user)
-        } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error becoming tasker: ${e.code()}", e)
-            Result.failure(e)
-        } catch (e: IOException) {
-            Log.e(TAG, "Network error becoming tasker", e)
-            Result.failure(e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Unknown error becoming tasker", e)
-            Result.failure(e)
-        }
-    }
 }
