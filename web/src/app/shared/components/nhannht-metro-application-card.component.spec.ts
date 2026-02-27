@@ -10,7 +10,7 @@ const mockApp: TaskApplication = {
   id: 1,
   task_id: 1,
   tasker_id: 2,
-  tasker: { id: 2, name: 'Nguyen Van A', email: 'a@test.com', university: 'ĐHQG-HCM', is_verified: false, rating: 0, total_tasks_completed: 0, total_tasks_posted: 0, total_earnings: 0, is_tasker: true, auth_provider: 'email', email_verified: false, phone_verified: false, created_at: '', updated_at: '' },
+  tasker: { id: 2, name: 'Nguyen Van A', email: 'a@test.com', university: 'ĐHQG-HCM', is_verified: false, rating: 0, total_tasks_completed: 0, total_tasks_posted: 0, total_earnings: 0, auth_provider: 'email', email_verified: false, phone_verified: false, created_at: '', updated_at: '' },
   proposed_price: 18000,
   message: 'I can do it',
   status: 'pending',

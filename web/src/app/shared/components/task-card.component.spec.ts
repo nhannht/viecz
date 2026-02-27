@@ -42,7 +42,6 @@ const mockUser: User = {
   total_tasks_completed: 0,
   total_tasks_posted: 0,
   total_earnings: 0,
-  is_tasker: false,
   auth_provider: 'email',
   email_verified: false,
   phone_verified: false,

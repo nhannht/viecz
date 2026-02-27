@@ -22,12 +22,10 @@ const mockUser: User = {
   total_tasks_completed: 10,
   total_tasks_posted: 5,
   total_earnings: 500000,
-  is_tasker: false,
   auth_provider: 'email',
   email_verified: true,
   phone_verified: true,
   bio: 'Hello world',
-  tasker_skills: ['Delivery', 'Teaching'],
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
@@ -46,7 +44,6 @@ describe('ProfileComponent', () => {
       getProfile: vi.fn().mockReturnValue(of(mockUser)),
       updateProfile: vi.fn().mockReturnValue(of({ ...mockUser, name: 'Updated' })),
       uploadAvatar: vi.fn().mockReturnValue(of({ ...mockUser, avatar_url: 'new.jpg' })),
-      becomeTasker: vi.fn().mockReturnValue(of({ ...mockUser, is_tasker: true })),
     };
     authSpy = {
       currentUser: signal({ id: 1, name: 'Test User' }),
@@ -112,12 +109,6 @@ describe('ProfileComponent', () => {
     expect(el.textContent).toContain('Hello world');
   });
 
-  it('should render skills', () => {
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Delivery');
-    expect(el.textContent).toContain('Teaching');
-  });
-
   it('should toggle editing mode', () => {
     expect(component.editing()).toBe(false);
     component.editing.set(true);
@@ -159,18 +150,6 @@ describe('ProfileComponent', () => {
     expect(userSpy.uploadAvatar).not.toHaveBeenCalled();
   });
 
-  it('should become tasker', () => {
-    component.becomeTasker();
-    expect(userSpy.becomeTasker).toHaveBeenCalled();
-    expect(component.user()?.is_tasker).toBe(true);
-  });
-
-  it('should handle become tasker error', () => {
-    userSpy.becomeTasker.mockReturnValue(throwError(() => ({ error: { error: 'Fail' } })));
-    component.becomeTasker();
-    // Should not throw
-  });
-
   it('should handle avatar upload error', () => {
     userSpy.uploadAvatar.mockReturnValue(throwError(() => ({ error: { error: 'Upload fail' } })));
     const file = new File(['img'], 'avatar.png', { type: 'image/png' });
@@ -182,12 +161,6 @@ describe('ProfileComponent', () => {
     userSpy.getMyProfile.mockReturnValue(throwError(() => new Error('fail')));
     component.ngOnInit();
     expect(component.loading()).toBe(false);
-  });
-
-  it('should show Become Tasker button for non-taskers', () => {
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Become Tasker');
   });
 
   it('should call auth.logout on logout', () => {
@@ -229,20 +202,6 @@ describe('ProfileComponent', () => {
     expect(personIcon).toBeTruthy();
   });
 
-  it('should show tasker badge when user is_tasker', () => {
-    component.user.set({ ...mockUser, is_tasker: true });
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('TASKER');
-  });
-
-  it('should not show Become Tasker button when already a tasker', () => {
-    component.user.set({ ...mockUser, is_tasker: true });
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).not.toContain('Become Tasker');
-  });
-
   it('should not show edit/logout options for other user profile', () => {
     authSpy.currentUser.set({ id: 999, name: 'Other' });
     fixture.detectChanges();
@@ -269,13 +228,6 @@ describe('ProfileComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).not.toContain('BIO');
-  });
-
-  it('should not show skills when tasker_skills is empty', () => {
-    component.user.set({ ...mockUser, tasker_skills: [] });
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).not.toContain('SKILLS');
   });
 
   it('should render loading spinner when loading is true', () => {
@@ -352,18 +304,6 @@ describe('ProfileComponent', () => {
     expect(snackbarSpy.show).toHaveBeenCalledWith('Too large', undefined, { duration: 3000 });
   });
 
-  it('should call snackbar on becomeTasker success', () => {
-    component.becomeTasker();
-    expect(snackbarSpy.show).toHaveBeenCalled();
-    expect(snackbarSpy.show.mock.calls[0][0]).toContain('tasker');
-  });
-
-  it('should call snackbar on becomeTasker error', () => {
-    userSpy.becomeTasker.mockReturnValue(throwError(() => ({ error: { error: 'Already tasker' } })));
-    component.becomeTasker();
-    expect(snackbarSpy.show).toHaveBeenCalledWith('Already tasker', undefined, { duration: 3000 });
-  });
-
   it('should show save button when not saving and editing', () => {
     component.editing.set(true);
     component.saving.set(false);
@@ -380,13 +320,6 @@ describe('ProfileComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
     // Spinner should be present, but Save Changes button should not
     expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
-  });
-
-  it('should not show skills section when tasker_skills is undefined', () => {
-    component.user.set({ ...mockUser, tasker_skills: undefined });
-    fixture.detectChanges();
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).not.toContain('SKILLS');
   });
 
   it('should not show bio section when bio is undefined', () => {
@@ -476,18 +409,6 @@ describe('ProfileComponent', () => {
     expect(authSpy.logout).toHaveBeenCalled();
   });
 
-  it('should trigger becomeTasker via DOM button click', () => {
-    fixture.detectChanges();
-    const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
-    const taskerBtn = Array.from(buttons).find(
-      (b: any) => b.textContent?.includes('Become Tasker')
-    ) as HTMLButtonElement | undefined;
-    expect(taskerBtn).toBeTruthy();
-    taskerBtn!.click();
-    fixture.detectChanges();
-    expect(userSpy.becomeTasker).toHaveBeenCalled();
-  });
-
   // --- Template lifecycle toggle tests ---
 
   it('should toggle from loading to user loaded (destroys loading block)', () => {
@@ -566,17 +487,6 @@ describe('ProfileComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('BIO');
   });
 
-  it('should toggle skills visibility (destroys skills block)', () => {
-    component.user.set({ ...mockUser, tasker_skills: ['Coding'] });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Coding');
-
-    // Destroy skills block
-    component.user.set({ ...mockUser, tasker_skills: [] });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('SKILLS');
-  });
-
   it('should toggle verified badge (destroys verified block)', () => {
     // The is_verified badge contains icon "verified" + text "VERIFIED"
     // Distinct from "EMAIL VERIFIED" and "PHONE VERIFIED" badges
@@ -609,17 +519,6 @@ describe('ProfileComponent', () => {
     authSpy.currentUser.set({ id: 1, name: 'Test User' });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Edit Profile');
-  });
-
-  it('should toggle become tasker button (destroys button block)', () => {
-    component.user.set({ ...mockUser, is_tasker: false });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Become Tasker');
-
-    // Destroy become tasker button block
-    component.user.set({ ...mockUser, is_tasker: true });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('Become Tasker');
   });
 
   it('should handle component destruction', () => {
@@ -657,12 +556,6 @@ describe('ProfileComponent', () => {
       const file = new File(['img'], 'a.png', { type: 'image/png' });
       component.onAvatarChange({ target: { files: [file] } } as any);
       expect(snackbarSpy.show).toHaveBeenCalledWith('Upload failed', undefined, { duration: 3000 });
-    });
-
-    it('should handle becomeTasker error without error.error property (fallback to translation)', () => {
-      userSpy.becomeTasker.mockReturnValue(throwError(() => ({ error: {} })));
-      component.becomeTasker();
-      expect(snackbarSpy.show).toHaveBeenCalledWith('Failed', undefined, { duration: 3000 });
     });
 
     it('should toggle editing form open→close→open covering form block destruction', () => {
@@ -732,20 +625,5 @@ describe('ProfileComponent', () => {
       expect(component.editPhone).toBe('');
     });
 
-    it('should toggle is_tasker true→false→true covering tasker badge and become tasker button', () => {
-      component.user.set({ ...mockUser, is_tasker: true });
-      fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('TASKER');
-      expect(fixture.nativeElement.textContent).not.toContain('Become Tasker');
-
-      component.user.set({ ...mockUser, is_tasker: false });
-      fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).not.toContain('TASKER');
-      expect(fixture.nativeElement.textContent).toContain('Become Tasker');
-
-      component.user.set({ ...mockUser, is_tasker: true });
-      fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('TASKER');
-    });
   });
 });

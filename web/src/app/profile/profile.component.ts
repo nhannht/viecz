@@ -98,11 +98,6 @@ import google_libphonenumber from 'google-libphonenumber';
                       <nhannht-metro-icon name="verified" [size]="14" /> {{ t('profile.verified') }}
                     </span>
                   }
-                  @if (user()!.is_tasker) {
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px]">
-                      <nhannht-metro-icon name="handyman" [size]="14" /> {{ t('profile.tasker') }}
-                    </span>
-                  }
                 </div>
               </div>
             </div>
@@ -139,27 +134,12 @@ import google_libphonenumber from 'google-libphonenumber';
               </div>
             }
 
-            @if (user()!.tasker_skills?.length) {
-              <div class="mt-4">
-                <h4 class="font-display text-[10px] tracking-[1px] text-muted m-0 mb-2">{{ t('profile.skills') }}</h4>
-                <div class="flex flex-wrap gap-2">
-                  @for (skill of user()!.tasker_skills; track skill) {
-                    <nhannht-metro-badge [label]="skill" />
-                  }
-                </div>
-              </div>
-            }
-
             @if (isOwnProfile()) {
               <nhannht-metro-divider />
               <div class="flex flex-col gap-2 mt-2">
                 <nhannht-metro-button variant="secondary"
                   [label]="editing() ? t('common.cancel') : t('profile.editProfile')"
                   (clicked)="editing.set(!editing())" />
-                @if (!user()!.is_tasker) {
-                  <nhannht-metro-button variant="secondary" [label]="t('profile.becomeTasker')"
-                    (clicked)="becomeTasker()" />
-                }
                 <a routerLink="/my-jobs/posted"
                    class="font-body text-[13px] text-muted tracking-[1px] hover:text-fg transition-colors duration-200">
                   {{ t('profile.myPostedJobs') }}
@@ -304,17 +284,6 @@ export class ProfileComponent implements OnInit {
 
   logout() {
     this.auth.logout();
-  }
-
-  becomeTasker() {
-    this.userService.becomeTasker().subscribe({
-      next: u => {
-        this.user.set(u);
-        this.snackbar.show(this.transloco.translate('profile.becameTasker'), undefined, { duration: 3000 });
-      },
-      error: err =>
-        this.snackbar.show(err.error?.error || this.transloco.translate('common.failed'), undefined, { duration: 3000 }),
-    });
   }
 
   onPhoneDialogConfirm() {

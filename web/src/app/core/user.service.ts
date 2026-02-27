@@ -24,7 +24,4 @@ export class UserService {
     return this.http.post<User>('/api/v1/users/me/avatar', fd);
   }
 
-  becomeTasker() {
-    return this.http.post<User>('/api/v1/users/become-tasker', {});
-  }
 }

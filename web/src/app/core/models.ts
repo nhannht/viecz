@@ -12,9 +12,6 @@ export interface User {
   total_tasks_completed: number;
   total_tasks_posted: number;
   total_earnings: number;
-  is_tasker: boolean;
-  tasker_bio?: string;
-  tasker_skills?: string[];
   auth_provider: string;
   email_verified: boolean;
   phone_verified: boolean;

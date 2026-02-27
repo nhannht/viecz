@@ -137,16 +137,6 @@ import { resolveNotification } from '../core/notification-i18n';
           </div>
         }
       </nav>
-      @if (auth.needsEmailVerification()) {
-        <div class="bg-fg text-bg px-6 py-2 flex items-center justify-center gap-4 font-body text-[12px]">
-          <span>{{ t('verifyEmail.bannerMessage') }}</span>
-          <button class="bg-bg text-fg px-3 py-1 font-display text-[10px] tracking-[1px] border-none cursor-pointer hover:opacity-90 transition-opacity"
-                  [disabled]="resendingEmail()"
-                  (click)="resendVerification()">
-            {{ resendingEmail() ? t('verifyEmail.sending') : t('verifyEmail.resendButton') }}
-          </button>
-        </div>
-      }
       <main class="shell-content max-w-[1200px] mx-auto p-4 min-h-[calc(100vh-64px)]">
         <router-outlet />
       </main>

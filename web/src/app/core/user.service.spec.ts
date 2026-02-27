@@ -14,7 +14,6 @@ const mockUser: User = {
   total_tasks_completed: 10,
   total_tasks_posted: 5,
   total_earnings: 500000,
-  is_tasker: false,
   auth_provider: 'email',
   email_verified: true,
   phone_verified: true,
@@ -96,14 +95,4 @@ describe('UserService', () => {
     });
   });
 
-  describe('becomeTasker', () => {
-    it('should POST to become-tasker endpoint', () => {
-      service.becomeTasker().subscribe(u => {
-        expect(u.is_tasker).toBe(true);
-      });
-      const req = httpTesting.expectOne('/api/v1/users/become-tasker');
-      expect(req.request.method).toBe('POST');
-      req.flush({ ...mockUser, is_tasker: true });
-    });
-  });
 });
