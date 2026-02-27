@@ -3,9 +3,12 @@ package com.viecz.vieczandroid.ui.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.viecz.vieczandroid.data.api.NominatimResult
 import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.Task
+import com.viecz.vieczandroid.data.repository.GeocodingRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import org.maplibre.android.geometry.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,14 +36,22 @@ data class TaskListUiState(
     val longitude: Double? = null,
     val locationStatusMessage: String? = null,
     val isMapView: Boolean = false,
-    val selectedMapTaskId: Long? = null
+    val selectedMapTaskId: Long? = null,
+    // Map UX improvements
+    val mapSearchCenter: LatLng? = null,
+    val mapCameraMoved: Boolean = false,
+    val mapSearchQuery: String = "",
+    val geocodeSuggestions: List<NominatimResult> = emptyList(),
+    val isGeocodingLoading: Boolean = false,
+    val showMapSearchBar: Boolean = false
 )
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val geocodingRepository: GeocodingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskListUiState())
@@ -49,8 +60,11 @@ class TaskListViewModel @Inject constructor(
     private val _searchQueryText = MutableStateFlow("")
     val searchQueryText: StateFlow<String> = _searchQueryText.asStateFlow()
 
+    private val _mapSearchQueryText = MutableStateFlow("")
+
     companion object {
         private const val TAG = "TaskListViewModel"
+        private const val CAMERA_MOVE_THRESHOLD_METERS = 200.0
     }
 
     init {
@@ -71,6 +85,38 @@ class TaskListViewModel @Inject constructor(
                     val searchValue = query.ifBlank { null }
                     _uiState.value = _uiState.value.copy(searchQuery = searchValue)
                     loadTasks(refresh = true)
+                }
+        }
+
+        // Debounced geocoding search (300ms)
+        viewModelScope.launch {
+            _mapSearchQueryText
+                .drop(1)
+                .debounce(300)
+                .distinctUntilChanged()
+                .collect { query ->
+                    if (query.length >= 2) {
+                        _uiState.value = _uiState.value.copy(isGeocodingLoading = true)
+                        geocodingRepository.search(query).fold(
+                            onSuccess = { results ->
+                                _uiState.value = _uiState.value.copy(
+                                    geocodeSuggestions = results.take(5),
+                                    isGeocodingLoading = false
+                                )
+                            },
+                            onFailure = {
+                                _uiState.value = _uiState.value.copy(
+                                    geocodeSuggestions = emptyList(),
+                                    isGeocodingLoading = false
+                                )
+                            }
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            geocodeSuggestions = emptyList(),
+                            isGeocodingLoading = false
+                        )
+                    }
                 }
         }
     }
@@ -214,5 +260,87 @@ class TaskListViewModel @Inject constructor(
 
     fun clearLocationStatusMessage() {
         _uiState.value = _uiState.value.copy(locationStatusMessage = null)
+    }
+
+    // ── Map UX improvements ──
+
+    fun searchArea(lat: Double, lng: Double, radiusMeters: Int) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            val result = repository.getTasks(
+                page = 1,
+                categoryId = _uiState.value.selectedCategoryId,
+                search = _uiState.value.searchQuery,
+                status = "open",
+                lat = lat,
+                lng = lng,
+                radius = radiusMeters,
+                sort = "distance"
+            )
+
+            result.fold(
+                onSuccess = { response ->
+                    Log.d(TAG, "Area search: ${response.data.size} tasks at ($lat, $lng) r=${radiusMeters}m")
+                    _uiState.value = _uiState.value.copy(
+                        tasks = response.data,
+                        isLoading = false,
+                        error = null,
+                        currentPage = 1,
+                        hasMore = response.data.size >= response.limit,
+                        mapSearchCenter = LatLng(lat, lng),
+                        mapCameraMoved = false
+                    )
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Area search failed", error)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = error.message ?: "Failed to search area"
+                    )
+                }
+            )
+        }
+    }
+
+    fun onMapCameraMoved(currentCenter: LatLng) {
+        val searchCenter = _uiState.value.mapSearchCenter
+        if (searchCenter != null) {
+            val distance = searchCenter.distanceTo(currentCenter)
+            if (distance > CAMERA_MOVE_THRESHOLD_METERS && !_uiState.value.mapCameraMoved) {
+                _uiState.value = _uiState.value.copy(mapCameraMoved = true)
+            }
+        } else {
+            // No previous search center — first map interaction
+            if (!_uiState.value.mapCameraMoved) {
+                _uiState.value = _uiState.value.copy(mapCameraMoved = true)
+            }
+        }
+    }
+
+    fun updateMapSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(mapSearchQuery = query)
+        _mapSearchQueryText.value = query
+    }
+
+    fun clearGeocodeSuggestions() {
+        _uiState.value = _uiState.value.copy(
+            geocodeSuggestions = emptyList(),
+            mapSearchQuery = ""
+        )
+        _mapSearchQueryText.value = ""
+    }
+
+    fun toggleMapSearchBar() {
+        val current = _uiState.value.showMapSearchBar
+        _uiState.value = _uiState.value.copy(
+            showMapSearchBar = !current,
+            geocodeSuggestions = emptyList()
+        )
+        if (current) {
+            // Closing — clear query
+            _mapSearchQueryText.value = ""
+            _uiState.value = _uiState.value.copy(mapSearchQuery = "")
+        }
     }
 }

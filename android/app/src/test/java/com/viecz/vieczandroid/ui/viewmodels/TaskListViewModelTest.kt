@@ -2,6 +2,7 @@ package com.viecz.vieczandroid.ui.viewmodels
 
 import app.cash.turbine.test
 import com.viecz.vieczandroid.data.local.TokenManager
+import com.viecz.vieczandroid.data.repository.GeocodingRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
 import com.viecz.vieczandroid.testutil.CoroutineTestRule
 import com.viecz.vieczandroid.testutil.TestData
@@ -28,18 +29,20 @@ class TaskListViewModelTest {
 
     private lateinit var mockRepository: TaskRepository
     private lateinit var mockTokenManager: TokenManager
+    private lateinit var mockGeocodingRepository: GeocodingRepository
     private lateinit var viewModel: TaskListViewModel
 
     @Before
     fun setup() {
         mockRepository = mockk()
         mockTokenManager = mockk()
+        mockGeocodingRepository = mockk(relaxed = true)
         every { mockTokenManager.userId } returns MutableStateFlow(1L)
         // Mock the initial loadTasks call in init block
         coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(
             TestData.createTasksResponse()
         )
-        viewModel = TaskListViewModel(mockRepository, mockTokenManager)
+        viewModel = TaskListViewModel(mockRepository, mockTokenManager, mockGeocodingRepository)
     }
 
     @After
@@ -159,7 +162,7 @@ class TaskListViewModelTest {
         coEvery { mockRepository.getTasks(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Result.success(response)
 
         // Create a fresh ViewModel where init returns hasMore=true (20 items >= 20 limit)
-        val vm = TaskListViewModel(mockRepository, mockTokenManager)
+        val vm = TaskListViewModel(mockRepository, mockTokenManager, mockGeocodingRepository)
         advanceUntilIdle()
 
         vm.loadMore()

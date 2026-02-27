@@ -28,7 +28,6 @@ import com.viecz.vieczandroid.ui.viewmodels.PhoneLoginViewModel
 @Composable
 fun PhoneLoginScreen(
     onLoginSuccess: () -> Unit,
-    onNavigateToEmailLogin: () -> Unit,
     viewModel: PhoneLoginViewModel = hiltViewModel()
 ) {
     val colors = MetroTheme.colors
@@ -106,14 +105,6 @@ fun PhoneLoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            MetroButton(
-                label = stringResource(R.string.phone_login_with_email),
-                onClick = onNavigateToEmailLogin,
-                variant = MetroButtonVariant.Secondary,
-                enabled = state !is PhoneAuthState.SendingCode && state !is PhoneAuthState.VerifyingCode,
-            )
         }
     }
 }

@@ -367,15 +367,18 @@ fun VieczTopBar(
                             tint = if (isMapView) MaterialTheme.colorScheme.primary else LocalContentColor.current
                         )
                     }
-                    IconButton(onClick = onNearMeToggle) {
-                        Icon(
-                            Icons.Default.MyLocation,
-                            contentDescription = stringResource(if (nearMeEnabled) R.string.main_near_me_enabled else R.string.main_near_me),
-                            tint = if (nearMeEnabled) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                        )
-                    }
-                    IconButton(onClick = onSearchToggle) {
-                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.main_search))
+                    // Hide near-me toggle and search when in map view (they're on the map now)
+                    if (!isMapView) {
+                        IconButton(onClick = onNearMeToggle) {
+                            Icon(
+                                Icons.Default.MyLocation,
+                                contentDescription = stringResource(if (nearMeEnabled) R.string.main_near_me_enabled else R.string.main_near_me),
+                                tint = if (nearMeEnabled) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                            )
+                        }
+                        IconButton(onClick = onSearchToggle) {
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.main_search))
+                        }
                     }
                     IconButton(onClick = onAddJob) {
                         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.main_add_job))

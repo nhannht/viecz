@@ -98,6 +98,14 @@
     <string name="home_filter_5km">5km</string>
     <string name="home_filter_10km">10km</string>
 
+    <!-- Home Screen - Map UX -->
+    <string name="map_search_this_area">Tìm kiếm khu vực này</string>
+    <string name="map_search_placeholder">Tìm việc hoặc địa điểm…</string>
+    <string name="map_my_location">Vị trí của tôi</string>
+    <string name="map_tasks_count">%d việc</string>
+    <string name="map_no_tasks_in_area">Không có việc nào trong khu vực này</string>
+    <string name="map_loading">Đang tải…</string>
+
     <!-- ==================== PROFILE SCREEN ==================== -->
     <string name="profile_title">Hồ sơ</string>
     <string name="profile_back">Quay lại</string>

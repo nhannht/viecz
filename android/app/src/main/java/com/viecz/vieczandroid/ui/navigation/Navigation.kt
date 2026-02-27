@@ -72,40 +72,6 @@ fun VieczNavHost(
                     navController.navigate(NavigationRoutes.MAIN) {
                         popUpTo(NavigationRoutes.PHONE_LOGIN) { inclusive = true }
                     }
-                },
-                onNavigateToEmailLogin = {
-                    navController.navigate(NavigationRoutes.LOGIN)
-                }
-            )
-        }
-
-        // Login screen (email/password)
-        composable(NavigationRoutes.LOGIN) {
-            LoginScreen(
-                onNavigateToRegister = {
-                    navController.navigate(NavigationRoutes.REGISTER)
-                },
-                onLoginSuccess = {
-                    navController.navigate(NavigationRoutes.MAIN) {
-                        popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
-                    }
-                },
-                onNavigateToPhoneLogin = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // Register screen
-        composable(NavigationRoutes.REGISTER) {
-            RegisterScreen(
-                onNavigateToLogin = {
-                    navController.popBackStack()
-                },
-                onRegisterSuccess = {
-                    navController.navigate(NavigationRoutes.MAIN) {
-                        popUpTo(NavigationRoutes.REGISTER) { inclusive = true }
-                    }
                 }
             )
         }
