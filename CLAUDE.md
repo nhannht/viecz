@@ -32,6 +32,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Exceptions for Bash/Grep**: Counting things (`grep -c`, `wc -l`), route patterns in `main.go`, text in comments/strings.
 
+**NEVER delegate code edits to sub-agents (Task tool) with `isolation: "worktree"`**. Worktree agents cannot use Serena because JetBrains IDE only indexes the main working directory. ALL code reading and editing MUST happen in the main agent using Serena tools. Sub-agents may ONLY be used for non-code tasks (running tests, searching docs, web fetches). If a task requires editing many files, the main agent does it directly with Serena — no shortcuts.
+
 **Serena memories**: `project_overview`, `suggested_commands`, `architecture/go_backend`, `architecture/angular_web`, `conventions/go_style`, `conventions/angular_style`, `task_completion_checklist`, `gotchas`
 
 ## Project Overview
