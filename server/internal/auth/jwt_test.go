@@ -11,10 +11,9 @@ import (
 func TestGenerateAccessToken(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
-		ID:       123,
-		Email:    strPtr("test@example.com"),
-		Name:     "Test User",
-		IsTasker: true,
+		ID:    123,
+		Email: strPtr("test@example.com"),
+		Name:  "Test User",
 	}
 	expiryMinutes := 30
 
@@ -44,10 +43,6 @@ func TestGenerateAccessToken(t *testing.T) {
 
 	if claims.Name != user.Name {
 		t.Errorf("Expected Name claim to be %s, got %s", user.Name, claims.Name)
-	}
-
-	if claims.IsTasker != user.IsTasker {
-		t.Errorf("Expected IsTasker claim to be %v, got %v", user.IsTasker, claims.IsTasker)
 	}
 
 	// Verify token expiration
@@ -111,10 +106,9 @@ func TestValidateToken(t *testing.T) {
 			name: "valid access token",
 			setupToken: func() string {
 				user := &models.User{
-					ID:       123,
-					Email:    strPtr("test@example.com"),
-					Name:     "Test",
-					IsTasker: false,
+					ID:    123,
+					Email: strPtr("test@example.com"),
+					Name:  "Test",
 				}
 				token, _ := GenerateAccessToken(user, secret, 30)
 				return token
@@ -157,10 +151,9 @@ func TestValidateToken(t *testing.T) {
 			name: "invalid signature",
 			setupToken: func() string {
 				user := &models.User{
-					ID:       123,
-					Email:    strPtr("test@example.com"),
-					Name:     "Test",
-					IsTasker: false,
+					ID:    123,
+					Email: strPtr("test@example.com"),
+					Name:  "Test",
 				}
 				token, _ := GenerateAccessToken(user, "wrong-secret", 30)
 				return token
@@ -306,10 +299,9 @@ func TestValidateEmailVerifyToken_AuthTokenRejected(t *testing.T) {
 func TestTokenRoundTrip(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
-		ID:       999,
-		Email:    strPtr("roundtrip@example.com"),
-		Name:     "Round Trip User",
-		IsTasker: true,
+		ID:    999,
+		Email: strPtr("roundtrip@example.com"),
+		Name:  "Round Trip User",
 	}
 
 	// Generate token
@@ -337,7 +329,4 @@ func TestTokenRoundTrip(t *testing.T) {
 		t.Errorf("Expected Name to be %s, got %s", user.Name, claims.Name)
 	}
 
-	if claims.IsTasker != user.IsTasker {
-		t.Errorf("Expected IsTasker to be %v, got %v", user.IsTasker, claims.IsTasker)
-	}
 }

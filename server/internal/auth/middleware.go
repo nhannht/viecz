@@ -40,7 +40,6 @@ func AuthRequired(jwtSecret string) gin.HandlerFunc {
 		c.Set("user_id", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("name", claims.Name)
-		c.Set("is_tasker", claims.IsTasker)
 
 		c.Next()
 	}
@@ -62,7 +61,6 @@ func OptionalAuth(jwtSecret string) gin.HandlerFunc {
 				c.Set("user_id", claims.UserID)
 				c.Set("email", claims.Email)
 				c.Set("name", claims.Name)
-				c.Set("is_tasker", claims.IsTasker)
 			}
 		}
 

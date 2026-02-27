@@ -390,55 +390,6 @@ func TestUserGormRepository_ExistsByEmail(t *testing.T) {
 	})
 }
 
-func TestUserGormRepository_BecomeTasker(t *testing.T) {
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	repo := NewUserGormRepository(db)
-	ctx := context.Background()
-
-	t.Run("become tasker successfully", func(t *testing.T) {
-		// Create user
-		user := &models.User{
-			Email:        strPtr("tasker@example.com"),
-			PasswordHash: func() *string { s := "hashed_password"; return &s }(),
-			AuthProvider: "email",
-			Name:         "Future Tasker",
-			IsTasker:     false,
-		}
-		if err := repo.Create(ctx, user); err != nil {
-			t.Fatalf("Failed to create user: %v", err)
-		}
-
-		// Become tasker
-		bio := "I'm a great tasker!"
-		skills := []string{"cleaning", "moving", "gardening"}
-		err := repo.BecomeTasker(ctx, user.ID, bio, skills)
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-
-		// Verify
-		found, _ := repo.GetByID(ctx, user.ID)
-		if !found.IsTasker {
-			t.Error("Expected IsTasker to be true")
-		}
-		if found.TaskerBio == nil || *found.TaskerBio != bio {
-			t.Errorf("Expected bio %s, got %v", bio, found.TaskerBio)
-		}
-		if len(found.TaskerSkills) != 3 {
-			t.Errorf("Expected 3 skills, got %d", len(found.TaskerSkills))
-		}
-	})
-
-	t.Run("user not found", func(t *testing.T) {
-		err := repo.BecomeTasker(ctx, 99999, "bio", []string{"skill"})
-		if err == nil {
-			t.Error("Expected error for non-existent user, got nil")
-		}
-	})
-}
-
 func TestUserGormRepository_UpdateRating(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()

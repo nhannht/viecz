@@ -238,10 +238,9 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// Note: In production, you'd want to fetch the user from database to get updated info
 	claimsEmail := claims.Email
 	user := &models.User{
-		ID:       claims.UserID,
-		Email:    &claimsEmail,
-		Name:     claims.Name,
-		IsTasker: claims.IsTasker,
+		ID:    claims.UserID,
+		Email: &claimsEmail,
+		Name:  claims.Name,
 	}
 
 	accessToken, err := auth.GenerateAccessToken(user, h.jwtSecret, 30)

@@ -158,7 +158,6 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 			{
 				protected.GET("/me", userHandler.GetMyProfile)
 				protected.PUT("/me", userHandler.UpdateProfile)
-				protected.POST("/become-tasker", userHandler.BecomeTasker)
 			}
 		}
 
@@ -298,18 +297,9 @@ func TestE2E_FullJobLifecycle(t *testing.T) {
 	t.Logf("Bob registered: ID=%d", bobID)
 
 	// =====================
-	// Step 3: Bob becomes a tasker
+	// Step 3: Alice deposits 200000 via PayOS
 	// =====================
-	w := doRequest(t, router, "POST", "/api/v1/users/become-tasker", bobToken, nil)
-	if w.Code != http.StatusOK {
-		t.Fatalf("Bob become-tasker: expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-	t.Log("Bob is now a tasker")
-
-	// =====================
-	// Step 4: Alice deposits 200000 via PayOS
-	// =====================
-	w = doRequest(t, router, "POST", "/api/v1/wallet/deposit", aliceToken, map[string]interface{}{
+	w := doRequest(t, router, "POST", "/api/v1/wallet/deposit", aliceToken, map[string]interface{}{
 		"amount": 200000,
 	})
 	if w.Code != http.StatusOK {

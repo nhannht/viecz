@@ -135,45 +135,6 @@ func TestUser_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  "total earnings cannot be negative",
 		},
-		{
-			name: "tasker with bio too long",
-			user: &User{
-				Email:        stringPtr("test@example.com"),
-				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
-				AuthProvider: "email",
-				Name:         "Test User",
-				IsTasker:     true,
-				TaskerBio:    stringPtr(string(make([]byte, 501))), // 501 characters
-			},
-			wantErr: true,
-			errMsg:  "tasker bio must be less than 500 characters",
-		},
-		{
-			name: "tasker with too many skills",
-			user: &User{
-				Email:        stringPtr("test@example.com"),
-				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
-				AuthProvider: "email",
-				Name:         "Test User",
-				IsTasker:     true,
-				TaskerSkills: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"}, // 11 skills
-			},
-			wantErr: true,
-			errMsg:  "tasker skills cannot exceed 10 items",
-		},
-		{
-			name: "valid tasker",
-			user: &User{
-				Email:        stringPtr("test@example.com"),
-				PasswordHash: func() *string { s := "hashedpassword123"; return &s }(),
-				AuthProvider: "email",
-				Name:         "Test User",
-				IsTasker:     true,
-				TaskerBio:    stringPtr("Experienced developer"),
-				TaskerSkills: []string{"Go", "Python", "JavaScript"},
-			},
-			wantErr: false,
-		},
 	}
 
 	for _, tt := range tests {

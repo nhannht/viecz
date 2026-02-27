@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"viecz.vieczserver/internal/models"
 )
@@ -101,25 +100,6 @@ func (r *userGormRepository) ExistsByEmail(ctx context.Context, email string) (b
 		return false, fmt.Errorf("failed to check email existence: %w", err)
 	}
 	return count > 0, nil
-}
-
-func (r *userGormRepository) BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error {
-	updates := map[string]interface{}{
-		"is_tasker":     true,
-		"tasker_bio":    &bio,
-		"tasker_skills": pq.Array(skills),
-	}
-
-	// Use UpdateColumns instead of Updates to skip BeforeUpdate validation hook
-	// This allows partial field updates without validating the entire zero-valued User model
-	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).UpdateColumns(updates)
-	if result.Error != nil {
-		return fmt.Errorf("failed to update user to tasker: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("user not found")
-	}
-	return nil
 }
 
 func (r *userGormRepository) UpdateRating(ctx context.Context, userID int64, rating float64) error {

@@ -335,15 +335,6 @@ func (m *mockUserRepository) IncrementEarnings(ctx context.Context, userID int64
 	return nil
 }
 
-func (m *mockUserRepository) BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error {
-	user, exists := m.users[userID]
-	if !exists {
-		return errors.New("user not found")
-	}
-	user.IsTasker = true
-	return nil
-}
-
 func (m *mockUserRepository) UpdateRating(ctx context.Context, userID int64, rating float64) error {
 	user, exists := m.users[userID]
 	if !exists {
@@ -740,7 +731,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 					RequesterID: 1,
 					Status:      models.TaskStatusOpen,
 				}
-				userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
+				userRepo.users[2] = &models.User{ID: 2}
 			},
 			wantErr: false,
 		},
@@ -750,26 +741,10 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 			taskerID: 2,
 			input:    &ApplyForTaskInput{},
 			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository, userRepo *mockUserRepository) {
-				userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
+				userRepo.users[2] = &models.User{ID: 2}
 			},
 			wantErr:     true,
 			errContains: "task not found",
-		},
-		{
-			name:     "user not tasker",
-			taskID:   1,
-			taskerID: 2,
-			input:    &ApplyForTaskInput{},
-			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository, userRepo *mockUserRepository) {
-				taskRepo.tasks[1] = &models.Task{
-					ID:          1,
-					RequesterID: 1,
-					Status:      models.TaskStatusOpen,
-				}
-				userRepo.users[2] = &models.User{ID: 2, IsTasker: false}
-			},
-			wantErr:     true,
-			errContains: "not registered as a tasker",
 		},
 		{
 			name:     "task not open",
@@ -782,7 +757,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 					RequesterID: 1,
 					Status:      models.TaskStatusCompleted,
 				}
-				userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
+				userRepo.users[2] = &models.User{ID: 2}
 			},
 			wantErr:     true,
 			errContains: "not open",
@@ -798,7 +773,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 					RequesterID: 1,
 					Status:      models.TaskStatusOpen,
 				}
-				userRepo.users[1] = &models.User{ID: 1, IsTasker: true}
+				userRepo.users[1] = &models.User{ID: 1}
 			},
 			wantErr:     true,
 			errContains: "cannot apply to your own task",
@@ -1646,7 +1621,7 @@ func TestTaskService_ApplyForTask_Overdue(t *testing.T) {
 			Status:      models.TaskStatusOpen,
 			Deadline:    &pastDeadline,
 		}
-		userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
+		userRepo.users[2] = &models.User{ID: 2}
 
 		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 		ctx := context.Background()
@@ -1673,7 +1648,7 @@ func TestTaskService_ApplyForTask_Overdue(t *testing.T) {
 			Status:      models.TaskStatusOpen,
 			Deadline:    &futureDeadline,
 		}
-		userRepo.users[2] = &models.User{ID: 2, IsTasker: true}
+		userRepo.users[2] = &models.User{ID: 2}
 
 		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 		ctx := context.Background()

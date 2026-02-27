@@ -10,10 +10,9 @@ import (
 
 // Claims represents the JWT claims
 type Claims struct {
-	UserID   int64  `json:"sub"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	IsTasker bool   `json:"is_tasker"`
+	UserID int64  `json:"sub"`
+	Email  string `json:"email"`
+	Name   string `json:"name"`
 	jwt.RegisteredClaims
 }
 
@@ -28,10 +27,9 @@ func userEmail(user *models.User) string {
 // GenerateAccessToken generates a JWT access token for a user
 func GenerateAccessToken(user *models.User, secret string, expiryMinutes int) (string, error) {
 	claims := Claims{
-		UserID:   user.ID,
-		Email:    userEmail(user),
-		Name:     user.Name,
-		IsTasker: user.IsTasker,
+		UserID: user.ID,
+		Email:  userEmail(user),
+		Name:   user.Name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiryMinutes) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

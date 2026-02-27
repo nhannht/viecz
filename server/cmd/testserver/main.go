@@ -421,7 +421,6 @@ func main() {
 				protected.GET("/me", userHandler.GetMyProfile)
 				protected.PUT("/me", userHandler.UpdateProfile)
 				protected.POST("/me/avatar", uploadHandler.UploadAvatar)
-				protected.POST("/become-tasker", userHandler.BecomeTasker)
 			}
 		}
 

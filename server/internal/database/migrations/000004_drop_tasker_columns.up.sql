@@ -1,0 +1,3 @@
+ALTER TABLE users DROP COLUMN IF EXISTS is_tasker;
+ALTER TABLE users DROP COLUMN IF EXISTS tasker_bio;
+ALTER TABLE users DROP COLUMN IF EXISTS tasker_skills;

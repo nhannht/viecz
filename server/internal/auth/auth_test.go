@@ -94,16 +94,6 @@ func (m *mockUserRepository) IncrementEarnings(ctx context.Context, userID int64
 	return nil
 }
 
-func (m *mockUserRepository) BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error {
-	for _, user := range m.users {
-		if user.ID == userID {
-			user.IsTasker = true
-			return nil
-		}
-	}
-	return errors.New("user not found")
-}
-
 func (m *mockUserRepository) UpdateRating(ctx context.Context, userID int64, rating float64) error {
 	for _, user := range m.users {
 		if user.ID == userID {

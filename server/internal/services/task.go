@@ -497,14 +497,10 @@ func (s *TaskService) ApplyForTask(ctx context.Context, taskID, taskerID int64, 
 		return nil, fmt.Errorf("cannot apply to your own task")
 	}
 
-	// Verify tasker exists and is a tasker
-	user, err := s.userRepo.GetByID(ctx, taskerID)
+	// Verify tasker exists
+	_, err = s.userRepo.GetByID(ctx, taskerID)
 	if err != nil {
 		return nil, fmt.Errorf("tasker not found: %w", err)
-	}
-
-	if !user.IsTasker {
-		return nil, fmt.Errorf("user is not registered as a tasker")
 	}
 
 	// Check if already applied

@@ -26,7 +26,7 @@ func setupTaskHandlerTest(t *testing.T) (*TaskHandler, *testutil.MockTaskReposit
 	// Add some default data
 	catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
 	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("requester@test.com")}
-	userRepo.users[2] = &models.User{ID: 2, Email: strPtr("tasker@test.com"), IsTasker: true}
+	userRepo.users[2] = &models.User{ID: 2, Email: strPtr("tasker@test.com")}
 
 	taskService := services.NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 	handler := NewTaskHandler(taskService, appRepo)
@@ -234,15 +234,6 @@ func (m *mockTaskUserRepository) IncrementTasksCompleted(ctx context.Context, us
 }
 
 func (m *mockTaskUserRepository) IncrementEarnings(ctx context.Context, userID int64, amount int64) error {
-	return nil
-}
-
-func (m *mockTaskUserRepository) BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error {
-	user, exists := m.users[userID]
-	if !exists {
-		return errors.New("user not found")
-	}
-	user.IsTasker = true
 	return nil
 }
 

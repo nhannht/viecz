@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -32,10 +31,7 @@ type User struct {
 	TotalTasksCompleted int       `gorm:"default:0" json:"total_tasks_completed"`
 	TotalTasksPosted    int       `gorm:"default:0" json:"total_tasks_posted"`
 	TotalEarnings       int64     `gorm:"default:0" json:"total_earnings"`
-	IsTasker            bool           `gorm:"default:false" json:"is_tasker"`
-	TaskerBio           *string        `gorm:"size:500" json:"tasker_bio,omitempty"`
-	TaskerSkills        pq.StringArray `gorm:"type:text[]" json:"tasker_skills,omitempty"`
-	CreatedAt           time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	CreatedAt           time.Time `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt           time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
@@ -106,16 +102,6 @@ func (u *User) Validate() error {
 
 	if u.Bio != nil && len(*u.Bio) > 500 {
 		return fmt.Errorf("bio must be less than 500 characters")
-	}
-
-	if u.IsTasker {
-		if u.TaskerBio != nil && len(*u.TaskerBio) > 500 {
-			return fmt.Errorf("tasker bio must be less than 500 characters")
-		}
-
-		if len(u.TaskerSkills) > 10 {
-			return fmt.Errorf("tasker skills cannot exceed 10 items")
-		}
 	}
 
 	return nil

@@ -18,7 +18,6 @@ type UserRepository interface {
 	GetByPhone(ctx context.Context, phone string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
-	BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error
 	UpdateRating(ctx context.Context, userID int64, rating float64) error
 	IncrementTasksCompleted(ctx context.Context, userID int64) error
 	IncrementTasksPosted(ctx context.Context, userID int64) error
@@ -76,7 +75,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*models.User, e
 	query := `
 		SELECT id, email, password_hash, name, avatar_url, phone, university, student_id,
 		       is_verified, rating, total_tasks_completed, total_tasks_posted, total_earnings,
-		       is_tasker, tasker_bio, tasker_skills, created_at, updated_at
+		       created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -96,9 +95,6 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*models.User, e
 		&user.TotalTasksCompleted,
 		&user.TotalTasksPosted,
 		&user.TotalEarnings,
-		&user.IsTasker,
-		&user.TaskerBio,
-		pq.Array(&user.TaskerSkills),
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -119,7 +115,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 	query := `
 		SELECT id, email, password_hash, name, avatar_url, phone, university, student_id,
 		       is_verified, rating, total_tasks_completed, total_tasks_posted, total_earnings,
-		       is_tasker, tasker_bio, tasker_skills, created_at, updated_at
+		       created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -139,9 +135,6 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 		&user.TotalTasksCompleted,
 		&user.TotalTasksPosted,
 		&user.TotalEarnings,
-		&user.IsTasker,
-		&user.TaskerBio,
-		pq.Array(&user.TaskerSkills),
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -162,7 +155,7 @@ func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*models.
 	query := `
 		SELECT id, email, password_hash, name, avatar_url, phone, university, student_id,
 		       is_verified, rating, total_tasks_completed, total_tasks_posted, total_earnings,
-		       is_tasker, tasker_bio, tasker_skills, created_at, updated_at
+		       created_at, updated_at
 		FROM users
 		WHERE phone = $1
 	`
@@ -182,9 +175,6 @@ func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*models.
 		&user.TotalTasksCompleted,
 		&user.TotalTasksPosted,
 		&user.TotalEarnings,
-		&user.IsTasker,
-		&user.TaskerBio,
-		pq.Array(&user.TaskerSkills),
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -205,7 +195,7 @@ func (r *userRepository) GetByGoogleID(ctx context.Context, googleID string) (*m
 	query := `
 		SELECT id, email, password_hash, name, avatar_url, phone, university, student_id,
 		       is_verified, rating, total_tasks_completed, total_tasks_posted, total_earnings,
-		       is_tasker, tasker_bio, tasker_skills, created_at, updated_at
+		       created_at, updated_at
 		FROM users
 		WHERE google_id = $1
 	`
@@ -225,9 +215,6 @@ func (r *userRepository) GetByGoogleID(ctx context.Context, googleID string) (*m
 		&user.TotalTasksCompleted,
 		&user.TotalTasksPosted,
 		&user.TotalEarnings,
-		&user.IsTasker,
-		&user.TaskerBio,
-		pq.Array(&user.TaskerSkills),
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -289,31 +276,6 @@ func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 	}
 
 	return exists, nil
-}
-
-// BecomeTasker upgrades a user to become a tasker
-func (r *userRepository) BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error {
-	query := `
-		UPDATE users
-		SET is_tasker = TRUE, tasker_bio = $1, tasker_skills = $2
-		WHERE id = $3
-	`
-
-	result, err := r.db.ExecContext(ctx, query, bio, pq.Array(skills), userID)
-	if err != nil {
-		return fmt.Errorf("failed to update tasker status: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("user not found")
-	}
-
-	return nil
 }
 
 // UpdateRating updates the user's rating

@@ -93,14 +93,6 @@ func seedTestUser(ctx context.Context, db *gorm.DB) error {
 		existing, err := userRepo.GetByEmail(ctx, tu.email)
 		if err == nil && existing != nil {
 			log.Printf("✓ Test user already exists: %s (%s)", tu.name, tu.email)
-			if !existing.IsTasker {
-				existing.IsTasker = true
-				if err := userRepo.Update(ctx, existing); err != nil {
-					log.Printf("Failed to make existing test user a tasker: %v", err)
-					return err
-				}
-				log.Printf("✓ Updated existing test user to be a tasker")
-			}
 			continue
 		}
 
@@ -110,17 +102,11 @@ func seedTestUser(ctx context.Context, db *gorm.DB) error {
 			return err
 		}
 
-		user.IsTasker = true
-		if err := userRepo.Update(ctx, user); err != nil {
-			log.Printf("Failed to make test user a tasker: %v", err)
-			return err
-		}
-
 		emailStr := ""
 		if user.Email != nil {
 			emailStr = *user.Email
 		}
-		log.Printf("✓ Seeded test user: %s (%s) [TASKER]", user.Name, emailStr)
+		log.Printf("✓ Seeded test user: %s (%s)", user.Name, emailStr)
 		log.Printf("  Login credentials: email=%s, password=%s", tu.email, tu.password)
 	}
 

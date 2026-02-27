@@ -17,10 +17,9 @@ func setupTestRouter() *gin.Engine {
 func TestAuthRequired(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
-		ID:       123,
-		Email:    strPtr("test@example.com"),
-		Name:     "Test User",
-		IsTasker: false,
+		ID:    123,
+		Email: strPtr("test@example.com"),
+		Name:  "Test User",
 	}
 
 	validToken, _ := GenerateAccessToken(user, secret, 30)
@@ -111,10 +110,9 @@ func TestAuthRequired(t *testing.T) {
 func TestOptionalAuth(t *testing.T) {
 	secret := "test-secret-key-for-jwt-testing-12345"
 	user := &models.User{
-		ID:       123,
-		Email:    strPtr("test@example.com"),
-		Name:     "Test User",
-		IsTasker: false,
+		ID:    123,
+		Email: strPtr("test@example.com"),
+		Name:  "Test User",
 	}
 
 	validToken, _ := GenerateAccessToken(user, secret, 30)

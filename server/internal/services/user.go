@@ -59,25 +59,6 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, input *Up
 	return user, nil
 }
 
-// BecomeTasker registers user as a tasker
-func (s *UserService) BecomeTasker(ctx context.Context, userID int64) (*models.User, error) {
-	user, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-
-	if user.IsTasker {
-		return nil, fmt.Errorf("user is already a tasker")
-	}
-
-	user.IsTasker = true
-	if err := s.userRepo.Update(ctx, user); err != nil {
-		return nil, fmt.Errorf("failed to update user: %w", err)
-	}
-
-	return user, nil
-}
-
 // GetProfile returns user profile by ID with computed statistics
 func (s *UserService) GetProfile(ctx context.Context, userID int64) (*models.User, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)

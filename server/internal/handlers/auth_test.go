@@ -139,10 +139,6 @@ func (m *mockUserRepository) IncrementEarnings(ctx context.Context, userID int64
 	return nil
 }
 
-func (m *mockUserRepository) BecomeTasker(ctx context.Context, userID int64, bio string, skills []string) error {
-	return nil
-}
-
 func (m *mockUserRepository) UpdateRating(ctx context.Context, userID int64, rating float64) error {
 	return nil
 }
@@ -475,10 +471,9 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 
 	// Generate a valid refresh token for testing
 	user := &models.User{
-		ID:       123,
-		Email:    strPtr("test@example.com"),
-		Name:     "Test User",
-		IsTasker: false,
+		ID:    123,
+		Email: strPtr("test@example.com"),
+		Name:  "Test User",
 	}
 	validRefreshToken, _ := auth.GenerateRefreshToken(user, jwtSecret, 7)
 
