@@ -5,6 +5,7 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
 import { NhannhtMetroMenuComponent } from '../shared/components/nhannht-metro-menu.component';
 import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
 import { NhannhtMetroSnackbarComponent } from '../shared/components/nhannht-metro-snackbar.component';
+import { ProfileCompletionDrawerComponent } from '../shared/components/profile-completion-drawer.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../core/auth.service';
@@ -26,6 +27,7 @@ import { resolveNotification } from '../core/notification-i18n';
     NhannhtMetroMenuComponent,
     NhannhtMetroDividerComponent,
     NhannhtMetroSnackbarComponent,
+    ProfileCompletionDrawerComponent,
   ],
   template: `
     <ng-container *transloco="let t">
@@ -141,6 +143,7 @@ import { resolveNotification } from '../core/notification-i18n';
         <router-outlet />
       </main>
       <nhannht-metro-snackbar [visible]="snackbarService.visible()" [message]="snackbarService.message()" />
+      <app-profile-completion-drawer />
     </ng-container>
   `,
   styles: `

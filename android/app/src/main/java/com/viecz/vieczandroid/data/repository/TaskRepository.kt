@@ -1,6 +1,7 @@
 package com.viecz.vieczandroid.data.repository
 
 import android.util.Log
+import com.viecz.vieczandroid.data.api.ProfileIncompleteException
 import com.viecz.vieczandroid.data.api.TaskApi
 import com.viecz.vieczandroid.data.local.dao.TaskDao
 import com.viecz.vieczandroid.data.local.entities.toEntity
@@ -164,6 +165,9 @@ class TaskRepository(
             val task = api.createTask(request)
             Log.d(TAG, "Task created successfully: id=${task.id}")
             Result.success(task)
+        } catch (e: ProfileIncompleteException) {
+            Log.w(TAG, "Profile incomplete for task creation: ${e.missingFields}")
+            Result.failure(e)
         } catch (e: HttpException) {
             val errorMessage = e.parseErrorMessage()
             Log.e(TAG, "HTTP error creating task: ${e.code()} - $errorMessage", e)
@@ -221,6 +225,9 @@ class TaskRepository(
             val application = api.applyForTask(taskId, request)
             Log.d(TAG, "Application submitted successfully: id=${application.id}")
             Result.success(application)
+        } catch (e: ProfileIncompleteException) {
+            Log.w(TAG, "Profile incomplete for task application: ${e.missingFields}")
+            Result.failure(e)
         } catch (e: HttpException) {
             val errorMessage = e.parseErrorMessage()
             Log.e(TAG, "HTTP error applying for task: ${e.code()} - $errorMessage", e)

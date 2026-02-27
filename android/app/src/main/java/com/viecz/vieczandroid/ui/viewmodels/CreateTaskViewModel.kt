@@ -4,11 +4,15 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.viecz.vieczandroid.data.api.NominatimResult
+import com.viecz.vieczandroid.data.api.ProfileIncompleteException
+import com.viecz.vieczandroid.data.api.UpdateProfileRequest
 import com.viecz.vieczandroid.data.models.CreateTaskRequest
 import com.viecz.vieczandroid.data.models.Task
 import com.viecz.vieczandroid.data.repository.GeocodingRepository
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.data.repository.UserRepository
 import com.viecz.vieczandroid.data.repository.WalletRepository
+import com.viecz.vieczandroid.ui.components.metro.ProfileGateRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,14 +47,17 @@ data class CreateTaskUiState(
     val deadlineError: String? = null,
     val isEditMode: Boolean = false,
     val editTaskId: Long? = null,
-    val updatedTask: Task? = null
+    val updatedTask: Task? = null,
+    val profileGate: ProfileGateRequest? = null,
+    val profileSaving: Boolean = false,
 )
 
 @HiltViewModel
 class CreateTaskViewModel @Inject constructor(
     private val repository: TaskRepository,
     private val walletRepository: WalletRepository,
-    private val geocodingRepository: GeocodingRepository
+    private val geocodingRepository: GeocodingRepository,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateTaskUiState())
@@ -293,10 +300,21 @@ class CreateTaskViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     Log.e(TAG, "Failed to create task", error)
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = error.message ?: "Failed to create task"
-                    )
+                    if (error is ProfileIncompleteException) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            profileGate = ProfileGateRequest(
+                                missingFields = error.missingFields,
+                                action = error.action,
+                                message = error.message ?: "",
+                            ),
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = error.message ?: "Failed to create task"
+                        )
+                    }
                 }
             )
         }
@@ -353,5 +371,30 @@ class CreateTaskViewModel @Inject constructor(
 
     fun resetForm() {
         _uiState.value = CreateTaskUiState()
+    }
+
+    /** Updates the user's profile and retries creating the task. */
+    fun completeProfileAndRetry(name: String?, bio: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(profileSaving = true)
+            val request = UpdateProfileRequest(name = name, bio = bio)
+            userRepository.updateProfile(request).fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(profileGate = null, profileSaving = false)
+                    createTask()
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Failed to update profile", error)
+                    _uiState.value = _uiState.value.copy(
+                        profileSaving = false,
+                        error = error.message ?: "Failed to update profile",
+                    )
+                }
+            )
+        }
+    }
+
+    fun dismissProfileGate() {
+        _uiState.value = _uiState.value.copy(profileGate = null)
     }
 }

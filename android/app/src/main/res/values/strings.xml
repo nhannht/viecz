@@ -383,6 +383,28 @@
     <string name="location_picker_search_placeholder">Tìm kiếm địa điểm...</string>
     <string name="location_picker_tap_hint">Nhấn vào bản đồ để chọn vị trí</string>
 
+    <!-- ==================== PROFILE GATE ==================== -->
+    <string name="profile_gate_heading_both">HOÀN THIỆN HỒ SƠ</string>
+    <string name="profile_gate_heading_name">BẠN TÊN LÀ GÌ?</string>
+    <string name="profile_gate_heading_bio">GIỚI THIỆU VỀ BẠN</string>
+    <string name="profile_gate_message_post_task">Cần hoàn thiện hồ sơ để đăng việc</string>
+    <string name="profile_gate_message_apply_task">Thêm giới thiệu để người đăng đánh giá đơn ứng tuyển của bạn</string>
+    <string name="profile_gate_message_apply_task_name">Hoàn thiện hồ sơ để ứng tuyển</string>
+    <string name="profile_gate_message_send_message">Nhập tên trước khi bắt đầu trò chuyện</string>
+    <string name="profile_gate_message_default">Hoàn thiện hồ sơ để tiếp tục</string>
+    <string name="profile_gate_name_label">Họ tên</string>
+    <string name="profile_gate_name_placeholder">vd. Nguyễn Văn A</string>
+    <string name="profile_gate_name_required">Họ tên là bắt buộc</string>
+    <string name="profile_gate_bio_label">Giới thiệu</string>
+    <string name="profile_gate_bio_placeholder">Bạn giỏi gì, có kinh nghiệm gì, v.v.</string>
+    <string name="profile_gate_bio_required">Giới thiệu là bắt buộc</string>
+    <string name="profile_gate_not_now">Để sau</string>
+    <string name="profile_gate_go_to_profile">Xem hồ sơ →</string>
+    <string name="profile_gate_complete_and_post">Hoàn thiện &amp; Đăng</string>
+    <string name="profile_gate_complete_and_apply">Hoàn thiện &amp; Ứng tuyển</string>
+    <string name="profile_gate_complete_and_send">Hoàn thiện &amp; Gửi</string>
+    <string name="profile_gate_complete_and_continue">Hoàn thiện &amp; Tiếp tục</string>
+
     <!-- ==================== COMMON ==================== -->
     <string name="common_back">Quay lại</string>
     <string name="common_cancel">Hủy</string>

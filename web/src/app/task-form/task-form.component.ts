@@ -15,6 +15,7 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { NhannhtMetroLocationPickerComponent } from '../shared/components/nhannht-metro-location-picker.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { ProfileGateService } from '../core/profile-gate.service';
 import { LocationPickerValue } from '../core/models';
 
 @Component({
@@ -146,6 +147,7 @@ export class TaskFormComponent implements OnInit {
   private walletService = inject(WalletService);
   private router = inject(Router);
   private snackBar = inject(NhannhtMetroSnackbarService);
+  private profileGate = inject(ProfileGateService);
   private transloco = inject(TranslocoService);
 
   isEditMode = signal(false);
@@ -261,7 +263,13 @@ export class TaskFormComponent implements OnInit {
           this.router.navigate(['/tasks', task.id]);
           this.saving.set(false);
         },
-        error: () => this.saving.set(false),
+        error: err => {
+          this.saving.set(false);
+          const gate = this.profileGate.isProfileGate(err);
+          if (gate) {
+            this.profileGate.openGate(gate, () => this.onSubmit());
+          }
+        },
       });
     }
   }

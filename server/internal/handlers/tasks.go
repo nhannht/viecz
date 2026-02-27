@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -9,6 +10,22 @@ import (
 	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/services"
 )
+
+// handleServiceError checks if err is a ProfileIncompleteError and returns
+// a structured 403 response. Otherwise it returns the given fallback status.
+func handleServiceError(c *gin.Context, err error, fallbackStatus int) {
+	var profileErr *services.ProfileIncompleteError
+	if errors.As(err, &profileErr) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":          "profile_incomplete",
+			"missing_fields": profileErr.MissingFields,
+			"action":         profileErr.Action,
+			"message":        profileErr.Message,
+		})
+		return
+	}
+	c.JSON(fallbackStatus, gin.H{"error": err.Error()})
+}
 
 // TaskHandler handles task-related HTTP requests
 type TaskHandler struct {
@@ -49,7 +66,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	task, err := h.taskService.CreateTask(c.Request.Context(), userID.(int64), &input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -299,7 +316,7 @@ func (h *TaskHandler) ApplyForTask(c *gin.Context) {
 
 	application, err := h.taskService.ApplyForTask(c.Request.Context(), taskID, userID.(int64), &input)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleServiceError(c, err, http.StatusBadRequest)
 		return
 	}
 

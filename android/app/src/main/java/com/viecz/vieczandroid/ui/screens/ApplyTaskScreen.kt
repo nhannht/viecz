@@ -14,12 +14,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.viecz.vieczandroid.data.api.ProfileIncompleteException
+import com.viecz.vieczandroid.data.api.UpdateProfileRequest
 import com.viecz.vieczandroid.data.models.ApplyTaskRequest
 import com.viecz.vieczandroid.data.repository.TaskRepository
+import com.viecz.vieczandroid.data.repository.UserRepository
 import com.viecz.vieczandroid.ui.components.metro.MetroButton
 import com.viecz.vieczandroid.ui.components.metro.MetroCard
 import com.viecz.vieczandroid.ui.components.metro.MetroInput
 import com.viecz.vieczandroid.ui.components.metro.MetroTextarea
+import com.viecz.vieczandroid.ui.components.metro.ProfileCompletionBottomSheet
+import com.viecz.vieczandroid.ui.components.metro.ProfileGateRequest
 import com.viecz.vieczandroid.ui.theme.MetroTheme
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,12 +42,15 @@ data class ApplyTaskUiState(
     val error: String? = null,
     val success: Boolean = false,
     val priceError: String? = null,
-    val messageError: String? = null
+    val messageError: String? = null,
+    val profileGate: ProfileGateRequest? = null,
+    val profileSaving: Boolean = false,
 )
 
 @HiltViewModel
 class ApplyTaskViewModel @Inject constructor(
     private val repository: TaskRepository,
+    private val userRepository: UserRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -98,10 +106,21 @@ class ApplyTaskViewModel @Inject constructor(
                     )
                 },
                 onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = error.message ?: context.getString(R.string.apply_task_failed)
-                    )
+                    if (error is ProfileIncompleteException) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            profileGate = ProfileGateRequest(
+                                missingFields = error.missingFields,
+                                action = error.action,
+                                message = error.message ?: "",
+                            ),
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = error.message ?: context.getString(R.string.apply_task_failed)
+                        )
+                    }
                 }
             )
         }
@@ -109,6 +128,30 @@ class ApplyTaskViewModel @Inject constructor(
 
     fun reset() {
         _uiState.value = ApplyTaskUiState()
+    }
+
+    /** Updates the user's profile and retries the task application. */
+    fun completeProfileAndRetry(taskId: Long, name: String?, bio: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(profileSaving = true)
+            val request = UpdateProfileRequest(name = name, bio = bio)
+            userRepository.updateProfile(request).fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(profileGate = null, profileSaving = false)
+                    applyForTask(taskId)
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        profileSaving = false,
+                        error = error.message ?: "Failed to update profile",
+                    )
+                }
+            )
+        }
+    }
+
+    fun dismissProfileGate() {
+        _uiState.value = _uiState.value.copy(profileGate = null)
     }
 }
 
@@ -214,6 +257,22 @@ fun ApplyTaskScreen(
                 fullWidth = true,
                 enabled = !uiState.isLoading && uiState.priceError == null && uiState.messageError == null,
                 isLoading = uiState.isLoading,
+            )
+        }
+
+        // Profile completion bottom sheet
+        uiState.profileGate?.let { gate ->
+            ProfileCompletionBottomSheet(
+                request = gate,
+                saving = uiState.profileSaving,
+                onSubmit = { name, bio ->
+                    viewModel.completeProfileAndRetry(taskId, name, bio)
+                },
+                onDismiss = { viewModel.dismissProfileGate() },
+                onGoToProfile = {
+                    viewModel.dismissProfileGate()
+                    onNavigateBack()
+                },
             )
         }
     }

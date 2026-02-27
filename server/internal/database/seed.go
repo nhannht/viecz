@@ -80,6 +80,7 @@ func seedTestUser(ctx context.Context, db *gorm.DB) error {
 	userRepo := repository.NewUserGormRepository(db)
 	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "seed-secret")
 
+	// Email-based test users (existing)
 	testUsers := []struct {
 		email    string
 		password string
@@ -110,41 +111,70 @@ func seedTestUser(ctx context.Context, db *gorm.DB) error {
 		log.Printf("  Login credentials: email=%s, password=%s", tu.email, tu.password)
 	}
 
+	// Phone-based test users (Firebase test phones)
+	// User 1: complete profile — tests the happy path
+	// User 2 & 3: blank profile — will trigger progressive gating
+	phoneUsers := []struct {
+		phone string
+		name  string
+		bio   *string
+	}{
+		{"+84371234561", "Nguyễn Văn Tester", strPtr("Sinh viên năm 3 ĐHQG-HCM, chuyên nhận việc vặt quanh khu Thủ Đức. Có xe máy, nhiệt tình và đúng giờ.")},
+		{"+84371234562", "User", nil},
+		{"+84371234563", "User", nil},
+	}
+
+	for _, pu := range phoneUsers {
+		var existing models.User
+		if err := db.WithContext(ctx).Where("phone = ?", pu.phone).First(&existing).Error; err == nil {
+			log.Printf("✓ Phone user already exists: %s (%s)", existing.Name, pu.phone)
+			continue
+		}
+
+		user := models.User{
+			Phone:         &pu.phone,
+			Name:          pu.name,
+			Bio:           pu.bio,
+			AuthProvider:  "phone",
+			PhoneVerified: true,
+			University:    "ĐHQG-HCM",
+		}
+		if err := db.WithContext(ctx).Create(&user).Error; err != nil {
+			log.Printf("Failed to seed phone user %s: %v", pu.phone, err)
+			return err
+		}
+		bioStr := "<blank>"
+		if user.Bio != nil {
+			bioStr = *user.Bio
+		}
+		log.Printf("✓ Seeded phone user: %s (%s) bio=%s", user.Name, pu.phone, bioStr)
+	}
+
 	return nil
 }
 
 // seedWallets creates wallets with balance for test users
 func seedWallets(ctx context.Context, db *gorm.DB) error {
+	// Seed wallets for email-based users
 	emails := []string{"nhan1@gmail.com", "nhan2@gmail.com"}
 	for _, email := range emails {
 		var user models.User
 		if err := db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
 			continue
 		}
-
-		var wallet models.Wallet
-		result := db.WithContext(ctx).Where("user_id = ?", user.ID).First(&wallet)
-		if result.Error == gorm.ErrRecordNotFound {
-			wallet = models.Wallet{
-				UserID:         user.ID,
-				Balance:        10000000, // 10,000,000 đ
-				TotalDeposited: 10000000,
-			}
-			if err := db.WithContext(ctx).Create(&wallet).Error; err != nil {
-				return err
-			}
-			log.Printf("✓ Seeded wallet for %s: 10,000,000 đ", email)
-		} else if result.Error == nil && wallet.Balance == 0 {
-			wallet.Balance = 10000000
-			wallet.TotalDeposited = 10000000
-			if err := db.WithContext(ctx).Save(&wallet).Error; err != nil {
-				return err
-			}
-			log.Printf("✓ Topped up wallet for %s: 10,000,000 đ", email)
-		} else {
-			log.Printf("✓ Wallet already exists for %s: %d đ", email, wallet.Balance)
-		}
+		seedWalletForUser(ctx, db, user.ID, email)
 	}
+
+	// Seed wallets for phone-based users
+	phones := []string{"+84371234561", "+84371234562", "+84371234563"}
+	for _, phone := range phones {
+		var user models.User
+		if err := db.WithContext(ctx).Where("phone = ?", phone).First(&user).Error; err != nil {
+			continue
+		}
+		seedWalletForUser(ctx, db, user.ID, phone)
+	}
+
 	return nil
 }
 
@@ -198,4 +228,36 @@ func seedTasks(ctx context.Context, db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+// seedWalletForUser creates or tops up a wallet for the given user
+func seedWalletForUser(ctx context.Context, db *gorm.DB, userID int64, label string) {
+	var wallet models.Wallet
+	result := db.WithContext(ctx).Where("user_id = ?", userID).First(&wallet)
+	if result.Error == gorm.ErrRecordNotFound {
+		wallet = models.Wallet{
+			UserID:         userID,
+			Balance:        10000000, // 10,000,000 đ
+			TotalDeposited: 10000000,
+		}
+		if err := db.WithContext(ctx).Create(&wallet).Error; err != nil {
+			log.Printf("Failed to seed wallet for %s: %v", label, err)
+			return
+		}
+		log.Printf("✓ Seeded wallet for %s: 10,000,000 đ", label)
+	} else if result.Error == nil && wallet.Balance == 0 {
+		wallet.Balance = 10000000
+		wallet.TotalDeposited = 10000000
+		if err := db.WithContext(ctx).Save(&wallet).Error; err != nil {
+			log.Printf("Failed to top up wallet for %s: %v", label, err)
+			return
+		}
+		log.Printf("✓ Topped up wallet for %s: 10,000,000 đ", label)
+	} else {
+		log.Printf("✓ Wallet already exists for %s: %d đ", label, wallet.Balance)
+	}
+}
+
+func strPtr(s string) *string {
+	return &s
 }

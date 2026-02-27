@@ -9,6 +9,7 @@ import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { TaskService } from '../core/task.service';
 import { ApplicationService } from '../core/application.service';
+import { ProfileGateService } from '../core/profile-gate.service';
 import { Task } from '../core/models';
 import { VndPipe } from '../core/pipes';
 
@@ -83,6 +84,7 @@ export class ApplyTaskComponent implements OnInit {
   private applicationService = inject(ApplicationService);
   private router = inject(Router);
   private snackbar = inject(NhannhtMetroSnackbarService);
+  private profileGate = inject(ProfileGateService);
   private transloco = inject(TranslocoService);
 
   task = signal<Task | null>(null);
@@ -128,7 +130,12 @@ export class ApplyTaskComponent implements OnInit {
       },
       error: err => {
         this.submitting.set(false);
-        this.snackbar.show(err.error?.error || this.transloco.translate('applyTask.submitFailed'), this.transloco.translate('common.close'), { duration: 3000 });
+        const gate = this.profileGate.isProfileGate(err);
+        if (gate) {
+          this.profileGate.openGate(gate, () => this.submit());
+        } else {
+          this.snackbar.show(err.error?.error || this.transloco.translate('applyTask.submitFailed'), this.transloco.translate('common.close'), { duration: 3000 });
+        }
       },
     });
   }

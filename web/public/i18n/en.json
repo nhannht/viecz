@@ -385,5 +385,27 @@
   },
   "taskCard": {
     "applied": "applied"
+  },
+  "profileGate": {
+    "headingBoth": "COMPLETE YOUR PROFILE",
+    "headingName": "WHAT'S YOUR NAME?",
+    "headingBio": "TELL THEM ABOUT YOURSELF",
+    "messagePostTask": "Complete your profile to post tasks",
+    "messageApplyTask": "Add a bio so the poster can evaluate your application",
+    "messageApplyTaskName": "Complete your profile to apply for tasks",
+    "messageSendMessage": "Set your name before starting a conversation",
+    "messageDefault": "Complete your profile to continue",
+    "nameLabel": "YOUR NAME",
+    "namePlaceholder": "e.g. Nguyen Van A",
+    "nameRequired": "Name is required",
+    "bioLabel": "ABOUT YOU",
+    "bioPlaceholder": "Tell them what you're good at, your experience, etc.",
+    "bioRequired": "Bio is required",
+    "notNow": "Not now",
+    "goToProfile": "Go to profile →",
+    "completeAndPost": "Complete & Post",
+    "completeAndApply": "Complete & Apply",
+    "completeAndSend": "Complete & Send",
+    "completeAndContinue": "Complete & Continue"
   }
 }

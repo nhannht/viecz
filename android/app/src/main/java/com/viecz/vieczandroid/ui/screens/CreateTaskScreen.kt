@@ -27,6 +27,7 @@ import com.viecz.vieczandroid.ui.components.metro.MetroInput
 import com.viecz.vieczandroid.ui.components.metro.MetroLocationPicker
 import com.viecz.vieczandroid.ui.components.metro.LocationPickerValue
 import com.viecz.vieczandroid.ui.components.metro.MetroTextarea
+import com.viecz.vieczandroid.ui.components.metro.ProfileCompletionBottomSheet
 import com.viecz.vieczandroid.ui.theme.MetroTheme
 import com.viecz.vieczandroid.ui.viewmodels.CategoryViewModel
 import com.viecz.vieczandroid.ui.viewmodels.CreateTaskViewModel
@@ -345,6 +346,22 @@ fun CreateTaskScreen(
         ) {
             DatePicker(state = datePickerState, colors = metroDatePickerColors)
         }
+    }
+
+    // Profile completion bottom sheet
+    uiState.profileGate?.let { gate ->
+        ProfileCompletionBottomSheet(
+            request = gate,
+            saving = uiState.profileSaving,
+            onSubmit = { name, bio ->
+                createTaskViewModel.completeProfileAndRetry(name, bio)
+            },
+            onDismiss = { createTaskViewModel.dismissProfileGate() },
+            onGoToProfile = {
+                createTaskViewModel.dismissProfileGate()
+                onNavigateBack()
+            },
+        )
     }
 
     // Time picker dialog — Metro-themed

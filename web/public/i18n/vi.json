@@ -385,5 +385,27 @@
   },
   "taskCard": {
     "applied": "ứng tuyển"
+  },
+  "profileGate": {
+    "headingBoth": "HOÀN THIỆN HỒ SƠ",
+    "headingName": "BẠN TÊN LÀ GÌ?",
+    "headingBio": "GIỚI THIỆU VỀ BẠN",
+    "messagePostTask": "Cần hoàn thiện hồ sơ để đăng việc",
+    "messageApplyTask": "Thêm giới thiệu để người đăng đánh giá đơn ứng tuyển của bạn",
+    "messageApplyTaskName": "Hoàn thiện hồ sơ để ứng tuyển",
+    "messageSendMessage": "Nhập tên trước khi bắt đầu trò chuyện",
+    "messageDefault": "Hoàn thiện hồ sơ để tiếp tục",
+    "nameLabel": "HỌ TÊN",
+    "namePlaceholder": "vd. Nguyễn Văn A",
+    "nameRequired": "Họ tên là bắt buộc",
+    "bioLabel": "GIỚI THIỆU",
+    "bioPlaceholder": "Bạn giỏi gì, có kinh nghiệm gì, v.v.",
+    "bioRequired": "Giới thiệu là bắt buộc",
+    "notNow": "Để sau",
+    "goToProfile": "Xem hồ sơ →",
+    "completeAndPost": "Hoàn thiện & Đăng",
+    "completeAndApply": "Hoàn thiện & Ứng tuyển",
+    "completeAndSend": "Hoàn thiện & Gửi",
+    "completeAndContinue": "Hoàn thiện & Tiếp tục"
   }
 }

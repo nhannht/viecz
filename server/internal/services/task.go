@@ -74,10 +74,14 @@ func (s *TaskService) CreateTask(ctx context.Context, requesterID int64, input *
 		return nil, fmt.Errorf("invalid category: %w", err)
 	}
 
-	// Verify requester exists
-	_, err = s.userRepo.GetByID(ctx, requesterID)
+	// Verify requester exists and check profile completeness
+	requester, err := s.userRepo.GetByID(ctx, requesterID)
 	if err != nil {
 		return nil, fmt.Errorf("requester not found: %w", err)
+	}
+
+	if profileErr := CheckProfileForAction(requester, ProfileActionPostTask); profileErr != nil {
+		return nil, profileErr
 	}
 
 	// Validate available balance covers task price
@@ -497,10 +501,14 @@ func (s *TaskService) ApplyForTask(ctx context.Context, taskID, taskerID int64, 
 		return nil, fmt.Errorf("cannot apply to your own task")
 	}
 
-	// Verify tasker exists
-	_, err = s.userRepo.GetByID(ctx, taskerID)
+	// Verify tasker exists and check profile completeness
+	tasker, err := s.userRepo.GetByID(ctx, taskerID)
 	if err != nil {
 		return nil, fmt.Errorf("tasker not found: %w", err)
+	}
+
+	if profileErr := CheckProfileForAction(tasker, ProfileActionApplyTask); profileErr != nil {
+		return nil, profileErr
 	}
 
 	// Check if already applied
