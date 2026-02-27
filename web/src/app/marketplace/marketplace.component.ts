@@ -213,7 +213,6 @@ export class MarketplaceComponent implements OnInit {
   private platformId = inject(PLATFORM_ID);
   private readonly pageSize = 20;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
-  private _areaSearchGeo: { lat: number; lng: number } | null = null;
 
   ngOnInit() {
     this.loadTasks();
@@ -235,7 +234,6 @@ export class MarketplaceComponent implements OnInit {
       this.viewMode.set('list');
       this.nearMeActive.set(false);
       this.selectedRadius.set(null);
-      this._areaSearchGeo = null;
       this.resetAndLoad();
       return;
     }
@@ -251,11 +249,27 @@ export class MarketplaceComponent implements OnInit {
   }
 
   onAreaSearch(event: { lat: number; lng: number; radius: number | null }) {
-    this.selectedRadius.set(event.radius);
-    this.nearMeActive.set(true);
-    // Store geo override so buildGeoParams uses the map center instead of device location
-    this._areaSearchGeo = { lat: event.lat, lng: event.lng };
-    this.resetAndLoad();
+    this.loading.set(true);
+    this.taskService
+      .list({
+        search: this.search || undefined,
+        category_id: this.selectedCategory || undefined,
+        status: 'open',
+        page: 1,
+        limit: this.pageSize,
+        lat: event.lat,
+        lng: event.lng,
+        radius: event.radius ?? undefined,
+        sort: 'distance',
+      })
+      .subscribe({
+        next: (res) => {
+          this.tasks.set(res.data || []);
+          this.total.set(res.total);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
   onMapTaskSelected(taskId: number) {
@@ -284,12 +298,9 @@ export class MarketplaceComponent implements OnInit {
 
   private buildGeoParams() {
     if (!this.nearMeActive()) return {};
-    // Prefer map-center from area search over device geolocation
-    const lat = this._areaSearchGeo?.lat ?? this.geo.latitude() ?? undefined;
-    const lng = this._areaSearchGeo?.lng ?? this.geo.longitude() ?? undefined;
     return {
-      lat,
-      lng,
+      lat: this.geo.latitude() ?? undefined,
+      lng: this.geo.longitude() ?? undefined,
       radius: this.selectedRadius() ?? undefined,
       sort: 'distance' as const,
     };
