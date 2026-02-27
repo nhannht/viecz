@@ -250,13 +250,15 @@ export class MarketplaceComponent implements OnInit {
 
   onAreaSearch(event: { lat: number; lng: number; radius: number | null }) {
     this.loading.set(true);
+    // When radius is "All" (null), fetch all tasks so the map shows every pin
+    const limit = event.radius == null ? 1000 : this.pageSize;
     this.taskService
       .list({
         search: this.search || undefined,
         category_id: this.selectedCategory || undefined,
         status: 'open',
         page: 1,
-        limit: this.pageSize,
+        limit,
         lat: event.lat,
         lng: event.lng,
         radius: event.radius ?? undefined,

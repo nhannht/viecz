@@ -342,6 +342,20 @@ export class MarketplaceMapComponent implements OnInit, OnDestroy {
       const tasks = this.geoTasks();
       if (this.map && this.map.getSource('task-markers-source')) {
         this.updateTaskMarkers(tasks);
+
+        // When radius is "All", fit map to show every pin
+        const radius = this.radiusStops[this.sliderIndex()].value;
+        if (radius == null && tasks.length > 1) {
+          let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+          for (const t of tasks) {
+            if (t.latitude! < minLat) minLat = t.latitude!;
+            if (t.latitude! > maxLat) maxLat = t.latitude!;
+            if (t.longitude! < minLng) minLng = t.longitude!;
+            if (t.longitude! > maxLng) maxLng = t.longitude!;
+          }
+          this.suppressCameraCallback = true;
+          this.map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 40, maxZoom: 15 });
+        }
       }
     });
 

@@ -248,7 +248,7 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 
 	if limit := c.Query("limit"); limit != "" {
 		limitNum, err := strconv.Atoi(limit)
-		if err == nil && limitNum > 0 && limitNum <= 100 {
+		if err == nil && limitNum > 0 && limitNum <= 1000 {
 			filters.Limit = limitNum
 		}
 	}
