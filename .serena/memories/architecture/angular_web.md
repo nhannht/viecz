@@ -22,12 +22,11 @@ web/src/app/
 ├── verify-email/   # Email verification flow
 ├── payment-return/ # PayOS return page
 ├── layout/         # App shell, navigation
-├── features/       # Feature modules
-└── environments/   # Dev/prod configs
+└── environments/   # Dev/prod configs (sentryDsn, apiUrl, firebase, mapTiler)
 ```
 
-## Core Services (11)
-auth, task, user, wallet, payment, chat, websocket, notification, category, application, language
+## Core Services (16)
+auth, task, user, wallet, payment, chat, websocket, notification, category, application, language, firebase, geocoding, geolocation, google-maps-loader, profile-gate
 
 ## Design System: nhannht-metro-meow
 - All shared components prefixed `nhannht-metro-*`
@@ -41,3 +40,6 @@ auth, task, user, wallet, payment, chat, websocket, notification, category, appl
 - Vitest via `npx ng test` (never run vitest directly)
 - SSR with Express 5, port 4001 in production
 - i18n: English + Vietnamese
+- Sentry/GlitchTip error tracking via @sentry/angular SDK
+- Error interceptor forwards 5xx errors to GlitchTip
+- User context set on Sentry scope at login/logout

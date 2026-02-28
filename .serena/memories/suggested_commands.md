@@ -67,9 +67,35 @@ cd android
 
 ## Infrastructure
 ```bash
-# Deploy server (ask user first!)
-rsync -avz bin/server-linux sg:~/nhannht-projects/viecz/server/bin/
+# Deploy Go server (ask user first!)
+cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/server-linux ./cmd/server
+sudo systemctl restart viecz-server
+
+# Deploy Angular web (ask user first!)
+cd web && npm run build
+sudo systemctl restart viecz-web
 
 # Check production
 curl -s --max-time 5 https://viecz.fishcmus.io.vn
+sudo systemctl status viecz-server viecz-web
+sudo journalctl -u viecz-server -f
+sudo journalctl -u viecz-web -f
+```
+
+## Monitoring
+```bash
+# GlitchTip API (error tracking)
+GT_TOKEN=$(grep GLITCHTIP_API_TOKEN /docker_config/monitoring/.env | cut -d= -f2)
+curl -s -H "Authorization: Bearer $GT_TOKEN" "https://glitchtip.fishcmus.io.vn/api/0/organizations/viecz/issues/"
+
+# Grafana API (dashboards)
+GRAFANA_PASS=$(grep GF_SECURITY_ADMIN_PASSWORD /docker_config/monitoring/.env | cut -d= -f2)
+curl -s -u "admin:${GRAFANA_PASS}" "http://localhost:3001/api/dashboards/home"
+
+# Prometheus targets health
+curl -s "http://localhost:9090/api/v1/targets" | python3 -c "import sys,json; [print(f'{t[\"labels\"][\"job\"]:20s} {t[\"health\"]}') for t in json.load(sys.stdin)['data']['activeTargets']]"
+
+# Monitoring stack (start/stop/logs)
+cd /docker_config/monitoring && sudo docker compose up -d
+cd /docker_config/monitoring && sudo docker compose logs -f
 ```
