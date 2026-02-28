@@ -143,7 +143,7 @@ describe('TaskFormComponent', () => {
       expect(snackBarSpy.show).toHaveBeenCalledWith('Task created', undefined, { duration: 3000 });
     });
 
-    it('should include deadline in request when set', () => {
+    it('should include deadline ISO string in request when set', () => {
       const taskFormDebug = fixture.debugElement.children[0];
       const taskForm = taskFormDebug.componentInstance as TaskFormComponent;
 
@@ -152,13 +152,13 @@ describe('TaskFormComponent', () => {
       taskForm.categoryId = '1';
       taskForm.price = '10000';
       taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
-      taskForm.deadline = '2026-12-25';
+      taskForm.deadline = '2026-12-25T22:00:00.000Z';
       fixture.detectChanges();
 
       taskForm.onSubmit();
 
       const req = httpTesting.expectOne('/api/v1/tasks');
-      expect(req.request.body.deadline).toBeTruthy();
+      expect(req.request.body.deadline).toBe('2026-12-25T22:00:00.000Z');
       req.flush({ ...mockTask, id: 6 });
     });
 
@@ -446,7 +446,7 @@ describe('TaskFormComponent', () => {
       taskForm.categoryId = '1';
       taskForm.price = '10000';
       taskForm.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
-      taskForm.deadline = '2020-01-01';
+      taskForm.deadline = '2020-01-01T00:00:00.000Z';
       taskForm.onSubmit();
       httpTesting.expectNone('/api/v1/tasks');
     });
@@ -567,14 +567,9 @@ describe('TaskFormComponent', () => {
       expect(picker).toBeTruthy();
     });
 
-    it('should update deadline via DOM datepicker change event', () => {
-      const dateInput = fixture.nativeElement.querySelector('nhannht-metro-datepicker input[type="date"]');
-      if (dateInput) {
-        dateInput.value = '2026-12-25';
-        dateInput.dispatchEvent(new Event('change'));
-        fixture.detectChanges();
-        expect(getComponent().deadline).toBe('2026-12-25');
-      }
+    it('should render smart deadline picker component', () => {
+      const picker = fixture.nativeElement.querySelector('nhannht-metro-smart-deadline');
+      expect(picker).toBeTruthy();
     });
 
     it('should submit form via DOM form submit event', () => {
@@ -759,7 +754,7 @@ describe('TaskFormComponent', () => {
       comp.categoryId = '1';
       comp.price = '10000';
       comp.locationValue = { location: 'Here', latitude: 0, longitude: 0 };
-      comp.deadline = '2020-01-01'; // past date
+      comp.deadline = '2020-01-01T00:00:00.000Z'; // past date
       comp.onSubmit(); // sets submitted=true
       fixture.detectChanges();
       // The deadline error should be shown

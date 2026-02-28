@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Cost Control
+
+Always use `model: "haiku"` when spawning Task sub-agents for research, exploration, file searching, or doc lookups. Only use `"sonnet"` or `"opus"` for sub-agents that need deep reasoning or complex code generation.
+
 ## Serena + JetBrains Is the Default (CRITICAL)
 
 **MANDATORY**: Serena (JetBrains IDEA) is the **primary tool for ALL code work**. Claude Code `Read`/`Grep`/`Glob`/`Edit` are **only** for non-code files (`.md`, `.yml`, `.json`) or files outside this project.

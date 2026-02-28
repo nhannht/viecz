@@ -178,7 +178,7 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
       @if (auth.isAuthenticated()) {
         <a routerLink="/tasks/new"
            class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-fg text-bg border-2 border-fg
-                  flex items-center justify-center cursor-pointer
+                  hidden md:flex items-center justify-center cursor-pointer
                   hover:bg-transparent hover:text-fg transition-all duration-200"
            [attr.aria-label]="t('marketplace.createTask')">
           <nhannht-metro-icon name="add" [size]="28" />

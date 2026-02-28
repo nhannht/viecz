@@ -386,6 +386,26 @@
   "taskCard": {
     "applied": "applied"
   },
+  "smartDeadline": {
+    "tonightTenPm": "Tonight 10PM",
+    "tomorrowMorning": "Tomorrow 9AM",
+    "tomorrowEvening": "Tomorrow 6PM",
+    "thisWeekend": "This weekend",
+    "nextWeekend": "Next weekend",
+    "nextWeek": "Next week",
+    "custom": "Custom...",
+    "date": "DATE",
+    "time": "TIME",
+    "clear": "CLEAR",
+    "morning9am": "9:00 AM",
+    "noon": "12:00 PM",
+    "afternoon3pm": "3:00 PM",
+    "evening6pm": "6:00 PM",
+    "night9pm": "9:00 PM",
+    "night10pm": "10:00 PM",
+    "night11pm": "11:00 PM",
+    "customTime": "Other time..."
+  },
   "profileGate": {
     "headingBoth": "COMPLETE YOUR PROFILE",
     "headingName": "WHAT'S YOUR NAME?",

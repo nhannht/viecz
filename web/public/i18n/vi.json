@@ -386,6 +386,26 @@
   "taskCard": {
     "applied": "ứng tuyển"
   },
+  "smartDeadline": {
+    "tonightTenPm": "Tối nay 10PM",
+    "tomorrowMorning": "Sáng mai 9AM",
+    "tomorrowEvening": "Chiều mai 6PM",
+    "thisWeekend": "Cuối tuần này",
+    "nextWeekend": "Cuối tuần sau",
+    "nextWeek": "Tuần sau",
+    "custom": "Tùy chọn...",
+    "date": "NGÀY",
+    "time": "GIỜ",
+    "clear": "XÓA",
+    "morning9am": "9:00 sáng",
+    "noon": "12:00 trưa",
+    "afternoon3pm": "3:00 chiều",
+    "evening6pm": "6:00 chiều",
+    "night9pm": "9:00 tối",
+    "night10pm": "10:00 tối",
+    "night11pm": "11:00 tối",
+    "customTime": "Giờ khác..."
+  },
   "profileGate": {
     "headingBoth": "HOÀN THIỆN HỒ SƠ",
     "headingName": "BẠN TÊN LÀ GÌ?",

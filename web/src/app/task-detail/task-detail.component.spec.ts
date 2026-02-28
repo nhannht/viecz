@@ -432,8 +432,20 @@ describe('TaskDetailComponent', () => {
     expect(el.textContent).toContain('Test Task');
   });
 
-  it('should show escrow dialog when accepting an application', () => {
+  it('should show escrow dialog with proposed price when accepting an application', () => {
     initComponent(mockTask, [mockApplication]);
+    const detailDebugEl = fixture.debugElement.query(By.directive(TaskDetailComponent));
+    const comp = detailDebugEl.componentInstance as TaskDetailComponent;
+    comp.acceptApp(1);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // Should show proposed price (18.000) not task price (20.000)
+    expect(el.textContent).toContain('18.000');
+  });
+
+  it('should show task price in escrow dialog when application has no proposed price', () => {
+    const appWithoutPrice: TaskApplication = { ...mockApplication, proposed_price: undefined };
+    initComponent(mockTask, [appWithoutPrice]);
     const detailDebugEl = fixture.debugElement.query(By.directive(TaskDetailComponent));
     const comp = detailDebugEl.componentInstance as TaskDetailComponent;
     comp.acceptApp(1);

@@ -9,7 +9,7 @@ import { VndPipe } from '../core/pipes';
 import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
 import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
 import { NhannhtMetroSelectComponent } from '../shared/components/nhannht-metro-select.component';
-import { NhannhtMetroDatepickerComponent } from '../shared/components/nhannht-metro-datepicker.component';
+import { NhannhtMetroSmartDeadlineComponent } from '../shared/components/nhannht-metro-smart-deadline.component';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
@@ -28,7 +28,7 @@ import { LocationPickerValue } from '../core/models';
     NhannhtMetroCardComponent,
     NhannhtMetroInputComponent,
     NhannhtMetroSelectComponent,
-    NhannhtMetroDatepickerComponent,
+    NhannhtMetroSmartDeadlineComponent,
     NhannhtMetroButtonComponent,
     NhannhtMetroIconComponent,
     NhannhtMetroSpinnerComponent,
@@ -107,13 +107,12 @@ import { LocationPickerValue } from '../core/models';
               [(ngModel)]="locationValue" name="locationValue"
               [error]="submitted && !locationValue.location ? t('taskForm.locationRequired') : ''" />
 
-            <nhannht-metro-datepicker
+            <nhannht-metro-smart-deadline
               [label]="t('taskForm.deadlineLabel')"
-              [min]="today"
               [(ngModel)]="deadline" name="deadline"
-              [error]="submitted && deadline && deadline < today ? t('taskForm.deadlinePast') : ''" />
+              [error]="submitted && isDeadlinePast() ? t('taskForm.deadlinePast') : ''" />
 
-            <div class="flex justify-end gap-3 pt-4">
+            <div class="flex justify-end items-center gap-3 pt-4">
               <nhannht-metro-button
                 variant="secondary"
                 [label]="t('common.cancel')"
@@ -164,7 +163,6 @@ export class TaskFormComponent implements OnInit {
     }))
   );
 
-  today = new Date().toISOString().split('T')[0];
   title = '';
   description = '';
   categoryId = '';
@@ -196,7 +194,7 @@ export class TaskFormComponent implements OnInit {
             latitude: task.latitude || 0,
             longitude: task.longitude || 0,
           };
-          this.deadline = task.deadline ? task.deadline.split('T')[0] : '';
+          this.deadline = task.deadline || '';
           this.loadingTask.set(false);
         },
         error: () => {
@@ -223,13 +221,18 @@ export class TaskFormComponent implements OnInit {
     return balance !== null && p > 0 && p > balance;
   }
 
+  isDeadlinePast(): boolean {
+    if (!this.deadline) return false;
+    return new Date(this.deadline) < new Date();
+  }
+
   onSubmit() {
     this.submitted = true;
     const p = Number(this.price);
     if (!this.title || !this.description || !this.categoryId || !this.price || p <= 0 || p % 1000 !== 0 || !this.locationValue.location) {
       return;
     }
-    if (this.deadline && this.deadline < this.today) {
+    if (this.isDeadlinePast()) {
       return;
     }
 
@@ -244,7 +247,7 @@ export class TaskFormComponent implements OnInit {
       longitude: this.locationValue.longitude,
     };
     if (this.deadline) {
-      body['deadline'] = new Date(this.deadline).toISOString();
+      body['deadline'] = this.deadline;
     }
 
     if (this.isEditMode()) {

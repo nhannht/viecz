@@ -188,7 +188,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
         <p>{{ t('task.escrowMessage') }}</p>
         <div class="flex justify-between items-center p-4 bg-card border border-border my-3">
           <span class="font-bold text-[13px]">{{ t('task.escrowAmount') }}</span>
-          <span class="text-[16px] font-bold">{{ task()!.price | vnd }}</span>
+          <span class="text-[16px] font-bold">{{ escrowAmount() | vnd }}</span>
         </div>
         <p class="text-[13px] text-muted">{{ t('task.escrowHint') }}</p>
       </nhannht-metro-dialog>
@@ -216,6 +216,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   showDeleteDialog = signal(false);
   showEscrowDialog = signal(false);
   pendingAppId = signal(0);
+  escrowAmount = signal(0);
   private map: any = null;
 
   get isRequester() {
@@ -305,6 +306,8 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.pendingAppId.set(appId);
+    const app = this.applications().find(a => a.id === appId);
+    this.escrowAmount.set(app?.proposed_price ?? this.task()?.price ?? 0);
     this.showEscrowDialog.set(true);
   }
 

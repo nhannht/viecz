@@ -75,13 +75,44 @@ describe('ShellComponent', () => {
 
   it('should render toolbar with Viecz logo', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.logo')?.textContent).toBe('Viecz');
+    expect(compiled.querySelector('.logo')?.textContent?.trim()).toBe('Viecz');
   });
 
-  it('should render navigation links', () => {
+  it('should render desktop navigation links', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const navLinks = compiled.querySelectorAll('.nav-links a');
+    const navLinks = compiled.querySelectorAll('.nav-links-group a');
     expect(navLinks.length).toBe(3);
+  });
+
+  it('should render mobile bottom tab bar with 5 tabs', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const bottomTabs = compiled.querySelectorAll('.bottom-tab');
+    expect(bottomTabs.length).toBe(5);
+  });
+
+  it('should compute activeTab from activeRoute signal', () => {
+    component.activeRoute.set('/');
+    expect(component.activeTab()).toBe('marketplace');
+    component.activeRoute.set('/wallet');
+    expect(component.activeTab()).toBe('wallet');
+    component.activeRoute.set('/messages');
+    expect(component.activeTab()).toBe('chat');
+    component.activeRoute.set('/profile/1');
+    expect(component.activeTab()).toBe('profile');
+    component.activeRoute.set('/tasks/new');
+    expect(component.activeTab()).toBe('create');
+    component.activeRoute.set('/notifications');
+    expect(component.activeTab()).toBe('other');
+  });
+
+  it('should set scrolled signal on scroll', () => {
+    expect(component.scrolled()).toBe(false);
+    Object.defineProperty(window, 'scrollY', { value: 50, writable: true });
+    component.onWindowScroll();
+    expect(component.scrolled()).toBe(true);
+    Object.defineProperty(window, 'scrollY', { value: 0, writable: true });
+    component.onWindowScroll();
+    expect(component.scrolled()).toBe(false);
   });
 
   it('should connect websocket on init', () => {
@@ -500,10 +531,15 @@ describe('ShellComponent (unauthenticated)', () => {
     fixture.detectChanges();
   });
 
-  it('should render login and register links when unauthenticated', () => {
+  it('should render sign in link when unauthenticated', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Sign In');
-    expect(el.textContent).toContain('Register');
+  });
+
+  it('should not render bottom tab bar when unauthenticated', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    const bottomBar = el.querySelector('.bottom-bar');
+    expect(bottomBar).toBeFalsy();
   });
 
   it('should NOT connect websocket when unauthenticated', () => {

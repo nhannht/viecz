@@ -240,7 +240,7 @@ export function animateValue(
 
           <!-- Mobile bottom drawer -->
           <div
-            class="md:hidden absolute bottom-0 left-0 right-0 z-30 bg-bg border-t-2 border-fg transition-all duration-300"
+            class="md:hidden bg-bg border-t-2 border-fg transition-all duration-300 shrink-0"
             [style.height]="drawerExpanded() ? '60vh' : '80px'"
           >
             <button
