@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"viecz.vieczserver/internal/models"
 )
 
@@ -86,7 +87,7 @@ func (r *walletGormRepository) GetByUserIDForUpdate(ctx context.Context, tx *gor
 		db = r.db
 	}
 	var wallet models.Wallet
-	if err := db.WithContext(ctx).Set("gorm:query_option", "FOR UPDATE").
+	if err := db.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("user_id = ?", userID).First(&wallet).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("wallet not found for user")

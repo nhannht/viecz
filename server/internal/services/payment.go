@@ -72,6 +72,17 @@ func (s *PaymentService) CreateEscrowPayment(ctx context.Context, taskID, payerI
 			return fmt.Errorf("only requester can create escrow payment")
 		}
 
+		// Defense-in-depth: check for existing successful escrow (alongside task status check and DB constraint)
+		existingTxs, err := s.transactionRepo.GetByTaskIDWithTx(ctx, tx, taskID)
+		if err != nil {
+			return fmt.Errorf("failed to check existing transactions: %w", err)
+		}
+		for _, t := range existingTxs {
+			if t.Type == models.TransactionTypeEscrow && t.Status == models.TransactionStatusSuccess {
+				return fmt.Errorf("escrow already exists for task %d", taskID)
+			}
+		}
+
 		// Determine effective price: use accepted application's proposed price if available
 		effectivePrice := task.Price
 		if s.applicationRepo != nil {

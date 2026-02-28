@@ -77,6 +77,14 @@ func AutoMigrate(db *gorm.DB) error {
 		return fmt.Errorf("failed to auto migrate: %w", err)
 	}
 
+	// Defense-in-depth: prevent duplicate successful escrow transactions per task.
+	// This partial unique index allows multiple failed attempts but blocks two successful escrows.
+	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_escrow_per_task
+		ON transactions (task_id, type)
+		WHERE type = 'escrow' AND status = 'success'`).Error; err != nil {
+		return fmt.Errorf("failed to create partial unique index on transactions: %w", err)
+	}
+
 	log.Println("Auto migrations completed successfully")
 	return nil
 }

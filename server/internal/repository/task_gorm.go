@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"viecz.vieczserver/internal/models"
 )
 
@@ -34,7 +35,7 @@ func (r *taskGormRepository) GetByIDForUpdate(ctx context.Context, tx *gorm.DB, 
 	if db == nil {
 		db = r.db
 	}
-	if err := db.WithContext(ctx).Set("gorm:query_option", "FOR UPDATE").First(&task, id).Error; err != nil {
+	if err := db.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&task, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("task not found")
 		}
