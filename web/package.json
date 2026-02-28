@@ -38,6 +38,7 @@
     "@angular/ssr": "^21.1.4",
     "@jsverse/transloco": "^8.2.1",
     "@maplibre/ngx-maplibre-gl": "^21.0.2",
+    "@sentry/angular": "^10.40.0",
     "@tailwindcss/postcss": "^4.2.0",
     "express": "^5.1.0",
     "firebase": "^12.9.0",

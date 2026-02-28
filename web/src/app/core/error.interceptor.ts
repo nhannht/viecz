@@ -1,6 +1,7 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
+import * as Sentry from '@sentry/angular';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import { catchError, throwError } from 'rxjs';
 
@@ -16,6 +17,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
+      // Report server errors to Sentry
+      if (err.status >= 500) {
+        Sentry.captureException(err);
+      }
+
       if (err.status !== 401) {
         const message = err.error?.error || err.error?.message || transloco.translate('common.errorOccurred');
         snackbar.show(message, transloco.translate('common.close'), { duration: 4000 });

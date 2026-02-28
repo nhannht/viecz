@@ -11,7 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gorm.io/gorm"
 
 	"viecz.vieczserver/internal/auth"
@@ -134,6 +136,22 @@ func dropAllTables(db *gorm.DB) {
 func main() {
 	log.Println("=== Viecz Test Server ===")
 	log.Println("PostgreSQL (port 5433) | Mock PayOS | Auto-complete deposits")
+
+	// Initialize Sentry (defaults to viecz-server project; override with SENTRY_DSN env var)
+	sentryDSN := getEnvDefault("SENTRY_DSN", "https://__GLITCHTIP_DSN_SERVER__@glitchtip.fishcmus.io.vn/1")
+	if sentryDSN != "" {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:              sentryDSN,
+			Environment:      "development",
+			TracesSampleRate: 0.2,
+			EnableTracing:    true,
+		}); err != nil {
+			log.Printf("WARNING: Sentry init failed: %v", err)
+		} else {
+			log.Println("Sentry error tracking enabled (development)")
+		}
+		defer sentry.Flush(2 * time.Second)
+	}
 
 	// 1. PostgreSQL test database (docker-compose.testdb.yml)
 	db, err := database.NewGORM(
@@ -275,7 +293,13 @@ func main() {
 	// 7. Gin router (mirrors cmd/server/main.go routes exactly)
 	gin.SetMode(gin.DebugMode)
 	router := gin.Default()
+	router.Use(middleware.RequestLogger())
+	router.Use(middleware.SentryMiddleware())
 	router.Use(middleware.CORS("*"))
+	router.Use(middleware.PrometheusMiddleware())
+
+	// Prometheus metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Serve uploaded files (avatars, etc.)
 	router.Static("/uploads", "./uploads")
@@ -320,8 +344,9 @@ func main() {
 
 	api := router.Group("/api/v1")
 	{
-		// Health check
-		api.GET("/health", paymentHandler.Health)
+		// Health check (enhanced — checks DB connectivity)
+		healthHandler := handlers.NewHealthHandler(db)
+		api.GET("/health", healthHandler.Health)
 
 		// Auth routes (public)
 		authRoutes := api.Group("/auth")

@@ -8,6 +8,8 @@ import com.viecz.vieczandroid.data.local.TokenManager
 import com.viecz.vieczandroid.data.models.User
 import com.viecz.vieczandroid.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
+import io.sentry.protocol.User as SentryUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +49,7 @@ class AuthViewModel @Inject constructor(
             repository.register(email, password, name)
                 .onSuccess { user ->
                     Log.d(TAG, "Registration successful!")
+                    Sentry.setUser(SentryUser().apply { id = user.id.toString(); this.email = user.email })
                     _authState.value = AuthState.Success(user)
                 }
                 .onFailure { error ->
@@ -69,6 +72,7 @@ class AuthViewModel @Inject constructor(
             repository.login(email, password)
                 .onSuccess { user ->
                     Log.d(TAG, "Login successful!")
+                    Sentry.setUser(SentryUser().apply { id = user.id.toString(); this.email = user.email })
                     _authState.value = AuthState.Success(user)
                 }
                 .onFailure { error ->
@@ -96,6 +100,7 @@ class AuthViewModel @Inject constructor(
                     repository.loginWithGoogle(idToken)
                         .onSuccess { user ->
                             Log.d(TAG, "Google login successful!")
+                            Sentry.setUser(SentryUser().apply { id = user.id.toString(); this.email = user.email })
                             _authState.value = AuthState.Success(user)
                         }
                         .onFailure { error ->
@@ -121,6 +126,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             Log.d(TAG, "logout() called")
             repository.logout()
+            Sentry.setUser(null)
             _authState.value = AuthState.Idle
         }
     }

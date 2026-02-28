@@ -2,6 +2,7 @@ import { Injectable, signal, computed, inject, PLATFORM_ID } from '@angular/core
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import * as Sentry from '@sentry/angular';
 import { Observable, tap } from 'rxjs';
 import { User, AuthResponse } from './models';
 
@@ -65,6 +66,7 @@ export class AuthService {
       localStorage.removeItem('viecz_user');
     }
     this.currentUser.set(null);
+    Sentry.setUser(null);
     this.router.navigate(['/phone']);
   }
 
@@ -130,5 +132,6 @@ export class AuthService {
       localStorage.setItem('viecz_user', JSON.stringify(res.user));
     }
     this.currentUser.set(res.user);
+    Sentry.setUser({ id: res.user.id.toString(), email: res.user.email });
   }
 }

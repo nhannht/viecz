@@ -104,6 +104,10 @@ android {
             val googleClientId = localProperties.getProperty("GOOGLE_CLIENT_ID", "")
             buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
 
+            // Sentry DSN for dev (same project, SDK tags environment as "development")
+            val sentryDsnDev = localProperties.getProperty("SENTRY_DSN", "")
+            buildConfigField("String", "SENTRY_DSN", "\"$sentryDsnDev\"")
+
             resValue("string", "app_name", "Viecz Dev")
         }
         create("prod") {
@@ -117,6 +121,10 @@ android {
             // Google OAuth Client ID (load from local.properties)
             val googleClientId = localProperties.getProperty("GOOGLE_CLIENT_ID", "")
             buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+
+            // Sentry DSN (load from local.properties, empty = disabled)
+            val sentryDsn = localProperties.getProperty("SENTRY_DSN", "")
+            buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
 
             resValue("string", "app_name", "Viecz")
         }
@@ -291,6 +299,9 @@ dependencies {
 
     // Image loading
     implementation(libs.coil.compose)
+
+    // Error tracking (Sentry)
+    implementation(libs.sentry.android)
 
     // Benchmark profile installer
     implementation(libs.profileinstaller)

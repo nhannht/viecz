@@ -61,6 +61,9 @@ type Config struct {
 	RateLimitAPIPerMin     int // authenticated write endpoints, default 30
 	RateLimitReadPerMin    int // read-heavy endpoints (tasks, notifications, chat), default 60
 	RateLimitFinancePerMin int // financial ops (escrow/release/refund), default 10
+	// Observability
+	SentryDSN string // Sentry DSN (optional — empty = Sentry disabled)
+	LogLevel  string // zerolog log level (default "info")
 }
 
 // Load reads configuration from environment variables
@@ -97,6 +100,10 @@ func Load() (*Config, error) {
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 	}
+
+	// Observability (optional)
+	cfg.SentryDSN = os.Getenv("SENTRY_DSN")
+	cfg.LogLevel = getEnv("LOG_LEVEL", "info")
 
 	// Meilisearch (optional)
 	cfg.MeilisearchURL = os.Getenv("MEILISEARCH_URL")

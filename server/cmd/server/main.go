@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"viecz.vieczserver/internal/auth"
 	"viecz.vieczserver/internal/config"
 	"viecz.vieczserver/internal/database"
@@ -22,6 +24,21 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Initialize Sentry (optional — empty DSN = disabled)
+	if cfg.SentryDSN != "" {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:              cfg.SentryDSN,
+			Environment:      cfg.Env,
+			TracesSampleRate: 0.2,
+			EnableTracing:    true,
+		}); err != nil {
+			log.Printf("WARNING: Sentry init failed: %v", err)
+		} else {
+			log.Println("Sentry error tracking enabled")
+		}
+		defer sentry.Flush(2 * time.Second)
 	}
 
 	// Initialize GORM database connection
@@ -216,6 +233,9 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	// Initialize enhanced health handler
+	healthHandler := handlers.NewHealthHandler(db)
+
 	// Create Gin router
 	router := gin.Default()
 
@@ -223,8 +243,14 @@ func main() {
 	// This has higher priority than X-Forwarded-For and cannot be spoofed by clients.
 	router.TrustedPlatform = gin.PlatformCloudflare
 
-	// Apply CORS middleware
+	// Middleware chain: request logging → Sentry → CORS → Prometheus
+	router.Use(middleware.RequestLogger())
+	router.Use(middleware.SentryMiddleware())
 	router.Use(middleware.CORS(cfg.ClientURL))
+	router.Use(middleware.PrometheusMiddleware())
+
+	// Prometheus metrics endpoint (unprotected, outside /api/v1)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Serve .well-known for Android App Links (deep link verification)
 	router.Static("/.well-known", "./static/.well-known")
@@ -278,8 +304,8 @@ func main() {
 	// API routes
 	api := router.Group("/api/v1")
 	{
-		// Health check
-		api.GET("/health", paymentHandler.Health)
+		// Health check (enhanced — checks DB connectivity)
+		api.GET("/health", healthHandler.Health)
 
 		// Auth routes (public) — IP-based rate limit
 		authRoutes := api.Group("/auth")
@@ -295,7 +321,7 @@ func main() {
 
 		// Auth routes (authenticated)
 		authProtected := api.Group("/auth")
-		authProtected.Use(auth.AuthRequired(cfg.JWTSecret), profileRL)
+		authProtected.Use(auth.AuthRequired(cfg.JWTSecret), middleware.SetSentryUser(), profileRL)
 		{
 			authProtected.POST("/resend-verification", authHandler.ResendVerification)
 			authProtected.POST("/verify-phone", authHandler.VerifyPhone)
