@@ -16,6 +16,10 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/phone-login.component').then(m => m.PhoneLoginComponent),
   },
   {
+    path: 'report',
+    loadComponent: () => import('./report/report.component').then(m => m.ReportComponent),
+  },
+  {
     path: '',
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
     children: [

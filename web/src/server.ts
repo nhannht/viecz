@@ -6,6 +6,7 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import { join } from 'node:path';
+import type { Browser } from 'puppeteer';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -35,6 +36,38 @@ app.use(
     redirect: false,
   }),
 );
+
+/**
+ * Export the report page as a PDF via headless Chromium (Puppeteer).
+ * GET /api/report/pdf → attachment "Viecz-Report.pdf"
+ */
+app.get('/api/report/pdf', async (_req, res) => {
+  let browser: Browser | undefined;
+  try {
+    const puppeteer = await import('puppeteer');
+    browser = await puppeteer.default.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    const port = process.env['PORT'] || 4001;
+    await page.goto(`http://localhost:${port}/report`, { waitUntil: 'networkidle0' });
+    const pdf = await page.pdf({
+      format: 'A4',
+      margin: { top: '2cm', right: '2cm', bottom: '2cm', left: '2cm' },
+      printBackground: true,
+    });
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="Viecz-Report.pdf"',
+    });
+    res.send(Buffer.from(pdf));
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    res.status(500).json({ error: 'PDF generation failed' });
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+});
 
 /**
  * Handle all other requests by rendering the Angular application.

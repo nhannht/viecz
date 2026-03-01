@@ -1,0 +1,547 @@
+/* === Print styles === */
+@media print {
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .report {
+    padding: 0;
+    max-width: none;
+    box-shadow: none;
+    border: none;
+  }
+
+  .section {
+    break-before: page;
+  }
+
+  .section:first-of-type {
+    break-before: auto;
+  }
+
+  .cover {
+    break-after: page;
+  }
+
+  table {
+    break-inside: avoid;
+  }
+
+  h2, h3 {
+    break-after: avoid;
+  }
+
+  /* Disable animations in print */
+  .fade-in {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* === Base === */
+:host {
+  display: block;
+  background: var(--color-bg, #f0ede8);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* === Toolbar === */
+.no-print {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-fg, #1a1a1a);
+  color: var(--color-bg, #f0ede8);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--color-border, #d4d0ca);
+}
+
+.no-print span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.no-print button {
+  font-family: 'Space Mono', monospace;
+  background: transparent;
+  color: var(--color-bg, #f0ede8);
+  border: 1px solid var(--color-bg, #f0ede8);
+  padding: 8px 24px;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.no-print button:hover {
+  background: var(--color-bg, #f0ede8);
+  color: var(--color-fg, #1a1a1a);
+}
+
+/* === Report body === */
+.report {
+  font-family: 'Times New Roman', 'Noto Serif', Georgia, serif;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--color-fg, #1a1a1a);
+  max-width: 21cm;
+  margin: 0 auto;
+  padding: 48px;
+  background: var(--color-card, #ffffff);
+  border: 1px solid var(--color-border, #d4d0ca);
+}
+
+/* === Scroll-triggered fade-in === */
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* === Accent color — warm terracotta to complement metro-meow earth tones === */
+/* Used sparingly for highlights, stat numbers, and section borders */
+
+/* === Cover page === */
+.cover {
+  text-align: center;
+  padding-top: 80px;
+  padding-bottom: 48px;
+  border-bottom: 1px solid var(--color-border, #d4d0ca);
+  margin-bottom: 40px;
+}
+
+.cover .university {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+  color: var(--color-fg, #1a1a1a);
+}
+
+.cover .faculty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+  margin-bottom: 60px;
+}
+
+.cover .competition {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+  margin-bottom: 24px;
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border, #d4d0ca);
+}
+
+.cover .title-block {
+  margin: 32px 0;
+  padding: 24px 0;
+  border-top: 2px solid var(--color-fg, #1a1a1a);
+  border-bottom: 2px solid var(--color-fg, #1a1a1a);
+}
+
+.cover .project-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin: 0;
+  color: var(--color-fg, #1a1a1a);
+}
+
+.cover .subtitle {
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  color: var(--color-muted, #6b6b6b);
+  margin-top: 8px;
+}
+
+.cover .team-info {
+  text-align: left;
+  margin: 48px auto 0;
+  max-width: 480px;
+  font-size: 14px;
+  line-height: 2;
+  padding: 24px 32px;
+  border: 1px solid var(--color-border, #d4d0ca);
+  background: var(--color-card, #ffffff);
+}
+
+.cover .team-info strong {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+}
+
+.cover .date {
+  margin-top: 48px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+}
+
+/* === Section headings === */
+/* h2: dark block — metro station sign style */
+h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 48px;
+  margin-bottom: 20px;
+  padding: 14px 20px;
+  background: var(--color-fg, #1a1a1a);
+  color: var(--color-bg, #f0ede8);
+  border-left: 4px solid #c17f59;
+  position: relative;
+}
+
+/* Accent underline on h2 */
+h2::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 80px;
+  height: 3px;
+  background: #c17f59;
+}
+
+/* h3: left accent bar — subtler hierarchy */
+h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 17px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  padding-left: 16px;
+  border-left: 4px solid #c17f59;
+  color: var(--color-fg, #1a1a1a);
+}
+
+/* === Sections === */
+.section {
+  margin-top: 32px;
+  padding-top: 16px;
+}
+
+/* === Stat highlights — accent-colored key numbers === */
+.stat {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: bold;
+  color: #c17f59;
+}
+
+/* === Tables === */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 14px;
+  border: 1px solid var(--color-border, #d4d0ca);
+}
+
+th, td {
+  border: 1px solid var(--color-border, #d4d0ca);
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: var(--color-fg, #1a1a1a);
+  color: var(--color-bg, #f0ede8);
+}
+
+tr:nth-child(even) {
+  background: var(--color-bg, #f0ede8);
+}
+
+/* Subtle left accent on first column */
+td:first-child {
+  border-left: 3px solid #c17f59;
+}
+
+/* === Paragraphs === */
+p {
+  text-align: justify;
+  margin: 14px 0;
+}
+
+/* === Lists === */
+ul, ol {
+  margin: 14px 0;
+  padding-left: 24px;
+}
+
+li {
+  margin-bottom: 10px;
+  line-height: 1.8;
+}
+
+/* Accent bullet marker */
+ul li::marker {
+  color: #c17f59;
+}
+
+ol li::marker {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: bold;
+  color: #c17f59;
+}
+
+/* === Bold text === */
+strong {
+  color: var(--color-fg, #1a1a1a);
+  font-weight: bold;
+}
+
+/* === Figure captions === */
+figure {
+  margin: 24px 0;
+  text-align: center;
+}
+
+figure img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border, #d4d0ca);
+}
+
+figcaption {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+  margin-top: 8px;
+}
+
+/* === References === */
+.references {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-muted, #6b6b6b);
+}
+
+.references p {
+  text-indent: -24px;
+  padding-left: 24px;
+  margin: 6px 0;
+  text-align: left;
+}
+
+/* === Footer === */
+.report-footer {
+  text-align: center;
+  margin-top: 48px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border, #d4d0ca);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+}
+
+/* ======================================================
+   MOBILE — tables become metro cards, fade-in animations
+   ====================================================== */
+@media screen and (max-width: 768px) {
+  .report {
+    padding: 20px 16px;
+    font-size: 15px;
+    border: none;
+  }
+
+  .no-print {
+    padding: 10px 16px;
+  }
+
+  .no-print span {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Cover */
+  .cover {
+    padding-top: 40px;
+    padding-bottom: 24px;
+  }
+
+  .cover .university {
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
+
+  .cover .faculty {
+    font-size: 9px;
+    margin-bottom: 32px;
+  }
+
+  .cover .project-title {
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+
+  .cover .subtitle {
+    font-size: 14px;
+  }
+
+  .cover .team-info {
+    font-size: 13px;
+    padding: 16px;
+    max-width: 100%;
+    line-height: 1.8;
+  }
+
+  .cover .date {
+    margin-top: 24px;
+  }
+
+  .cover .title-block {
+    margin: 20px 0;
+    padding: 16px 0;
+  }
+
+  /* Headings */
+  h2 {
+    font-size: 17px;
+    letter-spacing: 2px;
+    margin-top: 32px;
+  }
+
+  h3 {
+    font-size: 14px;
+    margin-top: 24px;
+  }
+
+  /* Tables → stacked metro cards */
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+
+  table {
+    border: none;
+    margin: 16px 0;
+  }
+
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+
+  tr {
+    margin-bottom: 12px;
+    background: var(--color-card, #ffffff);
+    border: 1px solid var(--color-border, #d4d0ca);
+    border-left: 3px solid #c17f59;
+    padding: 16px;
+  }
+
+  td {
+    border: none;
+    border-left: none;
+    padding: 4px 0;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  td:first-child {
+    border-left: none;
+  }
+
+  td::before {
+    content: attr(data-label);
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: bold;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-muted, #6b6b6b);
+    margin-bottom: 2px;
+    margin-top: 10px;
+  }
+
+  td:first-child::before {
+    margin-top: 0;
+    color: #c17f59;
+  }
+
+  td:first-child {
+    font-weight: bold;
+    font-size: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border, #d4d0ca);
+    margin-bottom: 4px;
+  }
+
+  /* Lists */
+  ul, ol {
+    padding-left: 20px;
+  }
+
+  /* References */
+  .references {
+    font-size: 12px;
+  }
+
+  .references p {
+    text-indent: -20px;
+    padding-left: 20px;
+  }
+
+  /* Paragraphs — left-align on mobile */
+  p {
+    text-align: left;
+  }
+
+  .report-footer {
+    margin-top: 32px;
+  }
+}
