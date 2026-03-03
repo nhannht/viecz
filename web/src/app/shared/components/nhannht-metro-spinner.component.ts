@@ -201,7 +201,7 @@ export class NhannhtMetroSpinnerComponent
   }
 
   private update(): void {
-    const { bufferWidth, bufferHeight, cubeSize } = this.config;
+    const { _bufferWidth, _bufferHeight, cubeSize } = this.config;
     this.zBuffer.fill(0);
     this.textBuffer.fill(this.BG_CHAR);
     const half = cubeSize / 2;

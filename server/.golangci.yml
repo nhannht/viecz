@@ -1,0 +1,102 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosec
+    - ineffassign
+    - misspell
+    - gocritic
+
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (net/http.ResponseWriter).Write
+        - (*encoding/json.Encoder).Encode
+
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+        - singleCaseSwitch
+
+  exclusions:
+    rules:
+      # Test files: relax errcheck, gosec, gocritic, staticcheck
+      - path: '_test\.go'
+        linters:
+          - errcheck
+          - gosec
+          - gocritic
+          - staticcheck
+      - path: 'EXAMPLE_'
+        linters:
+          - unused
+      - path: 'testutil/'
+        linters:
+          - errcheck
+      # Websocket close/deadline/write patterns
+      - path: 'websocket/'
+        linters:
+          - errcheck
+      # Common defer close patterns
+      - text: 'Error return value of `rows.Close` is not checked'
+        linters:
+          - errcheck
+      - text: 'Error return value of `resp.Body.Close` is not checked'
+        linters:
+          - errcheck
+      - text: 'Error return value of `file.Close` is not checked'
+        linters:
+          - errcheck
+      - text: 'Error return value of `out.Close` is not checked'
+        linters:
+          - errcheck
+      - text: 'Error return value of `os.Remove` is not checked'
+        linters:
+          - errcheck
+      # gosec suppressions
+      - text: 'G101:'
+        linters:
+          - gosec
+      - text: 'G104:'
+        linters:
+          - gosec
+      - text: 'G115:'
+        linters:
+          - gosec
+      - text: 'G117:'
+        linters:
+          - gosec
+      - text: 'G202:'
+        linters:
+          - gosec
+      - text: 'G301:'
+        linters:
+          - gosec
+      - text: 'G304:'
+        linters:
+          - gosec
+      - text: 'G404:'
+        linters:
+          - gosec
+      - text: 'G703:'
+        linters:
+          - gosec
+      - text: 'G706:'
+        linters:
+          - gosec
+      # staticcheck
+      - text: 'QF1008:'
+        linters:
+          - staticcheck
+      # gocritic: exitAfterDefer in main functions is acceptable
+      - text: 'exitAfterDefer'
+        linters:
+          - gocritic

@@ -12,6 +12,25 @@ on:
       - 'web/**'
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bunx eslint 'src/**/*.ts'
+
   tests:
     runs-on: ubuntu-latest
 
@@ -28,5 +47,30 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run unit tests
-        run: bunx ng test --watch=false
+      - name: Run tests with coverage
+        run: bunx ng test --watch=false --coverage --coverage-reporters json-summary text
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(node -e "const c = require('./coverage/coverage-summary.json'); console.log(c.total.statements.pct)")
+          echo "Statement coverage: ${COVERAGE}%"
+          node -e "if(${COVERAGE} < 50) { console.error('::error::Coverage below 50%'); process.exit(1); }"
+
+  security:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: bunx npm audit --audit-level=critical || true

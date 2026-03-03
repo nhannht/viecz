@@ -251,7 +251,6 @@ func (r *taskRepository) List(ctx context.Context, filters TaskFilters) ([]*mode
 	if filters.Offset > 0 {
 		query += fmt.Sprintf(" OFFSET $%d", argCount)
 		args = append(args, filters.Offset)
-		argCount++
 	}
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -336,7 +335,6 @@ func (r *taskRepository) CountByFilters(ctx context.Context, filters TaskFilters
 		searchPattern := "%" + strings.ToLower(*filters.Search) + "%"
 		query += fmt.Sprintf(" AND (LOWER(title) LIKE $%d OR LOWER(description) LIKE $%d)", argCount, argCount)
 		args = append(args, searchPattern)
-		argCount++
 	}
 
 	var count int

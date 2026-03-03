@@ -1,8 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserService } from './user.service';
-import { Observable, throwError } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 
 /** Structured error returned by the server when profile is incomplete. */
 export interface ProfileIncompleteResponse {

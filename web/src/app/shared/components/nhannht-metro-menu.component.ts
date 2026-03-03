@@ -1,4 +1,4 @@
-import { Component, input, output, signal, ElementRef, HostListener } from '@angular/core';
+import { Component, input, output, ElementRef, HostListener } from '@angular/core';
 
 /**
  * Dropdown menu triggered by an external button or element.

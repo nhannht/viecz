@@ -94,7 +94,7 @@ export class NhannhtMetroSelectComponent implements ControlValueAccessor {
     this.onChange = fn;
   }
 
-  registerOnTouched(fn: () => void): void {}
+  registerOnTouched(_fn: () => void): void {}
 
   setDisabledState(disabled: boolean): void {
     this.isDisabled = disabled;

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, tap, catchError, shareReplay } from 'rxjs';
+import { Observable, of, catchError, shareReplay } from 'rxjs';
 
 export interface VietQRBank {
   id: number;

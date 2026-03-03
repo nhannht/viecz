@@ -21,7 +21,11 @@ import { ReportInitComponent } from './report-init.component';
     <!-- Toolbar — hidden in print -->
     <div class="no-print">
       <button (click)="printReport()">Export PDF</button>
-      <button (click)="toggleDark($event)">{{ isDark ? 'Light' : 'Dark' }}</button>
+      <select [value]="theme" (change)="setTheme($event)">
+        <option value="light">Light</option>
+        <option value="dracula">Dracula</option>
+        <option value="nord">Nord</option>
+      </select>
       <span>Bản mô tả dự án Viecz — HCMUS I&amp;E 2025</span>
     </div>
 
@@ -85,24 +89,7 @@ import { ReportInitComponent } from './report-init.component';
           <div class="subtitle">Viecz — Nền tảng trao đổi việc vặt</div>
         </div>
 
-        <div class="team-info">
-          <strong>Thành viên:</strong><br />
-          Nguyễn Hữu Thiện Nhân — Quản trị và giám sát hệ thống<br />
-          Trương Hoài Đức — Kết nối và xây dựng tiếng tăm cho thương hiệu<br />
-          Thái Kha Bảo — Thiết kế đồ họa cho thương hiệu<br />
-          Trần Gia Sang — Kỹ thuật viên
-        </div>
-
         <div class="date">Tháng 3/2026</div>
-
-        <!-- QR Code for https://viecz.fishcmus.io.vn (real, scannable) -->
-        <div class="qr-code">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" width="120" height="120" shape-rendering="crispEdges">
-            <path fill="var(--color-bg, #f0ede8)" d="M0 0h37v37H0z"/>
-            <path stroke="currentColor" d="M4 4.5h7m2 0h1m1 0h1m1 0h3m1 0h3m2 0h7M4 5.5h1m5 0h1m2 0h1m2 0h6m2 0h1m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h4m1 0h1m1 0h1m2 0h2m2 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h5m2 0h6m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m1 0h1m1 0h1m5 0h1m1 0h1m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h2m2 0h1m1 0h1m1 0h1m3 0h1M4 12.5h1m1 0h5m9 0h2m2 0h1m1 0h5M4 13.5h1m2 0h1m9 0h3m1 0h4m1 0h3m3 0h1M6 14.5h1m2 0h3m1 0h1m1 0h1m1 0h5m2 0h4M5 15.5h5m7 0h1m1 0h1m4 0h3m1 0h2m1 0h1M4 16.5h1m4 0h3m2 0h3m1 0h2m1 0h3m1 0h1m3 0h2M4 17.5h3m1 0h1m2 0h3m1 0h1m3 0h10m3 0h1M4 18.5h4m1 0h2m1 0h1m1 0h1m1 0h1m4 0h1m2 0h1m1 0h5M5 19.5h1m1 0h1m3 0h5m2 0h1m1 0h1m1 0h2m1 0h4m2 0h1M6 20.5h2m1 0h2m1 0h1m1 0h3m3 0h2m7 0h2M4 21.5h6m1 0h1m1 0h2m1 0h4m3 0h6m1 0h1m1 0h1M4 22.5h1m3 0h1m1 0h2m1 0h2m2 0h5m5 0h2m1 0h1M4 23.5h1m1 0h4m2 0h3m2 0h1m1 0h1m2 0h1m2 0h2m4 0h1M4 24.5h1m1 0h2m1 0h2m1 0h1m1 0h1m3 0h2m1 0h1m1 0h6m1 0h3M12 25.5h1m6 0h4m1 0h1m3 0h5M4 26.5h7m2 0h1m2 0h1m4 0h1m1 0h2m1 0h1m1 0h3M4 27.5h1m5 0h1m1 0h1m1 0h2m2 0h1m1 0h1m1 0h3m3 0h1m2 0h1M4 28.5h1m1 0h3m1 0h1m1 0h1m1 0h2m4 0h1m1 0h1m1 0h5m1 0h1m1 0h1M4 29.5h1m1 0h3m1 0h1m1 0h4m2 0h2m1 0h4m4 0h2M4 30.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h3m3 0h7M4 31.5h1m5 0h1m3 0h1m1 0h4m1 0h6m2 0h1m1 0h1M4 32.5h7m1 0h1m2 0h2m2 0h1m3 0h1m3 0h4"/>
-          </svg>
-          <div class="qr-label">Quét để truy cập Viecz</div>
-        </div>
       </section>
 
       <!-- ==================== 1. TÊN DỰ ÁN ==================== -->
@@ -628,6 +615,24 @@ import { ReportInitComponent } from './report-init.component';
         </div>
       </section>
 
+      <!-- ==================== TEAM & QR ==================== -->
+      <section class="section">
+        <div class="team-info">
+          <strong>Thành viên:</strong><br />
+          Nguyễn Hữu Thiện Nhân — Quản trị và giám sát hệ thống<br />
+          Trương Hoài Đức — Kết nối và xây dựng tiếng tăm cho thương hiệu<br />
+          Thái Kha Bảo — Thiết kế đồ họa cho thương hiệu<br />
+          Trần Gia Sang — Kỹ thuật viên
+        </div>
+        <div class="qr-code">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" width="120" height="120" shape-rendering="crispEdges">
+            <path fill="#f0ede8" d="M0 0h37v37H0z"/>
+            <path stroke="currentColor" d="M4 4.5h7m2 0h1m1 0h1m1 0h3m1 0h3m2 0h7M4 5.5h1m5 0h1m2 0h1m2 0h6m2 0h1m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h4m1 0h1m1 0h1m2 0h2m2 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h5m2 0h6m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m1 0h1m1 0h1m5 0h1m1 0h1m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h2m2 0h1m1 0h1m1 0h1m3 0h1M4 12.5h1m1 0h5m9 0h2m2 0h1m1 0h5M4 13.5h1m2 0h1m9 0h3m1 0h4m1 0h3m3 0h1M6 14.5h1m2 0h3m1 0h1m1 0h1m1 0h5m2 0h4M5 15.5h5m7 0h1m1 0h1m4 0h3m1 0h2m1 0h1M4 16.5h1m4 0h3m2 0h3m1 0h2m1 0h3m1 0h1m3 0h2M4 17.5h3m1 0h1m2 0h3m1 0h1m3 0h10m3 0h1M4 18.5h4m1 0h2m1 0h1m1 0h1m1 0h1m4 0h1m2 0h1m1 0h5M5 19.5h1m1 0h1m3 0h5m2 0h1m1 0h1m1 0h2m1 0h4m2 0h1M6 20.5h2m1 0h2m1 0h1m1 0h3m3 0h2m7 0h2M4 21.5h6m1 0h1m1 0h2m1 0h4m3 0h6m1 0h1m1 0h1M4 22.5h1m3 0h1m1 0h2m1 0h2m2 0h5m5 0h2m1 0h1M4 23.5h1m1 0h4m2 0h3m2 0h1m1 0h1m2 0h1m2 0h2m4 0h1M4 24.5h1m1 0h2m1 0h2m1 0h1m1 0h1m3 0h2m1 0h1m1 0h6m1 0h3M12 25.5h1m6 0h4m1 0h1m3 0h5M4 26.5h7m2 0h1m2 0h1m4 0h1m1 0h2m1 0h1m1 0h3M4 27.5h1m5 0h1m1 0h1m1 0h2m2 0h1m1 0h1m1 0h3m3 0h1m2 0h1M4 28.5h1m1 0h3m1 0h1m1 0h1m1 0h2m4 0h1m1 0h1m1 0h5m1 0h1m1 0h1M4 29.5h1m1 0h3m1 0h1m1 0h4m2 0h2m1 0h4m4 0h2M4 30.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h3m3 0h7M4 31.5h1m5 0h1m3 0h1m1 0h4m1 0h6m2 0h1m1 0h1M4 32.5h7m1 0h1m2 0h2m2 0h1m3 0h1m3 0h4"/>
+          </svg>
+          <div class="qr-label">Quét để truy cập Viecz</div>
+        </div>
+      </section>
+
       <!-- ==================== FOOTER ==================== -->
       <div class="report-footer">
         <p>Dự án Viecz — Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM — Tháng 3/2026</p>
@@ -636,7 +641,7 @@ import { ReportInitComponent } from './report-init.component';
     </article>
 
     @defer (on idle) {
-      <report-init />
+      <app-report-init />
     }
   `,
 })
@@ -645,26 +650,28 @@ export class ReportComponent {
   private platformId = inject(PLATFORM_ID);
   private cdr = inject(ChangeDetectorRef);
 
-  isDark = isPlatformBrowser(this.platformId) && localStorage.getItem('report-dark') === '1';
+  private static readonly THEMES = ['light', 'dracula', 'nord'] as const;
+  theme: string = isPlatformBrowser(this.platformId)
+    ? (localStorage.getItem('report-theme') || 'light')
+    : 'light';
 
   printReport(): void {
-    window.print();
+    if (isPlatformBrowser(this.platformId)) {
+      window.print();
+    }
   }
 
-  toggleDark(event?: MouseEvent): void {
+  setTheme(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const next = select.value;
     const host = this.el.nativeElement;
 
-    // Set the circle origin to the click position (or center as fallback)
-    if (event) {
-      document.documentElement.style.setProperty('--theme-toggle-x', `${event.clientX}px`);
-      document.documentElement.style.setProperty('--theme-toggle-y', `${event.clientY}px`);
-    }
-
     const applyTheme = () => {
-      this.isDark = !this.isDark;
-      host.classList.toggle('dark', this.isDark);
+      for (const t of ReportComponent.THEMES) host.classList.remove(t);
+      if (next !== 'light') host.classList.add(next);
+      this.theme = next;
       if (isPlatformBrowser(this.platformId)) {
-        localStorage.setItem('report-dark', this.isDark ? '1' : '0');
+        localStorage.setItem('report-theme', next);
       }
       this.cdr.detectChanges();
     };

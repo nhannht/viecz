@@ -1,4 +1,4 @@
-import { Component, input, output, forwardRef } from '@angular/core';
+import { Component, input, forwardRef } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 /**

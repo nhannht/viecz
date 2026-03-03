@@ -329,12 +329,20 @@ export class MarketplaceComponent implements OnInit {
             this.loading.set(false);
           };
           const remaining = Math.max(0, this.minLoadMs - (Date.now() - loadStart));
-          remaining > 0 ? setTimeout(apply, remaining) : apply();
+          if (remaining > 0) {
+            setTimeout(apply, remaining);
+          } else {
+            apply();
+          }
         },
         error: () => {
           const apply = () => { this.loading.set(false); this.error.set(true); };
           const remaining = Math.max(0, this.minLoadMs - (Date.now() - loadStart));
-          remaining > 0 ? setTimeout(apply, remaining) : apply();
+          if (remaining > 0) {
+            setTimeout(apply, remaining);
+          } else {
+            apply();
+          }
         },
       });
   }

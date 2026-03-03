@@ -10,7 +10,10 @@
     "serve:ssr:web": "node dist/web/server/server.mjs",
     "compodoc": "compodoc -p .storybook/tsconfig.json -e json -d .storybook",
     "storybook": "yarn compodoc && ng run web:storybook",
-    "build-storybook": "yarn compodoc && ng run web:build-storybook"
+    "build-storybook": "yarn compodoc && ng run web:build-storybook",
+    "lint": "ng lint",
+    "lint:fix": "ng lint --fix",
+    "format": "prettier --write 'src/**/*.{ts,html,css,scss}'"
   },
   "prettier": {
     "printWidth": 100,
@@ -59,10 +62,12 @@
     "@analogjs/storybook-angular": "^1.22.0",
     "@analogjs/vite-plugin-angular": "^2.2.3",
     "@angular-devkit/build-angular": "^21.1.4",
+    "@angular-eslint/builder": "21.2.0",
     "@angular/build": "^21.1.4",
     "@angular/cli": "^21.1.4",
     "@angular/compiler-cli": "^21.1.0",
     "@compodoc/compodoc": "^1.2.1",
+    "@eslint/js": "^9.39.2",
     "@storybook/addon-docs": "^9.0.0",
     "@storybook/angular": "^9.0.0",
     "@types/express": "^5.0.1",
@@ -70,9 +75,14 @@
     "@types/node": "^20.17.19",
     "@types/qrcode": "^1.5.6",
     "@vitest/coverage-v8": "^4.0.18",
+    "angular-eslint": "21.2.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
     "jsdom": "^27.1.0",
+    "prettier": "^3.8.1",
     "storybook": "^9.0.0",
     "typescript": "~5.9.2",
+    "typescript-eslint": "8.50.1",
     "vite": "^7.3.1",
     "vitest": "^4.0.8"
   }

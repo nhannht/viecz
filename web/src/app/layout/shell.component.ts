@@ -620,7 +620,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   /** Close notification panel when clicking outside. */
   @HostListener('document:click', ['$event'])
-  onDocumentClick(event: Event) {
+  onDocumentClick(_event: Event) {
     if (this.notifMenuOpen()) {
       this.notifMenuOpen.set(false);
     }

@@ -21,7 +21,7 @@ fi
 jq -n '{
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
-    "permissionDecision": "block",
+    "permissionDecision": "deny",
     "permissionDecisionReason": "Run /code-review before committing. After review passes, create /tmp/claude-code-review-passed marker file and retry the commit."
   }
 }'

@@ -1,4 +1,4 @@
-import { Component, input, output, computed } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 /**
  * Horizontal tab navigation with underline indicator on the active tab.
