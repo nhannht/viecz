@@ -151,6 +151,21 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 
 ### Cross-Platform (All Languages)
 
+**Design Simplicity**:
+- Is there a simpler, more standard approach? Prefer stdlib/framework solutions over custom implementations
+- Could this be done with fewer abstractions, fewer files, or fewer indirections?
+- If the change adds a new pattern, is it justified or does the codebase already have one that works?
+
+**Testability**:
+- Is the code structured for unit testing? Dependencies should be injectable, not hardcoded
+- Can you test the logic without spinning up external services (DB, HTTP, filesystem)?
+- Are side effects isolated from pure logic? (e.g., computation separate from I/O)
+
+**Code Duplication**:
+- Is the same logic repeated across files? Extract to a shared function/service if 3+ occurrences
+- Are there near-identical functions that differ only in a parameter? Consolidate with a parameter
+- Check for copy-paste from other parts of the codebase — often carries stale logic or wrong variable names
+
 **Error Message Quality**:
 - User-facing errors must be actionable ("Payment failed — please try again" not "Error 500")
 - Internal errors must include debug context (function name, input values, upstream error)
