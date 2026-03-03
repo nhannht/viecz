@@ -12,7 +12,6 @@ if ! echo "$COMMAND" | grep -qE '^git commit|&& git commit|; git commit'; then
 fi
 
 # Check if code review was already done (marker file)
-MARKER="/tmp/claude-code-review-done-$$"
 if [ -f "/tmp/claude-code-review-passed" ]; then
   rm -f "/tmp/claude-code-review-passed"
   exit 0

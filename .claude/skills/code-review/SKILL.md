@@ -8,7 +8,7 @@ user-invocable: true
 
 ## Overview
 
-Reviews staged Git changes before committing. Focuses on catching bugs, security vulnerabilities, and code quality issues specific to the Viecz stack (Go backend + Kotlin/Compose Android app).
+Reviews staged Git changes before committing. Focuses on catching bugs, security vulnerabilities, and code quality issues specific to the Viecz stack (Go backend + Angular web app + Kotlin/Compose Android app).
 
 ## Usage
 
@@ -32,7 +32,7 @@ Reviews staged Git changes before committing. Focuses on catching bugs, security
 ## Workflow
 
 1. **Get staged changes**: Run `git diff --cached` (or `git diff` if nothing staged)
-2. **Classify changes**: Identify which files changed and their types (Go, Kotlin, config, docs)
+2. **Classify changes**: Identify which files changed and their types (Go, Angular/TypeScript, Kotlin, config, docs)
 3. **Skip non-code**: Skip review for docs-only, config-only, or formatting-only changes — just report "No code review needed"
 4. **Run checks**: Apply the relevant checklist based on file types
 5. **Report**: Output findings grouped by severity
@@ -117,6 +117,96 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 - UI logic in Composables (should be in ViewModel)
 - Repository calls in ViewModel init without error handling
 - Missing `@Inject` on new dependencies
+
+### Angular/Web (`web/`)
+
+**Bugs**:
+- Unsubscribed observables (missing `takeUntilDestroyed()`, `async` pipe, or manual unsubscribe)
+- Missing `isPlatformBrowser()` guard for SSR — direct `window`/`document`/`localStorage` access breaks server rendering
+- Signal misuse (`update()` vs `set()`, missing `computed()` for derived state)
+- `@for` loops without `track` expression (causes full re-render)
+
+**Security**:
+- XSS via `[innerHTML]` or `bypassSecurityTrustHtml()` without sanitization
+- API keys or secrets outside `environment.ts` files
+- Missing CSRF protection or Turnstile verification on public forms
+
+**SSR Compatibility**:
+- Direct `window`, `document`, `navigator`, or `localStorage` access without platform check
+- `setTimeout`/`setInterval` without `isPlatformBrowser()` guard
+- Browser-only libraries imported at module level (should be dynamic imports behind platform check)
+
+**Component Patterns**:
+- Must be standalone components (no `NgModule` declarations)
+- Use `inject()` function instead of constructor injection
+- Use new control flow syntax (`@if`/`@for`/`@switch`, not `*ngIf`/`*ngFor`/`[ngSwitch]`)
+- Use signals and `computed()` for reactive state
+- Component selector prefix must be `app-` (not `nhannht-metro-*` — that's Storybook only)
+
+**Testing**:
+- Tests must use Vitest (`vi.fn()`, `vi.spyOn()`) not Jasmine (`jasmine.createSpy`)
+- Run with `npx ng test` (not `npx vitest run`)
+- TestBed providers must include all injected dependencies
+- Missing assertions on observable emissions or signal values
+
+### Cross-Platform (All Languages)
+
+**Error Message Quality**:
+- User-facing errors must be actionable ("Payment failed — please try again" not "Error 500")
+- Internal errors must include debug context (function name, input values, upstream error)
+- No secrets, tokens, or PII in error messages or logs
+
+**Dependency Hygiene**:
+- New dependencies must be justified (no duplicate functionality with existing deps)
+- Check for known vulnerabilities (`go mod audit`, `npm audit`)
+- Pin dependency versions — no floating ranges in production
+
+**Backwards Compatibility**:
+- API changes must be additive (no breaking removals without versioning)
+- Database migrations must be reversible (`DOWN` migration required)
+- New environment variables must have sensible defaults (don't break existing deploys)
+
+**Maintainability (6-Month Test)**:
+- No magic numbers — use named constants with explanation
+- Inline "why" comments for non-obvious decisions (not "what" comments)
+- Functions under 50 lines; split if longer
+- No dead code, commented-out blocks, or TODO placeholders for real features
+
+**API Design**:
+- RESTful conventions (proper HTTP methods, status codes, resource naming)
+- Consistent error response format across endpoints
+- Pagination on list endpoints (no unbounded result sets)
+- Input validation at the handler/controller boundary
+
+### Performance
+
+**Database**:
+- N+1 query patterns (missing `Preload()` or `Joins()` in GORM)
+- Missing indexes on columns used in `WHERE`, `ORDER BY`, or `JOIN`
+- Unbounded queries without `LIMIT` (risk of full table scan)
+- Large transactions holding locks too long
+
+**Memory & Resources**:
+- Goroutine leaks (no cancellation context, no WaitGroup, no select on done channel)
+- Observable/subscription leaks (missing unsubscribe, missing `takeUntilDestroyed()`)
+- Unbounded in-memory caches or maps that grow without eviction
+- Unclosed resources (`io.Reader`, HTTP response bodies, DB connections)
+
+**Network**:
+- HTTP clients without timeouts (use `http.Client{Timeout: ...}`)
+- Missing retry with exponential backoff on transient failures
+- Missing context cancellation propagation (long-running requests can't be aborted)
+
+**Frontend (Angular)**:
+- Large bundle imports (import specific modules, not entire libraries)
+- Missing lazy loading on feature routes
+- Heavy computation in templates (use `computed()` signals instead)
+- Large lists without virtual scrolling (`@angular/cdk/scrolling`)
+
+**Scalability**:
+- No single-instance assumptions (in-memory state that won't survive restart/scale-out)
+- Rate limiting on public-facing endpoints
+- File uploads without size limits
 
 ## Report Format
 
