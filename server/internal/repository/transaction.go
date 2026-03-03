@@ -22,3 +22,11 @@ type TransactionRepository interface {
 	CreateWithTx(ctx context.Context, tx *gorm.DB, transaction *models.Transaction) error
 	GetByTaskIDWithTx(ctx context.Context, tx *gorm.DB, taskID int64) ([]*models.Transaction, error)
 }
+
+// PaymentReferenceRepository tracks processed PayOS bank transfer references.
+// Used to deduplicate webhook callbacks by reference (not order code).
+type PaymentReferenceRepository interface {
+	// CreateIfNotExists attempts to insert a new payment reference.
+	// Returns true if the reference was newly created, false if it already existed.
+	CreateIfNotExists(ctx context.Context, ref *models.PaymentReference) (bool, error)
+}

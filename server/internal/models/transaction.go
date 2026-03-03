@@ -114,3 +114,15 @@ func (t *Transaction) BeforeUpdate(tx *gorm.DB) error {
 	t.CalculateNetAmount()
 	return t.Validate()
 }
+
+// PaymentReference tracks processed bank transfer references from PayOS webhooks.
+// Each QR code scan is a separate bank transfer with a unique reference.
+// This table deduplicates by reference (not order code) so that if a user pays
+// the same QR twice, we credit their wallet for each actual bank transfer.
+type PaymentReference struct {
+	ID          int64     `gorm:"primaryKey;autoIncrement"`
+	OrderCode   int64     `gorm:"not null;index"`
+	Reference   string    `gorm:"type:varchar(255);uniqueIndex;not null"`
+	Amount      int64     `gorm:"not null"`
+	ProcessedAt time.Time `gorm:"autoCreateTime"`
+}

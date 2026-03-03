@@ -597,15 +597,15 @@ func (m *MockPayOSService) CreatePaymentLink(ctx context.Context, orderCode int6
 	return m.PaymentLink, nil
 }
 
-func (m *MockPayOSService) CancelPaymentLink(ctx context.Context, orderCode int64, reason string) (*PaymentLinkResult, error) {
+func (m *MockPayOSService) CancelPaymentLink(ctx context.Context, orderCode int64, reason string) error {
 	m.CancelPaymentLinkCalls = append(m.CancelPaymentLinkCalls, CancelPaymentLinkCall{
 		OrderCode: orderCode,
 		Reason:    reason,
 	})
 	if m.ShouldFail {
-		return nil, m.FailError
+		return m.FailError
 	}
-	return m.PaymentLink, nil
+	return nil
 }
 
 // MockNotificationRepository is a mock implementation of repository.NotificationRepository
@@ -681,6 +681,26 @@ func (m *MockTransactionRepository) GetPendingPayouts(ctx context.Context) ([]*m
 		}
 	}
 	return pending, nil
+}
+
+// MockPaymentReferenceRepository is a mock implementation of repository.PaymentReferenceRepository.
+// Uses an in-memory map keyed by reference string.
+type MockPaymentReferenceRepository struct {
+	References map[string]*models.PaymentReference
+}
+
+func NewMockPaymentReferenceRepository() *MockPaymentReferenceRepository {
+	return &MockPaymentReferenceRepository{
+		References: make(map[string]*models.PaymentReference),
+	}
+}
+
+func (m *MockPaymentReferenceRepository) CreateIfNotExists(ctx context.Context, ref *models.PaymentReference) (bool, error) {
+	if _, exists := m.References[ref.Reference]; exists {
+		return false, nil
+	}
+	m.References[ref.Reference] = ref
+	return true, nil
 }
 
 // MockBankAccountRepository is a mock implementation of repository.BankAccountRepository

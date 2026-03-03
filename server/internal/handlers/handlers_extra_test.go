@@ -619,6 +619,10 @@ func (m *mockPayOSForWebhook) GetPayout(_ context.Context, _ string) (*services.
 	return &services.PayoutStatusResponse{State: "PROCESSING"}, nil
 }
 
+func (m *mockPayOSForWebhook) CancelPaymentLink(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+
 func TestWebhookHandler_HandleWebhook_TestPayload(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -740,6 +744,7 @@ func TestWebhookHandler_HandleWebhook_SuccessPayment(t *testing.T) {
 
 	txRepo := testutil.NewMockTransactionRepository()
 	taskRepo := testutil.NewMockTaskRepository()
+	refRepo := testutil.NewMockPaymentReferenceRepository()
 
 	walletRepo := testutil.NewMockWalletRepository()
 	walletTxRepo := testutil.NewMockWalletTransactionRepository()
@@ -770,11 +775,14 @@ func TestWebhookHandler_HandleWebhook_SuccessPayment(t *testing.T) {
 			verifyResult: map[string]interface{}{
 				"orderCode": float64(55555),
 				"code":      "00",
+				"reference": "FT20260101000055",
+				"amount":    float64(30000),
 			},
 		},
 		transactionRepo: txRepo,
 		taskRepo:        taskRepo,
 		walletService:   walletService,
+		refRepo:         refRepo,
 	}
 
 	body := map[string]interface{}{

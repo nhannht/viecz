@@ -48,6 +48,10 @@ func (m *mockPayOSForPoller) GetPayout(_ context.Context, payoutID string) (*Pay
 	return status, nil
 }
 
+func (m *mockPayOSForPoller) CancelPaymentLink(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+
 func TestPayoutPoller_NoPendingTransactions(t *testing.T) {
 	txRepo := testutil.NewMockTransactionRepository()
 	walletRepo := testutil.NewMockWalletRepository()

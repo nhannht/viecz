@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/payOSHQ/payos-lib-golang/v2"
 )
@@ -22,12 +23,13 @@ type PayoutStatusResponse struct {
 }
 
 // PayOSServicer defines the interface for PayOS operations used by handlers.
-// Methods returning SDK-specific types (GetPaymentInfo, CancelPaymentLink)
+// Methods returning SDK-specific types (GetPaymentInfo)
 // stay on the concrete struct only.
 type PayOSServicer interface {
 	CreatePaymentLink(ctx context.Context, orderCode int64, amount int, description, returnURL, cancelURL string) (*PaymentLinkResponse, error)
 	VerifyWebhookData(ctx context.Context, webhookData map[string]interface{}) (map[string]interface{}, error)
 	ConfirmWebhook(ctx context.Context, webhookURL string) (string, error)
+	CancelPaymentLink(ctx context.Context, orderCode int64, reason string) error
 	CreatePayout(ctx context.Context, referenceID string, amount int, description, toBin, toAccountNumber string) (*PayoutResponse, error)
 	GetPayout(ctx context.Context, payoutID string) (*PayoutStatusResponse, error)
 }
@@ -93,6 +95,11 @@ func (s *PayOSService) CreatePaymentLink(ctx context.Context, orderCode int64, a
 		return nil, fmt.Errorf("PayOS client not configured (missing API credentials)")
 	}
 
+	// Expire the payment link after 5 minutes to prevent duplicate payments
+	// on the same QR code. PayOS won't let us cancel a paid order, so short
+	// expiry is the only way to limit the window.
+	expiredAt := int(time.Now().Add(5 * time.Minute).Unix())
+
 	// Create payment link request
 	request := payos.CreatePaymentLinkRequest{
 		OrderCode:   orderCode,
@@ -100,6 +107,7 @@ func (s *PayOSService) CreatePaymentLink(ctx context.Context, orderCode int64, a
 		Description: description,
 		ReturnUrl:   returnURL,
 		CancelUrl:   cancelURL,
+		ExpiredAt:   &expiredAt,
 	}
 
 	// Create payment link (pass by value, not pointer)
@@ -209,12 +217,12 @@ func (s *PayOSService) GetPaymentInfo(ctx context.Context, orderCode int64) (*pa
 	return result, nil
 }
 
-// CancelPaymentLink cancels a payment link
-func (s *PayOSService) CancelPaymentLink(ctx context.Context, orderCode int64, reason string) (*payos.PaymentLink, error) {
-	result, err := s.client.PaymentRequests.Cancel(ctx, orderCode, &reason)
+// CancelPaymentLink cancels a payment link so the QR code stops accepting payments.
+func (s *PayOSService) CancelPaymentLink(ctx context.Context, orderCode int64, reason string) error {
+	_, err := s.client.PaymentRequests.Cancel(ctx, orderCode, &reason)
 	if err != nil {
-		return nil, fmt.Errorf("failed to cancel payment link: %w", err)
+		return fmt.Errorf("failed to cancel payment link: %w", err)
 	}
 
-	return result, nil
+	return nil
 }

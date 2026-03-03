@@ -1,5 +1,6 @@
-import { Component, AfterViewInit, ElementRef, inject, PLATFORM_ID, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, inject, PLATFORM_ID, ViewEncapsulation } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { ReportInitComponent } from './report-init.component';
 
 /**
  * Standalone report page rendering the HCMUS I&E 2025 competition report
@@ -10,12 +11,17 @@ import { isPlatformBrowser } from '@angular/common';
 @Component({
   selector: 'app-report',
   standalone: true,
+  imports: [ReportInitComponent],
   encapsulation: ViewEncapsulation.None,
   styleUrl: './report.component.css',
   template: `
+    <!-- Reading progress bar -->
+    <div class="progress-bar" #progressBar></div>
+
     <!-- Toolbar — hidden in print -->
     <div class="no-print">
       <button (click)="printReport()">Export PDF</button>
+      <button (click)="toggleDark()">{{ isDark ? 'Light' : 'Dark' }}</button>
       <span>Bản mô tả dự án Viecz — HCMUS I&amp;E 2025</span>
     </div>
 
@@ -27,6 +33,52 @@ import { isPlatformBrowser } from '@angular/common';
         <div class="faculty">Trường Đại học Khoa học Tự nhiên</div>
 
         <div class="competition">Cuộc thi Sáng tạo – Khởi nghiệp HCMUS I&amp;E 2025</div>
+
+        <!-- Hero illustration: students exchanging task card with metro lines -->
+        <div class="hero-illustration">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+            <!-- Metro background lines -->
+            <line x1="0" y1="40" x2="300" y2="40" stroke="currentColor" stroke-width="0.5" opacity="0.15"/>
+            <line x1="0" y1="80" x2="300" y2="80" stroke="currentColor" stroke-width="0.5" opacity="0.15"/>
+            <line x1="0" y1="120" x2="300" y2="120" stroke="currentColor" stroke-width="0.5" opacity="0.15"/>
+            <line x1="0" y1="160" x2="300" y2="160" stroke="currentColor" stroke-width="0.5" opacity="0.15"/>
+            <line x1="60" y1="0" x2="60" y2="200" stroke="currentColor" stroke-width="0.5" opacity="0.1"/>
+            <line x1="150" y1="0" x2="150" y2="200" stroke="currentColor" stroke-width="0.5" opacity="0.1"/>
+            <line x1="240" y1="0" x2="240" y2="200" stroke="currentColor" stroke-width="0.5" opacity="0.1"/>
+            <!-- Metro station dots -->
+            <circle cx="60" cy="40" r="3" fill="#c17f59" opacity="0.4"/>
+            <circle cx="150" cy="80" r="3" fill="#c17f59" opacity="0.4"/>
+            <circle cx="240" cy="120" r="3" fill="#c17f59" opacity="0.4"/>
+            <!-- Student A (left) -->
+            <circle cx="95" cy="65" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="95" y1="79" x2="95" y2="130" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="95" y1="130" x2="82" y2="165" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="95" y1="130" x2="108" y2="165" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="95" y1="92" x2="75" y2="115" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="95" y1="92" x2="120" y2="105" stroke="currentColor" stroke-width="1.5"/>
+            <!-- Backpack on student A -->
+            <rect x="100" y="85" width="8" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+            <!-- Student B (right) -->
+            <circle cx="205" cy="65" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="205" y1="79" x2="205" y2="130" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="205" y1="130" x2="192" y2="165" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="205" y1="130" x2="218" y2="165" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="205" y1="92" x2="180" y2="105" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="205" y1="92" x2="225" y2="115" stroke="currentColor" stroke-width="1.5"/>
+            <!-- Task card being exchanged -->
+            <rect x="128" y="95" width="44" height="28" rx="3" fill="none" stroke="#c17f59" stroke-width="1.5"/>
+            <line x1="134" y1="103" x2="160" y2="103" stroke="#c17f59" stroke-width="1" opacity="0.6"/>
+            <line x1="134" y1="109" x2="155" y2="109" stroke="#c17f59" stroke-width="1" opacity="0.6"/>
+            <line x1="134" y1="115" x2="148" y2="115" stroke="#c17f59" stroke-width="1" opacity="0.6"/>
+            <!-- Check mark on card -->
+            <polyline points="158,112 162,116 168,108" fill="none" stroke="#c17f59" stroke-width="1.5"/>
+            <!-- Connection arrows -->
+            <path d="M120,105 Q128,100 128,109" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2"/>
+            <path d="M180,105 Q172,100 172,109" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2"/>
+            <!-- Accent diagonal metro line -->
+            <line x1="20" y1="180" x2="280" y2="20" stroke="#c17f59" stroke-width="0.5" opacity="0.2"/>
+          </svg>
+        </div>
 
         <div class="title-block">
           <div class="project-title">BẢN MÔ TẢ DỰ ÁN</div>
@@ -42,23 +94,32 @@ import { isPlatformBrowser } from '@angular/common';
         </div>
 
         <div class="date">Tháng 3/2026</div>
+
+        <!-- QR Code for https://viecz.fishcmus.io.vn (real, scannable) -->
+        <div class="qr-code">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" width="120" height="120" shape-rendering="crispEdges">
+            <path fill="var(--color-bg, #f0ede8)" d="M0 0h37v37H0z"/>
+            <path stroke="currentColor" d="M4 4.5h7m2 0h1m1 0h1m1 0h3m1 0h3m2 0h7M4 5.5h1m5 0h1m2 0h1m2 0h6m2 0h1m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h4m1 0h1m1 0h1m2 0h2m2 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m1 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h5m2 0h6m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h1m1 0h1m1 0h1m5 0h1m1 0h1m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h2m2 0h1m1 0h1m1 0h1m3 0h1M4 12.5h1m1 0h5m9 0h2m2 0h1m1 0h5M4 13.5h1m2 0h1m9 0h3m1 0h4m1 0h3m3 0h1M6 14.5h1m2 0h3m1 0h1m1 0h1m1 0h5m2 0h4M5 15.5h5m7 0h1m1 0h1m4 0h3m1 0h2m1 0h1M4 16.5h1m4 0h3m2 0h3m1 0h2m1 0h3m1 0h1m3 0h2M4 17.5h3m1 0h1m2 0h3m1 0h1m3 0h10m3 0h1M4 18.5h4m1 0h2m1 0h1m1 0h1m1 0h1m4 0h1m2 0h1m1 0h5M5 19.5h1m1 0h1m3 0h5m2 0h1m1 0h1m1 0h2m1 0h4m2 0h1M6 20.5h2m1 0h2m1 0h1m1 0h3m3 0h2m7 0h2M4 21.5h6m1 0h1m1 0h2m1 0h4m3 0h6m1 0h1m1 0h1M4 22.5h1m3 0h1m1 0h2m1 0h2m2 0h5m5 0h2m1 0h1M4 23.5h1m1 0h4m2 0h3m2 0h1m1 0h1m2 0h1m2 0h2m4 0h1M4 24.5h1m1 0h2m1 0h2m1 0h1m1 0h1m3 0h2m1 0h1m1 0h6m1 0h3M12 25.5h1m6 0h4m1 0h1m3 0h5M4 26.5h7m2 0h1m2 0h1m4 0h1m1 0h2m1 0h1m1 0h3M4 27.5h1m5 0h1m1 0h1m1 0h2m2 0h1m1 0h1m1 0h3m3 0h1m2 0h1M4 28.5h1m1 0h3m1 0h1m1 0h1m1 0h2m4 0h1m1 0h1m1 0h5m1 0h1m1 0h1M4 29.5h1m1 0h3m1 0h1m1 0h4m2 0h2m1 0h4m4 0h2M4 30.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h3m3 0h7M4 31.5h1m5 0h1m3 0h1m1 0h4m1 0h6m2 0h1m1 0h1M4 32.5h7m1 0h1m2 0h2m2 0h1m3 0h1m3 0h4"/>
+          </svg>
+          <div class="qr-label">Quét để truy cập Viecz</div>
+        </div>
       </section>
 
       <!-- ==================== 1. TÊN DỰ ÁN ==================== -->
       <section class="section fade-in">
-        <h2>1. Tên dự án</h2>
+        <h2><span class="node">1</span>Tên dự án</h2>
         <p><strong>Viecz — Nền tảng trao đổi việc vặt</strong></p>
       </section>
 
       <!-- ==================== 2. LĨNH VỰC ==================== -->
       <section class="section fade-in">
-        <h2>2. Lĩnh vực</h2>
+        <h2><span class="node">2</span>Lĩnh vực</h2>
         <p>Ứng dụng đổi mới xã hội (ứng dụng công nghệ thông tin và chuyển đổi số)</p>
       </section>
 
       <!-- ==================== 3. VẤN ĐỀ VÀ NHU CẦU ==================== -->
       <section class="section fade-in">
-        <h2>3. Vấn đề và nhu cầu mà dự án hướng tới</h2>
+        <h2><span class="node">3</span>Vấn đề và nhu cầu mà dự án hướng tới</h2>
 
         <h3>3.1. Câu chuyện thực tế</h3>
         <p>
@@ -139,7 +200,7 @@ import { isPlatformBrowser } from '@angular/common';
 
       <!-- ==================== 4. GIẢI PHÁP ==================== -->
       <section class="section fade-in">
-        <h2>4. Giải pháp / Sản phẩm / Công nghệ</h2>
+        <h2><span class="node">4</span>Giải pháp / Sản phẩm / Công nghệ</h2>
 
         <h3>4.1. Tổng quan giải pháp</h3>
         <p>
@@ -200,27 +261,27 @@ import { isPlatformBrowser } from '@angular/common';
             </tr>
           </thead>
           <tbody>
-            <tr>
+            <tr data-detail="Go (Gin) được chọn vì hiệu năng cao, biên dịch thành binary đơn, dễ deploy. Một server Go xử lý hàng nghìn request/giây với RAM chỉ ~50MB.">
               <td data-label="Thành phần"><strong>Backend</strong></td>
               <td data-label="Công nghệ">Go (Gin)</td>
               <td data-label="Lý do chọn">Hiệu năng cao, một server phục vụ được nhiều người dùng, tiết kiệm chi phí</td>
             </tr>
-            <tr>
+            <tr data-detail="PostgreSQL hỗ trợ JSONB, full-text search, và transaction ACID. Meilisearch bổ sung tìm kiếm typo-tolerant với latency dưới 50ms.">
               <td data-label="Thành phần"><strong>Cơ sở dữ liệu</strong></td>
               <td data-label="Công nghệ">PostgreSQL + Meilisearch</td>
               <td data-label="Lý do chọn">PostgreSQL cho dữ liệu tin cậy; Meilisearch cho tìm kiếm tức thì, tự sửa lỗi chính tả</td>
             </tr>
-            <tr>
+            <tr data-detail="Angular 21 với Server-Side Rendering giúp trang tải lần đầu dưới 1.5 giây. Signal-based reactivity giảm bundle size và tăng tốc cập nhật UI.">
               <td data-label="Thành phần"><strong>Web</strong></td>
               <td data-label="Công nghệ">Angular 21 (SSR)</td>
               <td data-label="Lý do chọn">Server-Side Rendering giúp trang tải nhanh và Google index được (quan trọng cho SEO)</td>
             </tr>
-            <tr>
+            <tr data-detail="Jetpack Compose cho phép xây dựng UI declarative, giảm 40% code so với XML truyền thống. Hilt dependency injection đảm bảo testability.">
               <td data-label="Thành phần"><strong>Android</strong></td>
               <td data-label="Công nghệ">Kotlin + Jetpack Compose</td>
               <td data-label="Lý do chọn">Ứng dụng native, mượt mà, theo chuẩn Material Design 3 của Google</td>
             </tr>
-            <tr>
+            <tr data-detail="PayOS tích hợp trực tiếp ngân hàng Việt Nam, hỗ trợ QR code thanh toán. Phí giao dịch 0% giai đoạn đầu, sau đó chỉ 1.1% + 1,100 VND/giao dịch.">
               <td data-label="Thành phần"><strong>Thanh toán</strong></td>
               <td data-label="Công nghệ">PayOS</td>
               <td data-label="Lý do chọn">Cổng thanh toán Việt Nam — sinh viên chuyển khoản ngân hàng nội địa, không cần thẻ quốc tế</td>
@@ -280,7 +341,7 @@ import { isPlatformBrowser } from '@angular/common';
 
       <!-- ==================== 5. KHÁCH HÀNG VÀ THỊ TRƯỜNG ==================== -->
       <section class="section fade-in">
-        <h2>5. Khách hàng và thị trường mục tiêu</h2>
+        <h2><span class="node">5</span>Khách hàng và thị trường mục tiêu</h2>
 
         <h3>5.1. Khách hàng mục tiêu</h3>
         <p>
@@ -400,7 +461,7 @@ import { isPlatformBrowser } from '@angular/common';
 
       <!-- ==================== 6. TÍNH KHẢ THI ==================== -->
       <section class="section fade-in">
-        <h2>6. Thuyết minh tính khả thi</h2>
+        <h2><span class="node">6</span>Thuyết minh tính khả thi</h2>
 
         <h3>6.1. Tính khả thi kỹ thuật</h3>
         <p>
@@ -510,7 +571,7 @@ import { isPlatformBrowser } from '@angular/common';
 
       <!-- ==================== 7. TÁC ĐỘNG ==================== -->
       <section class="section fade-in">
-        <h2>7. Ước tính tác động và lợi ích</h2>
+        <h2><span class="node">7</span>Ước tính tác động và lợi ích</h2>
 
         <h3>7.1. Tác động kinh tế</h3>
         <p>
@@ -551,7 +612,7 @@ import { isPlatformBrowser } from '@angular/common';
 
       <!-- ==================== TÀI LIỆU THAM KHẢO ==================== -->
       <section class="section fade-in">
-        <h2>Tài liệu tham khảo</h2>
+        <h2><span class="node">*</span>Tài liệu tham khảo</h2>
         <div class="references">
           <p>[1] Statista. "Number of university students in Vietnam from 2013 to 2021." February 2024.</p>
           <p>[2] VietnamNet. "Zalo's number of users hits 78.3 million." August 2025.</p>
@@ -573,36 +634,28 @@ import { isPlatformBrowser } from '@angular/common';
       </div>
 
     </article>
+
+    @defer (on idle) {
+      <report-init />
+    }
   `,
 })
-export class ReportComponent implements AfterViewInit {
+export class ReportComponent {
   private el = inject(ElementRef);
   private platformId = inject(PLATFORM_ID);
+
+  isDark = isPlatformBrowser(this.platformId) && localStorage.getItem('report-dark') === '1';
 
   printReport(): void {
     window.print();
   }
 
-  ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    // Fade-in animation observer
-    const fadeObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            fadeObserver.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    const fadeEls = this.el.nativeElement.querySelectorAll('.fade-in');
-    for (const el of fadeEls) {
-      fadeObserver.observe(el);
+  toggleDark(): void {
+    this.isDark = !this.isDark;
+    const host = this.el.nativeElement;
+    host.classList.toggle('dark', this.isDark);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('report-dark', this.isDark ? '1' : '0');
     }
-
   }
 }

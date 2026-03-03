@@ -44,6 +44,10 @@ func (m *mockPayOSForWithdrawal) GetPayout(_ context.Context, _ string) (*servic
 	return &services.PayoutStatusResponse{State: "PROCESSING"}, nil
 }
 
+func (m *mockPayOSForWithdrawal) CancelPaymentLink(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+
 func newWithdrawalHandler(
 	walletService *services.WalletService,
 	payos services.PayOSServicer,

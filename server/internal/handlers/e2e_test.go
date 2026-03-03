@@ -67,6 +67,10 @@ func (m *e2eMockPayOS) GetPayout(_ context.Context, payoutID string) (*services.
 	}, nil
 }
 
+func (m *e2eMockPayOS) CancelPaymentLink(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+
 // --- E2E test infrastructure ---
 
 const e2eJWTSecret = "e2e-test-secret-key"
@@ -121,7 +125,8 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	userHandler := NewUserHandler(userService)
 	taskHandler := NewTaskHandler(taskService, applicationRepo)
 	walletHandler := NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, "http://localhost:8080")
-	webhookHandler := NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
+	refRepo := repository.NewPaymentReferenceGormRepository(db)
+	webhookHandler := NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService, refRepo)
 	paymentHandler := NewPaymentHandler(nil, paymentService, "http://localhost:3000", "http://localhost:8080") // payosReturnBaseURL
 	categoryHandler := NewCategoryHandler(categoryRepo)
 

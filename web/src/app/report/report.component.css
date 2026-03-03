@@ -41,6 +41,26 @@
     opacity: 1 !important;
     transform: none !important;
   }
+
+  /* Force light mode in print */
+  :host, :host.dark {
+    --color-bg: #f0ede8;
+    --color-fg: #1a1a1a;
+    --color-card: #ffffff;
+    --color-border: #d4d0ca;
+    --color-muted: #6b6b6b;
+  }
+
+  .progress-bar { display: none !important; }
+  .detail-row { display: none !important; }
+
+  /* Disable parallax in print */
+  .cover .university,
+  .cover .title-block,
+  .cover .team-info,
+  .cover .date {
+    transform: none !important;
+  }
 }
 
 /* === Base === */
@@ -48,6 +68,101 @@
   display: block;
   background: var(--color-bg, #f0ede8);
   -webkit-text-size-adjust: 100%;
+}
+
+/* === Dark mode === */
+:host.dark {
+  --color-bg: #1a1a1a;
+  --color-fg: #f0ede8;
+  --color-card: #2a2a2a;
+  --color-border: #3a3a3a;
+  --color-muted: #999;
+}
+
+/* === Progress bar === */
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: #c17f59;
+  z-index: 200;
+  width: 0%;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* === Hero illustration === */
+.hero-illustration {
+  width: 300px;
+  margin: 32px auto;
+  color: var(--color-fg, #1a1a1a);
+}
+
+.hero-illustration svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* === QR Code === */
+.qr-code {
+  margin-top: 32px;
+  text-align: center;
+  color: var(--color-fg, #1a1a1a);
+}
+
+.qr-code svg {
+  display: inline-block;
+}
+
+.qr-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b6b6b);
+  margin-top: 8px;
+}
+
+/* === Hover reveal detail rows === */
+.detail-row {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.detail-row td {
+  padding: 0 16px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-muted, #6b6b6b);
+  border-left: 3px solid #c17f59;
+  transition: padding 0.3s ease-out;
+}
+
+.detail-row.expanded {
+  max-height: 200px;
+}
+
+.detail-row.expanded td {
+  padding: 12px 16px;
+}
+
+tr[data-detail] {
+  cursor: pointer;
+}
+
+tr[data-detail]:hover {
+  background: color-mix(in srgb, #c17f59 5%, transparent);
+}
+
+/* === Parallax === */
+.cover .university,
+.cover .title-block,
+.cover .team-info,
+.cover .date {
+  will-change: transform;
 }
 
 /* === Toolbar === */
@@ -104,15 +219,22 @@
 }
 
 /* === Scroll-triggered fade-in === */
+@keyframes fade-in-fallback {
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .fade-in {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  /* CSS fallback: if JS never adds .visible, content appears after 3s */
+  animation: fade-in-fallback 0.6s ease-out 3s forwards;
 }
 
 .fade-in.visible {
   opacity: 1;
   transform: translateY(0);
+  animation: none;
 }
 
 /* === Accent color — warm terracotta to complement metro-meow earth tones === */
@@ -211,31 +333,63 @@
 }
 
 /* === Section headings === */
-/* h2: dark block — metro station sign style */
+/* h2: metro line stop style */
 h2 {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   letter-spacing: 3px;
   text-transform: uppercase;
   margin-top: 48px;
   margin-bottom: 20px;
-  padding: 14px 20px;
-  background: var(--color-fg, #1a1a1a);
-  color: var(--color-bg, #f0ede8);
-  border-left: 4px solid #c17f59;
+  padding: 0;
+  background: none;
+  color: var(--color-fg, #1a1a1a);
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-/* Accent underline on h2 */
+/* Metro node circle */
+h2 .node {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #c17f59;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  box-shadow: 0 0 0 4px var(--color-bg, #f0ede8), 0 0 0 6px #c17f59;
+}
+
+/* Metro line extending from node */
 h2::after {
   content: '';
+  flex-grow: 1;
+  height: 2px;
+  background: linear-gradient(to right, #c17f59, transparent);
+}
+
+/* Vertical connecting line between sections */
+h2::before {
+  content: '';
   position: absolute;
-  bottom: -3px;
-  left: 0;
-  width: 80px;
-  height: 3px;
-  background: #c17f59;
+  left: 17px;
+  top: -48px;
+  width: 2px;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, #c17f5940);
+}
+
+/* First section h2 has no line above */
+.section:first-of-type h2::before {
+  display: none;
 }
 
 /* h3: left accent bar — subtler hierarchy */
@@ -444,9 +598,23 @@ figcaption {
 
   /* Headings */
   h2 {
-    font-size: 17px;
+    font-size: 14px;
     letter-spacing: 2px;
     margin-top: 32px;
+    gap: 12px;
+  }
+
+  h2 .node {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    box-shadow: 0 0 0 3px var(--color-bg, #f0ede8), 0 0 0 5px #c17f59;
+  }
+
+  h2::before {
+    left: 13px;
+    top: -32px;
+    height: 32px;
   }
 
   h3 {
@@ -543,5 +711,43 @@ figcaption {
 
   .report-footer {
     margin-top: 32px;
+  }
+
+  /* Disable parallax on mobile */
+  .cover .university,
+  .cover .title-block,
+  .cover .team-info,
+  .cover .date {
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .hero-illustration {
+    width: 220px;
+  }
+
+  /* Detail rows: override card styles so they collapse properly */
+  .detail-row {
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-left: none;
+    background: transparent;
+  }
+
+  .detail-row td {
+    border-left: 3px solid #c17f59;
+    padding: 0 16px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--color-muted, #6b6b6b);
+  }
+
+  .detail-row.expanded {
+    margin-bottom: 12px;
+  }
+
+  .detail-row.expanded td {
+    padding: 12px 16px;
   }
 }

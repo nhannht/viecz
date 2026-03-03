@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"viecz.vieczserver/internal/models"
 )
 
@@ -152,4 +153,27 @@ func (r *transactionGormRepository) GetByTaskIDWithTx(ctx context.Context, tx *g
 		return nil, fmt.Errorf("failed to get transactions by task ID: %w", err)
 	}
 	return transactions, nil
+}
+
+// paymentReferenceGormRepository implements PaymentReferenceRepository using GORM
+type paymentReferenceGormRepository struct {
+	db *gorm.DB
+}
+
+// NewPaymentReferenceGormRepository creates a new GORM-based PaymentReferenceRepository
+func NewPaymentReferenceGormRepository(db *gorm.DB) PaymentReferenceRepository {
+	return &paymentReferenceGormRepository{db: db}
+}
+
+var _ PaymentReferenceRepository = (*paymentReferenceGormRepository)(nil)
+
+func (r *paymentReferenceGormRepository) CreateIfNotExists(ctx context.Context, ref *models.PaymentReference) (bool, error) {
+	result := r.db.WithContext(ctx).
+		Clauses(clause.OnConflict{DoNothing: true}).
+		Create(ref)
+	if result.Error != nil {
+		return false, fmt.Errorf("failed to create payment reference: %w", result.Error)
+	}
+	// RowsAffected == 1 means newly inserted; 0 means conflict (already existed)
+	return result.RowsAffected == 1, nil
 }
