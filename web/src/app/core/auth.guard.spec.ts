@@ -37,6 +37,6 @@ describe('authGuard', () => {
   it('should deny access and redirect to /login when no token', () => {
     const result = TestBed.runInInjectionContext(() => authGuard({} as any, {} as any));
     expect(result).toBe(false);
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/phone']);
   });
 });

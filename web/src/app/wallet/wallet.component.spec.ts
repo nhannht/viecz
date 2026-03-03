@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, throwError, Subject } from 'rxjs';
 import { vi } from 'vitest';
 import { WalletComponent } from './wallet.component';
+import { Router } from '@angular/router';
 import { WalletService } from '../core/wallet.service';
 import { Wallet, WalletTransaction } from '../core/models';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
@@ -15,6 +16,7 @@ describe('WalletComponent', () => {
   let fixture: ComponentFixture<WalletComponent>;
   let walletServiceMock: any;
   let snackbarMock: any;
+  let routerMock: any;
 
   const mockWallet: Wallet = {
     id: 1, user_id: 1, balance: 150000, escrow_balance: 20000,
@@ -47,6 +49,7 @@ describe('WalletComponent', () => {
       withdraw: vi.fn(),
     };
     snackbarMock = { show: vi.fn() };
+    routerMock = { navigate: vi.fn().mockReturnValue(Promise.resolve(true)) };
 
     await TestBed.configureTestingModule({
       imports: [WalletComponent],
@@ -57,6 +60,7 @@ describe('WalletComponent', () => {
         { provide: WalletService, useValue: walletServiceMock },
         { provide: NhannhtMetroSnackbarService, useValue: snackbarMock },
         { provide: BankListService, useValue: { getBanks: vi.fn().mockReturnValue(of([])) } },
+        { provide: Router, useValue: routerMock },
       ],
     }).compileComponents();
 
@@ -146,12 +150,17 @@ describe('WalletComponent', () => {
 
   it('should call deposit service', () => {
     fixture.detectChanges();
-    walletServiceMock.deposit.mockReturnValue(of({ checkout_url: 'http://localhost:9999/mock-checkout/123', order_code: 1 }));
+    const mockRes = {
+      checkout_url: 'http://localhost:9999/mock-checkout/123', order_code: 1,
+      qr_code: 'mock-qr', account_number: '000123456', account_name: 'MOCK',
+      bin: '970422', amount: 50000, description: 'VIECZ123',
+    };
+    walletServiceMock.deposit.mockReturnValue(of(mockRes));
     component.depositAmount = 50000;
     component.deposit();
     expect(walletServiceMock.deposit).toHaveBeenCalledWith(50000);
     expect(component.depositing()).toBe(false);
-    expect(snackbarMock.show).toHaveBeenCalledWith('Deposit completed', undefined, { duration: 3000 });
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/payment/checkout'], expect.objectContaining({ state: expect.objectContaining({ order_code: 1 }) }));
   });
 
   it('should handle deposit error', () => {

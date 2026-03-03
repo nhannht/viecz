@@ -32,6 +32,6 @@ describe('ProfileRedirectComponent', () => {
   it('should redirect to /login when not logged in', () => {
     const fixture = TestBed.createComponent(ProfileRedirectComponent);
     fixture.detectChanges();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login'], { replaceUrl: true });
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/phone'], { replaceUrl: true });
   });
 });

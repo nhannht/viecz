@@ -301,10 +301,18 @@ func TestE2E_FullJobLifecycle(t *testing.T) {
 	bobToken, bobID := registerUser(t, router, "bob@example.com", "Password123", "Bob")
 	t.Logf("Bob registered: ID=%d", bobID)
 
+	// Bob updates profile with bio (required for applying to tasks)
+	w := doRequest(t, router, "PUT", "/api/v1/users/me", bobToken, map[string]interface{}{
+		"bio": "Experienced mover and handyman",
+	})
+	if w.Code != http.StatusOK {
+		t.Fatalf("Bob update profile: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
 	// =====================
 	// Step 3: Alice deposits 200000 via PayOS
 	// =====================
-	w := doRequest(t, router, "POST", "/api/v1/wallet/deposit", aliceToken, map[string]interface{}{
+	w = doRequest(t, router, "POST", "/api/v1/wallet/deposit", aliceToken, map[string]interface{}{
 		"amount": 200000,
 	})
 	if w.Code != http.StatusOK {

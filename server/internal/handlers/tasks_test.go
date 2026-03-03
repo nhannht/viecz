@@ -25,8 +25,8 @@ func setupTaskHandlerTest(t *testing.T) (*TaskHandler, *testutil.MockTaskReposit
 
 	// Add some default data
 	catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("requester@test.com")}
-	userRepo.users[2] = &models.User{ID: 2, Email: strPtr("tasker@test.com")}
+	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("requester@test.com"), Name: "Requester"}
+	userRepo.users[2] = &models.User{ID: 2, Email: strPtr("tasker@test.com"), Name: "Tasker", Bio: strPtr("I do tasks")}
 
 	taskService := services.NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 	handler := NewTaskHandler(taskService, appRepo)

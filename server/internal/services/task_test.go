@@ -394,7 +394,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 			},
 			wantErr: false,
 		},
@@ -409,7 +409,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 				Location:    "HCMUS",
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 			},
 			wantErr:     true,
 			errContains: "category not found",
@@ -426,7 +426,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 			},
 			wantErr:     true,
 			errContains: "title is required",
@@ -443,7 +443,7 @@ func TestTaskService_CreateTask(t *testing.T) {
 			},
 			setupRepo: func(catRepo *mockCategoryRepository, userRepo *mockUserRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 			},
 			wantErr:     true,
 			errContains: "price must be greater than 0",
@@ -520,7 +520,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 50000, EscrowBalance: 0}
 			},
 			wantErr:     true,
@@ -538,7 +538,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 0}
 				// Existing open task worth 150k
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 150000, Status: models.TaskStatusOpen}
@@ -558,7 +558,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 100000}
 			},
 			wantErr:     true,
@@ -576,7 +576,7 @@ func TestTaskService_CreateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 200000, EscrowBalance: 0}
 				// Existing open task worth 50k
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen}
@@ -644,7 +644,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen, Title: "Old Task", Description: "Old", CategoryID: 1, Location: "HCMUS"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 100000, EscrowBalance: 0}
 			},
@@ -664,7 +664,7 @@ func TestTaskService_UpdateTask_BalanceValidation(t *testing.T) {
 			},
 			setup: func(taskRepo *mockTaskRepository, catRepo *mockCategoryRepository, userRepo *mockUserRepository, walletRepo *testutil.MockWalletRepository) {
 				catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+				userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 				taskRepo.tasks[1] = &models.Task{ID: 1, RequesterID: 1, Price: 50000, Status: models.TaskStatusOpen, Title: "Old Task", Description: "Old", CategoryID: 1, Location: "HCMUS"}
 				walletRepo.Wallets[1] = &models.Wallet{ID: 1, UserID: 1, Balance: 10000, EscrowBalance: 0}
 			},
@@ -731,7 +731,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 					RequesterID: 1,
 					Status:      models.TaskStatusOpen,
 				}
-				userRepo.users[2] = &models.User{ID: 2}
+				userRepo.users[2] = &models.User{ID: 2, Name: "Tasker", Bio: strPtr("I do tasks")}
 			},
 			wantErr: false,
 		},
@@ -741,7 +741,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 			taskerID: 2,
 			input:    &ApplyForTaskInput{},
 			setupRepo: func(taskRepo *mockTaskRepository, appRepo *mockApplicationRepository, userRepo *mockUserRepository) {
-				userRepo.users[2] = &models.User{ID: 2}
+				userRepo.users[2] = &models.User{ID: 2, Name: "Tasker", Bio: strPtr("I do tasks")}
 			},
 			wantErr:     true,
 			errContains: "task not found",
@@ -757,7 +757,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 					RequesterID: 1,
 					Status:      models.TaskStatusCompleted,
 				}
-				userRepo.users[2] = &models.User{ID: 2}
+				userRepo.users[2] = &models.User{ID: 2, Name: "Tasker", Bio: strPtr("I do tasks")}
 			},
 			wantErr:     true,
 			errContains: "not open",
@@ -773,7 +773,7 @@ func TestTaskService_ApplyForTask(t *testing.T) {
 					RequesterID: 1,
 					Status:      models.TaskStatusOpen,
 				}
-				userRepo.users[1] = &models.User{ID: 1}
+				userRepo.users[1] = &models.User{ID: 1, Name: "Test User", Bio: strPtr("bio")}
 			},
 			wantErr:     true,
 			errContains: "cannot apply to your own task",
@@ -1567,7 +1567,7 @@ func TestTaskService_CreateTask_Deadline(t *testing.T) {
 			userRepo := newMockUserRepository()
 
 			catRepo.categories[1] = &models.Category{ID: 1, Name: "Moving"}
-			userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+			userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 
 			service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 			ctx := context.Background()
@@ -1621,7 +1621,7 @@ func TestTaskService_ApplyForTask_Overdue(t *testing.T) {
 			Status:      models.TaskStatusOpen,
 			Deadline:    &pastDeadline,
 		}
-		userRepo.users[2] = &models.User{ID: 2}
+		userRepo.users[2] = &models.User{ID: 2, Name: "Tasker", Bio: strPtr("I do tasks")}
 
 		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 		ctx := context.Background()
@@ -1648,7 +1648,7 @@ func TestTaskService_ApplyForTask_Overdue(t *testing.T) {
 			Status:      models.TaskStatusOpen,
 			Deadline:    &futureDeadline,
 		}
-		userRepo.users[2] = &models.User{ID: 2}
+		userRepo.users[2] = &models.User{ID: 2, Name: "Tasker", Bio: strPtr("I do tasks")}
 
 		service := NewTaskService(taskRepo, appRepo, catRepo, userRepo, nil, nil, nil, nil, nil)
 		ctx := context.Background()
@@ -1670,7 +1670,7 @@ func TestTaskService_CompleteTask_OverdueStillWorks(t *testing.T) {
 	catRepo := newMockCategoryRepository()
 	userRepo := newMockUserRepository()
 
-	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com")}
+	userRepo.users[1] = &models.User{ID: 1, Email: strPtr("test@test.com"), Name: "Test User"}
 	taskerID := int64(2)
 	pastDeadline := time.Now().Add(-1 * time.Hour)
 	taskRepo.tasks[1] = &models.Task{

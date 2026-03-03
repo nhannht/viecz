@@ -32,7 +32,11 @@ describe('WalletService', () => {
   });
 
   it('should deposit with amount and description', () => {
-    const mockRes: DepositResponse = { checkout_url: 'https://pay.payos.vn/web/123', order_code: 123 };
+    const mockRes: DepositResponse = {
+      checkout_url: 'https://pay.payos.vn/web/123', order_code: 123,
+      qr_code: 'mock-qr', account_number: '000123456', account_name: 'MOCK ACCOUNT',
+      bin: '970422', amount: 50000, description: 'VIECZ123',
+    };
     service.deposit(50000, 'Test deposit').subscribe(r => expect(r).toEqual(mockRes));
     const req = httpCtrl.expectOne('/api/v1/wallet/deposit');
     expect(req.request.method).toBe('POST');
