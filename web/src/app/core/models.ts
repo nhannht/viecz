@@ -112,6 +112,11 @@ export interface WalletTransaction {
 export interface DepositResponse {
   checkout_url: string;
   order_code: number;
+  qr_code: string;
+  account_number: string;
+  account_name: string;
+  amount: number;
+  description: string;
 }
 
 export interface BankAccount {

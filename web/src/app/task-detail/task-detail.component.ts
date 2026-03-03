@@ -5,6 +5,7 @@ import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { TaskService } from '../core/task.service';
 import { ApplicationService } from '../core/application.service';
 import { PaymentService } from '../core/payment.service';
+import { WalletService } from '../core/wallet.service';
 import { AuthService } from '../core/auth.service';
 import { Task, TaskApplication } from '../core/models';
 import { environment } from '../environments/environment';
@@ -204,6 +205,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   private taskService = inject(TaskService);
   private applicationService = inject(ApplicationService);
   private paymentService = inject(PaymentService);
+  private walletService = inject(WalletService);
   auth = inject(AuthService);
   private router = inject(Router);
   private snackbar = inject(NhannhtMetroSnackbarService);
@@ -321,8 +323,39 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
             this.snackbar.show(this.transloco.translate('task.escrowCreated'), this.transloco.translate('common.close'), { duration: 3000 });
             this.ngOnInit();
           },
-          error: err =>
-            this.snackbar.show(err.error?.error || this.transloco.translate('task.escrowFailed'), this.transloco.translate('common.close'), { duration: 3000 }),
+          error: err => {
+            // Handle insufficient balance with inline top-up
+            if (err.status === 402 && err.error?.error === 'insufficient_balance') {
+              const shortfall = err.error.shortfall as number;
+              this.snackbar.show(
+                this.transloco.translate('task.insufficientBalance', { amount: new Intl.NumberFormat('vi-VN').format(shortfall) }),
+                this.transloco.translate('common.close'),
+                { duration: 5000 },
+              );
+              // Create deposit for the shortfall amount and navigate to checkout
+              this.walletService.deposit(shortfall).subscribe({
+                next: res => {
+                  this.router.navigate(['/payment/checkout'], {
+                    state: {
+                      qr_code: res.qr_code,
+                      account_number: res.account_number,
+                      account_name: res.account_name,
+                      amount: res.amount,
+                      description: res.description,
+                      order_code: res.order_code,
+                      checkout_url: res.checkout_url,
+                      return_to: '/tasks/' + this.task()!.id,
+                      retry_escrow: true,
+                      task_id: this.task()!.id,
+                    },
+                  });
+                },
+                error: () => this.snackbar.show(this.transloco.translate('wallet.depositFailed'), this.transloco.translate('common.close'), { duration: 3000 }),
+              });
+              return;
+            }
+            this.snackbar.show(err.error?.error || this.transloco.translate('task.escrowFailed'), this.transloco.translate('common.close'), { duration: 3000 });
+          },
         });
       },
       error: err => this.snackbar.show(err.error?.error || this.transloco.translate('common.failed'), this.transloco.translate('common.close'), { duration: 3000 }),

@@ -120,6 +120,10 @@ func (m *mockPayOS) GetPayout(_ context.Context, payoutID string) (*services.Pay
 	}, nil
 }
 
+func (m *mockPayOS) CancelPaymentLink(_ context.Context, _ int64, _ string) error {
+	return nil
+}
+
 // dropAllTables drops all tables for a fresh database on each test server start.
 func dropAllTables(db *gorm.DB) {
 	tables := []string{
@@ -275,7 +279,8 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil, firebaseVerifier, userRepo)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL) // serverURL used as payosReturnBaseURL for test
-	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService)
+	refRepo := repository.NewPaymentReferenceGormRepository(db)
+	webhookHandler := handlers.NewWebhookHandler(mockPayOS, transactionRepo, taskRepo, walletService, refRepo)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
@@ -482,6 +487,7 @@ func main() {
 		{
 			wallet.GET("", walletHandler.GetWallet)
 			wallet.POST("/deposit", walletHandler.Deposit)
+			wallet.GET("/deposit/status/:orderCode", walletHandler.GetDepositStatus)
 			wallet.GET("/transactions", walletHandler.GetTransactionHistory)
 			wallet.GET("/bank-accounts", bankAccountHandler.ListBankAccounts)
 			wallet.POST("/bank-accounts", bankAccountHandler.AddBankAccount)

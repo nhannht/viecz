@@ -1,0 +1,171 @@
+<ng-container *transloco="let t">
+
+  <!-- ═══ Phase 1: Pending — Terminal Receipt ═══ -->
+  @if (phase() === 'pending' && state()) {
+    <div class="receipt">
+      <div class="receipt-header">
+        <h1 class="receipt-title">{{ t('checkout.paymentOrder') }}</h1>
+        <hr class="receipt-divider" />
+      </div>
+
+      <!-- Order details -->
+      <div class="receipt-row">
+        <span class="receipt-key">{{ t('checkout.order') }}</span>
+        <span class="receipt-dots"></span>
+        <span class="receipt-value">#{{ state()!.order_code }}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">{{ t('checkout.amount') }}</span>
+        <span class="receipt-dots"></span>
+        <span class="receipt-value">{{ formatVnd(state()!.amount) }}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">{{ t('checkout.status') }}</span>
+        <span class="receipt-dots"></span>
+        <span class="receipt-value">{{ t('checkout.pending') }}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">{{ t('checkout.expires') }}</span>
+        <span class="receipt-dots"></span>
+        <span class="receipt-value">{{ countdown() }}</span>
+      </div>
+
+      <!-- ASCII progress bar -->
+      <div class="progress-bar">
+        <span class="progress-bar-track">{{ progressBar() }}</span>
+        <span> {{ progressPct() }}%</span>
+      </div>
+
+      <!-- QR Code -->
+      <div class="qr-section">
+        <div class="qr-container">
+          <canvas #qrCanvas width="200" height="200"></canvas>
+        </div>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem; letter-spacing: 1px;">
+          {{ t('checkout.scanToPay') }}
+        </p>
+      </div>
+
+      <!-- Manual transfer details -->
+      <div class="manual-section">
+        <div class="manual-header">{{ t('checkout.manualTransfer') }}</div>
+
+        <div class="receipt-row">
+          <span class="receipt-key">{{ t('checkout.acct') }}</span>
+          <span class="receipt-dots"></span>
+          <span class="receipt-value">
+            {{ state()!.account_number }}
+            <button class="copy-btn" (click)="copyToClipboard(state()!.account_number)">📋</button>
+          </span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-key">{{ t('checkout.name') }}</span>
+          <span class="receipt-dots"></span>
+          <span class="receipt-value">
+            {{ state()!.account_name }}
+            <button class="copy-btn" (click)="copyToClipboard(state()!.account_name)">📋</button>
+          </span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-key">{{ t('checkout.memo') }}</span>
+          <span class="receipt-dots"></span>
+          <span class="receipt-value">
+            {{ state()!.description }}
+            <button class="copy-btn" (click)="copyToClipboard(state()!.description)">📋</button>
+          </span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-key">{{ t('checkout.amountLabel') }}</span>
+          <span class="receipt-dots"></span>
+          <span class="receipt-value">
+            {{ formatVnd(state()!.amount) }}
+            <button class="copy-btn" (click)="copyToClipboard(state()!.amount.toString())">📋</button>
+          </span>
+        </div>
+      </div>
+
+      <!-- Waiting indicator -->
+      <div class="waiting-section">
+        <div class="waiting-text">░░ {{ t('checkout.waitingForPayment') }} ░░</div>
+        <nhannht-metro-spinner size="sm" [label]="t('checkout.waitingForPayment')" />
+      </div>
+
+      <!-- Fallback to PayOS -->
+      <div class="fallback-link">
+        <button class="fallback-btn" (click)="openPayosCheckout()">
+          [ {{ t('checkout.openPayos') }} > ]
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Phase 2: ASCII Explosion ═══ -->
+  @if (phase() === 'explosion') {
+    <div class="receipt" style="text-align: center; padding-top: 4rem;">
+      <div class="explosion-container">
+        @for (c of explosionChars(); track $index) {
+          <span
+            class="explosion-char"
+            [style.left.px]="c.x"
+            [style.top.px]="c.y"
+            [style.animation-delay.s]="c.delay"
+            [style.--tx]="c.tx + 'px'"
+            [style.--ty]="c.ty + 'px'"
+            style="animation: scatter 0.6s ease-out forwards;">
+            {{ c.char }}
+          </span>
+        }
+      </div>
+      <div class="checkmark-container">
+        <div class="checkmark-ascii">✓</div>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Phase 3: Confirmed (Inverted Card) ═══ -->
+  @if (phase() === 'confirmed' && state()) {
+    <div class="receipt-confirmed">
+      <div class="confirmed-check">✓ {{ t('checkout.paid') }}</div>
+      <div class="confirmed-amount">{{ formatVnd(state()!.amount) }}</div>
+
+      @if (confirmedAt()) {
+        <div class="confirmed-row">
+          <span class="confirmed-key">{{ t('checkout.time') }}</span>
+          <span class="confirmed-dots"></span>
+          <span>{{ confirmedAt() | date:'dd MMM yyyy HH:mm' }}</span>
+        </div>
+      }
+
+      <div class="confirmed-row">
+        <span class="confirmed-key">{{ t('checkout.order') }}</span>
+        <span class="confirmed-dots"></span>
+        <span>#{{ state()!.order_code }}</span>
+      </div>
+
+      <button class="go-btn" (click)="navigateAway()">
+        [ > {{ t('checkout.goToWallet') }} ]
+      </button>
+
+      <div class="auto-redirect">
+        {{ t('checkout.autoRedirect', { seconds: redirectSeconds() }) }}
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Expired state ═══ -->
+  @if (phase() === 'expired') {
+    <div class="receipt">
+      <div class="receipt-expired">
+        <div class="expired-icon">✕</div>
+        <h2 class="receipt-title">{{ t('checkout.expired') }}</h2>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem;">
+          {{ t('checkout.expiredMessage') }}
+        </p>
+        <button class="retry-btn" (click)="retryDeposit()">
+          [ {{ t('checkout.retry') }} ]
+        </button>
+      </div>
+    </div>
+  }
+
+</ng-container>

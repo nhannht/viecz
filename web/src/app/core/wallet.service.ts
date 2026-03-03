@@ -22,6 +22,10 @@ export class WalletService {
     });
   }
 
+  getDepositStatus(orderCode: number) {
+    return this.http.get<{ status: string }>(`/api/v1/wallet/deposit/status/${orderCode}`);
+  }
+
   getTransactions(limit = 20, offset = 0) {
     const params = new HttpParams().set('limit', limit).set('offset', offset);
     return this.http.get<WalletTransaction[]>('/api/v1/wallet/transactions', { params });

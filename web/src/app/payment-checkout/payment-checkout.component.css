@@ -1,0 +1,339 @@
+/* ═══ Terminal Receipt — Payment Checkout ═══ */
+
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.receipt {
+  max-width: 420px;
+  margin: 0 auto;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.5px;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.receipt-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+.receipt-divider {
+  border: none;
+  border-top: 2px solid var(--color-fg, #1a1a1a);
+  margin: 0.5rem 0;
+}
+
+/* Dotted-leader key:value pairs */
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.receipt-key {
+  white-space: nowrap;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.receipt-dots {
+  flex: 1;
+  border-bottom: 1px dotted var(--color-muted, #6b6b6b);
+  margin: 0 0.25rem;
+  min-width: 1rem;
+  align-self: baseline;
+  position: relative;
+  top: -0.25em;
+}
+
+.receipt-value {
+  white-space: nowrap;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ASCII progress bar */
+.progress-bar {
+  font-size: 0.875rem;
+  margin: 0.75rem 0;
+  text-align: center;
+}
+
+.progress-bar-track {
+  letter-spacing: 1px;
+}
+
+/* QR code container */
+.qr-section {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.qr-container {
+  display: inline-block;
+  border: 3px solid var(--color-fg, #1a1a1a);
+  padding: 0.75rem;
+  background: white;
+}
+
+.qr-container canvas,
+.qr-container img {
+  display: block;
+  width: 200px;
+  height: 200px;
+}
+
+/* Manual transfer section */
+.manual-section {
+  margin: 1.5rem 0;
+}
+
+.manual-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.manual-header::before,
+.manual-header::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dashed var(--color-muted, #6b6b6b);
+}
+
+.copy-btn {
+  background: none;
+  border: 1px solid var(--color-fg, #1a1a1a);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  cursor: pointer;
+  margin-left: 0.25rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.copy-btn:hover {
+  background: var(--color-fg, #1a1a1a);
+  color: var(--color-bg, #f0ede8);
+}
+
+.copy-btn:active {
+  transform: scale(0.95);
+}
+
+/* Waiting state */
+.waiting-section {
+  text-align: center;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px dashed var(--color-muted, #6b6b6b);
+}
+
+.waiting-text {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+/* Fallback link */
+.fallback-link {
+  display: block;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.fallback-btn {
+  font-family: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  background: none;
+  border: 1px solid var(--color-muted, #6b6b6b);
+  color: var(--color-muted, #6b6b6b);
+  padding: 0.5rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.fallback-btn:hover {
+  border-color: var(--color-fg, #1a1a1a);
+  color: var(--color-fg, #1a1a1a);
+}
+
+/* ═══ Phase 2: ASCII Explosion ═══ */
+
+.explosion-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 2rem auto;
+}
+
+.explosion-char {
+  position: absolute;
+  font-size: 1rem;
+  font-weight: 700;
+  animation: scatter 0.6s ease-out forwards;
+}
+
+@keyframes scatter {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 100px), var(--ty, 100px)) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.checkmark-container {
+  text-align: center;
+  animation: converge 0.4s ease-in 0.6s both;
+}
+
+@keyframes converge {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.checkmark-ascii {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ═══ Phase 3: Confirmed (Inverted) ═══ */
+
+.receipt-confirmed {
+  background: var(--color-fg, #1a1a1a);
+  color: var(--color-bg, #f0ede8);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  max-width: 420px;
+  margin: 0 auto;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+}
+
+.confirmed-check {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.confirmed-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.confirmed-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+}
+
+.confirmed-key {
+  opacity: 0.7;
+}
+
+.confirmed-dots {
+  flex: 1;
+  border-bottom: 1px dotted rgba(240, 237, 232, 0.3);
+  margin: 0 0.25rem;
+  position: relative;
+  top: -0.25em;
+}
+
+.go-btn {
+  display: inline-block;
+  margin-top: 1.5rem;
+  padding: 0.75rem 2rem;
+  border: 2px solid var(--color-bg, #f0ede8);
+  background: none;
+  color: var(--color-bg, #f0ede8);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.go-btn:hover {
+  background: var(--color-bg, #f0ede8);
+  color: var(--color-fg, #1a1a1a);
+}
+
+.auto-redirect {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  margin-top: 0.75rem;
+}
+
+/* ═══ Expired state ═══ */
+
+.receipt-expired {
+  text-align: center;
+  padding: 2rem;
+}
+
+.expired-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.retry-btn {
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
+  border: 2px solid var(--color-fg, #1a1a1a);
+  background: none;
+  color: var(--color-fg, #1a1a1a);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.retry-btn:hover {
+  background: var(--color-fg, #1a1a1a);
+  color: var(--color-bg, #f0ede8);
+}
+
+/* ═══ prefers-reduced-motion ═══ */
+
+@media (prefers-reduced-motion: reduce) {
+  .explosion-char {
+    animation: none;
+    opacity: 0;
+  }
+
+  .checkmark-container {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
+  }
+}

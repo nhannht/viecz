@@ -118,6 +118,19 @@ func (h *PaymentHandler) CreateEscrowPayment(c *gin.Context) {
 	)
 	if err != nil {
 		log.Printf("Failed to create escrow payment: %v", err)
+
+		// Parse insufficient balance errors to return structured response
+		var available, need int64
+		if n, _ := fmt.Sscanf(err.Error(), "insufficient balance: have %d, need %d", &available, &need); n == 2 {
+			c.JSON(http.StatusPaymentRequired, gin.H{
+				"error":     "insufficient_balance",
+				"available": available,
+				"required":  need,
+				"shortfall": need - available,
+			})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "payment_failed",
 			Message: err.Error(),

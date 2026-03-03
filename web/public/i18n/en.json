@@ -152,7 +152,8 @@
     "applicationAccepted": "Application accepted",
     "escrowCreated": "Escrow created",
     "escrowFailed": "Escrow failed",
-    "completeFailed": "Failed to complete task"
+    "completeFailed": "Failed to complete task",
+    "insufficientBalance": "Insufficient balance — need to top up {{amount}} ₫"
   },
   "taskForm": {
     "editTitle": "Edit Task",
@@ -363,6 +364,30 @@
     "errorMessage": "Something went wrong with the payment. Please try again.",
     "goToWallet": "Go to Wallet",
     "logIn": "Log In"
+  },
+  "checkout": {
+    "paymentOrder": "PAYMENT ORDER",
+    "order": "ORDER",
+    "amount": "AMOUNT",
+    "amountLabel": "AMOUNT",
+    "status": "STATUS",
+    "pending": "PENDING",
+    "expires": "EXPIRES",
+    "scanToPay": "SCAN QR TO PAY",
+    "manualTransfer": "MANUAL TRANSFER",
+    "acct": "ACCT",
+    "name": "NAME",
+    "memo": "MEMO",
+    "waitingForPayment": "WAITING FOR PAYMENT",
+    "openPayos": "OPEN PAYOS CHECKOUT",
+    "paid": "PAID",
+    "time": "TIME",
+    "goToWallet": "GO TO WALLET",
+    "autoRedirect": "auto-redirect in {{seconds}}s",
+    "expired": "EXPIRED",
+    "expiredMessage": "The payment window has closed. Please try again.",
+    "retry": "RETRY",
+    "copied": "Copied!"
   },
   "applicationCard": {
     "tasker": "Tasker #",

@@ -199,7 +199,8 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret, turnstileService, firebaseVerifier, userRepo)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL, cfg.PayOSReturnBaseURL)
-	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo, walletService)
+	refRepo := repository.NewPaymentReferenceGormRepository(db)
+	webhookHandler := handlers.NewWebhookHandler(payosService, transactionRepo, taskRepo, walletService, refRepo)
 	returnHandler := handlers.NewReturnHandler(payosService, cfg.ClientURL)
 	taskHandler := handlers.NewTaskHandler(taskService, applicationRepo)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
@@ -426,6 +427,7 @@ func main() {
 		{
 			wallet.GET("", walletHandler.GetWallet)
 			wallet.POST("/deposit", auth.PhoneVerifiedRequired(userRepo), walletHandler.Deposit)
+			wallet.GET("/deposit/status/:orderCode", walletHandler.GetDepositStatus)
 			wallet.GET("/transactions", walletHandler.GetTransactionHistory)
 			wallet.GET("/bank-accounts", bankAccountHandler.ListBankAccounts)
 			wallet.POST("/bank-accounts", bankAccountHandler.AddBankAccount)

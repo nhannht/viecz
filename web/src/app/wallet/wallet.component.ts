@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { WalletService } from '../core/wallet.service';
@@ -206,6 +207,7 @@ export class WalletComponent implements OnInit {
   private snackbar = inject(NhannhtMetroSnackbarService);
   private platformId = inject(PLATFORM_ID);
   private transloco = inject(TranslocoService);
+  private router = inject(Router);
 
   wallet = signal<Wallet | null>(null);
   transactions = signal<WalletTransaction[]>([]);
@@ -282,14 +284,19 @@ export class WalletComponent implements OnInit {
     this.walletService.deposit(Number(this.depositAmount)).subscribe({
       next: res => {
         this.depositing.set(false);
-        const url = res.checkout_url;
-        if (url && isPlatformBrowser(this.platformId)) {
-          if (url.includes('localhost')) {
-            this.snackbar.show(this.transloco.translate('wallet.depositCompleted'), undefined, { duration: 3000 });
-            setTimeout(() => this.ngOnInit(), 2000);
-          } else {
-            window.location.href = url;
-          }
+        if (isPlatformBrowser(this.platformId)) {
+          this.router.navigate(['/payment/checkout'], {
+            state: {
+              qr_code: res.qr_code,
+              account_number: res.account_number,
+              account_name: res.account_name,
+              amount: res.amount,
+              description: res.description,
+              order_code: res.order_code,
+              checkout_url: res.checkout_url,
+              return_to: '/wallet',
+            },
+          });
         }
       },
       error: err => {

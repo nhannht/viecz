@@ -64,6 +64,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'payment/checkout',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./payment-checkout/payment-checkout.component').then(
+            m => m.PaymentCheckoutComponent,
+          ),
+      },
+      {
         path: 'wallet',
         canActivate: [authGuard],
         loadComponent: () => import('./wallet/wallet.component').then(m => m.WalletComponent),

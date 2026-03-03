@@ -152,7 +152,8 @@
     "applicationAccepted": "Đã chấp nhận ứng tuyển",
     "escrowCreated": "Đã tạo ký quỹ",
     "escrowFailed": "Ký quỹ thất bại",
-    "completeFailed": "Không thể hoàn thành việc"
+    "completeFailed": "Không thể hoàn thành việc",
+    "insufficientBalance": "Số dư không đủ — cần nạp thêm {{amount}} ₫"
   },
   "taskForm": {
     "editTitle": "Sửa việc",
@@ -363,6 +364,30 @@
     "errorMessage": "Đã xảy ra lỗi với thanh toán. Vui lòng thử lại.",
     "goToWallet": "Đến ví tiền",
     "logIn": "Đăng nhập"
+  },
+  "checkout": {
+    "paymentOrder": "ĐƠN THANH TOÁN",
+    "order": "MÃ ĐƠN",
+    "amount": "SỐ TIỀN",
+    "amountLabel": "SỐ TIỀN",
+    "status": "TRẠNG THÁI",
+    "pending": "CHỜ XỬ LÝ",
+    "expires": "HẾT HẠN",
+    "scanToPay": "QUÉT MÃ QR ĐỂ THANH TOÁN",
+    "manualTransfer": "CHUYỂN KHOẢN THỦ CÔNG",
+    "acct": "TK",
+    "name": "TÊN",
+    "memo": "NỘI DUNG",
+    "waitingForPayment": "ĐANG CHỜ THANH TOÁN",
+    "openPayos": "MỞ TRANG PAYOS",
+    "paid": "ĐÃ THANH TOÁN",
+    "time": "THỜI GIAN",
+    "goToWallet": "ĐẾN VÍ TIỀN",
+    "autoRedirect": "tự chuyển hướng trong {{seconds}}s",
+    "expired": "ĐÃ HẾT HẠN",
+    "expiredMessage": "Thời gian thanh toán đã hết. Vui lòng thử lại.",
+    "retry": "THỬ LẠI",
+    "copied": "Đã sao chép!"
   },
   "applicationCard": {
     "tasker": "Người làm #",

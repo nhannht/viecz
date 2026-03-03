@@ -130,8 +130,13 @@ type DepositRequest struct {
 
 // DepositResponse represents the response with PayOS checkout URL
 type DepositResponse struct {
-	CheckoutURL string `json:"checkout_url"`
-	OrderCode   int64  `json:"order_code"`
+	CheckoutURL   string `json:"checkout_url"`
+	OrderCode     int64  `json:"order_code"`
+	QrCode        string `json:"qr_code"`
+	AccountNumber string `json:"account_number"`
+	AccountName   string `json:"account_name"`
+	Amount        int    `json:"amount"`
+	Description   string `json:"description"`
 }
 
 // Deposit creates a PayOS payment link for wallet top-up
@@ -236,9 +241,76 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, DepositResponse{
-		CheckoutURL: result.CheckoutUrl,
-		OrderCode:   orderCode,
+		CheckoutURL:   result.CheckoutUrl,
+		OrderCode:     orderCode,
+		QrCode:        result.QrCode,
+		AccountNumber: result.AccountNumber,
+		AccountName:   result.AccountName,
+		Amount:        result.Amount,
+		Description:   req.Description,
 	})
+}
+
+// GetDepositStatus returns the current status of a deposit by order code.
+// @Summary Get deposit status
+// @Tags wallet
+// @Produce json
+// @Param orderCode path string true "PayOS order code"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Router /wallet/deposit/status/{orderCode} [get]
+// @Security BearerAuth
+func (h *WalletHandler) GetDepositStatus(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+		return
+	}
+
+	orderCodeStr := c.Param("orderCode")
+	orderCode, err := strconv.ParseInt(orderCodeStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   "invalid_order_code",
+			Message: "Invalid order code",
+		})
+		return
+	}
+
+	tx, err := h.transactionRepo.GetByOrderCode(c.Request.Context(), orderCode)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Error:   "not_found",
+			Message: "Transaction not found",
+		})
+		return
+	}
+
+	// Verify the transaction belongs to the requesting user
+	if tx.PayerID != userID.(int64) {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Error:   "not_found",
+			Message: "Transaction not found",
+		})
+		return
+	}
+
+	// Map internal status to simple client status
+	status := "pending"
+	switch tx.Status {
+	case models.TransactionStatusSuccess:
+		status = "success"
+	case models.TransactionStatusFailed:
+		status = "failed"
+	case models.TransactionStatusCancelled:
+		status = "cancelled"
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": status})
 }
 
 // GetTransactionHistory retrieves wallet transaction history
