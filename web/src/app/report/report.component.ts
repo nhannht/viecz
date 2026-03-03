@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, PLATFORM_ID, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, PLATFORM_ID, ViewEncapsulation } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ReportInitComponent } from './report-init.component';
 
@@ -21,7 +21,7 @@ import { ReportInitComponent } from './report-init.component';
     <!-- Toolbar — hidden in print -->
     <div class="no-print">
       <button (click)="printReport()">Export PDF</button>
-      <button (click)="toggleDark()">{{ isDark ? 'Light' : 'Dark' }}</button>
+      <button (click)="toggleDark($event)">{{ isDark ? 'Light' : 'Dark' }}</button>
       <span>Bản mô tả dự án Viecz — HCMUS I&amp;E 2025</span>
     </div>
 
@@ -643,6 +643,7 @@ import { ReportInitComponent } from './report-init.component';
 export class ReportComponent {
   private el = inject(ElementRef);
   private platformId = inject(PLATFORM_ID);
+  private cdr = inject(ChangeDetectorRef);
 
   isDark = isPlatformBrowser(this.platformId) && localStorage.getItem('report-dark') === '1';
 
@@ -650,12 +651,29 @@ export class ReportComponent {
     window.print();
   }
 
-  toggleDark(): void {
-    this.isDark = !this.isDark;
+  toggleDark(event?: MouseEvent): void {
     const host = this.el.nativeElement;
-    host.classList.toggle('dark', this.isDark);
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('report-dark', this.isDark ? '1' : '0');
+
+    // Set the circle origin to the click position (or center as fallback)
+    if (event) {
+      document.documentElement.style.setProperty('--theme-toggle-x', `${event.clientX}px`);
+      document.documentElement.style.setProperty('--theme-toggle-y', `${event.clientY}px`);
+    }
+
+    const applyTheme = () => {
+      this.isDark = !this.isDark;
+      host.classList.toggle('dark', this.isDark);
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.setItem('report-dark', this.isDark ? '1' : '0');
+      }
+      this.cdr.detectChanges();
+    };
+
+    // Use View Transition API if available, otherwise instant swap
+    if (isPlatformBrowser(this.platformId) && (document as any).startViewTransition) {
+      (document as any).startViewTransition(applyTheme);
+    } else {
+      applyTheme();
     }
   }
 }

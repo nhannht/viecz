@@ -43,7 +43,7 @@
   }
 
   /* Force light mode in print */
-  :host, :host.dark {
+  app-report, app-report.dark {
     --color-bg: #f0ede8;
     --color-fg: #1a1a1a;
     --color-card: #ffffff;
@@ -64,19 +64,43 @@
 }
 
 /* === Base === */
-:host {
+app-report {
   display: block;
   background: var(--color-bg, #f0ede8);
   -webkit-text-size-adjust: 100%;
 }
 
 /* === Dark mode === */
-:host.dark {
+app-report.dark {
   --color-bg: #1a1a1a;
   --color-fg: #f0ede8;
   --color-card: #2a2a2a;
   --color-border: #3a3a3a;
   --color-muted: #999;
+}
+
+/* === Theme transition (circular reveal) === */
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  animation: theme-reveal 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  mix-blend-mode: normal;
+  z-index: 9999;
+}
+
+@keyframes theme-reveal {
+  0%   { clip-path: circle(0% at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%)); }
+  100% { clip-path: circle(150% at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) {
+    animation: none;
+  }
 }
 
 /* === Progress bar === */
