@@ -51,6 +51,16 @@
         <div class="manual-header">{{ t('checkout.manualTransfer') }}</div>
 
         <div class="receipt-row">
+          <span class="receipt-key">{{ t('checkout.bank') }}</span>
+          <span class="receipt-dots"></span>
+          <span class="receipt-value">
+            @if (bankLogo()) {
+              <img [src]="bankLogo()" [alt]="bankName()" class="bank-logo" />
+            }
+            {{ bankName() }}
+          </span>
+        </div>
+        <div class="receipt-row">
           <span class="receipt-key">{{ t('checkout.acct') }}</span>
           <span class="receipt-dots"></span>
           <span class="receipt-value">
@@ -90,12 +100,6 @@
         <nhannht-metro-spinner size="sm" [label]="t('checkout.waitingForPayment')" />
       </div>
 
-      <!-- Fallback to PayOS -->
-      <div class="fallback-link">
-        <button class="fallback-btn" (click)="openPayosCheckout()">
-          [ {{ t('checkout.openPayos') }} > ]
-        </button>
-      </div>
     </div>
   }
 

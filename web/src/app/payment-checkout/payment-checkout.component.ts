@@ -16,6 +16,7 @@ import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import QRCode from 'qrcode';
 
 import { WalletService } from '../core/wallet.service';
+import { BankListService, VietQRBank } from '../core/bank-list';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 
@@ -24,10 +25,10 @@ interface CheckoutState {
   qr_code: string;
   account_number: string;
   account_name: string;
+  bin: string;
   amount: number;
   description: string;
   order_code: number;
-  checkout_url: string;
   return_to: string;
   retry_escrow?: boolean;
   task_id?: number;
@@ -53,6 +54,7 @@ export class PaymentCheckoutComponent implements OnInit, AfterViewInit, OnDestro
   private router = inject(Router);
   private snackbar = inject(NhannhtMetroSnackbarService);
   private transloco = inject(TranslocoService);
+  private bankListService = inject(BankListService);
   private platformId = inject(PLATFORM_ID);
 
   @ViewChild('qrCanvas') qrCanvas?: ElementRef<HTMLCanvasElement>;
@@ -62,6 +64,16 @@ export class PaymentCheckoutComponent implements OnInit, AfterViewInit, OnDestro
 
   /** Payment data from router state */
   state = signal<CheckoutState | null>(null);
+
+  /** Resolved bank info from VietQR API */
+  bank = signal<VietQRBank | null>(null);
+  bankName = computed(() => {
+    const b = this.bank();
+    if (b) return b.shortName;
+    const bin = this.state()?.bin;
+    return bin ? `Bank (${bin})` : '';
+  });
+  bankLogo = computed(() => this.bank()?.logo ?? '');
 
   /** Countdown seconds remaining (5 min = 300s) */
   secondsLeft = signal(300);
@@ -109,6 +121,14 @@ export class PaymentCheckoutComponent implements OnInit, AfterViewInit, OnDestro
       return;
     }
     this.state.set(s as CheckoutState);
+
+    // Resolve bank name from BIN via VietQR API
+    if (s.bin) {
+      this.bankListService.getBanks().subscribe(banks => {
+        const match = banks.find((b: VietQRBank) => b.bin === s.bin);
+        if (match) this.bank.set(match);
+      });
+    }
 
     // Start countdown
     this.countdownInterval = setInterval(() => {
@@ -241,14 +261,6 @@ export class PaymentCheckoutComponent implements OnInit, AfterViewInit, OnDestro
         { duration: 2000 },
       );
     });
-  }
-
-  /** Open PayOS hosted checkout as fallback */
-  openPayosCheckout() {
-    const s = this.state();
-    if (s?.checkout_url && isPlatformBrowser(this.platformId)) {
-      window.location.href = s.checkout_url;
-    }
   }
 
   /** Navigate to return destination */

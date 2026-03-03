@@ -115,6 +115,7 @@ export interface DepositResponse {
   qr_code: string;
   account_number: string;
   account_name: string;
+  bin: string;
   amount: number;
   description: string;
 }

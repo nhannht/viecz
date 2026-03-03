@@ -340,6 +340,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
                       qr_code: res.qr_code,
                       account_number: res.account_number,
                       account_name: res.account_name,
+                      bin: res.bin,
                       amount: res.amount,
                       description: res.description,
                       order_code: res.order_code,

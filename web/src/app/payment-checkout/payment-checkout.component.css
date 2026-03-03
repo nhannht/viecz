@@ -135,6 +135,12 @@
   transform: scale(0.95);
 }
 
+.bank-logo {
+  height: 1.2em;
+  vertical-align: middle;
+  margin-right: 0.3em;
+}
+
 /* Waiting state */
 .waiting-section {
   text-align: center;

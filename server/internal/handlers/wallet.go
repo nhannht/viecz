@@ -135,6 +135,7 @@ type DepositResponse struct {
 	QrCode        string `json:"qr_code"`
 	AccountNumber string `json:"account_number"`
 	AccountName   string `json:"account_name"`
+	Bin           string `json:"bin"`
 	Amount        int    `json:"amount"`
 	Description   string `json:"description"`
 }
@@ -246,6 +247,7 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 		QrCode:        result.QrCode,
 		AccountNumber: result.AccountNumber,
 		AccountName:   result.AccountName,
+		Bin:           result.Bin,
 		Amount:        result.Amount,
 		Description:   req.Description,
 	})

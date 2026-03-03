@@ -55,6 +55,7 @@ type PaymentLinkResponse struct {
 	Status          string
 	AccountNumber   string
 	AccountName     string
+	Bin             string
 }
 
 // NewPayOSService creates a new PayOS service instance with separate deposit and payout clients.
@@ -125,6 +126,7 @@ func (s *PayOSService) CreatePaymentLink(ctx context.Context, orderCode int64, a
 		Status:        string(result.Status),
 		AccountNumber: result.AccountNumber,
 		AccountName:   result.AccountName,
+		Bin:           result.Bin,
 	}, nil
 }
 

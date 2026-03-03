@@ -49,9 +49,10 @@ func (m *mockPayOS) CreatePaymentLink(_ context.Context, orderCode int64, amount
 		m.returnURLs.Store(orderCode, returnURL)
 	}
 
-	// Fire webhook in background to auto-complete deposit
+	// Fire webhook in background to auto-complete deposit after 10s delay
+	// so the Terminal Receipt UI is visible for testing
 	go func() {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(10 * time.Second)
 
 		webhookPayload := map[string]interface{}{
 			"code":    "00",
@@ -78,12 +79,23 @@ func (m *mockPayOS) CreatePaymentLink(_ context.Context, orderCode int64, amount
 		log.Printf("[MockPayOS] Auto-completed deposit: orderCode=%d, amount=%d", orderCode, amount)
 	}()
 
+	// Return realistic mock data so the Terminal Receipt UI renders properly
+	mockAccountNumber := "000336657"
+	mockAccountName := "CONG TY CP VIECZ TEST"
+	// Simplified VietQR-like string that the qrcode library can render
+	mockQrCode := fmt.Sprintf("00020101021238570010A000000727012700069704030113%s0208QRIBFTTA5303704540%d5802VN6209%s6304ABCD",
+		mockAccountNumber, amount, description)
+
 	return &services.PaymentLinkResponse{
 		CheckoutUrl:   fmt.Sprintf("%s/mock-checkout/%d", serverURL, orderCode),
 		PaymentLinkId: fmt.Sprintf("pl_%d", orderCode),
 		OrderCode:     orderCode,
 		Amount:        amount,
 		Status:        "PENDING",
+		QrCode:        mockQrCode,
+		AccountNumber: mockAccountNumber,
+		AccountName:   mockAccountName,
+		Bin:           "970422", // MB Bank BIN for testing
 	}, nil
 }
 
