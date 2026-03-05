@@ -31,7 +31,7 @@ import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
   template: `
     <nav class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between
                 px-6 py-3 font-body"
-         style="background: rgba(240,237,232,0.85); backdrop-filter: blur(12px)">
+         style="background: color-mix(in srgb, var(--color-bg) 85%, transparent); backdrop-filter: blur(12px)">
       <a [routerLink]="logoRoute()" class="font-display text-[13px] text-fg tracking-[2px]">
         {{ logo() }}
       </a>

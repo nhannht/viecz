@@ -34,3 +34,73 @@
   --color-border: #44475A;
   --color-card: #44475A;
 }
+
+/* Sang Sunglass — light glassmorphism theme */
+.sang-sunglass {
+  --color-bg: #e8e4df;
+  --color-fg: #1a1a1a;
+  --color-muted: #6b6b6b;
+  --color-border: rgba(255, 255, 255, 0.3);
+  --color-card: rgba(255, 255, 255, 0.12);
+}
+
+/* Sang Moonriver — dark glassmorphism theme */
+.sang-moonriver {
+  --color-bg: #0f0f1a;
+  --color-fg: #e8e8f0;
+  --color-muted: #8888aa;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-card: rgba(0, 0, 0, 0.3);
+}
+
+/* === Gradient mesh background for glass themes === */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+html.sang-sunglass body::before {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 30%, rgba(180, 140, 220, 0.25), transparent),
+    radial-gradient(ellipse 70% 50% at 75% 20%, rgba(100, 200, 220, 0.2), transparent),
+    radial-gradient(ellipse 60% 40% at 50% 80%, rgba(240, 180, 160, 0.2), transparent),
+    linear-gradient(135deg, #e8e4df, #ddd8d0);
+}
+
+html.sang-moonriver body::before {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 80% 60% at 25% 25%, rgba(100, 60, 180, 0.3), transparent),
+    radial-gradient(ellipse 70% 50% at 80% 30%, rgba(40, 80, 180, 0.25), transparent),
+    radial-gradient(ellipse 50% 40% at 60% 85%, rgba(60, 20, 120, 0.2), transparent),
+    linear-gradient(135deg, #0f0f1a, #12101f);
+}
+
+/* === Glass card effects for glass themes === */
+html.sang-sunglass .bg-card,
+html.sang-moonriver .bg-card {
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-radius: 12px;
+}
+
+html.sang-sunglass .bg-card {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+html.sang-moonriver .bg-card {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* === Smooth theme transition === */
+body {
+  transition: background-color 400ms ease, color 400ms ease;
+}

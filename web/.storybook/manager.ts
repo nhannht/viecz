@@ -1,5 +1,12 @@
 import { addons } from 'storybook/manager-api';
-import { lightTheme, draculaTheme } from './nhannht-metro-theme';
+import { lightTheme, draculaTheme, sangSunglassTheme, sangMoonriverTheme } from './nhannht-metro-theme';
+
+const THEME_MAP: Record<string, typeof lightTheme> = {
+  light: lightTheme,
+  'sang-sunglass': sangSunglassTheme,
+  dracula: draculaTheme,
+  'sang-moonriver': sangMoonriverTheme,
+};
 
 addons.setConfig({
   theme: lightTheme,
@@ -11,7 +18,7 @@ addons.register('nhannht-metro-theme-switcher', (api) => {
   if (!channel) return;
 
   channel.on('globalsUpdated', ({ globals }: { globals: Record<string, string> }) => {
-    const theme = globals['theme'] === 'dracula' ? draculaTheme : lightTheme;
+    const theme = THEME_MAP[globals['theme']] || lightTheme;
     addons.setConfig({ theme });
   });
 });

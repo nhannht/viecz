@@ -1,8 +1,10 @@
 import { Injectable, signal, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
-export type Theme = 'light' | 'dracula';
+export type Theme = 'light' | 'sang-sunglass' | 'dracula' | 'sang-moonriver';
 
+const THEMES: Theme[] = ['light', 'sang-sunglass', 'dracula', 'sang-moonriver'];
+const THEME_CLASSES: Theme[] = ['sang-sunglass', 'dracula', 'sang-moonriver'];
 const STORAGE_KEY = 'metro-theme';
 
 @Injectable({ providedIn: 'root' })
@@ -18,7 +20,9 @@ export class ThemeService {
   }
 
   toggle(): void {
-    this.setTheme(this.theme() === 'light' ? 'dracula' : 'light');
+    const current = this.theme();
+    const idx = THEMES.indexOf(current);
+    this.setTheme(THEMES[(idx + 1) % THEMES.length]);
   }
 
   /** Apply the initial class on first browser render. */
@@ -30,15 +34,15 @@ export class ThemeService {
   private loadTheme(): Theme {
     if (typeof localStorage === 'undefined') return 'light';
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'dracula' ? 'dracula' : 'light';
+    if (stored && THEMES.includes(stored as Theme)) return stored as Theme;
+    return 'light';
   }
 
   private applyClass(t: Theme): void {
     const html = document.documentElement;
-    if (t === 'dracula') {
-      html.classList.add('dracula');
-    } else {
-      html.classList.remove('dracula');
+    THEME_CLASSES.forEach(cls => html.classList.remove(cls));
+    if (t !== 'light') {
+      html.classList.add(t);
     }
   }
 }

@@ -78,4 +78,82 @@ export const draculaTheme = create({
   inputBorderRadius: 0,
 });
 
+export const sangSunglassTheme = create({
+  base: 'light',
+
+  // Brand
+  brandTitle: 'nhannht-metro-meow — Sunglass',
+  brandTarget: '_self',
+
+  // Typography
+  fontBase: '"Space Mono", monospace',
+  fontCode: '"JetBrains Mono", monospace',
+
+  // Colors
+  colorPrimary: '#1a1a1a',
+  colorSecondary: '#6b6b6b',
+
+  // UI
+  appBg: '#e8e4df',
+  appContentBg: '#e8e4df',
+  appPreviewBg: '#e8e4df',
+  appBorderColor: 'rgba(255,255,255,0.3)',
+  appBorderRadius: 8,
+
+  // Text
+  textColor: '#1a1a1a',
+  textInverseColor: '#e8e4df',
+
+  // Toolbar
+  barTextColor: '#6b6b6b',
+  barSelectedColor: '#1a1a1a',
+  barHoverColor: '#1a1a1a',
+  barBg: 'rgba(255,255,255,0.12)',
+
+  // Form
+  inputBg: 'rgba(255,255,255,0.12)',
+  inputBorder: 'rgba(255,255,255,0.3)',
+  inputTextColor: '#1a1a1a',
+  inputBorderRadius: 8,
+});
+
+export const sangMoonriverTheme = create({
+  base: 'dark',
+
+  // Brand
+  brandTitle: 'nhannht-metro-meow — Moonriver',
+  brandTarget: '_self',
+
+  // Typography
+  fontBase: '"Space Mono", monospace',
+  fontCode: '"JetBrains Mono", monospace',
+
+  // Colors
+  colorPrimary: '#8888aa',
+  colorSecondary: '#8888aa',
+
+  // UI
+  appBg: '#0f0f1a',
+  appContentBg: '#0f0f1a',
+  appPreviewBg: '#0f0f1a',
+  appBorderColor: 'rgba(255,255,255,0.1)',
+  appBorderRadius: 8,
+
+  // Text
+  textColor: '#e8e8f0',
+  textInverseColor: '#0f0f1a',
+
+  // Toolbar
+  barTextColor: '#8888aa',
+  barSelectedColor: '#e8e8f0',
+  barHoverColor: '#e8e8f0',
+  barBg: 'rgba(0,0,0,0.3)',
+
+  // Form
+  inputBg: 'rgba(0,0,0,0.3)',
+  inputBorder: 'rgba(255,255,255,0.1)',
+  inputTextColor: '#e8e8f0',
+  inputBorderRadius: 8,
+});
+
 export default lightTheme;

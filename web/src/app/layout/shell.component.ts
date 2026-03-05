@@ -13,11 +13,25 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
-import { ThemeService } from '../core/theme.service';
+import { ThemeService, Theme } from '../core/theme.service';
 import { LanguageService } from '../core/language.service';
 import { Notification } from '../core/models';
 import { resolveNotification } from '../core/notification-i18n';
 import { TimeAgoPipe } from '../core/pipes';
+
+const THEME_ICONS: Record<Theme, string> = {
+  'light': 'light_mode',
+  'sang-sunglass': 'wb_sunny',
+  'dracula': 'dark_mode',
+  'sang-moonriver': 'nightlight_round',
+};
+
+const THEME_TOOLTIPS: Record<Theme, string> = {
+  'light': 'Switch to Sunglass',
+  'sang-sunglass': 'Switch to Dracula',
+  'dracula': 'Switch to Moonriver',
+  'sang-moonriver': 'Switch to Light',
+};
 
 /**
  * App shell with floating capsule nav (desktop) and bottom tab bar (mobile).
@@ -58,7 +72,7 @@ import { TimeAgoPipe } from '../core/pipes';
             <!-- Theme toggle -->
             <button class="bg-transparent border-none cursor-pointer text-fg p-1"
                     (click)="themeService.toggle()">
-              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
             </button>
             <!-- Language toggle -->
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
@@ -126,7 +140,7 @@ import { TimeAgoPipe } from '../core/pipes';
           <div class="flex items-center gap-2">
             <button class="bg-transparent border-none cursor-pointer text-fg p-1"
                     (click)="themeService.toggle()">
-              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
             </button>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
@@ -193,8 +207,8 @@ import { TimeAgoPipe } from '../core/pipes';
             <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
                            rounded-xl hover:bg-fg/5 transition-colors"
                     (click)="themeService.toggle()"
-                    [attr.title]="themeService.theme() === 'light' ? 'Switch to Dracula' : 'Switch to Light'">
-              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+                    [attr.title]="themeTooltip()">
+              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
             </button>
 
             <!-- Language toggle -->
@@ -294,7 +308,7 @@ import { TimeAgoPipe } from '../core/pipes';
             <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
                            rounded-xl hover:bg-fg/5 transition-colors"
                     (click)="themeService.toggle()">
-              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
             </button>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
@@ -396,7 +410,7 @@ import { TimeAgoPipe } from '../core/pipes';
       position: absolute;
       top: 2px;
       height: calc(100% - 4px);
-      background: rgba(26, 26, 26, 0.08);
+      background: color-mix(in srgb, var(--color-fg) 8%, transparent);
       border-radius: 10px;
       transition: left 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
                   width 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -445,7 +459,7 @@ import { TimeAgoPipe } from '../core/pipes';
       color: var(--color-muted);
       transition: color 200ms ease, transform 200ms ease;
     }
-    .bottom-tab:hover { background: rgba(26, 26, 26, 0.03); }
+    .bottom-tab:hover { background: color-mix(in srgb, var(--color-fg) 3%, transparent); }
     .bottom-tab-active {
       color: var(--color-fg) !important;
       font-weight: 600;
@@ -493,7 +507,7 @@ import { TimeAgoPipe } from '../core/pipes';
     }
     .notif-scroll::-webkit-scrollbar { width: 4px; }
     .notif-scroll::-webkit-scrollbar-thumb {
-      background: rgba(26, 26, 26, 0.15);
+      background: color-mix(in srgb, var(--color-fg) 15%, transparent);
       border-radius: 2px;
     }
 
@@ -503,15 +517,15 @@ import { TimeAgoPipe } from '../core/pipes';
       gap: 10px;
       padding: 12px 16px;
       cursor: pointer;
-      border-bottom: 1px solid rgba(212, 208, 202, 0.4);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
       transition: background 150ms ease;
       opacity: 0;
       animation: notif-row-enter 250ms ease forwards;
     }
     .notif-row:last-child { border-bottom: none; }
-    .notif-row:hover { background: rgba(26, 26, 26, 0.04); }
+    .notif-row:hover { background: color-mix(in srgb, var(--color-fg) 4%, transparent); }
     .notif-row.unread {
-      background: rgba(26, 26, 26, 0.05);
+      background: color-mix(in srgb, var(--color-fg) 5%, transparent);
       border-left: 2px solid var(--color-fg);
       padding-left: 14px;
     }
@@ -521,7 +535,7 @@ import { TimeAgoPipe } from '../core/pipes';
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: rgba(26, 26, 26, 0.07);
+      background: color-mix(in srgb, var(--color-fg) 7%, transparent);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -580,14 +594,14 @@ import { TimeAgoPipe } from '../core/pipes';
       justify-content: center;
       gap: 6px;
       padding: 10px 16px;
-      border-top: 1px solid rgba(212, 208, 202, 0.6);
+      border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
       font-family: var(--font-body);
       font-size: 13px;
       color: var(--color-fg);
       text-decoration: none;
       transition: background 150ms ease;
     }
-    .notif-footer:hover { background: rgba(26, 26, 26, 0.04); }
+    .notif-footer:hover { background: color-mix(in srgb, var(--color-fg) 4%, transparent); }
   `,
 })
 export class ShellComponent implements OnInit, OnDestroy {
@@ -725,6 +739,14 @@ export class ShellComponent implements OnInit, OnDestroy {
     if (n.task_id) {
       this.router.navigate(['/tasks', n.task_id]);
     }
+  }
+
+  themeIcon(): string {
+    return THEME_ICONS[this.themeService.theme()];
+  }
+
+  themeTooltip(): string {
+    return THEME_TOOLTIPS[this.themeService.theme()];
   }
 
   /** Map notification type to a Material icon name. */
