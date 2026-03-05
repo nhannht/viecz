@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Mono:wght@400;700&family=Montserrat:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
@@ -35,22 +35,26 @@
   --color-card: #44475A;
 }
 
-/* Sang Sunglass — light glassmorphism theme */
+/* Sang Sunglass — light glassmorphism (MCSV design system) */
 .sang-sunglass {
-  --color-bg: #e8e4df;
-  --color-fg: #1a1a1a;
-  --color-muted: #6b6b6b;
-  --color-border: rgba(255, 255, 255, 0.3);
-  --color-card: rgba(255, 255, 255, 0.12);
+  --color-bg: #FCFCF9;
+  --color-fg: #191C1D;
+  --color-muted: #5E6C70;
+  --color-border: rgba(255, 255, 255, 0.5);
+  --color-card: rgba(255, 255, 255, 0.6);
+  --font-display: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
 
-/* Sang Moonriver — dark glassmorphism theme */
+/* Sang Moonriver — dark glassmorphism (dark interpretation of MCSV) */
 .sang-moonriver {
-  --color-bg: #0f0f1a;
-  --color-fg: #e8e8f0;
-  --color-muted: #8888aa;
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-card: rgba(0, 0, 0, 0.3);
+  --color-bg: #0D1117;
+  --color-fg: #E6EDF3;
+  --color-muted: #5E8C96;
+  --color-border: rgba(50, 184, 198, 0.15);
+  --color-card: rgba(255, 255, 255, 0.06);
+  --font-display: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
 
 /* === Gradient mesh background for glass themes === */
@@ -67,37 +71,47 @@ body::before {
 html.sang-sunglass body::before {
   opacity: 1;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 30%, rgba(180, 140, 220, 0.25), transparent),
-    radial-gradient(ellipse 70% 50% at 75% 20%, rgba(100, 200, 220, 0.2), transparent),
-    radial-gradient(ellipse 60% 40% at 50% 80%, rgba(240, 180, 160, 0.2), transparent),
-    linear-gradient(135deg, #e8e4df, #ddd8d0);
+    radial-gradient(ellipse at 20% 20%, rgba(50, 184, 198, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(33, 128, 141, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.9) 0%, #FCFCF9 100%);
 }
 
 html.sang-moonriver body::before {
   opacity: 1;
   background:
-    radial-gradient(ellipse 80% 60% at 25% 25%, rgba(100, 60, 180, 0.3), transparent),
-    radial-gradient(ellipse 70% 50% at 80% 30%, rgba(40, 80, 180, 0.25), transparent),
-    radial-gradient(ellipse 50% 40% at 60% 85%, rgba(60, 20, 120, 0.2), transparent),
-    linear-gradient(135deg, #0f0f1a, #12101f);
+    radial-gradient(ellipse at 20% 20%, rgba(50, 184, 198, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(33, 128, 141, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(26, 104, 111, 0.08) 0%, #0D1117 100%);
 }
 
 /* === Glass card effects for glass themes === */
 html.sang-sunglass .bg-card,
 html.sang-moonriver .bg-card {
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border-radius: 12px;
+  border-radius: 20px;
 }
 
 html.sang-sunglass .bg-card {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06),
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.4) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 4px 12px rgba(33, 128, 141, 0.08),
+    0 8px 32px rgba(33, 128, 141, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 html.sang-moonriver .bg-card {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(50, 184, 198, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* === Smooth theme transition === */

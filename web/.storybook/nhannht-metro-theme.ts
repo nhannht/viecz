@@ -86,35 +86,35 @@ export const sangSunglassTheme = create({
   brandTarget: '_self',
 
   // Typography
-  fontBase: '"Space Mono", monospace',
+  fontBase: '"Inter", sans-serif',
   fontCode: '"JetBrains Mono", monospace',
 
-  // Colors
-  colorPrimary: '#1a1a1a',
-  colorSecondary: '#6b6b6b',
+  // Colors — MCSV teal palette
+  colorPrimary: '#21808D',
+  colorSecondary: '#32B8C6',
 
   // UI
-  appBg: '#e8e4df',
-  appContentBg: '#e8e4df',
-  appPreviewBg: '#e8e4df',
-  appBorderColor: 'rgba(255,255,255,0.3)',
-  appBorderRadius: 8,
+  appBg: '#FCFCF9',
+  appContentBg: '#FCFCF9',
+  appPreviewBg: '#FCFCF9',
+  appBorderColor: 'rgba(255,255,255,0.5)',
+  appBorderRadius: 12,
 
   // Text
-  textColor: '#1a1a1a',
-  textInverseColor: '#e8e4df',
+  textColor: '#191C1D',
+  textInverseColor: '#FCFCF9',
 
   // Toolbar
-  barTextColor: '#6b6b6b',
-  barSelectedColor: '#1a1a1a',
-  barHoverColor: '#1a1a1a',
-  barBg: 'rgba(255,255,255,0.12)',
+  barTextColor: '#5E6C70',
+  barSelectedColor: '#21808D',
+  barHoverColor: '#21808D',
+  barBg: 'rgba(255,255,255,0.6)',
 
   // Form
-  inputBg: 'rgba(255,255,255,0.12)',
-  inputBorder: 'rgba(255,255,255,0.3)',
-  inputTextColor: '#1a1a1a',
-  inputBorderRadius: 8,
+  inputBg: 'rgba(255,255,255,0.6)',
+  inputBorder: 'rgba(255,255,255,0.5)',
+  inputTextColor: '#191C1D',
+  inputBorderRadius: 12,
 });
 
 export const sangMoonriverTheme = create({
@@ -125,35 +125,35 @@ export const sangMoonriverTheme = create({
   brandTarget: '_self',
 
   // Typography
-  fontBase: '"Space Mono", monospace',
+  fontBase: '"Inter", sans-serif',
   fontCode: '"JetBrains Mono", monospace',
 
-  // Colors
-  colorPrimary: '#8888aa',
-  colorSecondary: '#8888aa',
+  // Colors — dark teal palette
+  colorPrimary: '#32B8C6',
+  colorSecondary: '#5E8C96',
 
   // UI
-  appBg: '#0f0f1a',
-  appContentBg: '#0f0f1a',
-  appPreviewBg: '#0f0f1a',
-  appBorderColor: 'rgba(255,255,255,0.1)',
-  appBorderRadius: 8,
+  appBg: '#0D1117',
+  appContentBg: '#0D1117',
+  appPreviewBg: '#0D1117',
+  appBorderColor: 'rgba(50,184,198,0.15)',
+  appBorderRadius: 12,
 
   // Text
-  textColor: '#e8e8f0',
-  textInverseColor: '#0f0f1a',
+  textColor: '#E6EDF3',
+  textInverseColor: '#0D1117',
 
   // Toolbar
-  barTextColor: '#8888aa',
-  barSelectedColor: '#e8e8f0',
-  barHoverColor: '#e8e8f0',
-  barBg: 'rgba(0,0,0,0.3)',
+  barTextColor: '#5E8C96',
+  barSelectedColor: '#32B8C6',
+  barHoverColor: '#32B8C6',
+  barBg: 'rgba(255,255,255,0.06)',
 
   // Form
-  inputBg: 'rgba(0,0,0,0.3)',
-  inputBorder: 'rgba(255,255,255,0.1)',
-  inputTextColor: '#e8e8f0',
-  inputBorderRadius: 8,
+  inputBg: 'rgba(255,255,255,0.06)',
+  inputBorder: 'rgba(50,184,198,0.15)',
+  inputTextColor: '#E6EDF3',
+  inputBorderRadius: 12,
 });
 
 export default lightTheme;
