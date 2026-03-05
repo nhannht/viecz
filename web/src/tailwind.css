@@ -150,8 +150,8 @@ html.sang-frostglass body::before {
   border-radius: 20px;
 }
 
-/* C. Border softening */
-.sang-frostglass .border-border { border-color: rgba(255, 255, 255, 0.5); }
+/* C. Border softening (exclude .bg-card — KNS-211 directional borders take priority) */
+.sang-frostglass .border-border:not(.bg-card) { border-color: rgba(255, 255, 255, 0.5); }
 .sang-frostglass .border-fg { border-color: rgba(33, 128, 141, 0.3); }
 
 /* Downgrade 2px borders to 1px */
@@ -179,13 +179,44 @@ html.sang-frostglass body::before {
 /* G. Tab indicator softening */
 .sang-frostglass .border-b-2 { border-bottom-color: #21808D; }
 
-/* H. Form inputs get glass background */
+/* H. Form inputs — inset/recessed fields (visionOS style) */
 .sang-frostglass input,
 .sang-frostglass textarea,
 .sang-frostglass select {
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px) saturate(150%);
+  background: rgba(0, 0, 0, 0.04);
+  border: none;
+  border-bottom: 1px solid rgba(33, 128, 141, 0.15);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 10px 14px;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.sang-frostglass input:focus,
+.sang-frostglass textarea:focus,
+.sang-frostglass select:focus {
+  outline: none;
+  border-bottom-color: #21808D;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.06),
+    0 0 0 3px rgba(33, 128, 141, 0.15);
+}
+
+.sang-frostglass input::placeholder,
+.sang-frostglass textarea::placeholder {
+  color: rgba(25, 28, 29, 0.35);
+}
+
+/* Native <option> elements — force dark text (browser highlight overrides are limited) */
+.sang-frostglass option {
+  background: #FCFCF9;
+  color: #191C1D;
+}
+
+/* Custom dropdown items (nhannht-metro-bank-select, etc.) */
+.sang-frostglass [role="listbox"] button:hover,
+.sang-frostglass [role="listbox"] [aria-selected="true"] {
+  background: rgba(33, 128, 141, 0.08);
 }
 
 /* I. Badge rounding */
