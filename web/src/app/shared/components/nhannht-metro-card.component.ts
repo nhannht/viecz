@@ -1,4 +1,5 @@
 import { Component, input } from '@angular/core';
+import { GlassSpecularDirective } from '../directives/glass-specular.directive';
 
 /**
  * Content container with `--card-bg` background, 1px border, and 32px padding.
@@ -23,8 +24,10 @@ import { Component, input } from '@angular/core';
 @Component({
   selector: 'nhannht-metro-card',
   standalone: true,
+  imports: [GlassSpecularDirective],
   template: `
     <div
+      appGlassSpecular
       class="bg-card border p-8 transition-all duration-300"
       [class.border-border]="!featured()"
       [class.border-fg]="featured()"

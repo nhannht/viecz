@@ -67,16 +67,74 @@ html.sang-frostglass body::before {
 
 /* === Glass card effects === */
 .sang-frostglass .bg-card {
+  position: relative;
+  overflow: hidden;
   border-radius: 20px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.4) 100%);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-top: 1px solid rgba(255, 255, 255, 0.7);
+  /* KNS-211: Directional frosted edge highlight — light source top-left */
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.5);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
     0 4px 12px rgba(33, 128, 141, 0.08),
     0 8px 32px rgba(33, 128, 141, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* KNS-213: Cursor specular highlight (driven by --specular-x/y from directive) */
+.sang-frostglass .bg-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    300px circle at var(--specular-x, 50%) var(--specular-y, 50%),
+    rgba(255, 255, 255, 0.25),
+    transparent 60%
+  );
+  opacity: var(--specular-opacity, 0);
+  transition: opacity 300ms ease;
+}
+
+/* KNS-210: Light reflection sweep on hover */
+@keyframes glass-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.sang-frostglass .bg-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.7) 48%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.7) 52%,
+    transparent 70%
+  );
+}
+
+.sang-frostglass .bg-card:hover::after {
+  animation: glass-sweep 700ms ease-out forwards;
+}
+
+/* Card content stays above pseudo-elements */
+.sang-frostglass .bg-card > * {
+  position: relative;
+  z-index: 3;
 }
 
 /* === Glass component overrides — border-radius, borders, shadows, buttons, forms === */
