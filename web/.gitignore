@@ -42,6 +42,10 @@ __screenshots__/
 
 # Storybook
 .storybook/documentation.json
+storybook-metro-static/
+storybook-glass-static/
+.storybook-metro/tailwind-metro.css
+.storybook-glass/tailwind-glass.css
 
 # System files
 .DS_Store

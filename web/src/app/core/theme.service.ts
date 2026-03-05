@@ -1,10 +1,10 @@
 import { Injectable, signal, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
-export type Theme = 'light' | 'sang-sunglass' | 'dracula' | 'sang-moonriver';
+export type Theme = 'light' | 'sang-frostglass' | 'dracula';
 
-const THEMES: Theme[] = ['light', 'sang-sunglass', 'dracula', 'sang-moonriver'];
-const THEME_CLASSES: Theme[] = ['sang-sunglass', 'dracula', 'sang-moonriver'];
+const THEMES: Theme[] = ['light', 'sang-frostglass', 'dracula'];
+const THEME_CLASSES: Theme[] = ['sang-frostglass', 'dracula'];
 const STORAGE_KEY = 'metro-theme';
 
 @Injectable({ providedIn: 'root' })

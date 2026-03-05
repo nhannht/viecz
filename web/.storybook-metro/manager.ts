@@ -1,18 +1,15 @@
 import { addons } from 'storybook/manager-api';
-import { lightTheme, draculaTheme, sangSunglassTheme, sangMoonriverTheme } from './nhannht-metro-theme';
+import { lightTheme, draculaTheme } from './metro-theme';
 
 const THEME_MAP: Record<string, typeof lightTheme> = {
   light: lightTheme,
-  'sang-sunglass': sangSunglassTheme,
   dracula: draculaTheme,
-  'sang-moonriver': sangMoonriverTheme,
 };
 
 addons.setConfig({
   theme: lightTheme,
 });
 
-// Switch the entire manager UI theme when the toolbar theme toggle changes
 addons.register('nhannht-metro-theme-switcher', (api) => {
   const channel = api.getChannel();
   if (!channel) return;

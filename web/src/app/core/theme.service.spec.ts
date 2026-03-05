@@ -5,7 +5,7 @@ import { ThemeService } from './theme.service';
 describe('ThemeService', () => {
   let service: ThemeService;
 
-  const allClasses = ['dracula', 'sang-sunglass', 'sang-moonriver'];
+  const allClasses = ['dracula', 'sang-frostglass'];
 
   beforeEach(() => {
     localStorage.clear();
@@ -25,46 +25,38 @@ describe('ThemeService', () => {
     expect(service.theme()).toBe('light');
   });
 
-  it('cycles through all 4 themes', () => {
+  it('cycles through all 3 themes', () => {
     service.init();
 
     service.toggle();
-    expect(service.theme()).toBe('sang-sunglass');
-    expect(document.documentElement.classList.contains('sang-sunglass')).toBe(true);
+    expect(service.theme()).toBe('sang-frostglass');
+    expect(document.documentElement.classList.contains('sang-frostglass')).toBe(true);
 
     service.toggle();
     expect(service.theme()).toBe('dracula');
     expect(document.documentElement.classList.contains('dracula')).toBe(true);
-    expect(document.documentElement.classList.contains('sang-sunglass')).toBe(false);
-
-    service.toggle();
-    expect(service.theme()).toBe('sang-moonriver');
-    expect(document.documentElement.classList.contains('sang-moonriver')).toBe(true);
-    expect(document.documentElement.classList.contains('dracula')).toBe(false);
+    expect(document.documentElement.classList.contains('sang-frostglass')).toBe(false);
 
     service.toggle();
     expect(service.theme()).toBe('light');
-    expect(document.documentElement.classList.contains('sang-moonriver')).toBe(false);
+    expect(document.documentElement.classList.contains('dracula')).toBe(false);
   });
 
   it('persists theme across service instances', () => {
-    service.setTheme('sang-sunglass');
-    expect(localStorage.getItem('metro-theme')).toBe('sang-sunglass');
-
-    service.setTheme('sang-moonriver');
-    expect(localStorage.getItem('metro-theme')).toBe('sang-moonriver');
+    service.setTheme('sang-frostglass');
+    expect(localStorage.getItem('metro-theme')).toBe('sang-frostglass');
   });
 
   it('applies correct class on init when stored', () => {
-    localStorage.setItem('metro-theme', 'sang-moonriver');
+    localStorage.setItem('metro-theme', 'sang-frostglass');
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [{ provide: PLATFORM_ID, useValue: 'browser' }],
     });
     const freshService = TestBed.inject(ThemeService);
     freshService.init();
-    expect(document.documentElement.classList.contains('sang-moonriver')).toBe(true);
-    expect(freshService.theme()).toBe('sang-moonriver');
+    expect(document.documentElement.classList.contains('sang-frostglass')).toBe(true);
+    expect(freshService.theme()).toBe('sang-frostglass');
   });
 
   it('falls back to light for invalid stored value', () => {
@@ -80,8 +72,8 @@ describe('ThemeService', () => {
   it('removes all other theme classes when switching', () => {
     service.init();
     service.setTheme('dracula');
-    service.setTheme('sang-sunglass');
+    service.setTheme('sang-frostglass');
     expect(document.documentElement.classList.contains('dracula')).toBe(false);
-    expect(document.documentElement.classList.contains('sang-sunglass')).toBe(true);
+    expect(document.documentElement.classList.contains('sang-frostglass')).toBe(true);
   });
 });

@@ -91,29 +91,56 @@
         "test": {
           "builder": "@angular/build:unit-test"
         },
-        "storybook": {
+        "storybook-metro": {
           "builder": "@storybook/angular:start-storybook",
           "options": {
             "browserTarget": "web:build:development",
-            "configDir": ".storybook",
+            "configDir": ".storybook-metro",
             "port": 6006,
             "compodoc": false,
-            "tsConfig": ".storybook/tsconfig.json",
+            "tsConfig": ".storybook-metro/tsconfig.json",
             "styles": [
-              ".storybook/tailwind-built.css"
+              ".storybook-metro/tailwind-metro.css"
             ]
           }
         },
-        "build-storybook": {
+        "build-storybook-metro": {
           "builder": "@storybook/angular:build-storybook",
           "options": {
             "browserTarget": "web:build:development",
-            "configDir": ".storybook",
+            "configDir": ".storybook-metro",
             "compodoc": false,
-            "tsConfig": ".storybook/tsconfig.json",
+            "tsConfig": ".storybook-metro/tsconfig.json",
             "styles": [
-              ".storybook/tailwind-built.css"
+              ".storybook-metro/tailwind-metro.css"
+            ],
+            "outputDir": "storybook-metro-static"
+          }
+        },
+        "storybook-glass": {
+          "builder": "@storybook/angular:start-storybook",
+          "options": {
+            "browserTarget": "web:build:development",
+            "configDir": ".storybook-glass",
+            "port": 6007,
+            "compodoc": false,
+            "tsConfig": ".storybook-glass/tsconfig.json",
+            "styles": [
+              ".storybook-glass/tailwind-glass.css"
             ]
+          }
+        },
+        "build-storybook-glass": {
+          "builder": "@storybook/angular:build-storybook",
+          "options": {
+            "browserTarget": "web:build:development",
+            "configDir": ".storybook-glass",
+            "compodoc": false,
+            "tsConfig": ".storybook-glass/tsconfig.json",
+            "styles": [
+              ".storybook-glass/tailwind-glass.css"
+            ],
+            "outputDir": "storybook-glass-static"
           }
         },
         "lint": {

@@ -12,7 +12,7 @@
 }
 
 @theme {
-  /* nhannht-metro-meow design tokens */
+  /* viecz design system tokens */
 
   /* Colors */
   --color-bg: #f0ede8;
@@ -35,8 +35,8 @@
   --color-card: #44475A;
 }
 
-/* Sang Sunglass — light glassmorphism (MCSV design system) */
-.sang-sunglass {
+/* Sang Frostglass — light glassmorphism (MCSV design system) */
+.sang-frostglass {
   --color-bg: #FCFCF9;
   --color-fg: #191C1D;
   --color-muted: #5E6C70;
@@ -46,18 +46,7 @@
   --font-body: 'Inter', sans-serif;
 }
 
-/* Sang Moonriver — dark glassmorphism (dark interpretation of MCSV) */
-.sang-moonriver {
-  --color-bg: #0D1117;
-  --color-fg: #E6EDF3;
-  --color-muted: #5E8C96;
-  --color-border: rgba(50, 184, 198, 0.15);
-  --color-card: rgba(255, 255, 255, 0.06);
-  --font-display: 'Montserrat', sans-serif;
-  --font-body: 'Inter', sans-serif;
-}
-
-/* === Gradient mesh background for glass themes === */
+/* === Gradient mesh background for glass theme === */
 body::before {
   content: '';
   position: fixed;
@@ -68,7 +57,7 @@ body::before {
   transition: opacity 600ms ease;
 }
 
-html.sang-sunglass body::before {
+html.sang-frostglass body::before {
   opacity: 1;
   background:
     radial-gradient(ellipse at 20% 20%, rgba(50, 184, 198, 0.08) 0%, transparent 50%),
@@ -76,21 +65,9 @@ html.sang-sunglass body::before {
     radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.9) 0%, #FCFCF9 100%);
 }
 
-html.sang-moonriver body::before {
-  opacity: 1;
-  background:
-    radial-gradient(ellipse at 20% 20%, rgba(50, 184, 198, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(33, 128, 141, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(26, 104, 111, 0.08) 0%, #0D1117 100%);
-}
-
-/* === Glass card effects for glass themes === */
-html.sang-sunglass .bg-card,
-html.sang-moonriver .bg-card {
+/* === Glass card effects === */
+.sang-frostglass .bg-card {
   border-radius: 20px;
-}
-
-html.sang-sunglass .bg-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.4) 100%);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -102,16 +79,60 @@ html.sang-sunglass .bg-card {
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-html.sang-moonriver .bg-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(50, 184, 198, 0.12);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+/* === Glass component overrides — border-radius, borders, shadows, buttons, forms === */
+
+/* A. Border-radius on all bordered elements (MCSV --radius-md: 12px) */
+.sang-frostglass .border,
+.sang-frostglass .border-2 {
+  border-radius: 12px;
+}
+
+/* B. Prominent cards get larger radius (MCSV --radius-lg: 20px) */
+.sang-frostglass .bg-card.p-8 {
+  border-radius: 20px;
+}
+
+/* C. Border softening */
+.sang-frostglass .border-border { border-color: rgba(255, 255, 255, 0.5); }
+.sang-frostglass .border-fg { border-color: rgba(33, 128, 141, 0.3); }
+
+/* Downgrade 2px borders to 1px */
+.sang-frostglass .border-2 {
+  border-width: 1px;
+}
+
+/* D. Primary button reskin (.bg-fg elements) */
+.sang-frostglass .bg-fg {
+  background-color: #21808D;
+  border-radius: 12px;
+}
+.sang-frostglass .bg-fg:hover { background-color: #1A686F; }
+
+/* E. Teal-tinted shadows */
+.sang-frostglass .hover\:shadow-\[0_4px_20px_rgba\(0\,0\,0\,0\.08\)\]:hover {
+  box-shadow: 0 4px 12px rgba(33, 128, 141, 0.08), 0 8px 32px rgba(33, 128, 141, 0.06);
+}
+
+/* F. Letter-spacing — relax brutalist tracking */
+.sang-frostglass [class*="tracking-"] {
+  letter-spacing: 0.01em;
+}
+
+/* G. Tab indicator softening */
+.sang-frostglass .border-b-2 { border-bottom-color: #21808D; }
+
+/* H. Form inputs get glass background */
+.sang-frostglass input,
+.sang-frostglass textarea,
+.sang-frostglass select {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px) saturate(150%);
+}
+
+/* I. Badge rounding */
+.sang-frostglass .rounded-sm {
+  border-radius: 8px;
 }
 
 /* === Smooth theme transition === */

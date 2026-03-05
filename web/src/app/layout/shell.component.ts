@@ -21,16 +21,14 @@ import { TimeAgoPipe } from '../core/pipes';
 
 const THEME_ICONS: Record<Theme, string> = {
   'light': 'light_mode',
-  'sang-sunglass': 'wb_sunny',
+  'sang-frostglass': 'wb_sunny',
   'dracula': 'dark_mode',
-  'sang-moonriver': 'nightlight_round',
 };
 
 const THEME_TOOLTIPS: Record<Theme, string> = {
-  'light': 'Switch to Sunglass',
-  'sang-sunglass': 'Switch to Dracula',
-  'dracula': 'Switch to Moonriver',
-  'sang-moonriver': 'Switch to Light',
+  'light': 'Switch to Frostglass',
+  'sang-frostglass': 'Switch to Dracula',
+  'dracula': 'Switch to Light',
 };
 
 /**
