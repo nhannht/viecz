@@ -3,9 +3,15 @@ import { isPlatformBrowser } from '@angular/common';
 
 export type Theme = 'light' | 'sang-frostglass' | 'dracula';
 
-const THEMES: Theme[] = ['light', 'sang-frostglass', 'dracula'];
+export const THEMES: Theme[] = ['light', 'sang-frostglass', 'dracula'];
 const THEME_CLASSES: Theme[] = ['sang-frostglass', 'dracula'];
 const STORAGE_KEY = 'metro-theme';
+
+export const THEME_META: Record<Theme, { label: string; colors: string[] }> = {
+  'light':           { label: 'Light',      colors: ['#f0ede8', '#1a1a1a', '#6b6b6b', '#d4d0ca', '#ffffff'] },
+  'sang-frostglass': { label: 'Frostglass', colors: ['#FCFCF9', '#191C1D', '#21808D', '#5E6C70', '#32B8C6'] },
+  'dracula':         { label: 'Dracula',    colors: ['#282A36', '#F8F8F2', '#BD93F9', '#6272A4', '#44475A'] },
+};
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {

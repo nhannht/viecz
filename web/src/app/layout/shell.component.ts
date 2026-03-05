@@ -13,23 +13,11 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
-import { ThemeService, Theme } from '../core/theme.service';
+import { ThemeService, THEMES, THEME_META } from '../core/theme.service';
 import { LanguageService } from '../core/language.service';
 import { Notification } from '../core/models';
 import { resolveNotification } from '../core/notification-i18n';
 import { TimeAgoPipe } from '../core/pipes';
-
-const THEME_ICONS: Record<Theme, string> = {
-  'light': 'light_mode',
-  'sang-frostglass': 'wb_sunny',
-  'dracula': 'dark_mode',
-};
-
-const THEME_TOOLTIPS: Record<Theme, string> = {
-  'light': 'Switch to Frostglass',
-  'sang-frostglass': 'Switch to Dracula',
-  'dracula': 'Switch to Light',
-};
 
 /**
  * App shell with floating capsule nav (desktop) and bottom tab bar (mobile).
@@ -67,11 +55,31 @@ const THEME_TOOLTIPS: Record<Theme, string> = {
         </a>
         @if (auth.isAuthenticated()) {
           <div class="flex items-center gap-2">
-            <!-- Theme toggle -->
-            <button class="bg-transparent border-none cursor-pointer text-fg p-1"
-                    (click)="themeService.toggle()">
-              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
-            </button>
+            <!-- Theme palette popover -->
+            <div class="relative">
+              <button class="bg-transparent border-none cursor-pointer text-fg p-1"
+                      (click)="themePaletteOpen.set(!themePaletteOpen())">
+                <nhannht-metro-icon name="palette" [size]="20" />
+              </button>
+              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
+                @for (t of themes; track t) {
+                  <button class="nhannht-metro-menu-item flex items-center gap-3"
+                          [class.font-bold]="themeService.theme() === t"
+                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
+                    <span class="flex gap-0.5">
+                      @for (c of themeMeta[t].colors; track c) {
+                        <span class="w-3 h-3 rounded-sm inline-block"
+                              [style.background-color]="c"></span>
+                      }
+                    </span>
+                    <span>{{ themeMeta[t].label }}</span>
+                    @if (themeService.theme() === t) {
+                      <nhannht-metro-icon name="check" [size]="14" />
+                    }
+                  </button>
+                }
+              </nhannht-metro-menu>
+            </div>
             <!-- Language toggle -->
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
@@ -136,10 +144,30 @@ const THEME_TOOLTIPS: Record<Theme, string> = {
           </div>
         } @else {
           <div class="flex items-center gap-2">
-            <button class="bg-transparent border-none cursor-pointer text-fg p-1"
-                    (click)="themeService.toggle()">
-              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
-            </button>
+            <div class="relative">
+              <button class="bg-transparent border-none cursor-pointer text-fg p-1"
+                      (click)="themePaletteOpen.set(!themePaletteOpen())">
+                <nhannht-metro-icon name="palette" [size]="20" />
+              </button>
+              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
+                @for (t of themes; track t) {
+                  <button class="nhannht-metro-menu-item flex items-center gap-3"
+                          [class.font-bold]="themeService.theme() === t"
+                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
+                    <span class="flex gap-0.5">
+                      @for (c of themeMeta[t].colors; track c) {
+                        <span class="w-3 h-3 rounded-sm inline-block"
+                              [style.background-color]="c"></span>
+                      }
+                    </span>
+                    <span>{{ themeMeta[t].label }}</span>
+                    @if (themeService.theme() === t) {
+                      <nhannht-metro-icon name="check" [size]="14" />
+                    }
+                  </button>
+                }
+              </nhannht-metro-menu>
+            </div>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
                            rounded-lg hover:bg-fg/5 transition-colors"
@@ -201,13 +229,32 @@ const THEME_TOOLTIPS: Record<Theme, string> = {
 
           <!-- Actions: theme, lang toggle, notification, user menu -->
           <div class="flex items-center gap-1">
-            <!-- Theme toggle -->
-            <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
-                           rounded-xl hover:bg-fg/5 transition-colors"
-                    (click)="themeService.toggle()"
-                    [attr.title]="themeTooltip()">
-              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
-            </button>
+            <!-- Theme palette popover -->
+            <div class="relative">
+              <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
+                             rounded-xl hover:bg-fg/5 transition-colors"
+                      (click)="themePaletteOpen.set(!themePaletteOpen())">
+                <nhannht-metro-icon name="palette" [size]="20" />
+              </button>
+              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
+                @for (t of themes; track t) {
+                  <button class="nhannht-metro-menu-item flex items-center gap-3"
+                          [class.font-bold]="themeService.theme() === t"
+                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
+                    <span class="flex gap-0.5">
+                      @for (c of themeMeta[t].colors; track c) {
+                        <span class="w-3 h-3 rounded-sm inline-block"
+                              [style.background-color]="c"></span>
+                      }
+                    </span>
+                    <span>{{ themeMeta[t].label }}</span>
+                    @if (themeService.theme() === t) {
+                      <nhannht-metro-icon name="check" [size]="14" />
+                    }
+                  </button>
+                }
+              </nhannht-metro-menu>
+            </div>
 
             <!-- Language toggle -->
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
@@ -303,11 +350,31 @@ const THEME_TOOLTIPS: Record<Theme, string> = {
               <nhannht-metro-icon name="storefront" [size]="16" />
               <span>{{ t('shell.marketplace') }}</span>
             </a>
-            <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
-                           rounded-xl hover:bg-fg/5 transition-colors"
-                    (click)="themeService.toggle()">
-              <nhannht-metro-icon [name]="themeIcon()" [size]="20" />
-            </button>
+            <div class="relative">
+              <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
+                             rounded-xl hover:bg-fg/5 transition-colors"
+                      (click)="themePaletteOpen.set(!themePaletteOpen())">
+                <nhannht-metro-icon name="palette" [size]="20" />
+              </button>
+              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
+                @for (t of themes; track t) {
+                  <button class="nhannht-metro-menu-item flex items-center gap-3"
+                          [class.font-bold]="themeService.theme() === t"
+                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
+                    <span class="flex gap-0.5">
+                      @for (c of themeMeta[t].colors; track c) {
+                        <span class="w-3 h-3 rounded-sm inline-block"
+                              [style.background-color]="c"></span>
+                      }
+                    </span>
+                    <span>{{ themeMeta[t].label }}</span>
+                    @if (themeService.theme() === t) {
+                      <nhannht-metro-icon name="check" [size]="14" />
+                    }
+                  </button>
+                }
+              </nhannht-metro-menu>
+            </div>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
                            rounded-lg hover:bg-fg/5 transition-colors"
@@ -615,6 +682,10 @@ export class ShellComponent implements OnInit, OnDestroy {
   private wsSub?: Subscription;
   private routerSub?: Subscription;
 
+  themes = THEMES;
+  themeMeta = THEME_META;
+  themePaletteOpen = signal(false);
+
   unreadCount = signal(0);
   notifications = signal<Notification[]>([]);
   notifMenuOpen = signal(false);
@@ -737,14 +808,6 @@ export class ShellComponent implements OnInit, OnDestroy {
     if (n.task_id) {
       this.router.navigate(['/tasks', n.task_id]);
     }
-  }
-
-  themeIcon(): string {
-    return THEME_ICONS[this.themeService.theme()];
-  }
-
-  themeTooltip(): string {
-    return THEME_TOOLTIPS[this.themeService.theme()];
   }
 
   /** Map notification type to a Material icon name. */
