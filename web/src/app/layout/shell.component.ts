@@ -13,6 +13,7 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
+import { ThemeService } from '../core/theme.service';
 import { LanguageService } from '../core/language.service';
 import { Notification } from '../core/models';
 import { resolveNotification } from '../core/notification-i18n';
@@ -54,6 +55,11 @@ import { TimeAgoPipe } from '../core/pipes';
         </a>
         @if (auth.isAuthenticated()) {
           <div class="flex items-center gap-2">
+            <!-- Theme toggle -->
+            <button class="bg-transparent border-none cursor-pointer text-fg p-1"
+                    (click)="themeService.toggle()">
+              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+            </button>
             <!-- Language toggle -->
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
@@ -118,6 +124,10 @@ import { TimeAgoPipe } from '../core/pipes';
           </div>
         } @else {
           <div class="flex items-center gap-2">
+            <button class="bg-transparent border-none cursor-pointer text-fg p-1"
+                    (click)="themeService.toggle()">
+              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+            </button>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
                            rounded-lg hover:bg-fg/5 transition-colors"
@@ -177,8 +187,16 @@ import { TimeAgoPipe } from '../core/pipes';
           <!-- Divider -->
           <span class="w-px h-4 bg-border/80 mx-1"></span>
 
-          <!-- Actions: lang toggle, notification, user menu -->
+          <!-- Actions: theme, lang toggle, notification, user menu -->
           <div class="flex items-center gap-1">
+            <!-- Theme toggle -->
+            <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
+                           rounded-xl hover:bg-fg/5 transition-colors"
+                    (click)="themeService.toggle()"
+                    [attr.title]="themeService.theme() === 'light' ? 'Switch to Dracula' : 'Switch to Light'">
+              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+            </button>
+
             <!-- Language toggle -->
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
@@ -273,6 +291,11 @@ import { TimeAgoPipe } from '../core/pipes';
               <nhannht-metro-icon name="storefront" [size]="16" />
               <span>{{ t('shell.marketplace') }}</span>
             </a>
+            <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
+                           rounded-xl hover:bg-fg/5 transition-colors"
+                    (click)="themeService.toggle()">
+              <nhannht-metro-icon [name]="themeService.theme() === 'light' ? 'dark_mode' : 'light_mode'" [size]="20" />
+            </button>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
                            rounded-lg hover:bg-fg/5 transition-colors"
@@ -348,11 +371,11 @@ import { TimeAgoPipe } from '../core/pipes';
   styles: `
     /* === Desktop Floating Capsule === */
     .desktop-nav {
-      background: rgba(240, 237, 232, 0.85);
+      background: color-mix(in srgb, var(--color-bg) 85%, transparent);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       padding: 8px 16px;
-      box-shadow: 0 2px 12px rgba(26, 26, 26, 0.08);
+      box-shadow: 0 2px 12px color-mix(in srgb, var(--color-fg) 8%, transparent);
       opacity: 0;
       transform: translateX(-50%) translateY(-12px);
       transition: padding 300ms ease, box-shadow 300ms ease,
@@ -364,7 +387,7 @@ import { TimeAgoPipe } from '../core/pipes';
     }
     .desktop-nav.scrolled {
       padding: 6px 14px;
-      box-shadow: 0 4px 24px rgba(26, 26, 26, 0.16);
+      box-shadow: 0 4px 24px color-mix(in srgb, var(--color-fg) 16%, transparent);
     }
 
     /* === Active-Link Sliding Pill === */
@@ -391,10 +414,10 @@ import { TimeAgoPipe } from '../core/pipes';
 
     /* === Mobile Top Bar === */
     .mobile-top-bar {
-      background: rgba(240, 237, 232, 0.85);
+      background: color-mix(in srgb, var(--color-bg) 85%, transparent);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(212, 208, 202, 0.6);
+      border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
       opacity: 0;
       transform: translateY(-12px);
       transition: opacity 400ms ease, transform 400ms ease;
@@ -406,10 +429,10 @@ import { TimeAgoPipe } from '../core/pipes';
 
     /* === Mobile Bottom Tab Bar === */
     .bottom-bar {
-      background: rgba(240, 237, 232, 0.85);
+      background: color-mix(in srgb, var(--color-bg) 85%, transparent);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 -2px 16px rgba(26, 26, 26, 0.08);
+      box-shadow: 0 -2px 16px color-mix(in srgb, var(--color-fg) 8%, transparent);
       opacity: 0;
       transform: translateY(16px);
       transition: opacity 400ms ease 100ms, transform 400ms ease 100ms;
@@ -452,12 +475,12 @@ import { TimeAgoPipe } from '../core/pipes';
       right: -8px;
       width: 360px;
       max-width: calc(100vw - 32px);
-      background: rgba(240, 237, 232, 0.95);
+      background: color-mix(in srgb, var(--color-bg) 95%, transparent);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(212, 208, 202, 0.8);
+      border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(26, 26, 26, 0.12), 0 2px 8px rgba(26, 26, 26, 0.06);
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-fg) 12%, transparent), 0 2px 8px color-mix(in srgb, var(--color-fg) 6%, transparent);
       z-index: 100;
       animation: notif-panel-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
       overflow: hidden;
@@ -570,6 +593,7 @@ import { TimeAgoPipe } from '../core/pipes';
 export class ShellComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
   lang = inject(LanguageService);
+  themeService = inject(ThemeService);
   snackbarService = inject(NhannhtMetroSnackbarService);
   private notifService = inject(NotificationService);
   private transloco = inject(TranslocoService);
@@ -609,6 +633,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   constructor() {
     afterNextRender(() => {
       this.navVisible.set(true);
+      this.themeService.init();
     });
   }
 

@@ -43,12 +43,13 @@
   }
 
   /* Force light mode in print */
-  app-report, app-report.dark {
+  app-report, app-report.dracula, app-report.nord {
     --color-bg: #f0ede8;
     --color-fg: #1a1a1a;
     --color-card: #ffffff;
     --color-border: #d4d0ca;
     --color-muted: #6b6b6b;
+    --color-accent: #c17f59;
   }
 
   .progress-bar { display: none !important; }
@@ -56,9 +57,7 @@
 
   /* Disable parallax in print */
   .cover .university,
-  .cover .title-block,
-  .cover .team-info,
-  .cover .date {
+  .cover .title-block {
     transform: none !important;
   }
 }
@@ -66,17 +65,39 @@
 /* === Base === */
 app-report {
   display: block;
-  background: var(--color-bg, #f0ede8);
   -webkit-text-size-adjust: 100%;
+
+  /* Light theme tokens */
+  --color-bg: #f0ede8;
+  --color-fg: #1a1a1a;
+  --color-card: #ffffff;
+  --color-border: #d4d0ca;
+  --color-muted: #6b6b6b;
+  --color-accent: #c17f59;
+
+  background: var(--color-bg);
 }
 
-/* === Dark mode === */
-app-report.dark {
-  --color-bg: #1a1a1a;
-  --color-fg: #f0ede8;
-  --color-card: #2a2a2a;
-  --color-border: #3a3a3a;
-  --color-muted: #999;
+/* === Dark mode: Dracula === */
+/* Base 5 vars (bg, fg, muted, border, card) inherit from global .dracula in tailwind.css.
+   Only report-specific overrides (accent, border) are declared here. */
+app-report.dracula {
+  --color-bg: #282A36;
+  --color-fg: #F8F8F2;
+  --color-card: #44475A;
+  --color-border: #6272A4;
+  --color-muted: #6272A4;
+  --color-accent: #FFB86C;
+}
+
+/* === Dark mode: Nord === */
+app-report.nord {
+  --color-bg: #2E3440;
+  --color-fg: #ECEFF4;
+  --color-card: #3B4252;
+  --color-border: #4C566A;
+  --color-muted: #81A1C1;
+  --color-accent: #D08770;
 }
 
 /* === Theme transition (circular reveal) === */
@@ -109,7 +130,7 @@ app-report.dark {
   top: 0;
   left: 0;
   height: 3px;
-  background: #c17f59;
+  background: var(--color-accent);
   z-index: 200;
   width: 0%;
   transition: width 0.1s linear;
@@ -120,7 +141,7 @@ app-report.dark {
 .hero-illustration {
   width: 300px;
   margin: 32px auto;
-  color: var(--color-fg, #1a1a1a);
+  color: var(--color-fg);
 }
 
 .hero-illustration svg {
@@ -133,11 +154,16 @@ app-report.dark {
 .qr-code {
   margin-top: 32px;
   text-align: center;
-  color: var(--color-fg, #1a1a1a);
+  color: #1a1a1a;
+  position: relative;
+  z-index: 1;
 }
 
 .qr-code svg {
   display: inline-block;
+  background: #f0ede8;
+  padding: 8px;
+  border-radius: 4px;
 }
 
 .qr-label {
@@ -145,7 +171,7 @@ app-report.dark {
   font-size: 9px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
   margin-top: 8px;
 }
 
@@ -160,8 +186,8 @@ app-report.dark {
   padding: 0 16px;
   font-size: 13px;
   font-style: italic;
-  color: var(--color-muted, #6b6b6b);
-  border-left: 3px solid #c17f59;
+  color: var(--color-muted);
+  border-left: 3px solid var(--color-accent);
   transition: padding 0.3s ease-out;
 }
 
@@ -178,14 +204,12 @@ tr[data-detail] {
 }
 
 tr[data-detail]:hover {
-  background: color-mix(in srgb, #c17f59 5%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
 }
 
 /* === Parallax === */
 .cover .university,
-.cover .title-block,
-.cover .team-info,
-.cover .date {
+.cover .title-block {
   will-change: transform;
 }
 
@@ -194,13 +218,13 @@ tr[data-detail]:hover {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--color-fg, #1a1a1a);
-  color: var(--color-bg, #f0ede8);
+  background: var(--color-fg);
+  color: var(--color-bg);
   padding: 12px 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  border-bottom: 1px solid var(--color-border, #d4d0ca);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .no-print span {
@@ -210,11 +234,29 @@ tr[data-detail]:hover {
   text-transform: uppercase;
 }
 
+.no-print select {
+  font-family: 'Space Mono', monospace;
+  background: transparent;
+  color: var(--color-bg);
+  border: 1px solid var(--color-bg);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.no-print select option {
+  background: var(--color-fg);
+  color: var(--color-bg);
+}
+
 .no-print button {
   font-family: 'Space Mono', monospace;
   background: transparent;
-  color: var(--color-bg, #f0ede8);
-  border: 1px solid var(--color-bg, #f0ede8);
+  color: var(--color-bg);
+  border: 1px solid var(--color-bg);
   padding: 8px 24px;
   font-size: 13px;
   font-weight: bold;
@@ -225,8 +267,8 @@ tr[data-detail]:hover {
 }
 
 .no-print button:hover {
-  background: var(--color-bg, #f0ede8);
-  color: var(--color-fg, #1a1a1a);
+  background: var(--color-bg);
+  color: var(--color-fg);
 }
 
 /* === Report body === */
@@ -234,12 +276,12 @@ tr[data-detail]:hover {
   font-family: 'Times New Roman', 'Noto Serif', Georgia, serif;
   font-size: 15px;
   line-height: 1.8;
-  color: var(--color-fg, #1a1a1a);
+  color: var(--color-fg);
   max-width: 21cm;
   margin: 0 auto;
   padding: 48px;
-  background: var(--color-card, #ffffff);
-  border: 1px solid var(--color-border, #d4d0ca);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
 }
 
 /* === Scroll-triggered fade-in === */
@@ -269,7 +311,7 @@ tr[data-detail]:hover {
   text-align: center;
   padding-top: 80px;
   padding-bottom: 48px;
-  border-bottom: 1px solid var(--color-border, #d4d0ca);
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 40px;
 }
 
@@ -280,7 +322,7 @@ tr[data-detail]:hover {
   text-transform: uppercase;
   letter-spacing: 3px;
   margin-bottom: 4px;
-  color: var(--color-fg, #1a1a1a);
+  color: var(--color-fg);
 }
 
 .cover .faculty {
@@ -288,7 +330,7 @@ tr[data-detail]:hover {
   font-size: 11px;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
   margin-bottom: 60px;
 }
 
@@ -297,18 +339,18 @@ tr[data-detail]:hover {
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
   margin-bottom: 24px;
   display: inline-block;
   padding: 4px 12px;
-  border: 1px solid var(--color-border, #d4d0ca);
+  border: 1px solid var(--color-border);
 }
 
 .cover .title-block {
   margin: 32px 0;
   padding: 24px 0;
-  border-top: 2px solid var(--color-fg, #1a1a1a);
-  border-bottom: 2px solid var(--color-fg, #1a1a1a);
+  border-top: 2px solid var(--color-fg);
+  border-bottom: 2px solid var(--color-fg);
 }
 
 .cover .project-title {
@@ -317,14 +359,14 @@ tr[data-detail]:hover {
   font-weight: bold;
   letter-spacing: 2px;
   margin: 0;
-  color: var(--color-fg, #1a1a1a);
+  color: var(--color-fg);
 }
 
 .cover .subtitle {
   font-family: 'Times New Roman', Georgia, serif;
   font-size: 16px;
   font-style: italic;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
   margin-top: 8px;
 }
 
@@ -335,8 +377,8 @@ tr[data-detail]:hover {
   font-size: 14px;
   line-height: 2;
   padding: 24px 32px;
-  border: 1px solid var(--color-border, #d4d0ca);
-  background: var(--color-card, #ffffff);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
 }
 
 .cover .team-info strong {
@@ -344,7 +386,7 @@ tr[data-detail]:hover {
   font-size: 8px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
 }
 
 .cover .date {
@@ -353,7 +395,9 @@ tr[data-detail]:hover {
   font-size: 10px;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
+  position: relative;
+  z-index: 1;
 }
 
 /* === Section headings === */
@@ -368,7 +412,7 @@ h2 {
   margin-bottom: 20px;
   padding: 0;
   background: none;
-  color: var(--color-fg, #1a1a1a);
+  color: var(--color-fg);
   position: relative;
   display: flex;
   align-items: center;
@@ -381,7 +425,7 @@ h2 .node {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #c17f59;
+  background: var(--color-accent);
   color: #fff;
   display: flex;
   align-items: center;
@@ -389,7 +433,7 @@ h2 .node {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0;
-  box-shadow: 0 0 0 4px var(--color-bg, #f0ede8), 0 0 0 6px #c17f59;
+  box-shadow: 0 0 0 4px var(--color-bg), 0 0 0 6px var(--color-accent);
 }
 
 /* Metro line extending from node */
@@ -397,7 +441,7 @@ h2::after {
   content: '';
   flex-grow: 1;
   height: 2px;
-  background: linear-gradient(to right, #c17f59, transparent);
+  background: linear-gradient(to right, var(--color-accent), transparent);
 }
 
 /* Vertical connecting line between sections */
@@ -408,7 +452,7 @@ h2::before {
   top: -48px;
   width: 2px;
   height: 48px;
-  background: linear-gradient(to bottom, transparent, #c17f5940);
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-accent) 25%, transparent));
 }
 
 /* First section h2 has no line above */
@@ -426,8 +470,8 @@ h3 {
   margin-top: 32px;
   margin-bottom: 12px;
   padding-left: 16px;
-  border-left: 4px solid #c17f59;
-  color: var(--color-fg, #1a1a1a);
+  border-left: 4px solid var(--color-accent);
+  color: var(--color-fg);
 }
 
 /* === Sections === */
@@ -440,7 +484,7 @@ h3 {
 .stat {
   font-family: 'JetBrains Mono', monospace;
   font-weight: bold;
-  color: #c17f59;
+  color: var(--color-accent);
 }
 
 /* === Tables === */
@@ -449,11 +493,11 @@ table {
   border-collapse: collapse;
   margin: 24px 0;
   font-size: 14px;
-  border: 1px solid var(--color-border, #d4d0ca);
+  border: 1px solid var(--color-border);
 }
 
 th, td {
-  border: 1px solid var(--color-border, #d4d0ca);
+  border: 1px solid var(--color-border);
   padding: 12px 16px;
   text-align: left;
   vertical-align: top;
@@ -465,17 +509,17 @@ th {
   font-weight: bold;
   letter-spacing: 1px;
   text-transform: uppercase;
-  background: var(--color-fg, #1a1a1a);
-  color: var(--color-bg, #f0ede8);
+  background: var(--color-fg);
+  color: var(--color-bg);
 }
 
 tr:nth-child(even) {
-  background: var(--color-bg, #f0ede8);
+  background: var(--color-bg);
 }
 
 /* Subtle left accent on first column */
 td:first-child {
-  border-left: 3px solid #c17f59;
+  border-left: 3px solid var(--color-accent);
 }
 
 /* === Paragraphs === */
@@ -497,18 +541,18 @@ li {
 
 /* Accent bullet marker */
 ul li::marker {
-  color: #c17f59;
+  color: var(--color-accent);
 }
 
 ol li::marker {
   font-family: 'JetBrains Mono', monospace;
   font-weight: bold;
-  color: #c17f59;
+  color: var(--color-accent);
 }
 
 /* === Bold text === */
 strong {
-  color: var(--color-fg, #1a1a1a);
+  color: var(--color-fg);
   font-weight: bold;
 }
 
@@ -521,7 +565,7 @@ figure {
 figure img {
   max-width: 100%;
   height: auto;
-  border: 1px solid var(--color-border, #d4d0ca);
+  border: 1px solid var(--color-border);
 }
 
 figcaption {
@@ -529,7 +573,7 @@ figcaption {
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
   margin-top: 8px;
 }
 
@@ -537,7 +581,7 @@ figcaption {
 .references {
   font-size: 13px;
   line-height: 1.7;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
 }
 
 .references p {
@@ -552,12 +596,12 @@ figcaption {
   text-align: center;
   margin-top: 48px;
   padding-top: 16px;
-  border-top: 1px solid var(--color-border, #d4d0ca);
+  border-top: 1px solid var(--color-border);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--color-muted, #6b6b6b);
+  color: var(--color-muted);
 }
 
 /* ======================================================
@@ -632,7 +676,7 @@ figcaption {
     width: 28px;
     height: 28px;
     font-size: 12px;
-    box-shadow: 0 0 0 3px var(--color-bg, #f0ede8), 0 0 0 5px #c17f59;
+    box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 5px var(--color-accent);
   }
 
   h2::before {
@@ -669,9 +713,9 @@ figcaption {
 
   tr {
     margin-bottom: 12px;
-    background: var(--color-card, #ffffff);
-    border: 1px solid var(--color-border, #d4d0ca);
-    border-left: 3px solid #c17f59;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
     padding: 16px;
   }
 
@@ -695,21 +739,21 @@ figcaption {
     font-size: 8px;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--color-muted, #6b6b6b);
+    color: var(--color-muted);
     margin-bottom: 2px;
     margin-top: 10px;
   }
 
   td:first-child::before {
     margin-top: 0;
-    color: #c17f59;
+    color: var(--color-accent);
   }
 
   td:first-child {
     font-weight: bold;
     font-size: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid var(--color-border, #d4d0ca);
+    border-bottom: 1px solid var(--color-border);
     margin-bottom: 4px;
   }
 
@@ -739,9 +783,7 @@ figcaption {
 
   /* Disable parallax on mobile */
   .cover .university,
-  .cover .title-block,
-  .cover .team-info,
-  .cover .date {
+  .cover .title-block {
     transform: none !important;
     will-change: auto;
   }
@@ -760,11 +802,11 @@ figcaption {
   }
 
   .detail-row td {
-    border-left: 3px solid #c17f59;
+    border-left: 3px solid var(--color-accent);
     padding: 0 16px;
     font-size: 13px;
     font-style: italic;
-    color: var(--color-muted, #6b6b6b);
+    color: var(--color-muted);
   }
 
   .detail-row.expanded {

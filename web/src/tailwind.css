@@ -25,3 +25,12 @@
   --font-display: 'JetBrains Mono', monospace;
   --font-body: 'Space Mono', monospace;
 }
+
+/* Dracula dark theme — applied via ThemeService toggling .dracula on <html> */
+.dracula {
+  --color-bg: #282A36;
+  --color-fg: #F8F8F2;
+  --color-muted: #6272A4;
+  --color-border: #44475A;
+  --color-card: #44475A;
+}

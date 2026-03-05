@@ -1,6 +1,7 @@
 import {
   Component,
   input,
+  inject,
   OnInit,
   OnDestroy,
   ElementRef,
@@ -51,6 +52,7 @@ export class NhannhtMetroSpinnerComponent
    * - `'md'` — 60x30 buffer, cube 28, font 7px (default)
    * - `'lg'` — 70x35 buffer, cube 40, font 8px
    */
+  private el = inject(ElementRef);
   size = input<'sm' | 'md' | 'lg'>('md');
 
   /** Accessible label for screen readers. */
@@ -76,7 +78,7 @@ export class NhannhtMetroSpinnerComponent
   private readonly CORNER_CHAR = '@';
 
   // nhannht-metro palette colors for each face
-  private readonly FACE_COLORS = [
+  private FACE_COLORS = [
     '#1a1a1a', // fg
     '#6b6b6b', // muted
     '#1a1a1a', // fg
@@ -84,7 +86,7 @@ export class NhannhtMetroSpinnerComponent
     '#1a1a1a', // fg
     '#6b6b6b', // muted
   ];
-  private readonly CORNER_COLOR = '#1a1a1a';
+  private CORNER_COLOR = '#1a1a1a';
   private readonly BG_COLOR = 'transparent';
 
   // Face labels
@@ -136,6 +138,12 @@ export class NhannhtMetroSpinnerComponent
 
   private start(): void {
     this.stop();
+    // Read theme colors from CSS variables so the spinner adapts to light/dracula
+    const style = getComputedStyle(this.el.nativeElement);
+    const fg = style.getPropertyValue('--color-fg').trim() || '#1a1a1a';
+    const muted = style.getPropertyValue('--color-muted').trim() || '#6b6b6b';
+    this.FACE_COLORS = [fg, muted, fg, muted, fg, muted];
+    this.CORNER_COLOR = fg;
     this.interval = setInterval(() => {
       this.update();
       this.cubeEl.nativeElement.innerHTML = this.render();
