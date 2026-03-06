@@ -22,6 +22,8 @@ import { TaskCardComponent } from '../shared/components/task-card.component';
 import { LoadingSkeletonComponent } from '../shared/components/loading-skeleton.component';
 import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
 import { MarketplaceMapComponent } from './marketplace-map.component';
+import { HeroLiquidglassComponent } from './hero-liquidglass.component';
+import { ThemeService } from '../core/theme.service';
 
 @Component({
   selector: 'app-marketplace',
@@ -40,72 +42,79 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
     LoadingSkeletonComponent,
     ErrorFallbackComponent,
     MarketplaceMapComponent,
+    HeroLiquidglassComponent,
   ],
   template: `
     <ng-container *transloco="let t">
     <div class="py-2 relative min-h-[60vh]">
       @if (!auth.isAuthenticated()) {
-        <div class="border-2 border-fg p-8 mb-6">
-          <div class="flex items-center justify-center gap-5 mb-6">
-            <div class="w-[100px] sm:w-[120px] shrink-0">
-              <nhannht-metro-ascii-art
-                src="/mascot-ascii.svg"
-                [width]="452"
-                [height]="380"
-                alt="Viecz mascot"
-              />
-            </div>
-            <div class="text-center">
-              <h1 class="font-display text-[16px] tracking-[3px] mb-2">{{ t('marketplace.heroTitle') }}</h1>
-              <p class="font-body text-[14px] text-muted">{{ t('marketplace.heroSubtitle') }}</p>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-8 mb-6 max-w-[480px] mx-auto">
-            <div class="text-center border-b-2 border-fg pb-3">
-              <span class="font-display text-[24px] block">{{ total() }}+</span>
-              <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.tasksPosted') }}</span>
-            </div>
-            <div class="text-center border-b-2 border-fg pb-3">
-              <span class="font-display text-[24px] block">11</span>
-              <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.categories') }}</span>
-            </div>
-            <div class="text-center border-b-2 border-fg pb-3">
-              <span class="font-display text-[24px] block">0%</span>
-              <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.platformFee') }}</span>
-            </div>
-          </div>
-
-          <div class="mb-6 max-w-[540px] mx-auto">
-            <h4 class="font-display text-[10px] tracking-[2px] text-muted mb-4 text-center">{{ t('marketplace.howItWorks') }}</h4>
-            <div class="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">1</span>
-                <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step1Title') }}</p>
-                <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step1Desc') }}</p>
+        @if (themeService.theme() === 'light') {
+          <!-- Metro Light: brutalist hero -->
+          <div class="border-2 border-fg p-8 mb-6">
+            <div class="flex items-center justify-center gap-5 mb-6">
+              <div class="w-[100px] sm:w-[120px] shrink-0">
+                <nhannht-metro-ascii-art
+                  src="/mascot-ascii.svg"
+                  [width]="452"
+                  [height]="380"
+                  alt="Viecz mascot"
+                />
               </div>
-              <div>
-                <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">2</span>
-                <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step2Title') }}</p>
-                <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step2Desc') }}</p>
-              </div>
-              <div>
-                <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">3</span>
-                <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step3Title') }}</p>
-                <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step3Desc') }}</p>
+              <div class="text-center">
+                <h1 class="font-display text-[16px] tracking-[3px] mb-2">{{ t('marketplace.heroTitle') }}</h1>
+                <p class="font-body text-[14px] text-muted">{{ t('marketplace.heroSubtitle') }}</p>
               </div>
             </div>
-          </div>
 
-          <div class="flex justify-center gap-4 items-center">
-            <a routerLink="/phone">
-              <nhannht-metro-button variant="primary" [label]="t('marketplace.getStarted')" />
-            </a>
-            <a routerLink="/phone" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
-              {{ t('marketplace.signInLink') }}
-            </a>
+            <div class="grid grid-cols-3 gap-8 mb-6 max-w-[480px] mx-auto">
+              <div class="text-center border-b-2 border-fg pb-3">
+                <span class="font-display text-[24px] block">{{ total() }}+</span>
+                <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.tasksPosted') }}</span>
+              </div>
+              <div class="text-center border-b-2 border-fg pb-3">
+                <span class="font-display text-[24px] block">11</span>
+                <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.categories') }}</span>
+              </div>
+              <div class="text-center border-b-2 border-fg pb-3">
+                <span class="font-display text-[24px] block">0%</span>
+                <span class="font-display text-[9px] tracking-[1px] text-muted">{{ t('marketplace.platformFee') }}</span>
+              </div>
+            </div>
+
+            <div class="mb-6 max-w-[540px] mx-auto">
+              <h4 class="font-display text-[10px] tracking-[2px] text-muted mb-4 text-center">{{ t('marketplace.howItWorks') }}</h4>
+              <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">1</span>
+                  <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step1Title') }}</p>
+                  <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step1Desc') }}</p>
+                </div>
+                <div>
+                  <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">2</span>
+                  <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step2Title') }}</p>
+                  <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step2Desc') }}</p>
+                </div>
+                <div>
+                  <span class="inline-flex items-center justify-center w-8 h-8 border-2 border-fg font-display text-[11px] mb-2">3</span>
+                  <p class="font-display text-[10px] tracking-[1px]">{{ t('marketplace.step3Title') }}</p>
+                  <p class="font-body text-[11px] text-muted mt-1">{{ t('marketplace.step3Desc') }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-center gap-4 items-center">
+              <a routerLink="/phone">
+                <nhannht-metro-button variant="primary" [label]="t('marketplace.getStarted')" />
+              </a>
+              <a routerLink="/phone" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
+                {{ t('marketplace.signInLink') }}
+              </a>
+            </div>
           </div>
-        </div>
+        } @else {
+          <!-- Frostglass / Dracula: liquid glass hero -->
+          <app-hero-liquidglass [total]="total()" />
+        }
       }
 
       <div class="mb-4">
@@ -191,6 +200,7 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
 export class MarketplaceComponent implements OnInit {
   auth = inject(AuthService);
   geo = inject(GeolocationService);
+  themeService = inject(ThemeService);
   private taskService = inject(TaskService);
   private minLoadMs = inject(MINIMUM_LOADING_MS);
 

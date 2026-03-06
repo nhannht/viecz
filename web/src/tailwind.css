@@ -300,8 +300,9 @@ html.sang-frostglass body::before {
 /* === Glass component overrides — border-radius, borders, shadows, buttons, forms === */
 
 /* A. Border-radius on all bordered elements (MCSV --radius-md: 12px) */
-.sang-frostglass .border,
-.sang-frostglass .border-2 {
+/* Exclude liquid-hero — it manages its own glass rendering */
+.sang-frostglass .border:not(.liquid-hero *),
+.sang-frostglass .border-2:not(.liquid-hero *) {
   border-radius: 12px;
 }
 
@@ -315,7 +316,7 @@ html.sang-frostglass body::before {
 .sang-frostglass .border-fg { border-color: rgba(33, 128, 141, 0.3); }
 
 /* Downgrade 2px borders to 1px */
-.sang-frostglass .border-2 {
+.sang-frostglass .border-2:not(.liquid-hero *) {
   border-width: 1px;
 }
 
@@ -481,6 +482,30 @@ html.sang-frostglass body::before {
 .sang-frostglass .receipt .retry-btn:hover {
   background: #21808D;
   color: #FCFCF9;
+}
+
+/* === Liquid Glass hero — theme-specific enhancements === */
+
+/* Frostglass: teal CTA */
+.sang-frostglass .cta-primary {
+  background: #21808D;
+  box-shadow: 0 4px 20px rgba(33, 128, 141, 0.35);
+}
+.sang-frostglass .cta-primary:hover {
+  background: #1A686F;
+  box-shadow: 0 8px 32px rgba(33, 128, 141, 0.45);
+}
+
+/* Dracula: neon step numbers */
+.dracula .step-number {
+  background: rgba(189, 147, 249, 0.2);
+  border-color: rgba(189, 147, 249, 0.3);
+}
+.dracula .cta-primary {
+  box-shadow: 0 4px 20px rgba(189, 147, 249, 0.3);
+}
+.dracula .cta-primary:hover {
+  box-shadow: 0 8px 32px rgba(189, 147, 249, 0.4);
 }
 
 /* === Smooth theme transition === */
