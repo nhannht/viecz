@@ -18,6 +18,7 @@ import QRCode from 'qrcode';
 import { WalletService } from '../core/wallet.service';
 import { BankListService, VietQRBank } from '../core/bank-list';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { NhannhtMetroProgressBarComponent } from '../shared/components/nhannht-metro-progress-bar.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 
 /** Payment data passed via router state */
@@ -45,7 +46,7 @@ type Phase = 'pending' | 'explosion' | 'confirmed' | 'expired';
 @Component({
   selector: 'app-payment-checkout',
   standalone: true,
-  imports: [NgClass, TranslocoDirective, NhannhtMetroSpinnerComponent, CurrencyPipe, DatePipe],
+  imports: [NgClass, TranslocoDirective, NhannhtMetroSpinnerComponent, NhannhtMetroProgressBarComponent, CurrencyPipe, DatePipe],
   templateUrl: './payment-checkout.component.html',
   styleUrl: './payment-checkout.component.css',
 })
@@ -84,14 +85,6 @@ export class PaymentCheckoutComponent implements OnInit, AfterViewInit, OnDestro
     const min = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  });
-
-  /** ASCII progress bar */
-  progressBar = computed(() => {
-    const pct = this.secondsLeft() / 300;
-    const filled = Math.round(pct * 20);
-    const empty = 20 - filled;
-    return '▓'.repeat(filled) + '░'.repeat(empty);
   });
 
   /** Progress percentage */

@@ -30,11 +30,8 @@
         <span class="receipt-value">{{ countdown() }}</span>
       </div>
 
-      <!-- ASCII progress bar -->
-      <div class="progress-bar">
-        <span class="progress-bar-track">{{ progressBar() }}</span>
-        <span> {{ progressPct() }}%</span>
-      </div>
+      <!-- Progress bar -->
+      <nhannht-metro-progress-bar [value]="progressPct()" />
 
       <!-- QR Code -->
       <div class="qr-section">

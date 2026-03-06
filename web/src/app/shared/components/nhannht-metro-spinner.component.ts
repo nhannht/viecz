@@ -2,22 +2,21 @@ import {
   Component,
   input,
   inject,
+  computed,
+  effect,
   OnInit,
   OnDestroy,
   ElementRef,
   ViewChild,
   AfterViewInit,
 } from '@angular/core';
+import { ThemeService } from '../../core/theme.service';
 
 /**
- * ASCII rotating cube spinner in the nhannht-metro retro style.
+ * Theme-aware spinner component.
  *
- * Renders a 3D wireframe cube using ASCII characters inside a `<pre>` element.
- * Each face displays a different label with a unique color from the design palette.
- * Edges and corners are drawn with `@` characters.
- *
- * Based on the CodePen by Un1T3G (raBYzMG), adapted for Angular signals
- * and the nhannht-metro-meow design system.
+ * Renders a 3D ASCII wireframe cube in metro themes and a pulsing
+ * teal glass ring in the frostglass theme.
  *
  * @example
  * ```html
@@ -30,37 +29,101 @@ import {
   selector: 'nhannht-metro-spinner',
   standalone: true,
   template: `
-    <div
-      class="inline-flex items-center justify-center font-display leading-none"
-      role="progressbar"
-      [attr.aria-label]="label()">
-      <pre
-        #cubeEl
-        class="m-0 p-0 text-fg"
-        [style.font-size.px]="fontSize()"
-        [style.line-height]="1.0">
-      </pre>
-    </div>
+    @if (isGlass()) {
+      <div class="glass-spinner" role="progressbar" [attr.aria-label]="label()"
+           [style.width.px]="glassSize()" [style.height.px]="glassSize()">
+        <div class="glass-ring" [style.border-width.px]="ringBorder()"></div>
+        <div class="glass-ring-glow"></div>
+      </div>
+    } @else {
+      <div
+        class="inline-flex items-center justify-center font-display leading-none"
+        role="progressbar"
+        [attr.aria-label]="label()">
+        <pre
+          #cubeEl
+          class="m-0 p-0 text-fg"
+          [style.font-size.px]="fontSize()"
+          [style.line-height]="1.0">
+        </pre>
+      </div>
+    }
   `,
+  styles: [`
+    .glass-spinner {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .glass-ring {
+      width: 100%;
+      height: 100%;
+      border-style: solid;
+      border-color: rgba(33, 128, 141, 0.15);
+      border-top-color: #21808D;
+      border-radius: 50%;
+      animation: glass-spin 1.2s linear infinite;
+      box-sizing: border-box;
+    }
+    .glass-ring-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      box-shadow: 0 0 15px rgba(33, 128, 141, 0.3);
+      animation: glass-pulse 2s ease-in-out infinite;
+    }
+    @keyframes glass-spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes glass-pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .glass-ring { animation: none; }
+      .glass-ring-glow { animation: none; }
+    }
+  `],
 })
 export class NhannhtMetroSpinnerComponent
   implements OnInit, AfterViewInit, OnDestroy
 {
   /**
    * Spinner size preset.
-   * - `'sm'` — 40x20 buffer, cube 16, font 6px
-   * - `'md'` — 60x30 buffer, cube 28, font 7px (default)
-   * - `'lg'` — 70x35 buffer, cube 40, font 8px
+   * - `'sm'` — 40x20 buffer, cube 16, font 6px / glass 24px
+   * - `'md'` — 60x30 buffer, cube 28, font 7px / glass 40px (default)
+   * - `'lg'` — 70x35 buffer, cube 40, font 8px / glass 56px
    */
   private el = inject(ElementRef);
+  private themeService = inject(ThemeService);
   size = input<'sm' | 'md' | 'lg'>('md');
 
   /** Accessible label for screen readers. */
   label = input('Loading');
 
-  @ViewChild('cubeEl', { static: true }) cubeEl!: ElementRef<HTMLPreElement>;
+  @ViewChild('cubeEl') cubeEl?: ElementRef<HTMLPreElement>;
+
+  isGlass = computed(() => this.themeService.theme() === 'sang-frostglass');
+
+  glassSize = computed(() => {
+    switch (this.size()) {
+      case 'sm': return 24;
+      case 'lg': return 56;
+      default:   return 40;
+    }
+  });
+
+  ringBorder = computed(() => {
+    switch (this.size()) {
+      case 'sm': return 2;
+      case 'lg': return 4;
+      default:   return 3;
+    }
+  });
 
   private interval: ReturnType<typeof setInterval> | null = null;
+  private initialized = false;
 
   // Cube engine state
   private rotationX = 0;
@@ -79,25 +142,29 @@ export class NhannhtMetroSpinnerComponent
 
   // nhannht-metro palette colors for each face
   private FACE_COLORS = [
-    '#1a1a1a', // fg
-    '#6b6b6b', // muted
-    '#1a1a1a', // fg
-    '#6b6b6b', // muted
-    '#1a1a1a', // fg
-    '#6b6b6b', // muted
+    '#1a1a1a', '#6b6b6b', '#1a1a1a', '#6b6b6b', '#1a1a1a', '#6b6b6b',
   ];
   private CORNER_COLOR = '#1a1a1a';
   private readonly BG_COLOR = 'transparent';
 
   // Face labels
   private readonly FACE_LABELS = [
-    'Viecz ',
-    'Loading ',
-    'Metro ',
-    'Meow ',
-    'Tasks ',
-    'Ready ',
+    'Viecz ', 'Loading ', 'Metro ', 'Meow ', 'Tasks ', 'Ready ',
   ];
+
+  constructor() {
+    // Stop/start cube interval when theme changes to avoid wasting CPU
+    effect(() => {
+      const glass = this.isGlass();
+      if (!this.initialized) return;
+      if (glass) {
+        this.stop();
+      } else {
+        // Defer start so the <pre> element is rendered by Angular
+        queueMicrotask(() => this.startCube());
+      }
+    });
+  }
 
   private get config() {
     switch (this.size()) {
@@ -112,12 +179,9 @@ export class NhannhtMetroSpinnerComponent
 
   fontSize(): number {
     switch (this.size()) {
-      case 'sm':
-        return 6;
-      case 'lg':
-        return 8;
-      default:
-        return 7;
+      case 'sm': return 6;
+      case 'lg': return 8;
+      default:   return 7;
     }
   }
 
@@ -129,24 +193,31 @@ export class NhannhtMetroSpinnerComponent
   }
 
   ngAfterViewInit(): void {
-    this.start();
+    this.initialized = true;
+    if (!this.isGlass()) {
+      this.startCube();
+    }
   }
 
   ngOnDestroy(): void {
     this.stop();
   }
 
-  private start(): void {
+  private startCube(): void {
     this.stop();
-    // Read theme colors from CSS variables so the spinner adapts to light/dracula
+    if (!this.cubeEl) return;
+    // Read theme colors from CSS variables
     const style = getComputedStyle(this.el.nativeElement);
     const fg = style.getPropertyValue('--color-fg').trim() || '#1a1a1a';
     const muted = style.getPropertyValue('--color-muted').trim() || '#6b6b6b';
     this.FACE_COLORS = [fg, muted, fg, muted, fg, muted];
     this.CORNER_COLOR = fg;
+    const cubeRef = this.cubeEl;
     this.interval = setInterval(() => {
       this.update();
-      this.cubeEl.nativeElement.innerHTML = this.render();
+      // Safe: render() generates HTML from internal state only (face labels, colors),
+      // no user-supplied content flows into the output.
+      cubeRef.nativeElement.innerHTML = this.render();
     }, 1000 / 30);
   }
 

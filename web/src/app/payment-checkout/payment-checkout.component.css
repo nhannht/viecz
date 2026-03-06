@@ -62,17 +62,6 @@
   flex-shrink: 0;
 }
 
-/* ASCII progress bar */
-.progress-bar {
-  font-size: 0.875rem;
-  margin: 0.75rem 0;
-  text-align: center;
-}
-
-.progress-bar-track {
-  letter-spacing: 1px;
-}
-
 /* QR code container */
 .qr-section {
   text-align: center;
