@@ -9,12 +9,15 @@ import { AuthService } from '../../core/auth.service';
 import { LanguageService } from '../../core/language.service';
 import { VndPipe, TimeAgoPipe } from '../../core/pipes';
 
+import { GlassSpecularDirective } from '../directives/glass-specular.directive';
+
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [RouterLink, SlicePipe, DatePipe, TranslocoDirective, NhannhtMetroIconComponent, NhannhtMetroBadgeComponent, VndPipe, TimeAgoPipe],
+  imports: [RouterLink, SlicePipe, DatePipe, TranslocoDirective, NhannhtMetroIconComponent, NhannhtMetroBadgeComponent, VndPipe, TimeAgoPipe, GlassSpecularDirective],
   template: `
     <a [routerLink]="['/tasks', task().id]" *transloco="let t"
+       appGlassSpecular
        class="block bg-card border border-border p-6 transition-all duration-300
               hover:border-fg hover:-translate-y-0.5
               hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] cursor-pointer">

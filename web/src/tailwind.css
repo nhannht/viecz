@@ -81,10 +81,18 @@ html.sang-frostglass body::before {
   box-shadow:
     0 4px 12px rgba(33, 128, 141, 0.08),
     0 8px 32px rgba(33, 128, 141, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    /* KNS-215: Chromatic aberration — RGB edge split */
+    2px 0 6px rgba(255, 0, 0, 0.12),
+    -2px 0 6px rgba(0, 0, 255, 0.12);
 }
 
-/* KNS-213: Cursor specular highlight (driven by --specular-x/y from directive) */
+/* KNS-213: Specular highlight — ambient pulse + cursor enhancement */
+@keyframes specular-pulse {
+  0%, 100% { opacity: 0.06; }
+  50%      { opacity: 0.15; }
+}
+
 .sang-frostglass .bg-card::before {
   content: '';
   position: absolute;
@@ -97,11 +105,19 @@ html.sang-frostglass body::before {
     rgba(255, 255, 255, 0.25),
     transparent 60%
   );
-  opacity: var(--specular-opacity, 0);
+  /* Ambient: subtle centered pulse when no hover (--specular-opacity defaults to unset) */
+  opacity: var(--specular-opacity);
   transition: opacity 300ms ease;
+  animation: specular-pulse 3s ease-in-out infinite;
 }
 
-/* KNS-210: Light reflection sweep on hover */
+/* When cursor is actively tracking, disable pulse and use directive-driven opacity */
+.sang-frostglass .bg-card.specular-active::before {
+  animation: none;
+  opacity: var(--specular-opacity, 0);
+}
+
+/* KNS-210: Light reflection sweep — ambient on scroll-into-view + hover re-trigger */
 @keyframes glass-sweep {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(250%); }
@@ -127,12 +143,92 @@ html.sang-frostglass body::before {
   );
 }
 
-.sang-frostglass .bg-card:hover::after {
+/* Sweep triggers on .glass-sweep class (added by IntersectionObserver + hover) */
+.sang-frostglass .bg-card.glass-sweep::after {
   animation: glass-sweep 700ms ease-out forwards;
 }
 
 /* Card content stays above pseudo-elements */
 .sang-frostglass .bg-card > * {
+  position: relative;
+  z-index: 3;
+}
+
+/* KNS-217: Condensation droplets — scattered tiny dots, driven by --specular-opacity from directive */
+.sang-frostglass .bg-card .glass-condensation,
+.sang-frostglass .receipt .glass-condensation {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: var(--specular-opacity, 0);
+  transition: opacity 800ms ease;
+  background:
+    radial-gradient(2px 2px at 12% 18%, rgba(180, 220, 240, 0.7), transparent),
+    radial-gradient(3px 3px at 28% 72%, rgba(180, 220, 240, 0.6), transparent),
+    radial-gradient(2px 2px at 45% 35%, rgba(200, 230, 245, 0.65), transparent),
+    radial-gradient(3.5px 3.5px at 62% 85%, rgba(180, 220, 240, 0.55), transparent),
+    radial-gradient(2px 2px at 78% 22%, rgba(200, 230, 245, 0.6), transparent),
+    radial-gradient(3px 3px at 85% 55%, rgba(180, 220, 240, 0.5), transparent),
+    radial-gradient(2.5px 2.5px at 35% 90%, rgba(200, 230, 245, 0.6), transparent),
+    radial-gradient(2px 2px at 92% 42%, rgba(180, 220, 240, 0.55), transparent),
+    radial-gradient(3px 3px at 18% 58%, rgba(200, 230, 245, 0.5), transparent),
+    radial-gradient(2px 2px at 55% 12%, rgba(180, 220, 240, 0.6), transparent);
+}
+
+/* KNS-218: Rainbow caustics — conic gradient follows cursor, driven by --specular-opacity */
+@keyframes caustics-hue {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+.sang-frostglass .bg-card .glass-caustics,
+.sang-frostglass .receipt .glass-caustics {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: var(--specular-opacity, 0);
+  transition: opacity 800ms ease;
+  background: conic-gradient(
+    from 0deg at var(--specular-x, 50%) var(--specular-y, 50%),
+    rgba(255, 0, 0, 0.08),
+    rgba(255, 165, 0, 0.08),
+    rgba(255, 255, 0, 0.08),
+    rgba(0, 255, 0, 0.08),
+    rgba(0, 0, 255, 0.08),
+    rgba(128, 0, 255, 0.08),
+    rgba(255, 0, 0, 0.08)
+  );
+  mix-blend-mode: overlay;
+  animation: caustics-hue 6s linear infinite;
+}
+
+/* Hover fallback for elements without specular directive (e.g. receipt) */
+.sang-frostglass .receipt:hover .glass-condensation,
+.sang-frostglass .receipt:hover .glass-caustics {
+  opacity: 1;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .sang-frostglass .bg-card .glass-caustics,
+  .sang-frostglass .receipt .glass-caustics {
+    animation: none;
+  }
+  .sang-frostglass .bg-card::before {
+    animation: none;
+    opacity: 0.1;
+  }
+  .sang-frostglass .bg-card.glass-sweep::after {
+    animation: none;
+  }
+}
+
+/* Receipt content stays above glass overlays */
+.sang-frostglass .receipt > *:not(.glass-condensation):not(.glass-caustics) {
   position: relative;
   z-index: 3;
 }
@@ -222,6 +318,105 @@ html.sang-frostglass body::before {
 /* I. Badge rounding */
 .sang-frostglass .rounded-sm {
   border-radius: 8px;
+}
+
+/* J. Payment checkout receipt — frosted glass treatment */
+.sang-frostglass .receipt {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.4) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.5);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 12px rgba(33, 128, 141, 0.08),
+    0 8px 32px rgba(33, 128, 141, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.sang-frostglass .receipt .receipt-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.sang-frostglass .receipt .receipt-divider {
+  border-top-color: rgba(33, 128, 141, 0.2);
+}
+
+.sang-frostglass .receipt .receipt-dots {
+  border-bottom-color: rgba(33, 128, 141, 0.15);
+}
+
+.sang-frostglass .receipt .copy-btn {
+  border-color: rgba(33, 128, 141, 0.3);
+  border-radius: 8px;
+}
+
+.sang-frostglass .receipt .copy-btn:hover {
+  background: #21808D;
+  border-color: #21808D;
+  color: #FCFCF9;
+}
+
+.sang-frostglass .receipt .manual-header::before,
+.sang-frostglass .receipt .manual-header::after {
+  border-top-color: rgba(33, 128, 141, 0.15);
+}
+
+.sang-frostglass .receipt .waiting-section {
+  border-color: rgba(33, 128, 141, 0.15);
+  border-radius: 12px;
+}
+
+.sang-frostglass .receipt .qr-container {
+  border-color: rgba(33, 128, 141, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(33, 128, 141, 0.06);
+}
+
+/* Confirmed card — inverted glass */
+.sang-frostglass .receipt-confirmed {
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1A686F 0%, #21808D 100%);
+  color: #FCFCF9;
+  box-shadow:
+    0 4px 12px rgba(33, 128, 141, 0.2),
+    0 8px 32px rgba(33, 128, 141, 0.15);
+  font-family: 'Inter', sans-serif;
+}
+
+.sang-frostglass .receipt-confirmed .confirmed-dots {
+  border-bottom-color: rgba(252, 252, 249, 0.2);
+}
+
+.sang-frostglass .receipt-confirmed .go-btn {
+  border-color: rgba(252, 252, 249, 0.6);
+  border-radius: 12px;
+}
+
+.sang-frostglass .receipt-confirmed .go-btn:hover {
+  background: #FCFCF9;
+  color: #21808D;
+}
+
+/* Expired state */
+.sang-frostglass .receipt .retry-btn {
+  border-color: #21808D;
+  color: #21808D;
+  border-radius: 12px;
+}
+
+.sang-frostglass .receipt .retry-btn:hover {
+  background: #21808D;
+  color: #FCFCF9;
 }
 
 /* === Smooth theme transition === */
