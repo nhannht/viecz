@@ -7,8 +7,6 @@ import { Component, input, output, ElementRef, HostListener } from '@angular/cor
  * Menu items are projected via `<ng-content>` — wrap each item in a
  * `<button>` or `<a>` with the `nhannht-metro-menu-item` class.
  *
- * Replaces `MatMenu` / `MatMenuItem` / `MatMenuTrigger` from Angular Material.
- *
  * @example
  * ```html
  * <nhannht-metro-menu [open]="menuOpen()" (closed)="menuOpen.set(false)">
@@ -22,9 +20,7 @@ import { Component, input, output, ElementRef, HostListener } from '@angular/cor
   standalone: true,
   template: `
     @if (open()) {
-      <div class="absolute right-0 top-full mt-1 bg-card border border-border z-50
-                  min-w-[160px] font-body text-[13px]"
-           role="menu">
+      <div class="menu-panel" role="menu">
         <ng-content />
       </div>
     }
@@ -33,6 +29,26 @@ import { Component, input, output, ElementRef, HostListener } from '@angular/cor
     :host {
       position: relative;
       display: inline-block;
+    }
+    .menu-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      min-width: 160px;
+      background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--color-fg) 10%, transparent),
+                  0 2px 8px color-mix(in srgb, var(--color-fg) 5%, transparent);
+      z-index: 50;
+      overflow: hidden;
+      animation: menu-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes menu-enter {
+      from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
     ::ng-deep .nhannht-metro-menu-item {
       display: block;
@@ -49,10 +65,10 @@ import { Component, input, output, ElementRef, HostListener } from '@angular/cor
       text-decoration: none;
     }
     ::ng-deep .nhannht-metro-menu-item:hover {
-      background-color: var(--color-bg);
+      background-color: color-mix(in srgb, var(--color-fg) 5%, transparent);
     }
     ::ng-deep .nhannht-metro-menu-item + .nhannht-metro-menu-item {
-      border-top: 1px solid var(--color-border);
+      border-top: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
     }
   `,
 })

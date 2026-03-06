@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed, PLATFORM_ID, HostListener, afterNextRender } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, effect, PLATFORM_ID, HostListener, afterNextRender, ElementRef, ViewChild } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
@@ -13,7 +13,7 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
-import { ThemeService, THEMES, THEME_META } from '../core/theme.service';
+import { ThemeService, VISIBLE_THEMES, THEME_META } from '../core/theme.service';
 import { LanguageService } from '../core/language.service';
 import { Notification } from '../core/models';
 import { resolveNotification } from '../core/notification-i18n';
@@ -198,29 +198,23 @@ import { TimeAgoPipe } from '../core/pipes';
 
         @if (auth.isAuthenticated()) {
           <!-- Center nav links with sliding pill -->
-          <div class="nav-links-group relative flex items-center gap-0.5">
-            <span class="active-pill" [class]="'active-pill active-' + activeTab()"></span>
+          <div class="nav-links-group relative flex items-center" #navLinksGroup>
+            <span class="active-pill" #navPill style="opacity:0"></span>
 
             <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="rla-active"
-               class="nav-link relative z-10 flex items-center gap-1.5 px-3 py-1.5
-                      font-body text-[12px] text-fg no-underline rounded-xl
-                      transition-colors duration-200 hover:text-fg/70">
+               class="nav-icon-link" [attr.title]="t('shell.marketplace')">
               <nhannht-metro-icon name="storefront" [size]="16" />
-              <span>{{ t('shell.marketplace') }}</span>
+              <span class="nav-label">{{ t('shell.marketplace') }}</span>
             </a>
             <a routerLink="/wallet" routerLinkActive="rla-active"
-               class="nav-link relative z-10 flex items-center gap-1.5 px-3 py-1.5
-                      font-body text-[12px] text-fg no-underline rounded-xl
-                      transition-colors duration-200 hover:text-fg/70">
+               class="nav-icon-link" [attr.title]="t('shell.wallet')">
               <nhannht-metro-icon name="account_balance_wallet" [size]="16" />
-              <span>{{ t('shell.wallet') }}</span>
+              <span class="nav-label">{{ t('shell.wallet') }}</span>
             </a>
             <a routerLink="/messages" routerLinkActive="rla-active"
-               class="nav-link relative z-10 flex items-center gap-1.5 px-3 py-1.5
-                      font-body text-[12px] text-fg no-underline rounded-xl
-                      transition-colors duration-200 hover:text-fg/70">
+               class="nav-icon-link" [attr.title]="t('shell.chat')">
               <nhannht-metro-icon name="chat" [size]="16" />
-              <span>{{ t('shell.chat') }}</span>
+              <span class="nav-label">{{ t('shell.chat') }}</span>
             </a>
           </div>
 
@@ -345,10 +339,9 @@ import { TimeAgoPipe } from '../core/pipes';
           <!-- Unauthenticated desktop -->
           <div class="flex items-center gap-1">
             <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="rla-active"
-               class="nav-link flex items-center gap-1.5 px-3 py-1.5 font-body text-[12px]
-                      text-fg no-underline rounded-xl hover:bg-fg/5 transition-colors">
+               class="nav-icon-link" [attr.title]="t('shell.marketplace')">
               <nhannht-metro-icon name="storefront" [size]="16" />
-              <span>{{ t('shell.marketplace') }}</span>
+              <span class="nav-label">{{ t('shell.marketplace') }}</span>
             </a>
             <div class="relative">
               <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
@@ -469,6 +462,35 @@ import { TimeAgoPipe } from '../core/pipes';
       box-shadow: 0 4px 24px color-mix(in srgb, var(--color-fg) 16%, transparent);
     }
 
+    /* === Nav links (icon-only on md, icon+text on lg+) === */
+    .nav-icon-link {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 36px;
+      height: 36px;
+      color: var(--color-muted);
+      text-decoration: none;
+      border-radius: 10px;
+      transition: color 200ms ease;
+      font-family: var(--font-body);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .nav-icon-link:hover { color: var(--color-fg); }
+    .nav-icon-link.rla-active { color: var(--color-fg); font-weight: 600; }
+    .nav-label { display: none; }
+    @media (min-width: 1024px) {
+      .nav-icon-link {
+        width: auto;
+        padding: 0 12px;
+      }
+      .nav-label { display: inline; }
+    }
+
     /* === Active-Link Sliding Pill === */
     .nav-links-group { position: relative; }
     .active-pill {
@@ -478,18 +500,11 @@ import { TimeAgoPipe } from '../core/pipes';
       background: color-mix(in srgb, var(--color-fg) 8%, transparent);
       border-radius: 10px;
       transition: left 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                  width 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+                  width 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity 200ms ease;
       pointer-events: none;
       z-index: 0;
     }
-    .active-pill.active-marketplace { left: 0; width: 33.33%; }
-    .active-pill.active-wallet { left: 33.33%; width: 33.33%; }
-    .active-pill.active-chat { left: 66.66%; width: 33.33%; }
-    /* Hide pill for non-nav tabs (create, profile, notifications, etc.) */
-    .active-pill.active-create,
-    .active-pill.active-profile,
-    .active-pill.active-other { opacity: 0; }
-    .rla-active { font-weight: 600; }
 
     /* === Mobile Top Bar === */
     .mobile-top-bar {
@@ -682,7 +697,10 @@ export class ShellComponent implements OnInit, OnDestroy {
   private wsSub?: Subscription;
   private routerSub?: Subscription;
 
-  themes = THEMES;
+  @ViewChild('navPill') navPill?: ElementRef<HTMLElement>;
+  @ViewChild('navLinksGroup') navLinksGroup?: ElementRef<HTMLElement>;
+
+  themes = VISIBLE_THEMES;
   themeMeta = THEME_META;
   themePaletteOpen = signal(false);
 
@@ -717,6 +735,15 @@ export class ShellComponent implements OnInit, OnDestroy {
     afterNextRender(() => {
       this.navVisible.set(true);
       this.themeService.init();
+      // Initial pill position after DOM is ready
+      setTimeout(() => this.updatePill(), 50);
+    });
+
+    // Reposition pill when active tab changes
+    effect(() => {
+      this.activeTab(); // track dependency
+      // Double-rAF ensures Angular has applied rla-active class
+      requestAnimationFrame(() => requestAnimationFrame(() => this.updatePill()));
     });
   }
 
@@ -724,6 +751,36 @@ export class ShellComponent implements OnInit, OnDestroy {
   onWindowScroll() {
     if (!isPlatformBrowser(this.platformId)) return;
     this.scrolled.set(window.scrollY > 20);
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.updatePill();
+  }
+
+  /** Position the sliding pill behind the active nav link. */
+  private updatePill(): void {
+    const pill = this.navPill?.nativeElement;
+    const group = this.navLinksGroup?.nativeElement;
+    if (!pill || !group) return;
+
+    const tab = this.activeTab();
+    if (['create', 'profile', 'other'].includes(tab)) {
+      pill.style.opacity = '0';
+      return;
+    }
+
+    const activeLink = group.querySelector('.rla-active') as HTMLElement | null;
+    if (!activeLink) {
+      pill.style.opacity = '0';
+      return;
+    }
+
+    const groupRect = group.getBoundingClientRect();
+    const linkRect = activeLink.getBoundingClientRect();
+    pill.style.left = (linkRect.left - groupRect.left) + 'px';
+    pill.style.width = linkRect.width + 'px';
+    pill.style.opacity = '1';
   }
 
   /** Close notification panel when clicking outside. */

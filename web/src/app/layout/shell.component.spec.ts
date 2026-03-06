@@ -553,9 +553,10 @@ describe('ShellComponent (unauthenticated)', () => {
     expect(langBtn).toBeTruthy();
   });
 
-  it('should render marketplace link for unauthenticated users', () => {
+  it('should render marketplace icon link for unauthenticated users', () => {
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Marketplace');
+    const link = el.querySelector('a.nav-icon-link');
+    expect(link).toBeTruthy();
   });
 
   it('should handle component destruction', () => {
