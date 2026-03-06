@@ -3,7 +3,9 @@
   <!-- ═══ Phase 1: Pending — Terminal Receipt ═══ -->
   @if (phase() === 'pending' && state()) {
     <div class="receipt">
-      <!-- KNS-218/217: Glass effect overlays (frostglass only, CSS-scoped) -->
+      <!-- Glass effect overlays (frostglass only, CSS-scoped) -->
+      <div class="glass-frost-depth"></div>
+      <div class="glass-noise"></div>
       <div class="glass-caustics"></div>
       <div class="glass-condensation"></div>
       <div class="receipt-header">

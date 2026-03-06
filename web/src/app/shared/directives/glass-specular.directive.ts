@@ -86,18 +86,16 @@ export class GlassSpecularDirective implements OnInit, OnDestroy {
     this.observer.observe(this.el.nativeElement);
   }
 
-  /** Inject glass-caustics and glass-condensation overlay divs into the host element. */
+  /** Inject glass overlay divs into the host element. */
   private injectOverlays(): void {
     const host = this.el.nativeElement;
-    if (!host.querySelector('.glass-caustics')) {
-      const caustics = document.createElement('div');
-      caustics.className = 'glass-caustics';
-      host.insertBefore(caustics, host.firstChild);
-    }
-    if (!host.querySelector('.glass-condensation')) {
-      const condensation = document.createElement('div');
-      condensation.className = 'glass-condensation';
-      host.insertBefore(condensation, host.firstChild);
+    const overlays = ['glass-frost-depth', 'glass-noise', 'glass-caustics', 'glass-condensation'];
+    for (const cls of overlays) {
+      if (!host.querySelector(`.${cls}`)) {
+        const div = document.createElement('div');
+        div.className = cls;
+        host.insertBefore(div, host.firstChild);
+      }
     }
   }
 }

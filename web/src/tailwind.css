@@ -87,6 +87,37 @@ html.sang-frostglass body::before {
     -2px 0 6px rgba(0, 0, 255, 0.12);
 }
 
+/* KNS-212: Frost depth — radial gradient simulating thicker frost in center */
+.sang-frostglass .bg-card .glass-frost-depth,
+.sang-frostglass .receipt .glass-frost-depth {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    transparent 70%
+  );
+  opacity: 1;
+}
+
+/* KNS-216: Frost crystal noise texture — tiled grain overlay */
+.sang-frostglass .bg-card .glass-noise,
+.sang-frostglass .receipt .glass-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") repeat;
+  background-size: 64px 64px;
+  mix-blend-mode: soft-light;
+  opacity: 0.25;
+}
+
 /* KNS-213: Specular highlight — ambient pulse + cursor enhancement */
 @keyframes specular-pulse {
   0%, 100% { opacity: 0.06; }
@@ -154,7 +185,13 @@ html.sang-frostglass body::before {
   z-index: 3;
 }
 
-/* KNS-217: Condensation droplets — scattered tiny dots, driven by --specular-opacity from directive */
+/* KNS-217: Condensation droplets — ambient + scroll-triggered + hover-enhanced */
+@keyframes condensation-drift {
+  0%   { background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%; }
+  50%  { background-position: 1% 2%, -1% 1%, 2% -1%, -1% 2%, 1% -2%, 2% 1%, -2% 1%, 1% 2%, -1% -1%, 2% 1%; }
+  100% { background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%; }
+}
+
 .sang-frostglass .bg-card .glass-condensation,
 .sang-frostglass .receipt .glass-condensation {
   position: absolute;
@@ -162,22 +199,34 @@ html.sang-frostglass body::before {
   z-index: 2;
   pointer-events: none;
   border-radius: inherit;
-  opacity: var(--specular-opacity, 0);
+  /* Ambient: subtle always-visible droplets */
+  opacity: 0.08;
   transition: opacity 800ms ease;
+  animation: condensation-drift 8s ease-in-out infinite;
   background:
-    radial-gradient(2px 2px at 12% 18%, rgba(180, 220, 240, 0.7), transparent),
-    radial-gradient(3px 3px at 28% 72%, rgba(180, 220, 240, 0.6), transparent),
-    radial-gradient(2px 2px at 45% 35%, rgba(200, 230, 245, 0.65), transparent),
-    radial-gradient(3.5px 3.5px at 62% 85%, rgba(180, 220, 240, 0.55), transparent),
-    radial-gradient(2px 2px at 78% 22%, rgba(200, 230, 245, 0.6), transparent),
-    radial-gradient(3px 3px at 85% 55%, rgba(180, 220, 240, 0.5), transparent),
-    radial-gradient(2.5px 2.5px at 35% 90%, rgba(200, 230, 245, 0.6), transparent),
-    radial-gradient(2px 2px at 92% 42%, rgba(180, 220, 240, 0.55), transparent),
-    radial-gradient(3px 3px at 18% 58%, rgba(200, 230, 245, 0.5), transparent),
-    radial-gradient(2px 2px at 55% 12%, rgba(180, 220, 240, 0.6), transparent);
+    radial-gradient(2.5px 2.5px at 12% 18%, rgba(180, 220, 240, 0.8), transparent),
+    radial-gradient(3.5px 3.5px at 28% 72%, rgba(180, 220, 240, 0.7), transparent),
+    radial-gradient(2.5px 2.5px at 45% 35%, rgba(200, 230, 245, 0.75), transparent),
+    radial-gradient(4px 4px at 62% 85%, rgba(180, 220, 240, 0.65), transparent),
+    radial-gradient(2.5px 2.5px at 78% 22%, rgba(200, 230, 245, 0.7), transparent),
+    radial-gradient(3.5px 3.5px at 85% 55%, rgba(180, 220, 240, 0.6), transparent),
+    radial-gradient(3px 3px at 35% 90%, rgba(200, 230, 245, 0.7), transparent),
+    radial-gradient(2.5px 2.5px at 92% 42%, rgba(180, 220, 240, 0.65), transparent),
+    radial-gradient(3.5px 3.5px at 18% 58%, rgba(200, 230, 245, 0.6), transparent),
+    radial-gradient(2.5px 2.5px at 55% 12%, rgba(180, 220, 240, 0.7), transparent);
 }
 
-/* KNS-218: Rainbow caustics — conic gradient follows cursor, driven by --specular-opacity */
+/* Scroll into view: condensation becomes more visible */
+.sang-frostglass .bg-card.glass-sweep .glass-condensation {
+  opacity: 0.25;
+}
+
+/* Hover: condensation fully revealed */
+.sang-frostglass .bg-card.specular-active .glass-condensation {
+  opacity: 0.55;
+}
+
+/* KNS-218: Rainbow caustics — ambient + scroll-triggered + hover-enhanced */
 @keyframes caustics-hue {
   0%   { filter: hue-rotate(0deg); }
   100% { filter: hue-rotate(360deg); }
@@ -190,32 +239,47 @@ html.sang-frostglass body::before {
   z-index: 1;
   pointer-events: none;
   border-radius: inherit;
-  opacity: var(--specular-opacity, 0);
+  /* Ambient: subtle always-visible caustics centered */
+  opacity: 0.06;
   transition: opacity 800ms ease;
   background: conic-gradient(
     from 0deg at var(--specular-x, 50%) var(--specular-y, 50%),
-    rgba(255, 0, 0, 0.08),
-    rgba(255, 165, 0, 0.08),
-    rgba(255, 255, 0, 0.08),
-    rgba(0, 255, 0, 0.08),
-    rgba(0, 0, 255, 0.08),
-    rgba(128, 0, 255, 0.08),
-    rgba(255, 0, 0, 0.08)
+    rgba(255, 0, 0, 0.1),
+    rgba(255, 165, 0, 0.1),
+    rgba(255, 255, 0, 0.1),
+    rgba(0, 255, 0, 0.1),
+    rgba(0, 0, 255, 0.1),
+    rgba(128, 0, 255, 0.1),
+    rgba(255, 0, 0, 0.1)
   );
   mix-blend-mode: overlay;
   animation: caustics-hue 6s linear infinite;
 }
 
+/* Scroll into view: caustics become more visible */
+.sang-frostglass .bg-card.glass-sweep .glass-caustics {
+  opacity: 0.18;
+}
+
+/* Hover: caustics fully revealed with cursor tracking */
+.sang-frostglass .bg-card.specular-active .glass-caustics {
+  opacity: 0.4;
+}
+
 /* Hover fallback for elements without specular directive (e.g. receipt) */
 .sang-frostglass .receipt:hover .glass-condensation,
 .sang-frostglass .receipt:hover .glass-caustics {
-  opacity: 1;
+  opacity: 0.5;
 }
 
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .sang-frostglass .bg-card .glass-caustics,
   .sang-frostglass .receipt .glass-caustics {
+    animation: none;
+  }
+  .sang-frostglass .bg-card .glass-condensation,
+  .sang-frostglass .receipt .glass-condensation {
     animation: none;
   }
   .sang-frostglass .bg-card::before {
@@ -228,7 +292,7 @@ html.sang-frostglass body::before {
 }
 
 /* Receipt content stays above glass overlays */
-.sang-frostglass .receipt > *:not(.glass-condensation):not(.glass-caustics) {
+.sang-frostglass .receipt > *:not(.glass-condensation):not(.glass-caustics):not(.glass-frost-depth):not(.glass-noise) {
   position: relative;
   z-index: 3;
 }
