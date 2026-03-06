@@ -4,6 +4,7 @@ import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideTransloco } from '@jsverse/transloco';
 import * as Sentry from '@sentry/angular';
+import { provideNgtRenderer } from 'angular-three/dom';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
@@ -19,6 +20,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor]), withFetch()),
     provideClientHydration(withEventReplay()),
+    provideNgtRenderer(),
     provideTransloco({
       config: {
         availableLangs: ['vi', 'en'],

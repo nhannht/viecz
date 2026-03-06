@@ -88,3 +88,9 @@ Caddy: `viecz.fishcmus.io.vn` → `/api/` to :8080, else to :4001. Env vars in `
 - **Jellyfish dev mode**: `cd jellyfish && uv run uvicorn jellyfish.dev:create_dev_app --factory --reload --host 127.0.0.1 --port 8000`
 - **claude -p auth**: No API key needed — reads `~/.claude/.credentials.json`. Systemd unit needs `HOME=/home/ubuntu` set.
 - **Jellyfish submodule**: Serena/JetBrains cannot index git submodules — use `Read`/`Edit` tools directly for `jellyfish/` code.
+- **Three.js GLB models**: ALWAYS inspect GLB JSON header before writing rendering code (`meshes`, `animations`, `primitives[].mode`, `extensionsUsed`). See `docs/human_docs/by-claude-threejs-glb-guide.md`.
+- **GLB multiple animations**: Play ONE animation at a time with `mixer.clipAction(clip).play()`. Playing all simultaneously = broken poses. Use `fadeOut()`/`fadeIn()` to crossfade.
+- **GLB extensions**: `KHR_materials_pbrSpecularGlossiness` (common on Sketchfab) was removed from Three.js 0.175+. Convert model first: `npx @gltf-transform/cli metalrough input.glb output.glb`. Without conversion, materials render black.
+- **Three.js PBR lighting**: PBR/metallic-roughness models render black without scene lights. Always add ambient + directional lights.
+- **Three.js bloom**: `EffectComposer` + `UnrealBloomPass` requires `OutputPass` as final pass for tone mapping to work. Use `composer.render()` not `renderer.render()`.
+- **angular-three**: `provideNgtRenderer()` in `app.config.ts` is REQUIRED — without it nothing renders (no error, just blank canvas).

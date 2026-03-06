@@ -15,6 +15,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { ThemeService } from '../core/theme.service';
+import { HeroEgg3dComponent } from './hero-egg-3d.component';
 
 
 @Component({
@@ -25,6 +26,7 @@ import { ThemeService } from '../core/theme.service';
     TranslocoDirective,
     NhannhtMetroButtonComponent,
     NhannhtMetroIconComponent,
+    HeroEgg3dComponent,
   ],
   template: `
     <ng-container *transloco="let t">
@@ -33,6 +35,13 @@ import { ThemeService } from '../core/theme.service';
                (mouseleave)="onMouseLeave()">
         <!-- Background mesh canvas — covers entire hero -->
         <canvas #bgCanvas class="bg-canvas"></canvas>
+
+        <!-- 3D model -->
+        <div class="egg-container">
+          @defer (on idle) {
+            <app-hero-egg-3d />
+          }
+        </div>
 
         <!-- Main glass card -->
         <div class="glass-card" #glassCard [class.entered]="entered()">
@@ -92,7 +101,8 @@ import { ThemeService } from '../core/theme.service';
       padding: 5rem 1rem 2rem;
       margin: -4rem calc(-50vw + 50%) 1.5rem;
       width: 100vw;
-      overflow: hidden;
+      overflow-x: clip;
+      overflow-y: visible;
       cursor: crosshair;
       min-height: 600px;
     }
@@ -104,6 +114,36 @@ import { ThemeService } from '../core/theme.service';
       width: 100%;
       height: 100%;
       z-index: 0;
+    }
+
+    /* ── 3D globe container ── */
+    .egg-container {
+      position: absolute;
+      z-index: 1;
+      right: -30px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 380px;
+      height: 380px;
+      overflow: hidden;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.95;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.25);
+    }
+
+    @media (max-width: 768px) {
+      .egg-container {
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        width: 260px;
+        height: 260px;
+        margin: 0 auto 1.5rem;
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
 
     .glass-card {
