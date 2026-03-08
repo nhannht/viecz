@@ -48,6 +48,12 @@ const SURFACE_ANIM = 'surface';
 const BLEND_SPEED = 0.6;        // weight change per second (full transition ≈ 1.7s)
 const DIR_HOLD_TIME = 2000;     // ms — must look in a direction for 2s before switching
 
+// Floating particles (plankton, dust, micro-bubbles)
+const PARTICLE_COUNT = 800;
+const PARTICLE_DRIFT_Y = 0.15;       // slow upward rise (units/sec)
+const PARTICLE_SWAY_FREQ = 0.4;      // horizontal sway Hz
+const PARTICLE_SWAY_AMP = 0.3;       // sway amplitude
+
 @Component({
   selector: 'app-hero-egg-3d',
   standalone: true,
@@ -158,6 +164,18 @@ export class HeroEgg3dComponent implements OnDestroy {
     replayEntrance: () => { this.replayEntrance(); },
   }
 
+  // Floating particles
+  private particleGeometry: THREE.BufferGeometry | null = null;
+  private particleMaterial: THREE.PointsMaterial | null = null;
+  private particlePoints: THREE.Points | null = null;
+  private particlePositions: THREE.BufferAttribute | null = null;
+  private particleSpeeds: Float32Array | null = null;
+  private particlePhases: Float32Array | null = null;
+
+  // Caustic light patterns on floor
+  private causticMesh: THREE.Mesh | null = null;
+  private causticMaterial: THREE.ShaderMaterial | null = null;
+
   // Debug minimap (3D inset viewport)
   private debugMiniScene: THREE.Scene | null = null;
   private debugMiniCam: THREE.OrthographicCamera | null = null;
@@ -197,6 +215,17 @@ export class HeroEgg3dComponent implements OnDestroy {
     this.resizeObserver?.disconnect();
     this.mixer?.removeEventListener('finished', this.onGulpFinished);
     this.renderer?.dispose();
+    // Particle cleanup
+    this.particleGeometry?.dispose();
+    this.particleMaterial?.map?.dispose();
+    this.particleMaterial?.dispose();
+    if (this.particlePoints) this.particlePoints.removeFromParent();
+    // Caustic cleanup
+    this.causticMaterial?.dispose();
+    if (this.causticMesh) {
+      this.causticMesh.geometry.dispose();
+      this.causticMesh.removeFromParent();
+    }
     this.destroyDebug();
   }
 
@@ -286,6 +315,129 @@ export class HeroEgg3dComponent implements OnDestroy {
     this.whaleVelocity.set(0, 0, 0);
     this.clearDebugTrail();
     console.log('[whale] replaying entrance');
+  }
+
+  private initParticles(scene: THREE.Scene): void {
+    const positions = new Float32Array(PARTICLE_COUNT * 3);
+    this.particleSpeeds = new Float32Array(PARTICLE_COUNT);
+    this.particlePhases = new Float32Array(PARTICLE_COUNT);
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      positions[i * 3]     = (Math.random() - 0.5) * this.swimRangeX * 2;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * this.swimRangeY * 2;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * this.swimRangeZ * 2;
+      this.particleSpeeds[i] = 0.5 + Math.random(); // 0.5–1.5x
+      this.particlePhases[i] = Math.random() * Math.PI * 2;
+    }
+
+    this.particleGeometry = new THREE.BufferGeometry();
+    const posAttr = new THREE.BufferAttribute(positions, 3);
+    this.particleGeometry.setAttribute('position', posAttr);
+    this.particlePositions = posAttr;
+
+    // Soft circular sprite for particles (generated procedurally)
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.4, 'rgba(255,255,255,0.6)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 32, 32);
+    const particleTexture = new THREE.CanvasTexture(canvas);
+
+    this.particleMaterial = new THREE.PointsMaterial({
+      color: 0xaaccff,
+      size: 0.04,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      map: particleTexture,
+    });
+
+    this.particlePoints = new THREE.Points(this.particleGeometry, this.particleMaterial);
+    this.particlePoints.frustumCulled = false;
+    scene.add(this.particlePoints);
+  }
+
+  private initCaustics(scene: THREE.Scene): void {
+    const planeW = this.swimRangeX * 2.5;
+    const planeD = this.swimRangeZ * 2.5;
+    const geo = new THREE.PlaneGeometry(planeW, planeD);
+
+    this.causticMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        color: { value: new THREE.Color(0x44bbcc) },
+        opacity: { value: 0.15 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 color;
+        uniform float opacity;
+        varying vec2 vUv;
+        void main() {
+          vec2 p = vUv * 8.0;
+          float c = 0.0;
+          c += pow(0.5 + 0.5 * sin(p.x * 3.0 + p.y * 1.5 + time * 0.8), 8.0);
+          c += pow(0.5 + 0.5 * sin(p.x * 1.7 - p.y * 2.3 + time * 0.6), 8.0);
+          c += pow(0.5 + 0.5 * sin(p.x * 2.1 + p.y * 3.1 - time * 0.7), 8.0);
+          c /= 3.0;
+          gl_FragColor = vec4(color * c, c * opacity);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.FrontSide,
+      blending: THREE.AdditiveBlending,
+    });
+
+    this.causticMesh = new THREE.Mesh(geo, this.causticMaterial);
+    this.causticMesh.rotation.x = -Math.PI / 2;
+    this.causticMesh.position.y = -this.swimRangeY;
+    scene.add(this.causticMesh);
+  }
+
+  private updateParticles(delta: number, elapsed: number): void {
+    if (!this.particlePositions || !this.particleSpeeds || !this.particlePhases) return;
+    const positions = this.particlePositions.array as Float32Array;
+
+    const rangeX = this.swimRangeX;
+    const rangeY = this.swimRangeY;
+    const rangeZ = this.swimRangeZ;
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const i3 = i * 3;
+      const speed = this.particleSpeeds[i];
+      const phase = this.particlePhases[i];
+
+      // Upward drift
+      positions[i3 + 1] += PARTICLE_DRIFT_Y * speed * delta;
+      // Horizontal sway
+      positions[i3]     += Math.sin(phase + elapsed * PARTICLE_SWAY_FREQ) * PARTICLE_SWAY_AMP * delta;
+      // Subtle depth sway
+      positions[i3 + 2] += Math.cos(phase * 0.7 + elapsed * PARTICLE_SWAY_FREQ * 0.6) * PARTICLE_SWAY_AMP * 0.3 * delta;
+
+      // Wrap at tank boundaries
+      if (positions[i3 + 1] > rangeY) positions[i3 + 1] = -rangeY;
+      if (positions[i3] > rangeX) positions[i3] = -rangeX;
+      else if (positions[i3] < -rangeX) positions[i3] = rangeX;
+      if (positions[i3 + 2] > rangeZ) positions[i3 + 2] = -rangeZ;
+      else if (positions[i3 + 2] < -rangeZ) positions[i3 + 2] = rangeZ;
+    }
+
+    this.particlePositions.needsUpdate = true;
   }
 
   private pickFreeSwimWaypoint(): void {
@@ -1143,6 +1295,8 @@ export class HeroEgg3dComponent implements OnDestroy {
       }
 
       this.pickFreeSwimWaypoint();
+      this.initParticles(scene);
+      this.initCaustics(scene);
 
       // Debug visualizations
       if (DEBUG_3D) {
@@ -1158,6 +1312,7 @@ export class HeroEgg3dComponent implements OnDestroy {
     const animate = () => {
       this.animationId = requestAnimationFrame(animate);
       const delta = this.clock.getDelta();
+      const elapsed = this.clock.elapsedTime;
 
       // Manual weight blending — every frame, lerp weights toward target
       // NOTE: weights set BEFORE mixer.update() so skeleton uses current-frame values
@@ -1350,6 +1505,12 @@ export class HeroEgg3dComponent implements OnDestroy {
           }
         }
       }
+
+      // Floating particles
+      this.updateParticles(delta, elapsed);
+
+      // Caustic time
+      if (this.causticMaterial) this.causticMaterial.uniforms['time'].value = elapsed;
 
       // Debug updates
       if (DEBUG_3D) {
