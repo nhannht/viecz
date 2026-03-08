@@ -37,9 +37,9 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
         <canvas #bgCanvas class="bg-canvas"></canvas>
 
         <!-- 3D model -->
-        <div class="egg-container">
+        <div class="egg-container" #eggContainer>
           @defer (on idle) {
-            <app-hero-egg-3d />
+            <app-hero-egg-3d [mousePos]="whaleMousePos()" (whaleClicked)="onWhaleClick()" />
           }
         </div>
 
@@ -116,33 +116,24 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
       z-index: 0;
     }
 
-    /* ── 3D globe container ── */
+    /* ── 3D whale canvas — spans entire hero, whale swims in 3D space ── */
     .egg-container {
       position: absolute;
+      inset: 0;
       z-index: 1;
-      right: -30px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 380px;
-      height: 380px;
-      overflow: hidden;
-      border-radius: 50%;
       pointer-events: none;
-      opacity: 0.95;
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.25);
+
+      app-hero-egg-3d, canvas {
+        pointer-events: auto;
+      }
     }
 
     @media (max-width: 768px) {
       .egg-container {
         position: relative;
-        right: auto;
-        top: auto;
-        transform: none;
-        width: 260px;
+        width: 100%;
         height: 260px;
         margin: 0 auto 1.5rem;
-        opacity: 1;
-        pointer-events: auto;
       }
     }
 
@@ -480,6 +471,8 @@ export class HeroLiquidglassComponent implements OnDestroy {
     { value: '0%', label: 'marketplace.platformFee' },
   ]);
 
+  whaleMousePos = signal<{ x: number; y: number } | null>(null);
+
   @ViewChild('heroSection') heroRef!: ElementRef<HTMLElement>;
   @ViewChild('bgCanvas') bgCanvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('glassCard') glassCardRef!: ElementRef<HTMLElement>;
@@ -487,7 +480,8 @@ export class HeroLiquidglassComponent implements OnDestroy {
   private platformId = inject(PLATFORM_ID);
   private themeService = inject(ThemeService);
 
-  private renderer: BackgroundRenderer | null = null;
+  private bgRenderer: BackgroundRenderer | null = null;
+  private isMobile = false;
 
   constructor() {
     afterNextRender(() => {
@@ -500,14 +494,18 @@ export class HeroLiquidglassComponent implements OnDestroy {
       ]);
       setTimeout(() => this.entered.set(true), 80);
       this.initRenderer();
+
+      // Detect mobile (no hover = touch device)
+      this.isMobile = window.matchMedia('(hover: none)').matches;
     });
   }
 
   ngOnDestroy(): void {
-    this.renderer?.destroy();
+    this.bgRenderer?.destroy();
   }
 
   onMouseMove(e: MouseEvent): void {
+    // Specular spot on glass card
     const card = this.glassCardRef?.nativeElement;
     if (card) {
       const cardRect = card.getBoundingClientRect();
@@ -515,6 +513,29 @@ export class HeroLiquidglassComponent implements OnDestroy {
       const cy = ((e.clientY - cardRect.top) / cardRect.height) * 100;
       card.style.setProperty('--mx', `${cx}%`);
       card.style.setProperty('--my', `${cy}%`);
+    }
+
+    // Whale mouse tracking — skip if mouse is over the glass card (dead zone)
+    if (!this.isMobile) {
+      const cardEl = this.glassCardRef?.nativeElement;
+      if (cardEl) {
+        const cr = cardEl.getBoundingClientRect();
+        if (e.clientX >= cr.left && e.clientX <= cr.right
+          && e.clientY >= cr.top && e.clientY <= cr.bottom) {
+          return; // mouse over card — whale ignores it
+        }
+      }
+
+      const hero = this.heroRef?.nativeElement;
+      if (hero) {
+        const rect = hero.getBoundingClientRect();
+        const nx = (e.clientX - rect.left) / rect.width;
+        const ny = (e.clientY - rect.top) / rect.height;
+        this.whaleMousePos.set({
+          x: Math.max(0, Math.min(1, nx)),
+          y: Math.max(0, Math.min(1, ny)),
+        });
+      }
     }
   }
 
@@ -524,16 +545,21 @@ export class HeroLiquidglassComponent implements OnDestroy {
       card.style.setProperty('--mx', '50%');
       card.style.setProperty('--my', '35%');
     }
+    this.whaleMousePos.set(null);
+  }
+
+  onWhaleClick(): void {
+    // Could add visual feedback in parent if needed
   }
 
   private initRenderer(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     const hero = this.heroRef.nativeElement;
     const bgCanvas = this.bgCanvasRef.nativeElement;
-    this.renderer = new BackgroundRenderer(
+    this.bgRenderer = new BackgroundRenderer(
       hero, bgCanvas, this.themeService.theme(),
     );
-    this.renderer.draw();
+    this.bgRenderer.draw();
   }
 }
 
