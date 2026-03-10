@@ -5,7 +5,7 @@ Student micro-task marketplace. Students post small tasks (errands, tutoring, de
 
 ## Tech Stack
 - **Go backend** (Gin, GORM, PostgreSQL, gorilla/websocket, golang-jwt, PayOS payments)
-- **Angular 21 web client** (TypeScript 5.9, Material Design 3, SSR with Express 5, Vitest, Storybook 9)
+- **Angular 21 web client** (TypeScript 5.9, nhannht-metro-meow design system (MD3-inspired aesthetic, Tailwind 4, NO @angular/material), SSR with Express 5, Vitest, Storybook 9)
 - **Android app** (Kotlin, Jetpack Compose, MVVM, Hilt DI)
 
 ## Architecture
