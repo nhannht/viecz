@@ -40,10 +40,10 @@ export class ThemeService {
   }
 
   private loadTheme(): Theme {
-    if (typeof localStorage === 'undefined') return 'light';
+    if (typeof localStorage === 'undefined') return 'sang-frostglass';
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && THEMES.includes(stored as Theme)) return stored as Theme;
-    return 'light';
+    return 'sang-frostglass';
   }
 
   private applyClass(t: Theme): void {

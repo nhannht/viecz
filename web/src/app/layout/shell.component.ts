@@ -13,7 +13,7 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { WebSocketService } from '../core/websocket.service';
-import { ThemeService, VISIBLE_THEMES, THEME_META } from '../core/theme.service';
+import { ThemeService } from '../core/theme.service';
 import { LanguageService } from '../core/language.service';
 import { Notification } from '../core/models';
 import { resolveNotification } from '../core/notification-i18n';
@@ -55,31 +55,6 @@ import { TimeAgoPipe } from '../core/pipes';
         </a>
         @if (auth.isAuthenticated()) {
           <div class="flex items-center gap-2">
-            <!-- Theme palette popover -->
-            <div class="relative">
-              <button class="bg-transparent border-none cursor-pointer text-fg p-1"
-                      (click)="themePaletteOpen.set(!themePaletteOpen())">
-                <nhannht-metro-icon name="palette" [size]="20" />
-              </button>
-              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
-                @for (t of themes; track t) {
-                  <button class="nhannht-metro-menu-item flex items-center gap-3"
-                          [class.font-bold]="themeService.theme() === t"
-                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
-                    <span class="flex gap-0.5">
-                      @for (c of themeMeta[t].colors; track c) {
-                        <span class="w-3 h-3 rounded-sm inline-block"
-                              [style.background-color]="c"></span>
-                      }
-                    </span>
-                    <span>{{ themeMeta[t].label }}</span>
-                    @if (themeService.theme() === t) {
-                      <nhannht-metro-icon name="check" [size]="14" />
-                    }
-                  </button>
-                }
-              </nhannht-metro-menu>
-            </div>
             <!-- Language toggle -->
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
@@ -144,30 +119,6 @@ import { TimeAgoPipe } from '../core/pipes';
           </div>
         } @else {
           <div class="flex items-center gap-2">
-            <div class="relative">
-              <button class="bg-transparent border-none cursor-pointer text-fg p-1"
-                      (click)="themePaletteOpen.set(!themePaletteOpen())">
-                <nhannht-metro-icon name="palette" [size]="20" />
-              </button>
-              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
-                @for (t of themes; track t) {
-                  <button class="nhannht-metro-menu-item flex items-center gap-3"
-                          [class.font-bold]="themeService.theme() === t"
-                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
-                    <span class="flex gap-0.5">
-                      @for (c of themeMeta[t].colors; track c) {
-                        <span class="w-3 h-3 rounded-sm inline-block"
-                              [style.background-color]="c"></span>
-                      }
-                    </span>
-                    <span>{{ themeMeta[t].label }}</span>
-                    @if (themeService.theme() === t) {
-                      <nhannht-metro-icon name="check" [size]="14" />
-                    }
-                  </button>
-                }
-              </nhannht-metro-menu>
-            </div>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
                            rounded-lg hover:bg-fg/5 transition-colors"
@@ -223,33 +174,6 @@ import { TimeAgoPipe } from '../core/pipes';
 
           <!-- Actions: theme, lang toggle, notification, user menu -->
           <div class="flex items-center gap-1">
-            <!-- Theme palette popover -->
-            <div class="relative">
-              <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
-                             rounded-xl hover:bg-fg/5 transition-colors"
-                      (click)="themePaletteOpen.set(!themePaletteOpen())">
-                <nhannht-metro-icon name="palette" [size]="20" />
-              </button>
-              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
-                @for (t of themes; track t) {
-                  <button class="nhannht-metro-menu-item flex items-center gap-3"
-                          [class.font-bold]="themeService.theme() === t"
-                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
-                    <span class="flex gap-0.5">
-                      @for (c of themeMeta[t].colors; track c) {
-                        <span class="w-3 h-3 rounded-sm inline-block"
-                              [style.background-color]="c"></span>
-                      }
-                    </span>
-                    <span>{{ themeMeta[t].label }}</span>
-                    @if (themeService.theme() === t) {
-                      <nhannht-metro-icon name="check" [size]="14" />
-                    }
-                  </button>
-                }
-              </nhannht-metro-menu>
-            </div>
-
             <!-- Language toggle -->
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
@@ -343,31 +267,6 @@ import { TimeAgoPipe } from '../core/pipes';
               <nhannht-metro-icon name="storefront" [size]="16" />
               <span class="nav-label">{{ t('shell.marketplace') }}</span>
             </a>
-            <div class="relative">
-              <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
-                             rounded-xl hover:bg-fg/5 transition-colors"
-                      (click)="themePaletteOpen.set(!themePaletteOpen())">
-                <nhannht-metro-icon name="palette" [size]="20" />
-              </button>
-              <nhannht-metro-menu [open]="themePaletteOpen()" (closed)="themePaletteOpen.set(false)">
-                @for (t of themes; track t) {
-                  <button class="nhannht-metro-menu-item flex items-center gap-3"
-                          [class.font-bold]="themeService.theme() === t"
-                          (click)="themeService.setTheme(t); themePaletteOpen.set(false)">
-                    <span class="flex gap-0.5">
-                      @for (c of themeMeta[t].colors; track c) {
-                        <span class="w-3 h-3 rounded-sm inline-block"
-                              [style.background-color]="c"></span>
-                      }
-                    </span>
-                    <span>{{ themeMeta[t].label }}</span>
-                    @if (themeService.theme() === t) {
-                      <nhannht-metro-icon name="check" [size]="14" />
-                    }
-                  </button>
-                }
-              </nhannht-metro-menu>
-            </div>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
                            font-display text-[9px] tracking-[1px] cursor-pointer
                            rounded-lg hover:bg-fg/5 transition-colors"
@@ -700,9 +599,6 @@ export class ShellComponent implements OnInit, OnDestroy {
   @ViewChild('navPill') navPill?: ElementRef<HTMLElement>;
   @ViewChild('navLinksGroup') navLinksGroup?: ElementRef<HTMLElement>;
 
-  themes = VISIBLE_THEMES;
-  themeMeta = THEME_META;
-  themePaletteOpen = signal(false);
 
   unreadCount = signal(0);
   notifications = signal<Notification[]>([]);

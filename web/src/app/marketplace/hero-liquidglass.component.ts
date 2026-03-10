@@ -576,11 +576,11 @@ const THEME_GRADIENTS: Record<Theme, { x: number; y: number; r: number; color: s
     { x: 0.5, y: 0.8, r: 0.7, color: 'rgba(140, 140, 140, 0.08)' },
   ],
   'sang-frostglass': [
-    { x: 0.1, y: 0.2, r: 0.8, color: 'rgba(50, 184, 198, 0.30)' },
-    { x: 0.9, y: 0.25, r: 0.8, color: 'rgba(255, 100, 80, 0.16)' },
-    { x: 0.5, y: 0.7, r: 0.9, color: 'rgba(33, 128, 141, 0.22)' },
-    { x: 0.35, y: 0.5, r: 0.6, color: 'rgba(140, 230, 180, 0.12)' },
-    { x: 0.75, y: 0.6, r: 0.7, color: 'rgba(100, 200, 255, 0.14)' },
+    { x: 0.5, y: 0.1, r: 1.0, color: 'rgba(40, 180, 220, 0.35)' },
+    { x: 0.5, y: 0.5, r: 0.9, color: 'rgba(10, 60, 120, 0.30)' },
+    { x: 0.2, y: 0.85, r: 0.8, color: 'rgba(5, 20, 50, 0.40)' },
+    { x: 0.8, y: 0.9, r: 0.8, color: 'rgba(8, 40, 80, 0.25)' },
+    { x: 0.3, y: 0.5, r: 0.6, color: 'rgba(20, 100, 80, 0.12)' },
   ],
   'dracula': [
     { x: 0.15, y: 0.25, r: 0.8, color: 'rgba(189, 147, 249, 0.25)' },

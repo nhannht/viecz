@@ -172,9 +172,9 @@ export class HeroEgg3dComponent implements OnDestroy {
   private particleSpeeds: Float32Array | null = null;
   private particlePhases: Float32Array | null = null;
 
-  // Caustic light patterns on floor
-  private causticMesh: THREE.Mesh | null = null;
-  private causticMaterial: THREE.ShaderMaterial | null = null;
+  // Ocean floor (sandy ground + caustic light patterns)
+  private floorMesh: THREE.Mesh | null = null;
+  private floorMaterial: THREE.ShaderMaterial | null = null;
 
   // Debug minimap (3D inset viewport)
   private debugMiniScene: THREE.Scene | null = null;
@@ -220,11 +220,11 @@ export class HeroEgg3dComponent implements OnDestroy {
     this.particleMaterial?.map?.dispose();
     this.particleMaterial?.dispose();
     if (this.particlePoints) this.particlePoints.removeFromParent();
-    // Caustic cleanup
-    this.causticMaterial?.dispose();
-    if (this.causticMesh) {
-      this.causticMesh.geometry.dispose();
-      this.causticMesh.removeFromParent();
+    // Ocean floor cleanup
+    this.floorMaterial?.dispose();
+    if (this.floorMesh) {
+      this.floorMesh.geometry.dispose();
+      this.floorMesh.removeFromParent();
     }
     this.destroyDebug();
   }
@@ -364,16 +364,17 @@ export class HeroEgg3dComponent implements OnDestroy {
     scene.add(this.particlePoints);
   }
 
-  private initCaustics(scene: THREE.Scene): void {
-    const planeW = this.swimRangeX * 2.5;
-    const planeD = this.swimRangeZ * 2.5;
+  private initOceanFloor(scene: THREE.Scene): void {
+    const planeW = this.swimRangeX * 4.0;
+    const planeD = this.swimRangeZ * 4.0;
     const geo = new THREE.PlaneGeometry(planeW, planeD);
 
-    this.causticMaterial = new THREE.ShaderMaterial({
+    this.floorMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        color: { value: new THREE.Color(0x44bbcc) },
-        opacity: { value: 0.15 },
+        sandColor: { value: new THREE.Color(0x0e1a1f) },
+        causticColor: { value: new THREE.Color(0x44bbcc) },
+        causticStrength: { value: 0.25 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -384,29 +385,71 @@ export class HeroEgg3dComponent implements OnDestroy {
       `,
       fragmentShader: `
         uniform float time;
-        uniform vec3 color;
-        uniform float opacity;
+        uniform vec3 sandColor;
+        uniform vec3 causticColor;
+        uniform float causticStrength;
         varying vec2 vUv;
+
+        // Hash for noise
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+
+        // Smooth interpolated value noise (no grid artifacts)
+        float valueNoise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          // Cubic hermite for smooth interpolation
+          vec2 u = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+        }
+
+        // Multi-octave FBM for natural sand texture
+        float sandNoise(vec2 p) {
+          float v = 0.0;
+          v += valueNoise(p * 1.0) * 0.5;
+          v += valueNoise(p * 2.0) * 0.25;
+          v += valueNoise(p * 4.0) * 0.125;
+          v += valueNoise(p * 8.0) * 0.0625;
+          return v;
+        }
+
         void main() {
+          // Edge fade — elliptical radial falloff (no straight edges)
+          vec2 centered = vUv * 2.0 - 1.0;
+          float radial = length(centered * vec2(1.0, 0.7));
+          float edgeDist = 1.0 - smoothstep(0.3, 0.9, radial);
+
+          // Smooth sand grain — high frequency, subtle amplitude
+          float grain = (sandNoise(vUv * 400.0) - 0.5) * 0.06;
+
+          // Caustic light pattern — 3 overlapping sine layers
           vec2 p = vUv * 8.0;
           float c = 0.0;
           c += pow(0.5 + 0.5 * sin(p.x * 3.0 + p.y * 1.5 + time * 0.8), 8.0);
           c += pow(0.5 + 0.5 * sin(p.x * 1.7 - p.y * 2.3 + time * 0.6), 8.0);
           c += pow(0.5 + 0.5 * sin(p.x * 2.1 + p.y * 3.1 - time * 0.7), 8.0);
           c /= 3.0;
-          gl_FragColor = vec4(color * c, c * opacity);
+
+          // Combine: dark sand base + grain + caustic highlights
+          vec3 base = sandColor + grain;
+          vec3 lit = base + causticColor * c * causticStrength;
+          gl_FragColor = vec4(lit, edgeDist);
         }
       `,
       transparent: true,
-      depthWrite: false,
+      depthWrite: true,
       side: THREE.FrontSide,
-      blending: THREE.AdditiveBlending,
     });
 
-    this.causticMesh = new THREE.Mesh(geo, this.causticMaterial);
-    this.causticMesh.rotation.x = -Math.PI / 2;
-    this.causticMesh.position.y = -this.swimRangeY;
-    scene.add(this.causticMesh);
+    this.floorMesh = new THREE.Mesh(geo, this.floorMaterial);
+    this.floorMesh.rotation.x = -Math.PI / 2;
+    this.floorMesh.position.y = -this.swimRangeY;
+    scene.add(this.floorMesh);
   }
 
   private updateParticles(delta: number, elapsed: number): void {
@@ -1296,7 +1339,7 @@ export class HeroEgg3dComponent implements OnDestroy {
 
       this.pickFreeSwimWaypoint();
       this.initParticles(scene);
-      this.initCaustics(scene);
+      this.initOceanFloor(scene);
 
       // Debug visualizations
       if (DEBUG_3D) {
@@ -1510,7 +1553,7 @@ export class HeroEgg3dComponent implements OnDestroy {
       this.updateParticles(delta, elapsed);
 
       // Caustic time
-      if (this.causticMaterial) this.causticMaterial.uniforms['time'].value = elapsed;
+      if (this.floorMaterial) this.floorMaterial.uniforms['time'].value = elapsed;
 
       // Debug updates
       if (DEBUG_3D) {
