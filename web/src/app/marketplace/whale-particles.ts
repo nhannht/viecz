@@ -29,6 +29,9 @@ export class WhaleParticles {
   private fishGroup: THREE.Group | null = null;
   private fishMixer: THREE.AnimationMixer | null = null;
   private fishBasePos = new THREE.Vector3();
+  private koiGroup: THREE.Group | null = null;
+  private koiMixer: THREE.AnimationMixer | null = null;
+  private koiPrevPos = new THREE.Vector3();
 
 
   constructor(
@@ -824,6 +827,38 @@ float _caustics(vec2 uv) {
     });
   }
 
+  initKoiFish(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    gltfLoader.load('assets/models/koi_fish.glb', (gltf) => {
+      // Use a wrapper pivot for movement/rotation — keep model internals untouched
+      const pivot = new THREE.Group();
+      pivot.add(gltf.scene);
+      this.koiGroup = pivot;
+
+      // Model is ~6.4 units on X — scale to ~1/3 of swimRangeX
+      const bbox = new THREE.Box3().setFromObject(gltf.scene);
+      const modelLen = bbox.max.x - bbox.min.x;
+      const targetLen = this.swimRangeX * 0.7; // 2x bigger
+      const s = targetLen / modelLen;
+      gltf.scene.scale.set(s, s, s);
+
+      // Rotate model so its X-axis forward aligns with -Z (Three.js forward)
+      // Model faces +X, so rotate -90° around Y to face -Z
+      gltf.scene.rotation.y = -Math.PI / 2;
+
+      pivot.position.set(0, 0, 0);
+      this.koiPrevPos.set(0, 0, 0);
+
+      this.scene.add(pivot);
+
+      // Play morph target swim animation as-is (150 sequential morph targets)
+      if (gltf.animations.length > 0) {
+        this.koiMixer = new THREE.AnimationMixer(gltf.scene);
+        const action = this.koiMixer.clipAction(gltf.animations[0]);
+        action.play();
+      }
+    });
+  }
+
   update(delta: number, elapsed: number): void {
     if (!this.positions || !this.speeds || !this.phases) return;
     const positions = this.positions.array as Float32Array;
@@ -862,6 +897,35 @@ float _caustics(vec2 uv) {
 
       // Subtle vertical bob — riding a current
       this.fishGroup.position.y = this.fishBasePos.y + Math.sin(elapsed * 0.15) * this.swimRangeY * 0.15;
+    }
+
+    // Koi fish — Lissajous path with body-facing rotation
+    if (this.koiMixer) this.koiMixer.update(delta);
+    if (this.koiGroup) {
+      const t = elapsed * 0.04; // slow cruise (3x slower)
+      const x = Math.sin(t) * this.swimRangeX * 1.2;
+      const z = Math.cos(t * 1.7) * this.swimRangeZ * 0.6;
+      const y = Math.sin(t * 0.8) * this.swimRangeY * 0.3;
+
+      // Compute velocity for facing direction
+      const dx = x - this.koiPrevPos.x;
+      const dy = y - this.koiPrevPos.y;
+      const dz = z - this.koiPrevPos.z;
+      const hSpeed = Math.sqrt(dx * dx + dz * dz);
+
+      if (hSpeed > 0.0001) {
+        // Yaw — face movement direction on XZ plane
+        this.koiGroup.rotation.y = Math.atan2(dx, dz);
+
+        // Pitch — tilt nose up/down with vertical movement
+        this.koiGroup.rotation.x = Math.atan2(-dy, hSpeed) * 0.5;
+
+        // Bank — lean into turns
+        this.koiGroup.rotation.z = Math.sin(t * 1.7) * 0.15;
+      }
+
+      this.koiGroup.position.set(x, y, z);
+      this.koiPrevPos.set(x, y, z);
     }
 
     // Pulsing emissive glow on castle meshes
@@ -1007,6 +1071,27 @@ float _caustics(vec2 uv) {
     if (this.fishMixer) {
       this.fishMixer.stopAllAction();
       this.fishMixer = null;
+    }
+
+    // Dispose koi fish
+    if (this.koiGroup) {
+      this.koiGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            (mesh.material as THREE.Material).dispose();
+          }
+        }
+      });
+      this.koiGroup.removeFromParent();
+      this.koiGroup = null;
+    }
+    if (this.koiMixer) {
+      this.koiMixer.stopAllAction();
+      this.koiMixer = null;
     }
 
     this.castleMeshes = [];
