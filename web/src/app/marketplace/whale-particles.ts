@@ -219,7 +219,10 @@ float _caustics(vec2 uv) {
     }
   }
 
-  initFloorProps(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+  initFloorProps(
+    gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader,
+    addBloomMesh?: (mesh: THREE.Mesh) => void,
+  ): void {
     gltfLoader.load('assets/models/minas_tirith.glb', (gltf) => {
       const group = gltf.scene;
       this.propsGroup = group;
@@ -233,20 +236,29 @@ float _caustics(vec2 uv) {
 
       // Sit on the sand floor, offset right
       const scaledMinY = bbox.min.y * s;
-      group.position.set(
-        this.swimRangeX * 0.7,
-        -this.swimRangeY * 1.5 - scaledMinY,
-        -this.swimRangeZ * 0.3,
-      );
+      const px = this.swimRangeX * 0.7;
+      const py = -this.swimRangeY * 1.5 - scaledMinY;
+      const pz = -this.swimRangeZ * 0.3;
+      group.position.set(px, py, pz);
+      group.rotation.y = -Math.PI / 2; // 90° clockwise
 
-      // Keep original photogrammetry textures — fog handles the underwater look
+      // Add subtle emissive glow to make the castle shine underwater
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
+          mat.emissive = new THREE.Color(0x88aacc);
+          mat.emissiveIntensity = 0.15;
+          if (addBloomMesh) addBloomMesh(mesh);
         }
       });
+
+      // Point light to illuminate the castle
+      const light = new THREE.PointLight(0x99bbdd, 80, targetHeight * 4, 1.0);
+      light.position.set(px, py + targetHeight * 0.7, pz + targetHeight * 0.3);
+      this.scene.add(light);
 
       this.scene.add(group);
     });
