@@ -22,12 +22,13 @@ import {
 } from './whale-scene.constants';
 import { WhaleSwimming } from './whale-swimming';
 import { WhaleParticles } from './whale-particles';
-import { WhaleBloom } from './whale-bloom';
+import { WhalePostProcessing } from './whale-postprocessing';
 import { WhaleDebugGui } from './whale-debug-gui';
 import { WhaleDebugTrail } from './whale-debug-trail';
 import { WhaleDebugMinimap } from './whale-debug-minimap';
 import { WhaleDebugPlot } from './whale-debug-plot';
 import { WhaleDebugLog } from './whale-debug-log';
+import { WhaleTuningPanel, TUNE_3D } from './whale-tuning-panel';
 
 @Component({
   selector: 'app-hero-egg-3d',
@@ -64,7 +65,9 @@ export class HeroEgg3dComponent implements OnDestroy {
   // Helpers
   private swimming = new WhaleSwimming(1, 1, 0.5);
   private particles: WhaleParticles | null = null;
-  private bloom: WhaleBloom | null = null;
+  private postProcessing: WhalePostProcessing | null = null;
+
+  private tuningPanel: WhaleTuningPanel | null = null;
 
   // Debug helpers (only initialized when DEBUG_3D)
   private debugGui: WhaleDebugGui | null = null;
@@ -86,6 +89,8 @@ export class HeroEgg3dComponent implements OnDestroy {
     this.resizeObserver?.disconnect();
     this.mixer?.removeEventListener('finished', this.onGulpFinished);
     this.renderer?.dispose();
+    this.tuningPanel?.destroy();
+    this.postProcessing?.dispose();
     this.particles?.dispose();
     this.destroyDebug();
   }
@@ -232,6 +237,14 @@ export class HeroEgg3dComponent implements OnDestroy {
     scene.add(new THREE.AmbientLight(0x303050, 0.6));
     const keyLight = new THREE.DirectionalLight(0xddeeff, 1.5);
     keyLight.position.set(2, 4, 3);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.camera.near = 0.1;
+    keyLight.shadow.camera.far = 20;
+    keyLight.shadow.camera.left = -8;
+    keyLight.shadow.camera.right = 8;
+    keyLight.shadow.camera.top = 8;
+    keyLight.shadow.camera.bottom = -8;
     scene.add(keyLight);
     const fillLight = new THREE.DirectionalLight(0x4466aa, 0.3);
     fillLight.position.set(-2, -1, -2);
@@ -245,11 +258,18 @@ export class HeroEgg3dComponent implements OnDestroy {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 3.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor(0x000000, 0);
     this.renderer = renderer;
 
-    // Selective bloom pipeline
-    this.bloom = new WhaleBloom(renderer, scene, camera, w, h);
+    // Post-processing pipeline (selective bloom + god rays)
+    this.postProcessing = new WhalePostProcessing(renderer, scene, camera, keyLight);
+
+    // Tuning panel (activate via ?tune_3d=true)
+    if (TUNE_3D) {
+      this.tuningPanel = new WhaleTuningPanel(this.postProcessing, renderer, keyLight);
+    }
 
     const onResize = () => {
       const rw = container.clientWidth;
@@ -258,7 +278,7 @@ export class HeroEgg3dComponent implements OnDestroy {
       camera.aspect = rw / rh;
       camera.updateProjectionMatrix();
       renderer.setSize(rw, rh);
-      this.bloom?.setSize(rw, rh);
+      this.postProcessing?.setSize(rw, rh);
     };
     this.resizeObserver = new ResizeObserver(onResize);
     this.resizeObserver.observe(container);
@@ -292,9 +312,13 @@ export class HeroEgg3dComponent implements OnDestroy {
 
       gltf.scene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
-          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+          const mesh = child as THREE.Mesh;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
           if (mat.emissiveIntensity > 1.0) {
             child.layers.enable(BLOOM_LAYER);
+            this.postProcessing?.addBloomMesh(mesh);
           }
         }
       });
@@ -459,7 +483,7 @@ export class HeroEgg3dComponent implements OnDestroy {
       }
 
       // Render
-      this.bloom?.render(scene);
+      this.postProcessing?.render();
 
       // Debug minimap inset
       if (DEBUG_3D) {
