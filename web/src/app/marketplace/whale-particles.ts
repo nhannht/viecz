@@ -21,6 +21,11 @@ export class WhaleParticles {
   private castleCenter = new THREE.Vector3();
   private orbGroup: THREE.Group | null = null;
   private orbData: { mesh: THREE.Mesh; radius: number; speed: number; yOffset: number; phase: number }[] = [];
+  private floraUniforms: { uTime: { value: number } } | null = null;
+  private floraMeshes: THREE.InstancedMesh[] = [];
+  private rockMeshes: THREE.InstancedMesh[] = [];
+  private bubbleMesh: THREE.InstancedMesh | null = null;
+  private bubbleUniforms: { uTime: { value: number } } | null = null;
 
 
   constructor(
@@ -315,6 +320,450 @@ float _caustics(vec2 uv) {
     });
   }
 
+  // ── Sea Flora (instanced billboard quads) ─────────────────────────
+  initSeaFlora(): void {
+    const floorY = -this.swimRangeY * 1.5;
+
+    // Shared uniforms
+    this.floraUniforms = { uTime: { value: 0 } };
+
+    const vertexShader = /* glsl */ `
+      uniform float uTime;
+      attribute float aPhase;
+      varying vec2 vUv;
+      varying float vFogDepth;
+      void main() {
+        vUv = uv;
+        vec4 mvPos = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+        float swayFactor = pow(uv.y, 1.5);
+        float sway = sin(uTime * 1.2 + aPhase) * 0.08 * swayFactor;
+        mvPos.x += sway;
+        vFogDepth = -mvPos.z;
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `;
+
+    const fragmentShader = /* glsl */ `
+      uniform sampler2D uTex;
+      varying vec2 vUv;
+      varying float vFogDepth;
+      void main() {
+        vec4 texColor = texture2D(uTex, vUv);
+        if (texColor.a < 0.1) discard;
+        // Manual FogExp2 matching scene fog (color: 0x061a28, density: 0.025)
+        float fogDensity = 0.025;
+        float fogFactor = exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+        fogFactor = clamp(fogFactor, 0.0, 1.0);
+        vec3 fogColor = vec3(0.024, 0.102, 0.157);
+        vec3 finalColor = mix(fogColor, texColor.rgb, fogFactor);
+        gl_FragColor = vec4(finalColor, texColor.a);
+      }
+    `;
+
+    // Plant type definitions
+    const plantTypes: {
+      name: string;
+      w: number; h: number;
+      instances: number;
+      draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+    }[] = [
+      {
+        name: 'seaweed', w: 128, h: 256, instances: 12,
+        draw: (ctx, w, h) => {
+          ctx.clearRect(0, 0, w, h);
+          for (let b = 0; b < 3; b++) {
+            ctx.beginPath();
+            const bx = w * 0.2 + b * w * 0.25;
+            ctx.moveTo(bx, h);
+            const cp1x = bx + (Math.random() - 0.5) * w * 0.6;
+            const cp1y = h * 0.65;
+            const cp2x = bx + (Math.random() - 0.5) * w * 0.5;
+            const cp2y = h * 0.3;
+            const topX = bx + (Math.random() - 0.5) * w * 0.3;
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, topX, h * 0.05);
+            ctx.lineWidth = 6 + Math.random() * 4;
+            const grad = ctx.createLinearGradient(0, h, 0, 0);
+            grad.addColorStop(0, '#1a5a30');
+            grad.addColorStop(1, '#3aaa60');
+            ctx.strokeStyle = grad;
+            ctx.stroke();
+          }
+        },
+      },
+      {
+        name: 'coralFan', w: 256, h: 256, instances: 10,
+        draw: (ctx, w, h) => {
+          ctx.clearRect(0, 0, w, h);
+          const drawBranch = (x: number, y: number, angle: number, len: number, depth: number) => {
+            if (depth <= 0 || len < 4) return;
+            const ex = x + Math.cos(angle) * len;
+            const ey = y - Math.sin(angle) * len;
+            const t = 1 - depth / 5;
+            const grad = ctx.createLinearGradient(x, y, ex, ey);
+            grad.addColorStop(0, '#8b2500');
+            grad.addColorStop(1, '#ff6040');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = depth * 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(ex, ey);
+            ctx.stroke();
+            drawBranch(ex, ey, angle + 0.4 + Math.random() * 0.3, len * 0.68, depth - 1);
+            drawBranch(ex, ey, angle - 0.4 - Math.random() * 0.3, len * 0.68, depth - 1);
+          };
+          drawBranch(w * 0.5, h * 0.95, Math.PI / 2, h * 0.25, 5);
+        },
+      },
+      {
+        name: 'kelpBlade', w: 128, h: 256, instances: 12,
+        draw: (ctx, w, h) => {
+          ctx.clearRect(0, 0, w, h);
+          // Wide ribbon
+          const grad = ctx.createLinearGradient(0, h, 0, 0);
+          grad.addColorStop(0, '#3a5a10');
+          grad.addColorStop(1, '#6a9a20');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(w * 0.25, h);
+          ctx.quadraticCurveTo(w * 0.1, h * 0.5, w * 0.35, h * 0.05);
+          ctx.lineTo(w * 0.65, h * 0.05);
+          ctx.quadraticCurveTo(w * 0.9, h * 0.5, w * 0.75, h);
+          ctx.closePath();
+          ctx.fill();
+          // Central vein
+          ctx.strokeStyle = '#2a4a08';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(w * 0.5, h * 0.95);
+          ctx.quadraticCurveTo(w * 0.48, h * 0.5, w * 0.5, h * 0.08);
+          ctx.stroke();
+        },
+      },
+      {
+        name: 'seaGrass', w: 256, h: 192, instances: 15,
+        draw: (ctx, w, h) => {
+          ctx.clearRect(0, 0, w, h);
+          const bladeCount = 5 + Math.floor(Math.random() * 3);
+          for (let i = 0; i < bladeCount; i++) {
+            const bx = w * 0.15 + (i / (bladeCount - 1)) * w * 0.7;
+            const tipX = bx + (Math.random() - 0.5) * w * 0.2;
+            const tipY = h * 0.05 + Math.random() * h * 0.15;
+            const grad = ctx.createLinearGradient(0, h, 0, 0);
+            grad.addColorStop(0, '#4a7a10');
+            grad.addColorStop(1, '#9abb30');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 2 + Math.random() * 2;
+            ctx.beginPath();
+            ctx.moveTo(bx, h);
+            ctx.quadraticCurveTo(bx + (Math.random() - 0.5) * 20, h * 0.5, tipX, tipY);
+            ctx.stroke();
+          }
+        },
+      },
+    ];
+
+    // Castle exclusion zone
+    const castleX = this.swimRangeX * 0.7;
+    const castleZ = -this.swimRangeZ * 0.3;
+    const exclusionR = this.swimRangeX * 0.5;
+
+    for (const plant of plantTypes) {
+      // Create canvas texture
+      const canvas = document.createElement('canvas');
+      canvas.width = plant.w;
+      canvas.height = plant.h;
+      const ctx = canvas.getContext('2d')!;
+      plant.draw(ctx, plant.w, plant.h);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.premultiplyAlpha = false;
+
+      // ShaderMaterial
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: this.floraUniforms.uTime,
+          uTex: { value: texture },
+        },
+        vertexShader,
+        fragmentShader,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+
+      // PlaneGeometry — scale to scene size and shift origin to bottom edge
+      const aspect = plant.w / plant.h;
+      const planeH = this.swimRangeY * 0.8; // ~2.4 units tall at full scale
+      const planeW = planeH * aspect;
+      const geo = new THREE.PlaneGeometry(planeW, planeH);
+      // Shift geometry up so bottom edge is at y=0 (sits on floor)
+      geo.translate(0, planeH / 2, 0);
+
+      const mesh = new THREE.InstancedMesh(geo, mat, plant.instances);
+      mesh.renderOrder = 1;
+
+      // Per-instance phase attribute
+      const phases = new Float32Array(plant.instances);
+      const dummy = new THREE.Object3D();
+
+      for (let i = 0; i < plant.instances; i++) {
+        // Rejection sampling to avoid castle
+        let px: number, pz: number;
+        let attempts = 0;
+        do {
+          px = (Math.random() * 2 - 1) * this.swimRangeX * 2.0;
+          pz = -this.swimRangeZ * 1.5 + Math.random() * this.swimRangeZ * 2.0;
+          attempts++;
+        } while (
+          attempts < 50 &&
+          Math.sqrt((px - castleX) ** 2 + (pz - castleZ) ** 2) < exclusionR
+        );
+
+        const scale = 0.5 + Math.random() * 0.5;
+        dummy.position.set(px, floorY, pz);
+        dummy.rotation.set(0, Math.random() * Math.PI * 2, 0);
+        dummy.scale.set(scale, scale, scale);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+
+        phases[i] = Math.random() * Math.PI * 2;
+      }
+
+      geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases, 1));
+      mesh.instanceMatrix.needsUpdate = true;
+
+      this.scene.add(mesh);
+      this.floraMeshes.push(mesh);
+    }
+  }
+
+  initRocks(): void {
+    const floorY = -this.swimRangeY * 1.5;
+    const castleX = this.swimRangeX * 0.7;
+    const castleZ = -this.swimRangeZ * 0.3;
+    const exclusionR = this.swimRangeX * 0.5;
+
+    const variants: { geoFn: () => THREE.BufferGeometry; instances: number; color: number }[] = [
+      { geoFn: () => new THREE.IcosahedronGeometry(1, 1), instances: 10, color: 0x3a3a3a },
+      { geoFn: () => new THREE.DodecahedronGeometry(1, 1), instances: 8, color: 0x4a3a2a },
+      { geoFn: () => new THREE.IcosahedronGeometry(1, 0), instances: 7, color: 0x2a2a2a },
+    ];
+
+    const dummy = new THREE.Object3D();
+
+    for (const variant of variants) {
+      const geo = variant.geoFn();
+      // Displace vertices for organic shapes
+      const posAttr = geo.attributes['position'];
+      for (let i = 0; i < posAttr.count; i++) {
+        posAttr.setXYZ(
+          i,
+          posAttr.getX(i) + (Math.random() - 0.5) * 0.6,
+          posAttr.getY(i) + (Math.random() - 0.5) * 0.6,
+          posAttr.getZ(i) + (Math.random() - 0.5) * 0.6,
+        );
+      }
+      geo.computeVertexNormals();
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: variant.color,
+        roughness: 0.95,
+        metalness: 0.05,
+        flatShading: true,
+      });
+
+      const mesh = new THREE.InstancedMesh(geo, mat, variant.instances);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      for (let i = 0; i < variant.instances; i++) {
+        let px: number, pz: number;
+        let attempts = 0;
+        do {
+          px = (Math.random() * 2 - 1) * this.swimRangeX * 2.0;
+          pz = -this.swimRangeZ * 1.5 + Math.random() * this.swimRangeZ * 2.0;
+          attempts++;
+        } while (
+          attempts < 50 &&
+          Math.sqrt((px - castleX) ** 2 + (pz - castleZ) ** 2) < exclusionR
+        );
+
+        const scale = (0.3 + Math.random() * 1.2) * this.swimRangeY * 0.15;
+        dummy.position.set(px, floorY, pz);
+        dummy.rotation.set(
+          (Math.random() - 0.5) * 0.6,
+          Math.random() * Math.PI * 2,
+          (Math.random() - 0.5) * 0.6,
+        );
+        dummy.scale.setScalar(scale);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      }
+
+      mesh.instanceMatrix.needsUpdate = true;
+      this.scene.add(mesh);
+      this.rockMeshes.push(mesh);
+    }
+  }
+
+  initBubbles(): void {
+    const floorY = -this.swimRangeY * 1.5;
+    const cycleHeight = this.swimRangeY * 2.5;
+    const castleX = this.swimRangeX * 0.7;
+    const castleZ = -this.swimRangeZ * 0.3;
+    const exclusionR = this.swimRangeX * 0.5;
+
+    this.bubbleUniforms = { uTime: { value: 0 } };
+
+    // Canvas texture — radial gradient bubble
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d')!;
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,255,255,0.6)');
+    grad.addColorStop(0.5, 'rgba(180,220,255,0.3)');
+    grad.addColorStop(1, 'rgba(100,180,255,0.0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    const texture = new THREE.CanvasTexture(canvas);
+
+    const s = this.swimRangeY * 0.06;
+    const geo = new THREE.PlaneGeometry(s, s);
+
+    // Emitter groups: 10 groups of 5 bubbles
+    const groupCount = 10;
+    const perGroup = 5;
+    const instanceCount = groupCount * perGroup;
+
+    const aPhase = new Float32Array(instanceCount);
+    const aSpeed = new Float32Array(instanceCount);
+    const aOffsetX = new Float32Array(instanceCount);
+    const aOffsetZ = new Float32Array(instanceCount);
+    const aScale = new Float32Array(instanceCount);
+
+    let idx = 0;
+    for (let g = 0; g < groupCount; g++) {
+      // Pick emitter position with castle exclusion
+      let gx: number, gz: number;
+      let attempts = 0;
+      do {
+        gx = (Math.random() * 2 - 1) * this.swimRangeX * 1.5;
+        gz = -this.swimRangeZ * 1.0 + Math.random() * this.swimRangeZ * 1.5;
+        attempts++;
+      } while (
+        attempts < 50 &&
+        Math.sqrt((gx - castleX) ** 2 + (gz - castleZ) ** 2) < exclusionR
+      );
+
+      for (let b = 0; b < perGroup; b++) {
+        aPhase[idx] = Math.random() * Math.PI * 2;
+        aSpeed[idx] = 0.3 + Math.random() * 0.5;
+        aOffsetX[idx] = gx + (Math.random() - 0.5) * 0.5;
+        aOffsetZ[idx] = gz + (Math.random() - 0.5) * 0.5;
+        aScale[idx] = 0.5 + Math.random() * 1.0;
+        idx++;
+      }
+    }
+
+    geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(aPhase, 1));
+    geo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(aSpeed, 1));
+    geo.setAttribute('aOffsetX', new THREE.InstancedBufferAttribute(aOffsetX, 1));
+    geo.setAttribute('aOffsetZ', new THREE.InstancedBufferAttribute(aOffsetZ, 1));
+    geo.setAttribute('aScale', new THREE.InstancedBufferAttribute(aScale, 1));
+
+    const vertexShader = /* glsl */ `
+      uniform float uTime;
+      attribute float aPhase;
+      attribute float aSpeed;
+      attribute float aOffsetX;
+      attribute float aOffsetZ;
+      attribute float aScale;
+      varying vec2 vUv;
+      varying float vAlpha;
+      varying float vFogDepth;
+
+      void main() {
+        vUv = uv;
+
+        // Cyclic rise
+        float cycleHeight = ${cycleHeight.toFixed(2)};
+        float floorY = ${floorY.toFixed(2)};
+        float t = mod(uTime * aSpeed + aPhase, 6.2832) / 6.2832;
+        float worldY = floorY + t * cycleHeight;
+
+        // Horizontal wobble
+        float wobbleX = sin(uTime * 1.5 + aPhase) * 0.15;
+        float wobbleZ = cos(uTime * 1.1 + aPhase * 0.7) * 0.1;
+
+        // Fade in/out
+        float fadeIn = smoothstep(0.0, 0.1, t);
+        float fadeOut = smoothstep(1.0, 0.85, t);
+        vAlpha = fadeIn * fadeOut;
+
+        // Billboard: extract camera right and up from viewMatrix
+        vec3 camRight = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+        vec3 camUp = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+
+        float s = aScale;
+        vec3 worldPos = vec3(aOffsetX + wobbleX, worldY, aOffsetZ + wobbleZ);
+        vec3 vertexPos = worldPos + camRight * position.x * s + camUp * position.y * s;
+
+        vec4 mvPos = viewMatrix * vec4(vertexPos, 1.0);
+        vFogDepth = -mvPos.z;
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `;
+
+    const fragmentShader = /* glsl */ `
+      uniform sampler2D uTex;
+      varying vec2 vUv;
+      varying float vAlpha;
+      varying float vFogDepth;
+
+      void main() {
+        vec4 texColor = texture2D(uTex, vUv);
+        if (texColor.a < 0.05) discard;
+
+        float fogDensity = 0.025;
+        float fogFactor = exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+        fogFactor = clamp(fogFactor, 0.0, 1.0);
+        vec3 fogColor = vec3(0.024, 0.102, 0.157);
+        vec3 finalColor = mix(fogColor, texColor.rgb, fogFactor);
+
+        gl_FragColor = vec4(finalColor, texColor.a * vAlpha);
+      }
+    `;
+
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: this.bubbleUniforms.uTime,
+        uTex: { value: texture },
+      },
+      vertexShader,
+      fragmentShader,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const mesh = new THREE.InstancedMesh(geo, mat, instanceCount);
+    mesh.renderOrder = 2;
+
+    // Set all instance matrices to identity
+    const identity = new THREE.Matrix4();
+    for (let i = 0; i < instanceCount; i++) {
+      mesh.setMatrixAt(i, identity);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+
+    this.scene.add(mesh);
+    this.bubbleMesh = mesh;
+  }
+
+  initFishFlocks(): void {
+    // Fish flocks removed
+  }
+
   update(delta: number, elapsed: number): void {
     if (!this.positions || !this.speeds || !this.phases) return;
     const positions = this.positions.array as Float32Array;
@@ -338,6 +787,8 @@ float _caustics(vec2 uv) {
     this.positions.needsUpdate = true;
 
     if (this.floorCausticUniforms) this.floorCausticUniforms.uTime.value = elapsed;
+    if (this.floraUniforms) this.floraUniforms.uTime.value = elapsed;
+    if (this.bubbleUniforms) this.bubbleUniforms.uTime.value = elapsed;
 
     // Pulsing emissive glow on castle meshes
     for (const mesh of this.castleMeshes) {
@@ -432,6 +883,37 @@ float _caustics(vec2 uv) {
       this.orbGroup.removeFromParent();
       this.orbGroup = null;
     }
+
+    // Dispose sea flora instanced meshes
+    for (const fm of this.floraMeshes) {
+      fm.geometry.dispose();
+      const mat = fm.material as THREE.ShaderMaterial;
+      if (mat.uniforms['uTex']?.value) mat.uniforms['uTex'].value.dispose();
+      mat.dispose();
+      fm.removeFromParent();
+    }
+    this.floraMeshes = [];
+    this.floraUniforms = null;
+
+    // Dispose rocks
+    for (const rm of this.rockMeshes) {
+      rm.geometry.dispose();
+      (rm.material as THREE.Material).dispose();
+      rm.removeFromParent();
+    }
+    this.rockMeshes = [];
+
+    // Dispose bubbles
+    if (this.bubbleMesh) {
+      this.bubbleMesh.geometry.dispose();
+      const bMat = this.bubbleMesh.material as THREE.ShaderMaterial;
+      if (bMat.uniforms['uTex']?.value) bMat.uniforms['uTex'].value.dispose();
+      bMat.dispose();
+      this.bubbleMesh.removeFromParent();
+      this.bubbleMesh = null;
+    }
+    this.bubbleUniforms = null;
+
 
     this.castleMeshes = [];
     this.orbData = [];

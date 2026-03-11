@@ -398,7 +398,9 @@ export class HeroEgg3dComponent implements OnDestroy {
       this.particles.initOceanFloor(loader);
       this.particles.initMountainRange(loader);
       this.particles.initFloorProps(loader, (mesh) => this.postProcessing?.addBloomMesh(mesh));
-
+      this.particles.initSeaFlora();
+      this.particles.initRocks();
+      this.particles.initBubbles();
       // Tuning panel (activate via ?tune_3d=true)
       if (TUNE_3D && this.postProcessing && whaleMaterial) {
         this.tuningPanel = new WhaleTuningPanel({
