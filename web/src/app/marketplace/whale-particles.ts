@@ -26,6 +26,9 @@ export class WhaleParticles {
   private rockMeshes: THREE.InstancedMesh[] = [];
   private bubbleMesh: THREE.InstancedMesh | null = null;
   private bubbleUniforms: { uTime: { value: number } } | null = null;
+  private fishGroup: THREE.Group | null = null;
+  private fishMixer: THREE.AnimationMixer | null = null;
+  private fishBasePos = new THREE.Vector3();
 
 
   constructor(
@@ -760,8 +763,65 @@ float _caustics(vec2 uv) {
     this.bubbleMesh = mesh;
   }
 
-  initFishFlocks(): void {
-    // Fish flocks removed
+  initFishFlocks(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    gltfLoader.load('assets/models/fish_particle.glb', (gltf) => {
+      const group = gltf.scene;
+      this.fishGroup = group;
+
+      // The model spans roughly ±1.7 units — scale to fill the swim area
+      const bbox = new THREE.Box3().setFromObject(group);
+      const modelSize = new THREE.Vector3();
+      bbox.getSize(modelSize);
+      const targetSize = this.swimRangeX * 3.0;
+      const s = targetSize / modelSize.x;
+      group.scale.set(s, s, s);
+
+      // Position deep in the scene — fog blurs the low-poly geometry
+      const center = new THREE.Vector3();
+      bbox.getCenter(center);
+      center.multiplyScalar(s);
+      group.position.set(-center.x, -center.y, -center.z - this.swimRangeZ * 1.5);
+      this.fishBasePos.copy(group.position);
+
+      this.scene.add(group);
+
+      // Play baked animation — make it loop seamlessly
+      if (gltf.animations.length > 0) {
+        const clip = gltf.animations[0];
+
+        // Blend last 2s of keyframes back toward the first keyframe
+        // so end pose matches start pose — seamless LoopRepeat
+        const blendDuration = 2.0;
+        const duration = clip.duration;
+        for (const track of clip.tracks) {
+          const times = track.times;
+          const values = track.values;
+          const stride = track.getValueSize();
+          const startVals = values.slice(0, stride);
+          const isQuat = track.name.endsWith('.quaternion');
+
+          for (let i = 0; i < times.length; i++) {
+            if (times[i] >= duration - blendDuration) {
+              const alpha = (times[i] - (duration - blendDuration)) / blendDuration;
+              const off = i * stride;
+              for (let j = 0; j < stride; j++) {
+                values[off + j] = values[off + j] * (1 - alpha) + startVals[j] * alpha;
+              }
+              if (isQuat) {
+                let len = 0;
+                for (let j = 0; j < 4; j++) len += values[off + j] ** 2;
+                len = Math.sqrt(len);
+                for (let j = 0; j < 4; j++) values[off + j] /= len;
+              }
+            }
+          }
+        }
+
+        this.fishMixer = new THREE.AnimationMixer(group);
+        const action = this.fishMixer.clipAction(clip);
+        action.play();
+      }
+    });
   }
 
   update(delta: number, elapsed: number): void {
@@ -789,6 +849,20 @@ float _caustics(vec2 uv) {
     if (this.floorCausticUniforms) this.floorCausticUniforms.uTime.value = elapsed;
     if (this.floraUniforms) this.floraUniforms.uTime.value = elapsed;
     if (this.bubbleUniforms) this.bubbleUniforms.uTime.value = elapsed;
+    if (this.fishMixer) this.fishMixer.update(delta);
+
+    // Fish flock group — slow rotation, drift, and bob
+    if (this.fishGroup) {
+      // Slow Y rotation — school circling through the deep
+      this.fishGroup.rotation.y = elapsed * 0.03;
+
+      // Gentle horizontal drift — school migrating across background
+      this.fishGroup.position.x = this.fishBasePos.x + Math.sin(elapsed * 0.04) * this.swimRangeX * 0.8;
+      this.fishGroup.position.z = this.fishBasePos.z + Math.cos(elapsed * 0.03) * this.swimRangeZ * 0.3;
+
+      // Subtle vertical bob — riding a current
+      this.fishGroup.position.y = this.fishBasePos.y + Math.sin(elapsed * 0.15) * this.swimRangeY * 0.15;
+    }
 
     // Pulsing emissive glow on castle meshes
     for (const mesh of this.castleMeshes) {
@@ -914,6 +988,26 @@ float _caustics(vec2 uv) {
     }
     this.bubbleUniforms = null;
 
+    // Dispose fish flock
+    if (this.fishGroup) {
+      this.fishGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      this.fishGroup.removeFromParent();
+      this.fishGroup = null;
+    }
+    if (this.fishMixer) {
+      this.fishMixer.stopAllAction();
+      this.fishMixer = null;
+    }
 
     this.castleMeshes = [];
     this.orbData = [];
