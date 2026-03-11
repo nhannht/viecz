@@ -300,7 +300,7 @@ export class HeroEgg3dComponent implements OnDestroy {
       // Compute swim ranges from actual frustum
       const swimRangeY = DESIRED_HALF_HEIGHT;
       const swimRangeX = DESIRED_HALF_HEIGHT * camera.aspect;
-      const swimRangeZ = camZ * 0.7;
+      const swimRangeZ = camZ * 2.5;
       this.swimming.setSwimRange(swimRangeX, swimRangeY, swimRangeZ);
 
       console.log(`[whale:camera] camZ=${camZ.toFixed(2)} swimRangeX=${swimRangeX.toFixed(2)} swimRangeY=${swimRangeY.toFixed(2)} swimRangeZ=${swimRangeZ.toFixed(2)} startPos=(${this.swimming.whalePos.x.toFixed(2)},${this.swimming.whalePos.y.toFixed(2)},${this.swimming.whalePos.z.toFixed(2)})`);
@@ -383,6 +383,8 @@ export class HeroEgg3dComponent implements OnDestroy {
         this.tuningPanel = new WhaleTuningPanel({
           pp: this.postProcessing,
           renderer,
+          scene,
+          camera,
           keyLight,
           modelGroup,
           swimming: this.swimming,

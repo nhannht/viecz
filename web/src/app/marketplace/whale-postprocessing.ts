@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } from 'postprocessing';
+import { DepthOfFieldEffect, EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } from 'postprocessing';
 import { GodraysPass } from 'three-good-godrays';
 
 export class WhalePostProcessing {
   private composer: EffectComposer;
   readonly bloomEffect: SelectiveBloomEffect;
   readonly godraysPass: GodraysPass;
+  readonly dofEffect: DepthOfFieldEffect;
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -27,6 +28,14 @@ export class WhalePostProcessing {
       radius: 0.85,
     });
     this.composer.addPass(new EffectPass(camera, this.bloomEffect));
+
+    // Depth of field — cinematic bokeh, focus on mid-range whale
+    this.dofEffect = new DepthOfFieldEffect(camera, {
+      focusDistance: 8.0,
+      focusRange: 10.0,
+      bokehScale: 2.0,
+    });
+    this.composer.addPass(new EffectPass(camera, this.dofEffect));
 
     // God rays — shadow-map raymarched volumetric light
     this.godraysPass = new GodraysPass(godrayLight, camera, {

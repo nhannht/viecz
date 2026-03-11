@@ -117,18 +117,21 @@ float _caustics(vec2 uv) {
     gltfLoader.load('assets/models/sand_dunes.glb', (gltf) => {
       const floorGroup = gltf.scene;
 
-      // Scale and position to fit the swim area
+      // Scale floor to cover the full swim volume (deep Z corridor)
       const bbox = new THREE.Box3().setFromObject(floorGroup);
       const modelWidth = bbox.max.x - bbox.min.x;
-      const desiredWidth = this.swimRangeX * 4.0;
-      const s = desiredWidth / modelWidth;
-      floorGroup.scale.set(s, s, s);
+      const modelDepth = bbox.max.z - bbox.min.z;
+      const sx = (this.swimRangeX * 4.0) / modelWidth;
+      const sz = (this.swimRangeZ * 4.0) / modelDepth;
+      const sy = sx; // keep Y proportional to X for natural dune height
+      floorGroup.scale.set(sx, sy, sz);
       floorGroup.position.y = -this.swimRangeY;
 
       // Inject caustics onto every mesh material
       floorGroup.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
+          mesh.receiveShadow = true;
           this.floorMesh = mesh;
           const mat = mesh.material as THREE.MeshStandardMaterial;
           this.floorMaterial = mat;

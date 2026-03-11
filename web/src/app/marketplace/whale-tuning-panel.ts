@@ -13,6 +13,8 @@ export const TUNE_3D =
 export interface WhaleTuningDeps {
   pp: WhalePostProcessing;
   renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
   keyLight: THREE.DirectionalLight;
   modelGroup: THREE.Group;
   swimming: WhaleSwimming;
@@ -41,6 +43,12 @@ export class WhaleTuningPanel {
     raymarchSteps: 60,
     blur: true,
     gammaCorrection: true,
+  };
+
+  private dofParams = {
+    focusDistance: 8.0,
+    focusRange: 10.0,
+    bokehScale: 2.0,
   };
 
   private rendererParams = {
@@ -92,6 +100,7 @@ export class WhaleTuningPanel {
     this.buildSwimmingFolder();
     this.buildOceanFloorFolder();
     this.buildBloomFolder();
+    this.buildDofFolder();
     this.buildGodraysFolder();
     this.buildRendererFolder();
     this.buildLightFolder();
@@ -120,6 +129,11 @@ export class WhaleTuningPanel {
     this.whaleModelParams.metalness = whaleMaterial.metalness;
     this.whaleModelParams.envMapIntensity = whaleMaterial.envMapIntensity ?? 1.0;
     this.whaleModelParams.emissiveColorHex = '#' + whaleMaterial.emissive.getHexString();
+
+    const dof = pp.dofEffect;
+    this.dofParams.focusDistance = dof.cocMaterial.focusDistance;
+    this.dofParams.focusRange = dof.cocMaterial.focusRange;
+    this.dofParams.bokehScale = dof.bokehScale;
 
     this.swimmingParams.swimSpeed = swimming.swimSpeed;
     this.swimmingParams.turnLerp = swimming.TURN_LERP;
@@ -207,6 +221,79 @@ export class WhaleTuningPanel {
     });
     f.add(this.bloomParams, 'radius', 0, 1, 0.01).name('radius (mipmap)').onChange((v: number) => {
       (bloom.mipmapBlurPass as unknown as { radius: number }).radius = v;
+    });
+  }
+
+  private buildDofFolder(): void {
+    const dof = this.deps.pp.dofEffect;
+    const { scene, camera, swimming } = this.deps;
+    const f = this.gui.addFolder('Depth of Field');
+
+    // Debug zone planes: colored strips across the floor
+    const halfX = swimming.swimRangeX * 1.5;
+    const floorY = -swimming.swimRangeY + 0.08;
+    const STRIP_HEIGHT = 0.15; // thickness of each strip in Z
+
+    const makeStrip = (color: number, opacity = 0.8): THREE.Mesh => {
+      const geo = new THREE.PlaneGeometry(halfX * 2, STRIP_HEIGHT);
+      const mat = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity, side: THREE.DoubleSide,
+        depthTest: false,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2; // lay flat on floor
+      mesh.position.y = floorY;
+      mesh.renderOrder = 999;
+      mesh.visible = true;
+      scene.add(mesh);
+      return mesh;
+    };
+
+    const focusStrip = makeStrip(0x00ff00, 0.9);   // green — exact focus point
+    const nearSharp = makeStrip(0xffff00, 0.6);     // yellow — near edge of sharp zone
+    const farSharp = makeStrip(0xffff00, 0.6);      // yellow — far edge of sharp zone
+    const nearBlur = makeStrip(0xff4400, 0.5);      // red — near max blur
+    const farBlur = makeStrip(0xff4400, 0.5);       // red — far max blur
+    const debugStrips = [focusStrip, nearSharp, farSharp, nearBlur, farBlur];
+
+    const updateLines = () => {
+      const camZ = camera.position.z;
+      // focusDistance and focusRange are in world units (distance from camera)
+      const fd = this.dofParams.focusDistance;
+      const fr = this.dofParams.focusRange;
+
+      // World Z positions (camera looks toward -Z)
+      focusStrip.position.z = camZ - fd;
+      nearSharp.position.z = camZ - (fd - fr);
+      farSharp.position.z = camZ - (fd + fr);
+      nearBlur.position.z = camZ - (fd - fr * 2);
+      farBlur.position.z = camZ - (fd + fr * 2);
+    };
+
+    // Show immediately so user sees zones on load
+    updateLines();
+
+    let showLines = true;
+    f.add({ showZones: true }, 'showZones').name('show focus zones').onChange((v: boolean) => {
+      showLines = v;
+      debugStrips.forEach(s => s.visible = v);
+    });
+
+    const onSliderChange = (setter: () => void) => {
+      return () => {
+        setter();
+        if (showLines) updateLines();
+      };
+    };
+
+    f.add(this.dofParams, 'focusDistance', 0, 30, 0.1).onChange(onSliderChange(() => {
+      dof.cocMaterial.focusDistance = this.dofParams.focusDistance;
+    }));
+    f.add(this.dofParams, 'focusRange', 0, 20, 0.1).onChange(onSliderChange(() => {
+      dof.cocMaterial.focusRange = this.dofParams.focusRange;
+    }));
+    f.add(this.dofParams, 'bokehScale', 0, 10, 0.1).onChange((v: number) => {
+      dof.bokehScale = v;
     });
   }
 
@@ -328,6 +415,11 @@ export class WhaleTuningPanel {
       `luminanceThreshold: ${this.bloomParams.luminanceThreshold}`,
       `luminanceSmoothing: ${this.bloomParams.luminanceSmoothing}`,
       `radius: ${this.bloomParams.radius}`,
+      '',
+      '--- Depth of Field ---',
+      `focusDistance: ${this.dofParams.focusDistance}`,
+      `focusRange: ${this.dofParams.focusRange}`,
+      `bokehScale: ${this.dofParams.bokehScale}`,
       '',
       '--- God Rays ---',
       `density: ${this.godraysParams.density}`,
