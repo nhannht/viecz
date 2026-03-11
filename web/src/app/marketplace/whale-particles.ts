@@ -16,6 +16,11 @@ export class WhaleParticles {
   floorCausticUniforms: { uTime: { value: number }; uCausticColor: { value: THREE.Color }; uCausticStrength: { value: number }; uEdgeFadeStart: { value: number } } | null = null;
   private mountainGroups: THREE.Group[] = [];
   private propsGroup: THREE.Group | null = null;
+  private castleMeshes: THREE.Mesh[] = [];
+  private castleSpotLight: THREE.SpotLight | null = null;
+  private castleCenter = new THREE.Vector3();
+  private orbGroup: THREE.Group | null = null;
+  private orbData: { mesh: THREE.Mesh; radius: number; speed: number; yOffset: number; phase: number }[] = [];
 
 
   constructor(
@@ -242,23 +247,69 @@ float _caustics(vec2 uv) {
       group.position.set(px, py, pz);
       group.rotation.y = -Math.PI / 2; // 90° clockwise
 
-      // Add subtle emissive glow to make the castle shine underwater
+      this.castleCenter.set(px, py + targetHeight * 0.5, pz);
+
+      // Add warm gold emissive glow to make the castle shine underwater
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           const mat = mesh.material as THREE.MeshStandardMaterial;
-          mat.emissive = new THREE.Color(0x88aacc);
+          mat.emissive = new THREE.Color(0xddaa44);
           mat.emissiveIntensity = 0.15;
+          this.castleMeshes.push(mesh);
           if (addBloomMesh) addBloomMesh(mesh);
         }
       });
 
-      // Point light to illuminate the castle
-      const light = new THREE.PointLight(0x99bbdd, 80, targetHeight * 4, 1.0);
+      // Warm amber point light to illuminate the castle
+      const light = new THREE.PointLight(0xffcc66, 80, targetHeight * 4, 1.0);
       light.position.set(px, py + targetHeight * 0.7, pz + targetHeight * 0.3);
       this.scene.add(light);
+
+      // Spotlight beam from above
+      const spotTarget = new THREE.Object3D();
+      spotTarget.position.set(px, py + targetHeight * 0.3, pz);
+      this.scene.add(spotTarget);
+
+      const spotLight = new THREE.SpotLight(0xffbb44, 120);
+      spotLight.position.set(px, py + targetHeight * 2, pz);
+      spotLight.target = spotTarget;
+      spotLight.angle = 0.4;
+      spotLight.penumbra = 0.8;
+      spotLight.distance = targetHeight * 5;
+      spotLight.decay = 1.5;
+      this.scene.add(spotLight);
+      this.castleSpotLight = spotLight;
+
+      // Floating light orbs
+      const orbGroup = new THREE.Group();
+      const orbCount = 8;
+      for (let i = 0; i < orbCount; i++) {
+        const geo = new THREE.SphereGeometry(0.1, 8, 8);
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0x000000,
+          emissive: new THREE.Color(0xffaa22),
+          emissiveIntensity: 2.0,
+          transparent: true,
+          opacity: 0.9,
+          blending: THREE.AdditiveBlending,
+        });
+        const orb = new THREE.Mesh(geo, mat);
+        orbGroup.add(orb);
+        if (addBloomMesh) addBloomMesh(orb);
+
+        this.orbData.push({
+          mesh: orb,
+          radius: (0.15 + Math.random() * 0.25) * targetHeight,
+          speed: 0.2 + Math.random() * 0.4,
+          yOffset: (-0.15 + Math.random() * 0.5) * targetHeight,
+          phase: Math.random() * Math.PI * 2,
+        });
+      }
+      this.scene.add(orbGroup);
+      this.orbGroup = orbGroup;
 
       this.scene.add(group);
     });
@@ -287,6 +338,22 @@ float _caustics(vec2 uv) {
     this.positions.needsUpdate = true;
 
     if (this.floorCausticUniforms) this.floorCausticUniforms.uTime.value = elapsed;
+
+    // Pulsing emissive glow on castle meshes
+    for (const mesh of this.castleMeshes) {
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 0.1 + 0.12 * Math.sin(elapsed * 0.5);
+    }
+
+    // Floating orb circular orbits with vertical bob
+    for (const orb of this.orbData) {
+      const angle = elapsed * orb.speed + orb.phase;
+      orb.mesh.position.set(
+        this.castleCenter.x + Math.cos(angle) * orb.radius,
+        this.castleCenter.y + orb.yOffset + Math.sin(elapsed * 0.8 + orb.phase) * 0.15,
+        this.castleCenter.z + Math.sin(angle) * orb.radius,
+      );
+    }
   }
 
   dispose(): void {
@@ -341,5 +408,32 @@ float _caustics(vec2 uv) {
       });
       mg.removeFromParent();
     }
+
+    // Dispose castle spotlight + target
+    if (this.castleSpotLight) {
+      this.castleSpotLight.target.removeFromParent();
+      this.castleSpotLight.removeFromParent();
+      this.castleSpotLight = null;
+    }
+
+    // Dispose floating orbs
+    if (this.orbGroup) {
+      this.orbGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      this.orbGroup.removeFromParent();
+      this.orbGroup = null;
+    }
+
+    this.castleMeshes = [];
+    this.orbData = [];
   }
 }
