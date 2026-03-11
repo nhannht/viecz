@@ -251,19 +251,19 @@ export class HeroEgg3dComponent implements OnDestroy {
 
     // Exponential fog — objects fade into deep ocean at distance
     const fogColor = new THREE.Color(0x061a28);
-    scene.fog = new THREE.FogExp2(fogColor, 0.04);
+    scene.fog = new THREE.FogExp2(fogColor, 0.025);
 
     scene.add(new THREE.AmbientLight(0x303050, 0.6));
-    const keyLight = new THREE.DirectionalLight(0xddeeff, 1.5);
-    keyLight.position.set(2, 4, 3);
+    const keyLight = new THREE.DirectionalLight(0xddeeff, 2.0);
+    keyLight.position.set(-3, 8, 2); // high & left — diagonal shafts
     keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.mapSize.set(2048, 2048);
     keyLight.shadow.camera.near = 0.1;
-    keyLight.shadow.camera.far = 20;
-    keyLight.shadow.camera.left = -8;
-    keyLight.shadow.camera.right = 8;
-    keyLight.shadow.camera.top = 8;
-    keyLight.shadow.camera.bottom = -8;
+    keyLight.shadow.camera.far = 30;
+    keyLight.shadow.camera.left = -12;
+    keyLight.shadow.camera.right = 12;
+    keyLight.shadow.camera.top = 12;
+    keyLight.shadow.camera.bottom = -12;
     scene.add(keyLight);
     const fillLight = new THREE.DirectionalLight(0x4466aa, 0.3);
     fillLight.position.set(-2, -1, -2);
@@ -396,6 +396,8 @@ export class HeroEgg3dComponent implements OnDestroy {
       this.particles = new WhaleParticles(scene, swimRangeX, swimRangeY, swimRangeZ);
       this.particles.initParticles();
       this.particles.initOceanFloor(loader);
+      this.particles.initShipwreck(loader);
+      this.particles.initBuddha(loader);
 
       // Tuning panel (activate via ?tune_3d=true)
       if (TUNE_3D && this.postProcessing && whaleMaterial) {

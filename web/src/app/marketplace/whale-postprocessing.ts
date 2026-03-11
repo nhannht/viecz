@@ -38,14 +38,16 @@ export class WhalePostProcessing {
     this.composer.addPass(new EffectPass(camera, this.dofEffect));
 
     // God rays — shadow-map raymarched volumetric light
+    // gammaCorrection: false — EffectPass already handles sRGB encoding;
+    // double-encoding causes overbright/washed-out look on first load
     this.godraysPass = new GodraysPass(godrayLight, camera, {
-      density: 0.0247,
-      maxDensity: 0.5,
+      density: 0.08,
+      maxDensity: 0.6,
       distanceAttenuation: 2,
-      color: new THREE.Color(0x20415a),
+      color: new THREE.Color(0x88ccff),
       raymarchSteps: 60,
       blur: true,
-      gammaCorrection: true,
+      gammaCorrection: false,
     });
     this.composer.addPass(this.godraysPass);
   }

@@ -87,13 +87,24 @@ export class WhaleTuningPanel {
     colorHex: '#1a2a30',
     normalScale: 1.2,
     causticColorHex: '#44bbcc',
-    causticStrength: 0.35,
+    causticStrength: 0.7,
   };
 
   private fogParams = {
     fogDensity: 0.04,
     fogColorHex: '#061a28',
     edgeFadeStart: 0.55,
+  };
+
+  gateLightParams = {
+    pointIntensity: 150,
+    pointDistance: 0,
+    pointDecay: 1.0,
+    spotIntensity: 200,
+    spotAngle: 0.5,
+    spotPenumbra: 0.6,
+    spotDistance: 0,
+    spotDecay: 1.0,
   };
 
   constructor(private deps: WhaleTuningDeps) {
@@ -111,6 +122,7 @@ export class WhaleTuningPanel {
     this.buildGodraysFolder();
     this.buildRendererFolder();
     this.buildLightFolder();
+    this.buildGateLightFolder();
     this.buildActionsFolder();
   }
 
@@ -415,6 +427,49 @@ export class WhaleTuningPanel {
       cam.top = v;
       cam.bottom = -v;
       cam.updateProjectionMatrix();
+    });
+  }
+
+  private buildGateLightFolder(): void {
+    const pl = this.deps.particles.gatePointLight;
+    const sl = this.deps.particles.gateSpotLight;
+    if (!pl || !sl) return;
+
+    this.gateLightParams.pointIntensity = pl.intensity;
+    this.gateLightParams.pointDistance = pl.distance;
+    this.gateLightParams.pointDecay = pl.decay;
+    this.gateLightParams.spotIntensity = sl.intensity;
+    this.gateLightParams.spotAngle = sl.angle;
+    this.gateLightParams.spotPenumbra = sl.penumbra;
+    this.gateLightParams.spotDistance = sl.distance;
+    this.gateLightParams.spotDecay = sl.decay;
+
+    const f = this.gui.addFolder('Gate Lights');
+
+    f.add(this.gateLightParams, 'pointIntensity', 0, 200, 1).name('Point intensity').onChange((v: number) => {
+      pl.intensity = v;
+    });
+    f.add(this.gateLightParams, 'pointDistance', 0, 100, 0.5).name('Point distance').onChange((v: number) => {
+      pl.distance = v;
+    });
+    f.add(this.gateLightParams, 'pointDecay', 0, 5, 0.1).name('Point decay').onChange((v: number) => {
+      pl.decay = v;
+    });
+
+    f.add(this.gateLightParams, 'spotIntensity', 0, 500, 1).name('Spot intensity').onChange((v: number) => {
+      sl.intensity = v;
+    });
+    f.add(this.gateLightParams, 'spotAngle', 0.05, 1.5, 0.01).name('Spot angle').onChange((v: number) => {
+      sl.angle = v;
+    });
+    f.add(this.gateLightParams, 'spotPenumbra', 0, 1, 0.01).name('Spot penumbra').onChange((v: number) => {
+      sl.penumbra = v;
+    });
+    f.add(this.gateLightParams, 'spotDistance', 0, 100, 0.5).name('Spot distance').onChange((v: number) => {
+      sl.distance = v;
+    });
+    f.add(this.gateLightParams, 'spotDecay', 0, 5, 0.1).name('Spot decay').onChange((v: number) => {
+      sl.decay = v;
     });
   }
 

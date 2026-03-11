@@ -13,6 +13,10 @@ export class WhaleParticles {
   private floorMesh: THREE.Mesh | null = null;
   floorMaterial: THREE.MeshStandardMaterial | null = null;
   floorCausticUniforms: { uTime: { value: number }; uCausticColor: { value: THREE.Color }; uCausticStrength: { value: number }; uEdgeFadeStart: { value: number } } | null = null;
+  private shipwreckGroup: THREE.Group | null = null;
+  private buddhaGroup: THREE.Group | null = null;
+  gatePointLight: THREE.PointLight | null = null;
+  gateSpotLight: THREE.SpotLight | null = null;
 
 
   constructor(
@@ -74,7 +78,7 @@ export class WhaleParticles {
     this.floorCausticUniforms = {
       uTime: { value: 0 },
       uCausticColor: { value: new THREE.Color(0x44bbcc) },
-      uCausticStrength: { value: 0.35 },
+      uCausticStrength: { value: 0.7 },
       uEdgeFadeStart: { value: 0.55 },
     };
     const causticUniforms = this.floorCausticUniforms;
@@ -179,6 +183,98 @@ float _caustics(vec2 uv) {
     });
   }
 
+  initShipwreck(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    gltfLoader.load('assets/models/shipwreck.glb', (gltf) => {
+      const group = gltf.scene;
+      this.shipwreckGroup = group;
+
+      // Scale large — this is a full ship wreck as background scenery
+      const bbox = new THREE.Box3().setFromObject(group);
+      const modelWidth = bbox.max.x - bbox.min.x;
+      const targetWidth = this.swimRangeX * 2.5;
+      const s = targetWidth / modelWidth;
+      group.scale.set(s, s, s);
+
+      // Place on the ocean floor, visible but partially fogged
+      group.position.set(
+        this.swimRangeX * 0.6,            // offset right of center
+        -this.swimRangeY * 0.5,           // resting on the floor
+        -this.swimRangeZ * 0.4,           // not too far — fog eats anything beyond ~1x
+      );
+
+      // Slight tilt — ship listing to port as it rests on the seabed
+      group.rotation.set(0.1, -0.6, 0.15);
+
+      // Darken materials for underwater look, enable shadows
+      group.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
+          if (mat.color) mat.color.multiplyScalar(0.25);
+          mat.roughness = 0.9;
+          mat.metalness = 0.1;
+        }
+      });
+
+      this.scene.add(group);
+    });
+  }
+
+  initBuddha(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    gltfLoader.load('assets/models/buddha_statue.glb', (gltf) => {
+      const group = gltf.scene;
+      this.buddhaGroup = group;
+
+      const bbox = new THREE.Box3().setFromObject(group);
+      const modelHeight = bbox.max.y - bbox.min.y;
+      const targetHeight = this.swimRangeY * 2.5;
+      const s = targetHeight / modelHeight;
+      group.scale.set(s, s, s);
+
+      // Far back, feet on floor
+      const scaledMinY = bbox.min.y * s;
+      const bx = this.swimRangeX * 0.7;
+      const by = -this.swimRangeY - scaledMinY;
+      const bz = -this.swimRangeZ * 1.0;
+      group.position.set(bx, by, bz);
+      group.rotation.set(0, 0, 0);
+
+      // Keep original textures, barely darken
+      group.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
+          if (mat.color) mat.color.set(0x886633);
+          // Boost emissive so it glows through fog
+          mat.emissive = new THREE.Color(0x332200);
+          mat.emissiveIntensity = 0.3;
+        }
+      });
+
+      // Strong point light to illuminate the statue
+      this.gatePointLight = new THREE.PointLight(0x88ccff, 150, targetHeight * 5, 1.0);
+      this.gatePointLight.position.set(bx, by + targetHeight * 0.6, bz + targetHeight * 0.4);
+      this.scene.add(this.gatePointLight);
+
+      // Spotlight from above
+      this.gateSpotLight = new THREE.SpotLight(0xaaddff, 200);
+      this.gateSpotLight.position.set(bx, by + targetHeight + 5, bz);
+      this.gateSpotLight.target.position.set(bx, by + targetHeight * 0.4, bz);
+      this.gateSpotLight.angle = 0.5;
+      this.gateSpotLight.penumbra = 0.6;
+      this.gateSpotLight.distance = targetHeight * 4;
+      this.gateSpotLight.decay = 1.0;
+      this.scene.add(this.gateSpotLight);
+      this.scene.add(this.gateSpotLight.target);
+
+      this.scene.add(group);
+    });
+  }
+
   update(delta: number, elapsed: number): void {
     if (!this.positions || !this.speeds || !this.phases) return;
     const positions = this.positions.array as Float32Array;
@@ -214,5 +310,25 @@ float _caustics(vec2 uv) {
       this.floorMesh.geometry.dispose();
       this.floorMesh.removeFromParent();
     }
+    const disposeGroup = (group: THREE.Group | null) => {
+      if (!group) return;
+      group.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      group.removeFromParent();
+    };
+    disposeGroup(this.shipwreckGroup);
+    disposeGroup(this.buddhaGroup);
+    this.gatePointLight?.removeFromParent();
+    this.gateSpotLight?.target.removeFromParent();
+    this.gateSpotLight?.removeFromParent();
   }
 }
