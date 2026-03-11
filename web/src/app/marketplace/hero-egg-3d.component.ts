@@ -266,11 +266,6 @@ export class HeroEgg3dComponent implements OnDestroy {
     // Post-processing pipeline (selective bloom + god rays)
     this.postProcessing = new WhalePostProcessing(renderer, scene, camera, keyLight);
 
-    // Tuning panel (activate via ?tune_3d=true)
-    if (TUNE_3D) {
-      this.tuningPanel = new WhaleTuningPanel(this.postProcessing, renderer, keyLight);
-    }
-
     const onResize = () => {
       const rw = container.clientWidth;
       const rh = container.clientHeight;
@@ -310,12 +305,15 @@ export class HeroEgg3dComponent implements OnDestroy {
 
       console.log(`[whale:camera] camZ=${camZ.toFixed(2)} swimRangeX=${swimRangeX.toFixed(2)} swimRangeY=${swimRangeY.toFixed(2)} swimRangeZ=${swimRangeZ.toFixed(2)} startPos=(${this.swimming.whalePos.x.toFixed(2)},${this.swimming.whalePos.y.toFixed(2)},${this.swimming.whalePos.z.toFixed(2)})`);
 
+      let whaleMaterial: THREE.MeshStandardMaterial | null = null;
       gltf.scene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
-          mesh.receiveShadow = true;
+          mesh.receiveShadow = false;
           const mat = mesh.material as THREE.MeshStandardMaterial;
+          if (!whaleMaterial) whaleMaterial = mat;
+          mat.emissiveIntensity = 20;
           if (mat.emissiveIntensity > 1.0) {
             child.layers.enable(BLOOM_LAYER);
             this.postProcessing?.addBloomMesh(mesh);
@@ -324,7 +322,7 @@ export class HeroEgg3dComponent implements OnDestroy {
       });
 
       modelGroup.add(gltf.scene);
-      modelGroup.scale.set(6, 6, 6);
+      modelGroup.scale.set(20, 20, 20);
       scene.add(modelGroup);
 
       // Animations
@@ -380,6 +378,19 @@ export class HeroEgg3dComponent implements OnDestroy {
       this.particles.initParticles();
       this.particles.initOceanFloor();
 
+      // Tuning panel (activate via ?tune_3d=true)
+      if (TUNE_3D && this.postProcessing && whaleMaterial) {
+        this.tuningPanel = new WhaleTuningPanel({
+          pp: this.postProcessing,
+          renderer,
+          keyLight,
+          modelGroup,
+          swimming: this.swimming,
+          particles: this.particles,
+          whaleMaterial,
+        });
+      }
+
       // Debug
       if (DEBUG_3D) {
         this.debugTrail = new WhaleDebugTrail();
@@ -409,6 +420,15 @@ export class HeroEgg3dComponent implements OnDestroy {
       this.animationId = requestAnimationFrame(animate);
       const delta = this.clock.getDelta();
       const elapsed = this.clock.elapsedTime;
+
+      // Pause: skip simulation but still render
+      if (this.debugGui?.params.paused || this.tuningPanel?.paused) {
+        this.postProcessing?.render();
+        if (DEBUG_3D) {
+          this.debugMinimap?.render(renderer, container.clientWidth, container.clientHeight, this.debugGui?.params.showMinimap ?? true);
+        }
+        return;
+      }
 
       // Weight blending
       const blendStep = BLEND_SPEED * delta;

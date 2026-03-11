@@ -11,7 +11,7 @@ export class WhaleParticles {
   private phases: Float32Array | null = null;
 
   private floorMesh: THREE.Mesh | null = null;
-  private floorMaterial: THREE.ShaderMaterial | null = null;
+  floorMaterial: THREE.ShaderMaterial | null = null;
 
   constructor(
     private scene: THREE.Scene,

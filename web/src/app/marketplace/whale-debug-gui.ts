@@ -18,6 +18,7 @@ export interface DebugGuiParams {
   showAxes: boolean;
   showMinimap: boolean;
   showLogPanel: boolean;
+  paused: boolean;
   openDebugWindow: () => void;
   clearTrail: () => void;
   clearLog: () => void;
@@ -57,6 +58,7 @@ export class WhaleDebugGui {
       showAxes: true,
       showMinimap: true,
       showLogPanel: true,
+      paused: false,
       openDebugWindow: () => callbacks.onOpenDebugWindow(),
       clearTrail: () => callbacks.onClearTrail(),
       clearLog: () => callbacks.onClearLog(),
@@ -97,6 +99,7 @@ export class WhaleDebugGui {
     weightsFolder.add(this.params, 'wGulp', 0, 1).listen().disable();
 
     const toggleFolder = this.gui.addFolder('Toggles');
+    toggleFolder.add(this.params, 'paused').name('Pause Scene');
     toggleFolder.add(this.params, 'showTrail').onChange((v: boolean) => {
       const line = this.callbacks.getTrailLine();
       if (line) line.visible = v;

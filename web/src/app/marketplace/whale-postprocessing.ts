@@ -33,7 +33,7 @@ export class WhalePostProcessing {
       density: 0.0247,
       maxDensity: 0.5,
       distanceAttenuation: 2,
-      color: new THREE.Color(0x88ccff),
+      color: new THREE.Color(0x20415a),
       raymarchSteps: 60,
       blur: true,
       gammaCorrection: true,

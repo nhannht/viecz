@@ -15,13 +15,13 @@ export class WhaleSwimming {
   // Rotation
   private targetRotationY = 0;
   private targetRotationX = 0;
-  private readonly TURN_LERP = 0.01;
+  TURN_LERP = 0.01;
 
   // Free-swim
   private freeSwimTarget = new THREE.Vector3(0, 0, 0);
   private freeSwimTimer = 0;
-  private freeSwimInterval = 8000;
-  private readonly VELOCITY_LERP = 0.06;
+  freeSwimInterval = 8000;
+  VELOCITY_LERP = 0.06;
   private wobblePhase = Math.random() * Math.PI * 2;
 
   // User-directed swim
