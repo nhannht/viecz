@@ -15,7 +15,7 @@ export class WhaleParticles {
   floorMaterial: THREE.MeshStandardMaterial | null = null;
   floorCausticUniforms: { uTime: { value: number }; uCausticColor: { value: THREE.Color }; uCausticStrength: { value: number }; uEdgeFadeStart: { value: number } } | null = null;
   private mountainGroups: THREE.Group[] = [];
-  private buddhaGroup: THREE.Group | null = null;
+  private propsGroup: THREE.Group | null = null;
 
 
   constructor(
@@ -219,34 +219,32 @@ float _caustics(vec2 uv) {
     }
   }
 
-  initBuddhaStatue(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
-    gltfLoader.load('assets/models/buddha_adashino.glb', (gltf) => {
+  initFloorProps(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    gltfLoader.load('assets/models/minas_tirith.glb', (gltf) => {
       const group = gltf.scene;
-      this.buddhaGroup = group;
+      this.propsGroup = group;
 
-      // Scale to sit on the ocean floor as a sunken relic
+      // Scale as a sunken city ruin on the ocean floor
       const bbox = new THREE.Box3().setFromObject(group);
       const modelHeight = bbox.max.y - bbox.min.y;
-      const targetHeight = this.swimRangeY * 2.0;
+      const targetHeight = this.swimRangeY * 2.5;
       const s = targetHeight / modelHeight;
       group.scale.set(s, s, s);
 
-      // Rest on the sand floor, offset to one side
+      // Sit on the sand floor, offset right
       const scaledMinY = bbox.min.y * s;
       group.position.set(
-        this.swimRangeX * 0.6,
+        this.swimRangeX * 0.7,
         -this.swimRangeY * 1.5 - scaledMinY,
-        -this.swimRangeZ * 0.15,
+        -this.swimRangeZ * 0.3,
       );
 
-      // Keep original photogrammetry textures, just darken for underwater
+      // Keep original photogrammetry textures — fog handles the underwater look
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          if (mat.color) mat.color.multiplyScalar(0.7);
         }
       });
 
@@ -303,8 +301,8 @@ float _caustics(vec2 uv) {
       });
       this.floorGroup.removeFromParent();
     }
-    if (this.buddhaGroup) {
-      this.buddhaGroup.traverse((child) => {
+    if (this.propsGroup) {
+      this.propsGroup.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.geometry.dispose();
@@ -315,7 +313,7 @@ float _caustics(vec2 uv) {
           }
         }
       });
-      this.buddhaGroup.removeFromParent();
+      this.propsGroup.removeFromParent();
     }
     for (const mg of this.mountainGroups) {
       mg.traverse((child) => {
