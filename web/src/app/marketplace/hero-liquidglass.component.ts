@@ -43,8 +43,13 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
           }
         </div>
 
+        <!-- Free view toggle -->
+        <button class="free-view-btn" [class.active]="freeView()" (click)="freeView.set(!freeView())">
+          <nhannht-metro-icon [name]="freeView() ? 'visibility' : 'visibility_off'" [size]="16" />
+        </button>
+
         <!-- Main glass card -->
-        <div class="glass-card" #glassCard [class.entered]="entered()">
+        <div class="glass-card" #glassCard [class.entered]="entered()" [class.hidden-card]="freeView()">
           <div class="glass-ribs"></div>
           <div class="specular-spot"></div>
 
@@ -77,7 +82,7 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
         </div>
 
         <!-- Step cards -->
-        <div class="steps-row">
+        <div class="steps-row" [class.hidden-card]="freeView()">
           @for (step of [1, 2, 3]; track step) {
             <div class="step-card" [class.entered]="entered()"
                  [style.transition-delay]="(500 + step * 150) + 'ms'">
@@ -105,6 +110,47 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
       overflow-y: visible;
       cursor: crosshair;
       min-height: 600px;
+    }
+
+    /* ── Free view toggle button ── */
+    .free-view-btn {
+      position: absolute;
+      top: 5.5rem;
+      right: 1.5rem;
+      z-index: 10;
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--color-fg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.5;
+      transition: opacity 200ms ease, background 200ms ease;
+    }
+
+    .free-view-btn:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .free-view-btn.active {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ── Hidden card state (free view mode) ── */
+    .hidden-card {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(20px) scale(0.95) !important;
+      transition: opacity 400ms ease, transform 400ms ease !important;
     }
 
     /* ── Background canvas covers everything ── */
@@ -471,6 +517,7 @@ export class HeroLiquidglassComponent implements OnDestroy {
     { value: '0%', label: 'marketplace.platformFee' },
   ]);
 
+  freeView = signal(false);
   whaleMousePos = signal<{ x: number; y: number } | null>(null);
 
   @ViewChild('heroSection') heroRef!: ElementRef<HTMLElement>;

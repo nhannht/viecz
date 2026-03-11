@@ -234,6 +234,25 @@ export class HeroEgg3dComponent implements OnDestroy {
 
     const scene = new THREE.Scene();
 
+    // Deep ocean gradient background (dark abyss → lighter blue-green)
+    const gradCanvas = document.createElement('canvas');
+    gradCanvas.width = 2;
+    gradCanvas.height = 256;
+    const gCtx = gradCanvas.getContext('2d')!;
+    const grad = gCtx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, '#0a2a3a');   // top — lighter deep teal
+    grad.addColorStop(0.4, '#061a28'); // mid — dark ocean
+    grad.addColorStop(1, '#020c14');   // bottom — near-black abyss
+    gCtx.fillStyle = grad;
+    gCtx.fillRect(0, 0, 2, 256);
+    const gradTex = new THREE.CanvasTexture(gradCanvas);
+    gradTex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = gradTex;
+
+    // Exponential fog — objects fade into deep ocean at distance
+    const fogColor = new THREE.Color(0x061a28);
+    scene.fog = new THREE.FogExp2(fogColor, 0.04);
+
     scene.add(new THREE.AmbientLight(0x303050, 0.6));
     const keyLight = new THREE.DirectionalLight(0xddeeff, 1.5);
     keyLight.position.set(2, 4, 3);

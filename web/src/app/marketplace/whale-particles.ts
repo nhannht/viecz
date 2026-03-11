@@ -12,7 +12,7 @@ export class WhaleParticles {
 
   private floorMesh: THREE.Mesh | null = null;
   floorMaterial: THREE.MeshStandardMaterial | null = null;
-  floorCausticUniforms: { uTime: { value: number }; uCausticColor: { value: THREE.Color }; uCausticStrength: { value: number } } | null = null;
+  floorCausticUniforms: { uTime: { value: number }; uCausticColor: { value: THREE.Color }; uCausticStrength: { value: number }; uEdgeFadeStart: { value: number } } | null = null;
 
 
   constructor(
@@ -75,6 +75,7 @@ export class WhaleParticles {
       uTime: { value: 0 },
       uCausticColor: { value: new THREE.Color(0x44bbcc) },
       uCausticStrength: { value: 0.35 },
+      uEdgeFadeStart: { value: 0.55 },
     };
     const causticUniforms = this.floorCausticUniforms;
 
@@ -82,6 +83,7 @@ export class WhaleParticles {
 uniform float uTime;
 uniform vec3 uCausticColor;
 uniform float uCausticStrength;
+uniform float uEdgeFadeStart;
 
 vec2 _caustHash(vec2 p) {
   return fract(sin(vec2(
@@ -121,8 +123,8 @@ float _caustics(vec2 uv) {
       const bbox = new THREE.Box3().setFromObject(floorGroup);
       const modelWidth = bbox.max.x - bbox.min.x;
       const modelDepth = bbox.max.z - bbox.min.z;
-      const sx = (this.swimRangeX * 4.0) / modelWidth;
-      const sz = (this.swimRangeZ * 4.0) / modelDepth;
+      const sx = (this.swimRangeX * 8.0) / modelWidth;
+      const sz = (this.swimRangeZ * 8.0) / modelDepth;
       const sy = sx; // keep Y proportional to X for natural dune height
       floorGroup.scale.set(sx, sy, sz);
       floorGroup.position.y = -this.swimRangeY;
@@ -145,15 +147,28 @@ float _caustics(vec2 uv) {
             shader.uniforms['uTime'] = causticUniforms.uTime;
             shader.uniforms['uCausticColor'] = causticUniforms.uCausticColor;
             shader.uniforms['uCausticStrength'] = causticUniforms.uCausticStrength;
+            shader.uniforms['uEdgeFadeStart'] = causticUniforms.uEdgeFadeStart;
             (shader.defines ??= {})['USE_UV'] = '';
 
             shader.fragmentShader = causticGlsl + shader.fragmentShader;
 
+            // Caustics on emissive
             shader.fragmentShader = shader.fragmentShader.replace(
               '#include <emissivemap_fragment>',
               /* glsl */ `#include <emissivemap_fragment>
               float caustVal = _caustics(vUv);
               totalEmissiveRadiance += uCausticColor * caustVal * uCausticStrength;
+              `,
+            );
+
+            // Edge alpha fadeout — floor dissolves into fog at edges
+            shader.fragmentShader = shader.fragmentShader.replace(
+              '#include <dithering_fragment>',
+              /* glsl */ `#include <dithering_fragment>
+              vec2 edgeDist = abs(vUv - 0.5) * 2.0; // 0 at center, 1 at edge
+              float edgeMax = max(edgeDist.x, edgeDist.y);
+              float edgeFade = 1.0 - smoothstep(uEdgeFadeStart, 1.0, edgeMax);
+              gl_FragColor.a *= edgeFade;
               `,
             );
           };

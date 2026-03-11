@@ -90,6 +90,12 @@ export class WhaleTuningPanel {
     causticStrength: 0.35,
   };
 
+  private fogParams = {
+    fogDensity: 0.04,
+    fogColorHex: '#061a28',
+    edgeFadeStart: 0.55,
+  };
+
   constructor(private deps: WhaleTuningDeps) {
     this.syncFromLive();
 
@@ -99,6 +105,7 @@ export class WhaleTuningPanel {
     this.buildWhaleModelFolder();
     this.buildSwimmingFolder();
     this.buildOceanFloorFolder();
+    this.buildFogFolder();
     this.buildBloomFolder();
     this.buildDofFolder();
     this.buildGodraysFolder();
@@ -134,6 +141,16 @@ export class WhaleTuningPanel {
     this.dofParams.focusDistance = dof.cocMaterial.focusDistance;
     this.dofParams.focusRange = dof.cocMaterial.focusRange;
     this.dofParams.bokehScale = dof.bokehScale;
+
+    const fog = this.deps.scene.fog as THREE.FogExp2 | null;
+    if (fog) {
+      this.fogParams.fogDensity = fog.density;
+      this.fogParams.fogColorHex = '#' + fog.color.getHexString();
+    }
+    const floorCU = this.deps.particles.floorCausticUniforms;
+    if (floorCU) {
+      this.fogParams.edgeFadeStart = floorCU.uEdgeFadeStart.value;
+    }
 
     this.swimmingParams.swimSpeed = swimming.swimSpeed;
     this.swimmingParams.turnLerp = swimming.TURN_LERP;
@@ -202,6 +219,28 @@ export class WhaleTuningPanel {
       });
       f.add(this.oceanFloorParams, 'causticStrength', 0, 2, 0.01).onChange((v: number) => {
         causticU.uCausticStrength.value = v;
+      });
+    }
+  }
+
+  private buildFogFolder(): void {
+    const { scene, particles } = this.deps;
+    const f = this.gui.addFolder('Fog & Atmosphere');
+    const fog = scene.fog as THREE.FogExp2 | null;
+    const causticU = particles.floorCausticUniforms;
+
+    if (fog) {
+      f.add(this.fogParams, 'fogDensity', 0, 0.2, 0.001).name('fog density').onChange((v: number) => {
+        fog.density = v;
+      });
+      f.addColor(this.fogParams, 'fogColorHex').name('fog color').onChange((v: string) => {
+        fog.color.set(v);
+      });
+    }
+
+    if (causticU) {
+      f.add(this.fogParams, 'edgeFadeStart', 0, 1, 0.01).name('floor edge fade').onChange((v: number) => {
+        causticU.uEdgeFadeStart.value = v;
       });
     }
   }
@@ -409,6 +448,11 @@ export class WhaleTuningPanel {
       `normalScale: ${this.oceanFloorParams.normalScale}`,
       `causticColor: ${this.oceanFloorParams.causticColorHex}`,
       `causticStrength: ${this.oceanFloorParams.causticStrength}`,
+      '',
+      '--- Fog & Atmosphere ---',
+      `fogDensity: ${this.fogParams.fogDensity}`,
+      `fogColor: ${this.fogParams.fogColorHex}`,
+      `edgeFadeStart: ${this.fogParams.edgeFadeStart}`,
       '',
       '--- Bloom ---',
       `intensity: ${this.bloomParams.intensity}`,
