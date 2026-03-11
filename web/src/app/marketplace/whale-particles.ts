@@ -10,13 +10,12 @@ export class WhaleParticles {
   private speeds: Float32Array | null = null;
   private phases: Float32Array | null = null;
 
+  private floorGroup: THREE.Group | null = null;
   private floorMesh: THREE.Mesh | null = null;
   floorMaterial: THREE.MeshStandardMaterial | null = null;
   floorCausticUniforms: { uTime: { value: number }; uCausticColor: { value: THREE.Color }; uCausticStrength: { value: number }; uEdgeFadeStart: { value: number } } | null = null;
-  private shipwreckGroup: THREE.Group | null = null;
+  private mountainGroups: THREE.Group[] = [];
   private buddhaGroup: THREE.Group | null = null;
-  gatePointLight: THREE.PointLight | null = null;
-  gateSpotLight: THREE.SpotLight | null = null;
 
 
   constructor(
@@ -122,6 +121,7 @@ float _caustics(vec2 uv) {
 
     gltfLoader.load('assets/models/sand_dunes.glb', (gltf) => {
       const floorGroup = gltf.scene;
+      this.floorGroup = floorGroup;
 
       // Scale floor to cover the full swim volume (deep Z corridor)
       const bbox = new THREE.Box3().setFromObject(floorGroup);
@@ -183,90 +183,72 @@ float _caustics(vec2 uv) {
     });
   }
 
-  initShipwreck(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
-    gltfLoader.load('assets/models/shipwreck.glb', (gltf) => {
-      const group = gltf.scene;
-      this.shipwreckGroup = group;
+  initMountainRange(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    // 3 peaks: left (tall), center (tallest), right (medium) — like a mountain ridge silhouette
+    const peaks: { model: string; x: number; y: number; z: number; scale: number; rotY: number; brightness: number }[] = [
+      { model: 'snowy_mountain.glb',   x: -this.swimRangeX * 2.5, y: -this.swimRangeY * 2.0, z: -this.swimRangeZ * 3.0, scale: 16, rotY: 0.3,  brightness: 0.10 },
+      { model: 'mountain_distant.glb', x:  0,                     y: -this.swimRangeY * 1.8, z: -this.swimRangeZ * 3.5, scale: 20, rotY: 0,     brightness: 0.08 },
+      { model: 'snowy_mountain.glb',   x:  this.swimRangeX * 2.8, y: -this.swimRangeY * 2.2, z: -this.swimRangeZ * 2.8, scale: 12, rotY: -0.4, brightness: 0.12 },
+    ];
 
-      // Scale large — this is a full ship wreck as background scenery
+    for (const peak of peaks) {
+      gltfLoader.load(`assets/models/${peak.model}`, (gltf) => {
+        const group = gltf.scene;
+        this.mountainGroups.push(group);
+
+        const bbox = new THREE.Box3().setFromObject(group);
+        const modelWidth = bbox.max.x - bbox.min.x;
+        const s = (this.swimRangeX * peak.scale) / modelWidth;
+        group.scale.set(s, s, s);
+        group.position.set(peak.x, peak.y, peak.z);
+        group.rotation.y = peak.rotY;
+
+        group.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.receiveShadow = true;
+            const mat = mesh.material as THREE.MeshStandardMaterial;
+            if (mat.color) mat.color.multiplyScalar(peak.brightness);
+            mat.roughness = 1.0;
+            mat.metalness = 0.0;
+          }
+        });
+
+        this.scene.add(group);
+      });
+    }
+  }
+
+  initBuddhaStatue(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    gltfLoader.load('assets/models/buddha_adashino.glb', (gltf) => {
+      const group = gltf.scene;
+      this.buddhaGroup = group;
+
+      // Scale to sit on the ocean floor as a sunken relic
       const bbox = new THREE.Box3().setFromObject(group);
-      const modelWidth = bbox.max.x - bbox.min.x;
-      const targetWidth = this.swimRangeX * 2.5;
-      const s = targetWidth / modelWidth;
+      const modelHeight = bbox.max.y - bbox.min.y;
+      const targetHeight = this.swimRangeY * 2.0;
+      const s = targetHeight / modelHeight;
       group.scale.set(s, s, s);
 
-      // Place on the ocean floor, visible but partially fogged
+      // Rest on the sand floor, offset to one side
+      const scaledMinY = bbox.min.y * s;
       group.position.set(
-        this.swimRangeX * 0.6,            // offset right of center
-        -this.swimRangeY * 0.5,           // resting on the floor
-        -this.swimRangeZ * 0.4,           // not too far — fog eats anything beyond ~1x
+        this.swimRangeX * 0.6,
+        -this.swimRangeY * 1.5 - scaledMinY,
+        -this.swimRangeZ * 0.15,
       );
 
-      // Slight tilt — ship listing to port as it rests on the seabed
-      group.rotation.set(0.1, -0.6, 0.15);
-
-      // Darken materials for underwater look, enable shadows
+      // Keep original photogrammetry textures, just darken for underwater
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           const mat = mesh.material as THREE.MeshStandardMaterial;
-          if (mat.color) mat.color.multiplyScalar(0.25);
-          mat.roughness = 0.9;
-          mat.metalness = 0.1;
+          if (mat.color) mat.color.multiplyScalar(0.7);
         }
       });
-
-      this.scene.add(group);
-    });
-  }
-
-  initBuddha(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
-    gltfLoader.load('assets/models/buddha_statue.glb', (gltf) => {
-      const group = gltf.scene;
-      this.buddhaGroup = group;
-
-      const bbox = new THREE.Box3().setFromObject(group);
-      const modelHeight = bbox.max.y - bbox.min.y;
-      const targetHeight = this.swimRangeY * 1.2;
-      const s = targetHeight / modelHeight;
-      group.scale.set(s, s, s);
-
-      // Sink into sand floor so the rectangular base is hidden
-      const scaledMinY = bbox.min.y * s;
-      const scaledHeight = modelHeight * s;
-      const bx = this.swimRangeX * 0.7;
-      const by = -this.swimRangeY * 1.5 - scaledMinY - scaledHeight * 0.15;
-      const bz = -this.swimRangeZ * 0.4;
-      group.position.set(bx, by, bz);
-      group.rotation.set(0, 0, 0);
-
-      // Keep original unlit material (KHR_materials_unlit with WebP texture).
-      // Replacing it loses the async-decoded texture. Just enable shadows.
-      group.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-        }
-      });
-
-      // Strong point light to illuminate the statue
-      this.gatePointLight = new THREE.PointLight(0x88ccff, 150, targetHeight * 5, 1.0);
-      this.gatePointLight.position.set(bx, by + targetHeight * 0.6, bz + targetHeight * 0.4);
-      this.scene.add(this.gatePointLight);
-
-      // Spotlight from above
-      this.gateSpotLight = new THREE.SpotLight(0xaaddff, 200);
-      this.gateSpotLight.position.set(bx, by + targetHeight + 5, bz);
-      this.gateSpotLight.target.position.set(bx, by + targetHeight * 0.4, bz);
-      this.gateSpotLight.angle = 0.5;
-      this.gateSpotLight.penumbra = 0.6;
-      this.gateSpotLight.distance = targetHeight * 4;
-      this.gateSpotLight.decay = 1.0;
-      this.scene.add(this.gateSpotLight);
-      this.scene.add(this.gateSpotLight.target);
 
       this.scene.add(group);
     });
@@ -307,9 +289,8 @@ float _caustics(vec2 uv) {
       this.floorMesh.geometry.dispose();
       this.floorMesh.removeFromParent();
     }
-    const disposeGroup = (group: THREE.Group | null) => {
-      if (!group) return;
-      group.traverse((child) => {
+    if (this.floorGroup) {
+      this.floorGroup.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.geometry.dispose();
@@ -320,12 +301,35 @@ float _caustics(vec2 uv) {
           }
         }
       });
-      group.removeFromParent();
-    };
-    disposeGroup(this.shipwreckGroup);
-    disposeGroup(this.buddhaGroup);
-    this.gatePointLight?.removeFromParent();
-    this.gateSpotLight?.target.removeFromParent();
-    this.gateSpotLight?.removeFromParent();
+      this.floorGroup.removeFromParent();
+    }
+    if (this.buddhaGroup) {
+      this.buddhaGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      this.buddhaGroup.removeFromParent();
+    }
+    for (const mg of this.mountainGroups) {
+      mg.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      mg.removeFromParent();
+    }
   }
 }
