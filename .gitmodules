@@ -1,3 +1,6 @@
 [submodule "jellyfish"]
 	path = jellyfish
 	url = https://github.com/nhannht/jellyfish.git
+[submodule "image-bridge"]
+	path = image-bridge
+	url = https://github.com/nhannht/image-bridge.git

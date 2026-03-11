@@ -129,9 +129,9 @@ float _caustics(vec2 uv) {
       const modelDepth = bbox.max.z - bbox.min.z;
       const sx = (this.swimRangeX * 8.0) / modelWidth;
       const sz = (this.swimRangeZ * 8.0) / modelDepth;
-      const sy = sx; // keep Y proportional to X for natural dune height
+      const sy = sx * 0.3; // flatten dunes for gentle seabed look
       floorGroup.scale.set(sx, sy, sz);
-      floorGroup.position.y = -this.swimRangeY;
+      floorGroup.position.y = -this.swimRangeY * 1.5;
 
       // Inject caustics onto every mesh material
       floorGroup.traverse((child) => {
@@ -229,29 +229,26 @@ float _caustics(vec2 uv) {
 
       const bbox = new THREE.Box3().setFromObject(group);
       const modelHeight = bbox.max.y - bbox.min.y;
-      const targetHeight = this.swimRangeY * 2.5;
+      const targetHeight = this.swimRangeY * 1.2;
       const s = targetHeight / modelHeight;
       group.scale.set(s, s, s);
 
-      // Far back, feet on floor
+      // Sink into sand floor so the rectangular base is hidden
       const scaledMinY = bbox.min.y * s;
+      const scaledHeight = modelHeight * s;
       const bx = this.swimRangeX * 0.7;
-      const by = -this.swimRangeY - scaledMinY;
-      const bz = -this.swimRangeZ * 1.0;
+      const by = -this.swimRangeY * 1.5 - scaledMinY - scaledHeight * 0.15;
+      const bz = -this.swimRangeZ * 0.4;
       group.position.set(bx, by, bz);
       group.rotation.set(0, 0, 0);
 
-      // Keep original textures, barely darken
+      // Keep original unlit material (KHR_materials_unlit with WebP texture).
+      // Replacing it loses the async-decoded texture. Just enable shadows.
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          if (mat.color) mat.color.set(0x886633);
-          // Boost emissive so it glows through fog
-          mat.emissive = new THREE.Color(0x332200);
-          mat.emissiveIntensity = 0.3;
         }
       });
 
