@@ -9,7 +9,6 @@ import {
   ChangeDetectionStrategy,
   input,
   output,
-  isDevMode,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import * as THREE from 'three';
@@ -28,8 +27,8 @@ const BLOOM_LAYER = 1;
 const DESIRED_HALF_HEIGHT = 3.0; // ±3.0 = bigger tank, camera further back
 const CAMERA_FOV = 45;
 
-// Debug visualizations: auto-enabled in dev mode (ng serve), off in production
-const DEBUG_3D = isDevMode();
+// Debug visualizations: enable via URL query param ?debug_3d=true
+const DEBUG_3D = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug_3d') === 'true';
 const TRAIL_MAX_POINTS = 600; // ~10s at 60fps
 const TRAIL_COLOR = 0xff4444;
 
