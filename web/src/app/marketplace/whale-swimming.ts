@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Direction, DIR_HOLD_TIME } from './whale-scene.constants';
+import { DEBUG_3D, Direction, DIR_HOLD_TIME } from './whale-scene.constants';
 
 /** Manages whale swimming: free-swim waypoints, entrance animation, user-directed movement, rotation */
 export class WhaleSwimming {
@@ -98,7 +98,7 @@ export class WhaleSwimming {
       Math.max(-this.swimRangeY * 0.9, Math.min(this.swimRangeY * 0.9, y)),
       this.whalePos.z,
     );
-    console.log(`[whale:click] swim to (${this.userDirectedTarget.x.toFixed(2)}, ${this.userDirectedTarget.y.toFixed(2)})`);
+    if (DEBUG_3D) console.log(`[whale:click] swim to (${this.userDirectedTarget.x.toFixed(2)}, ${this.userDirectedTarget.y.toFixed(2)})`);
   }
 
   replayEntrance(): void {
@@ -106,7 +106,7 @@ export class WhaleSwimming {
     this.entranceStartTime = 0;
     this.whalePos.set(-this.swimRangeX * 1.3, 0, 0);
     this.whaleVelocity.set(0, 0, 0);
-    console.log('[whale] replaying entrance');
+    if (DEBUG_3D) console.log('[whale] replaying entrance');
   }
 
   /** Returns desired direction from look vector */
@@ -123,7 +123,7 @@ export class WhaleSwimming {
 
   switchDirection(newDir: Direction): void {
     if (newDir === this.activeDir || this.isReacting) return;
-    console.log(`[whale:switch] ${this.activeDir} → ${newDir}`);
+    if (DEBUG_3D) console.log(`[whale:switch] ${this.activeDir} → ${newDir}`);
     this.activeDir = newDir;
   }
 
@@ -142,7 +142,7 @@ export class WhaleSwimming {
         this.enteringScene = false;
         this.pickFreeSwimWaypoint();
         this.freeSwimTimer = now;
-        console.log(`[whale:entrance-end] active=${this.activeDir}`);
+        if (DEBUG_3D) console.log(`[whale:entrance-end] active=${this.activeDir}`);
       }
     } else if (this.userDirected) {
       this.whaleTarget.copy(this.userDirectedTarget);
@@ -151,19 +151,19 @@ export class WhaleSwimming {
         this.userDirected = false;
         this.freeSwimTimer = now;
         this.pickFreeSwimWaypoint();
-        console.log(`[whale:click] arrived at click target, resuming free-swim`);
+        if (DEBUG_3D) console.log(`[whale:click] arrived at click target, resuming free-swim`);
       }
     } else {
       if (now - this.freeSwimTimer > this.freeSwimInterval) {
         this.freeSwimTimer = now;
         this.pickFreeSwimWaypoint();
-        console.log(`[whale:freeswim] new waypoint: (${this.freeSwimTarget.x.toFixed(2)},${this.freeSwimTarget.y.toFixed(2)},${this.freeSwimTarget.z.toFixed(2)})`);
+        if (DEBUG_3D) console.log(`[whale:freeswim] new waypoint: (${this.freeSwimTarget.x.toFixed(2)},${this.freeSwimTarget.y.toFixed(2)},${this.freeSwimTarget.z.toFixed(2)})`);
       }
       this.whaleTarget.copy(this.freeSwimTarget);
     }
 
     // Throttled debug log
-    if (!this.enteringScene && now - this.lastDebugLog > this.DEBUG_LOG_INTERVAL * 4) {
+    if (DEBUG_3D && !this.enteringScene && now - this.lastDebugLog > this.DEBUG_LOG_INTERVAL * 4) {
       this.lastDebugLog = now;
       console.log(
         `[whale:${this.userDirected ? 'user' : 'freeswim'}] pos=(${this.whalePos.x.toFixed(2)},${this.whalePos.y.toFixed(2)},${this.whalePos.z.toFixed(2)})` +

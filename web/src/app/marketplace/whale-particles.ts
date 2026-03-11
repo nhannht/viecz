@@ -11,7 +11,9 @@ export class WhaleParticles {
   private phases: Float32Array | null = null;
 
   private floorMesh: THREE.Mesh | null = null;
-  floorMaterial: THREE.ShaderMaterial | null = null;
+  floorMaterial: THREE.MeshStandardMaterial | null = null;
+  floorCausticUniforms: { uTime: { value: number }; uCausticColor: { value: THREE.Color }; uCausticStrength: { value: number } } | null = null;
+
 
   constructor(
     private scene: THREE.Scene,
@@ -67,84 +69,96 @@ export class WhaleParticles {
     this.scene.add(this.points);
   }
 
-  initOceanFloor(): void {
-    const planeW = this.swimRangeX * 4.0;
-    const planeD = this.swimRangeZ * 4.0;
-    const geo = new THREE.PlaneGeometry(planeW, planeD);
+  initOceanFloor(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
+    // Caustic uniforms for animated Voronoi light refraction
+    this.floorCausticUniforms = {
+      uTime: { value: 0 },
+      uCausticColor: { value: new THREE.Color(0x44bbcc) },
+      uCausticStrength: { value: 0.35 },
+    };
+    const causticUniforms = this.floorCausticUniforms;
 
-    this.floorMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        sandColor: { value: new THREE.Color(0x0e1a1f) },
-        causticColor: { value: new THREE.Color(0x44bbcc) },
-        causticStrength: { value: 0.25 },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    const causticGlsl = /* glsl */ `
+uniform float uTime;
+uniform vec3 uCausticColor;
+uniform float uCausticStrength;
+
+vec2 _caustHash(vec2 p) {
+  return fract(sin(vec2(
+    dot(p, vec2(127.1, 311.7)),
+    dot(p, vec2(269.5, 183.3))
+  )) * 43758.5453);
+}
+
+float _voronoi(vec2 p) {
+  vec2 n = floor(p);
+  vec2 f = fract(p);
+  float md = 8.0;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 g = vec2(float(i), float(j));
+      vec2 o = _caustHash(n + g);
+      o = 0.5 + 0.5 * sin(uTime * 0.6 + 6.2831 * o);
+      vec2 r = g + o - f;
+      float d = dot(r, r);
+      md = min(md, d);
+    }
+  }
+  return md;
+}
+
+float _caustics(vec2 uv) {
+  float c1 = _voronoi(uv * 6.0 + vec2(uTime * 0.15, uTime * 0.08));
+  float c2 = _voronoi(uv * 12.0 - vec2(uTime * 0.1, uTime * 0.12));
+  return pow(1.0 - c1, 3.0) * 0.6 + pow(1.0 - c2, 3.0) * 0.4;
+}
+`;
+
+    gltfLoader.load('assets/models/sand_dunes.glb', (gltf) => {
+      const floorGroup = gltf.scene;
+
+      // Scale and position to fit the swim area
+      const bbox = new THREE.Box3().setFromObject(floorGroup);
+      const modelWidth = bbox.max.x - bbox.min.x;
+      const desiredWidth = this.swimRangeX * 4.0;
+      const s = desiredWidth / modelWidth;
+      floorGroup.scale.set(s, s, s);
+      floorGroup.position.y = -this.swimRangeY;
+
+      // Inject caustics onto every mesh material
+      floorGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          this.floorMesh = mesh;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
+          this.floorMaterial = mat;
+
+          // Darken for underwater look
+          mat.color.multiplyScalar(0.3);
+          mat.transparent = true;
+
+          mat.customProgramCacheKey = () => 'ocean-floor-caustics';
+          mat.onBeforeCompile = (shader) => {
+            shader.uniforms['uTime'] = causticUniforms.uTime;
+            shader.uniforms['uCausticColor'] = causticUniforms.uCausticColor;
+            shader.uniforms['uCausticStrength'] = causticUniforms.uCausticStrength;
+            (shader.defines ??= {})['USE_UV'] = '';
+
+            shader.fragmentShader = causticGlsl + shader.fragmentShader;
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+              '#include <emissivemap_fragment>',
+              /* glsl */ `#include <emissivemap_fragment>
+              float caustVal = _caustics(vUv);
+              totalEmissiveRadiance += uCausticColor * caustVal * uCausticStrength;
+              `,
+            );
+          };
         }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform vec3 sandColor;
-        uniform vec3 causticColor;
-        uniform float causticStrength;
-        varying vec2 vUv;
+      });
 
-        float hash(vec2 p) {
-          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-        }
-
-        float valueNoise(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = fract(p);
-          vec2 u = f * f * (3.0 - 2.0 * f);
-          float a = hash(i);
-          float b = hash(i + vec2(1.0, 0.0));
-          float c = hash(i + vec2(0.0, 1.0));
-          float d = hash(i + vec2(1.0, 1.0));
-          return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
-        }
-
-        float sandNoise(vec2 p) {
-          float v = 0.0;
-          v += valueNoise(p * 1.0) * 0.5;
-          v += valueNoise(p * 2.0) * 0.25;
-          v += valueNoise(p * 4.0) * 0.125;
-          v += valueNoise(p * 8.0) * 0.0625;
-          return v;
-        }
-
-        void main() {
-          vec2 centered = vUv * 2.0 - 1.0;
-          float radial = length(centered * vec2(1.0, 0.7));
-          float edgeDist = 1.0 - smoothstep(0.3, 0.9, radial);
-
-          float grain = (sandNoise(vUv * 400.0) - 0.5) * 0.06;
-
-          vec2 p = vUv * 8.0;
-          float c = 0.0;
-          c += pow(0.5 + 0.5 * sin(p.x * 3.0 + p.y * 1.5 + time * 0.8), 8.0);
-          c += pow(0.5 + 0.5 * sin(p.x * 1.7 - p.y * 2.3 + time * 0.6), 8.0);
-          c += pow(0.5 + 0.5 * sin(p.x * 2.1 + p.y * 3.1 - time * 0.7), 8.0);
-          c /= 3.0;
-
-          vec3 base = sandColor + grain;
-          vec3 lit = base + causticColor * c * causticStrength;
-          gl_FragColor = vec4(lit, edgeDist);
-        }
-      `,
-      transparent: true,
-      depthWrite: true,
-      side: THREE.FrontSide,
+      this.scene.add(floorGroup);
     });
-
-    this.floorMesh = new THREE.Mesh(geo, this.floorMaterial);
-    this.floorMesh.rotation.x = -Math.PI / 2;
-    this.floorMesh.position.y = -this.swimRangeY;
-    this.scene.add(this.floorMesh);
   }
 
   update(delta: number, elapsed: number): void {
@@ -169,7 +183,7 @@ export class WhaleParticles {
 
     this.positions.needsUpdate = true;
 
-    if (this.floorMaterial) this.floorMaterial.uniforms['time'].value = elapsed;
+    if (this.floorCausticUniforms) this.floorCausticUniforms.uTime.value = elapsed;
   }
 
   dispose(): void {

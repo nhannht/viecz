@@ -76,9 +76,10 @@ export class WhaleTuningPanel {
   };
 
   private oceanFloorParams = {
-    sandColorHex: '#0e1a1f',
+    colorHex: '#1a2a30',
+    normalScale: 1.2,
     causticColorHex: '#44bbcc',
-    causticStrength: 0.25,
+    causticStrength: 0.35,
   };
 
   constructor(private deps: WhaleTuningDeps) {
@@ -172,17 +173,23 @@ export class WhaleTuningPanel {
     const { particles } = this.deps;
     const f = this.gui.addFolder('Ocean Floor');
     const floorMat = particles.floorMaterial;
+    const causticU = particles.floorCausticUniforms;
     if (!floorMat) return;
 
-    f.addColor(this.oceanFloorParams, 'sandColorHex').name('sand color').onChange((v: string) => {
-      (floorMat.uniforms['sandColor'].value as THREE.Color).set(v);
+    f.addColor(this.oceanFloorParams, 'colorHex').name('tint color').onChange((v: string) => {
+      floorMat.color.set(v);
     });
-    f.addColor(this.oceanFloorParams, 'causticColorHex').name('caustic color').onChange((v: string) => {
-      (floorMat.uniforms['causticColor'].value as THREE.Color).set(v);
+    f.add(this.oceanFloorParams, 'normalScale', 0, 3, 0.1).name('normal scale').onChange((v: number) => {
+      floorMat.normalScale.set(v, v);
     });
-    f.add(this.oceanFloorParams, 'causticStrength', 0, 2, 0.01).onChange((v: number) => {
-      floorMat.uniforms['causticStrength'].value = v;
-    });
+    if (causticU) {
+      f.addColor(this.oceanFloorParams, 'causticColorHex').name('caustic color').onChange((v: string) => {
+        causticU.uCausticColor.value.set(v);
+      });
+      f.add(this.oceanFloorParams, 'causticStrength', 0, 2, 0.01).onChange((v: number) => {
+        causticU.uCausticStrength.value = v;
+      });
+    }
   }
 
   private buildBloomFolder(): void {
@@ -311,7 +318,8 @@ export class WhaleTuningPanel {
       `freeSwimInterval: ${this.swimmingParams.freeSwimInterval}`,
       '',
       '--- Ocean Floor ---',
-      `sandColor: ${this.oceanFloorParams.sandColorHex}`,
+      `tintColor: ${this.oceanFloorParams.colorHex}`,
+      `normalScale: ${this.oceanFloorParams.normalScale}`,
       `causticColor: ${this.oceanFloorParams.causticColorHex}`,
       `causticStrength: ${this.oceanFloorParams.causticStrength}`,
       '',
