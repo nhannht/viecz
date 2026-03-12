@@ -54,7 +54,6 @@ export class HeroEgg3dComponent implements OnDestroy {
   private resizeObserver: ResizeObserver | null = null;
   private mixer: THREE.AnimationMixer | null = null;
   private _whaleScene: THREE.Group | null = null; // the gltf.scene inside modelGroup
-  private _gltfLoader: GLTFLoader | null = null;
   private clock = new THREE.Clock();
 
   // Animation actions
@@ -303,8 +302,6 @@ export class HeroEgg3dComponent implements OnDestroy {
     dracoLoader.setDecoderPath('assets/draco/');
     const loader = new GLTFLoader();
     loader.setDRACOLoader(dracoLoader);
-    this._gltfLoader = loader;
-
     const HIGH_END_MODEL = 'assets/models/glow_whale_mr_draco.glb';
     const LIGHTWEIGHT_MODEL = 'assets/models/glow_whale_final.glb';
 
@@ -313,7 +310,7 @@ export class HeroEgg3dComponent implements OnDestroy {
       const modelGroup = new THREE.Group();
       this._modelGroup = modelGroup;
 
-      this.setupWhaleFromGltf(gltf, camera);
+      const whaleMaterial = this.setupWhaleFromGltf(gltf, camera);
 
       modelGroup.add(gltf.scene);
       modelGroup.scale.set(20, 20, 20);
@@ -346,12 +343,6 @@ export class HeroEgg3dComponent implements OnDestroy {
       scheduleNext(0);
 
       // Tuning panel (activate via ?tune_3d=true)
-      let whaleMaterial: THREE.MeshStandardMaterial | null = null;
-      gltf.scene.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh && !whaleMaterial) {
-          whaleMaterial = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
-        }
-      });
       if (TUNE_3D && this.postProcessing && whaleMaterial) {
         this.tuningPanel = new WhaleTuningPanel({
           pp: this.postProcessing,
@@ -511,11 +502,11 @@ export class HeroEgg3dComponent implements OnDestroy {
     animate();
   }
 
-  /** Set up whale model: center, materials, bloom, animations */
+  /** Set up whale model: center, materials, bloom, animations. Returns first material for tuning panel. */
   private setupWhaleFromGltf(
     gltf: import('three/examples/jsm/loaders/GLTFLoader.js').GLTF,
     camera: THREE.PerspectiveCamera,
-  ): void {
+  ): THREE.MeshStandardMaterial | null {
     const box = new THREE.Box3().setFromObject(gltf.scene);
     const center = box.getCenter(new THREE.Vector3());
     gltf.scene.position.sub(center);
@@ -533,17 +524,17 @@ export class HeroEgg3dComponent implements OnDestroy {
     this.swimming.setSwimRange(swimRangeX, swimRangeY, swimRangeZ);
 
     // Materials: shadows, emissive, bloom
+    let firstMaterial: THREE.MeshStandardMaterial | null = null;
     gltf.scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = true;
         mesh.receiveShadow = false;
         const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (!firstMaterial) firstMaterial = mat;
         mat.emissiveIntensity = 20;
-        if (mat.emissiveIntensity > 1.0) {
-          child.layers.enable(BLOOM_LAYER);
-          this.postProcessing?.addBloomMesh(mesh);
-        }
+        child.layers.enable(BLOOM_LAYER);
+        this.postProcessing?.addBloomMesh(mesh);
       }
     });
 
@@ -588,6 +579,7 @@ export class HeroEgg3dComponent implements OnDestroy {
     }
 
     this._whaleScene = gltf.scene;
+    return firstMaterial;
   }
 
   /** Check network conditions and load high-end whale model if bandwidth allows */
@@ -618,15 +610,19 @@ export class HeroEgg3dComponent implements OnDestroy {
           // Remove old whale scene from model group
           if (this._whaleScene) {
             this._modelGroup.remove(this._whaleScene);
-            // Dispose old geometry/materials
+            // Dispose old geometry/materials/textures
             this._whaleScene.traverse((child) => {
               if ((child as THREE.Mesh).isMesh) {
                 const mesh = child as THREE.Mesh;
                 mesh.geometry.dispose();
-                if (Array.isArray(mesh.material)) {
-                  mesh.material.forEach(m => m.dispose());
-                } else {
-                  (mesh.material as THREE.Material).dispose();
+                const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material as THREE.Material];
+                for (const m of mats) {
+                  // Dispose all texture maps on the material
+                  for (const key of Object.keys(m)) {
+                    const val = (m as any)[key];
+                    if (val instanceof THREE.Texture) val.dispose();
+                  }
+                  m.dispose();
                 }
               }
             });
