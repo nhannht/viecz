@@ -1,6 +1,27 @@
 import * as THREE from 'three';
-import { DepthOfFieldEffect, EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } from 'postprocessing';
+import { DepthOfFieldEffect, Effect, EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } from 'postprocessing';
 import { GodraysPass } from 'three-good-godrays';
+
+/** Subtle underwater refraction wobble — screen-space UV distortion */
+class UnderwaterDistortionEffect extends Effect {
+  constructor() {
+    super('UnderwaterDistortion', /* glsl */ `
+      uniform float time;
+
+      void mainUv(inout vec2 uv) {
+        uv += sin(uv.y * 10.0 + time) * 0.003;
+        uv += cos(uv.x * 8.0 + time * 0.7) * 0.002;
+      }
+    `, {
+      uniforms: new Map([['time', new THREE.Uniform(0)]]),
+    });
+  }
+
+  override update(_renderer: THREE.WebGLRenderer, _inputBuffer: THREE.WebGLRenderTarget, deltaTime: number): void {
+    const u = this.uniforms.get('time')!;
+    u.value += deltaTime;
+  }
+}
 
 export class WhalePostProcessing {
   private composer: EffectComposer;
@@ -28,6 +49,10 @@ export class WhalePostProcessing {
       radius: 0.85,
     });
     this.composer.addPass(new EffectPass(camera, this.bloomEffect));
+
+    // Underwater distortion — subtle refraction wobble (after bloom, before DOF)
+    const distortion = new UnderwaterDistortionEffect();
+    this.composer.addPass(new EffectPass(camera, distortion));
 
     // Depth of field — cinematic bokeh, focus on mid-range whale
     this.dofEffect = new DepthOfFieldEffect(camera, {
