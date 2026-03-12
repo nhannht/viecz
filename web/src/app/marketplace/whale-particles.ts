@@ -1271,39 +1271,45 @@ float _caustics(vec2 uv) {
 
   initKoiFish(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
     gltfLoader.load('assets/models/koi_fish.glb', (gltf) => {
-      if (this.disabledSystems.has('koi')) return;
-      // Use a wrapper pivot for movement/rotation — keep model internals untouched
-      const pivot = new THREE.Group();
-      pivot.add(gltf.scene);
-      this.koiGroup = pivot;
+      try {
+        if (this.disabledSystems.has('koi')) return;
+        // Use a wrapper pivot for movement/rotation — keep model internals untouched
+        const pivot = new THREE.Group();
+        pivot.add(gltf.scene);
+        this.koiGroup = pivot;
 
-      // Model is ~6.4 units on X — scale to ~1/3 of swimRangeX
-      const bbox = new THREE.Box3().setFromObject(gltf.scene);
-      const modelLen = bbox.max.x - bbox.min.x;
-      const targetLen = this.swimRangeX * 0.7; // 2x bigger
-      const s = targetLen / modelLen;
-      gltf.scene.scale.set(s, s, s);
+        // Model is ~6.4 units on X — scale to ~1/3 of swimRangeX
+        const bbox = new THREE.Box3().setFromObject(gltf.scene);
+        const modelLen = bbox.max.x - bbox.min.x;
+        const targetLen = this.swimRangeX * 0.7; // 2x bigger
+        const s = targetLen / modelLen;
+        gltf.scene.scale.set(s, s, s);
 
-      // Rotate model so its X-axis forward aligns with -Z (Three.js forward)
-      // Model faces +X, so rotate -90° around Y to face -Z
-      gltf.scene.rotation.y = -Math.PI / 2;
+        // Rotate model so its X-axis forward aligns with -Z (Three.js forward)
+        // Model faces +X, so rotate -90° around Y to face -Z
+        gltf.scene.rotation.y = -Math.PI / 2;
 
-      // Cast shadows onto ocean floor
-      gltf.scene.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).castShadow = true;
-      });
+        // Cast shadows onto ocean floor
+        gltf.scene.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).castShadow = true;
+        });
 
-      pivot.position.set(0, 0, 0);
-      this.koiPrevPos.set(0, 0, 0);
+        pivot.position.set(0, 0, 0);
+        this.koiPrevPos.set(0, 0, 0);
 
-      this.scene.add(pivot);
+        this.scene.add(pivot);
 
-      // Play morph target swim animation as-is (150 sequential morph targets)
-      if (gltf.animations.length > 0) {
-        this.koiMixer = new THREE.AnimationMixer(gltf.scene);
-        const action = this.koiMixer.clipAction(gltf.animations[0]);
-        action.play();
+        // Play morph target swim animation as-is (150 sequential morph targets)
+        if (gltf.animations.length > 0) {
+          this.koiMixer = new THREE.AnimationMixer(gltf.scene);
+          const action = this.koiMixer.clipAction(gltf.animations[0]);
+          action.play();
+        }
+      } catch (e) {
+        console.warn('[whale:koi] Failed to initialize koi fish, skipping:', e);
       }
+    }, undefined, (err) => {
+      console.warn('[whale:koi] Failed to load koi_fish.glb, scene continues without koi:', err);
     });
   }
 
