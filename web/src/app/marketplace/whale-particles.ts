@@ -17,6 +17,8 @@ export class WhaleParticles {
   private mountainGroups: THREE.Group[] = [];
   private propsGroup: THREE.Group | null = null;
   private castleMeshes: THREE.Mesh[] = [];
+  private haloSprite: THREE.Mesh | null = null;
+  private haloOpacity = { value: 0.8 };
   private castleSpotLight: THREE.SpotLight | null = null;
   private castleCenter = new THREE.Vector3();
   private orbGroup: THREE.Group | null = null;
@@ -251,14 +253,14 @@ float _caustics(vec2 uv) {
     gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader,
     addBloomMesh?: (mesh: THREE.Mesh) => void,
   ): void {
-    gltfLoader.load('assets/models/minas_tirith.glb', (gltf) => {
+    gltfLoader.load('assets/models/buddha_statue.glb', (gltf) => {
       const group = gltf.scene;
       this.propsGroup = group;
 
-      // Scale as a sunken city ruin on the ocean floor
+      // Scale as a sunken statue on the ocean floor
       const bbox = new THREE.Box3().setFromObject(group);
       const modelHeight = bbox.max.y - bbox.min.y;
-      const targetHeight = this.swimRangeY * 2.5;
+      const targetHeight = this.swimRangeY * 2.0;
       const s = targetHeight / modelHeight;
       group.scale.set(s, s, s);
 
@@ -268,39 +270,90 @@ float _caustics(vec2 uv) {
       const py = -this.swimRangeY * 1.5 - scaledMinY;
       const pz = -this.swimRangeZ * 0.3;
       group.position.set(px, py, pz);
-      group.rotation.y = -Math.PI / 2 - Math.PI / 12; // 105° clockwise
+      group.rotation.y = -Math.PI / 4; // 45° clockwise
 
       this.castleCenter.set(px, py + targetHeight * 0.5, pz);
 
-      // Add warm gold emissive glow to make the castle shine underwater
+      // Keep original unlit material untouched — just register for bloom and shadows
       group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.castShadow = true;
           mesh.receiveShadow = true;
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          mat.emissive = new THREE.Color(0xddaa44);
-          mat.emissiveIntensity = 0.15;
           this.castleMeshes.push(mesh);
           if (addBloomMesh) addBloomMesh(mesh);
         }
       });
 
-      // Warm amber point light to illuminate the castle
-      const light = new THREE.PointLight(0xffcc66, 80, targetHeight * 4, 1.0);
+      // Billboard sprite halo — large radial gradient behind the statue
+      const haloSize = targetHeight * 2.5;
+      const haloCanvas = document.createElement('canvas');
+      haloCanvas.width = 256;
+      haloCanvas.height = 256;
+      const hCtx = haloCanvas.getContext('2d')!;
+      const grad = hCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      grad.addColorStop(0, 'rgba(100,180,255,1.0)');
+      grad.addColorStop(0.25, 'rgba(68,136,255,0.8)');
+      grad.addColorStop(0.5, 'rgba(40,100,220,0.4)');
+      grad.addColorStop(0.8, 'rgba(20,60,160,0.1)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      hCtx.fillStyle = grad;
+      hCtx.fillRect(0, 0, 256, 256);
+      const haloTexture = new THREE.CanvasTexture(haloCanvas);
+
+      const haloGeo = new THREE.PlaneGeometry(haloSize, haloSize);
+      const haloMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uTex: { value: haloTexture },
+          uOpacity: this.haloOpacity,
+        },
+        vertexShader: /* glsl */ `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            // Billboard: always face camera
+            vec3 camRight = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+            vec3 camUp = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+            vec3 center = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+            vec3 worldPos = center + camRight * position.x + camUp * position.y;
+            gl_Position = projectionMatrix * viewMatrix * vec4(worldPos, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform sampler2D uTex;
+          uniform float uOpacity;
+          varying vec2 vUv;
+          void main() {
+            vec4 texColor = texture2D(uTex, vUv);
+            gl_FragColor = vec4(texColor.rgb * 2.0, texColor.a * uOpacity);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        fog: false,
+      });
+      const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+      haloMesh.position.set(px, py + targetHeight * 0.5, pz);
+      this.scene.add(haloMesh);
+      this.haloSprite = haloMesh;
+      if (addBloomMesh) addBloomMesh(haloMesh);
+
+      // Mystical cyan-blue point light to illuminate the surroundings
+      const light = new THREE.PointLight(0x4488ff, 100, targetHeight * 4, 1.0);
       light.position.set(px, py + targetHeight * 0.7, pz + targetHeight * 0.3);
       this.scene.add(light);
 
-      // Spotlight beam from above
+      // Divine spotlight beam from above
       const spotTarget = new THREE.Object3D();
       spotTarget.position.set(px, py + targetHeight * 0.3, pz);
       this.scene.add(spotTarget);
 
-      const spotLight = new THREE.SpotLight(0xffbb44, 120);
+      const spotLight = new THREE.SpotLight(0x00ddff, 140);
       spotLight.position.set(px, py + targetHeight * 2, pz);
       spotLight.target = spotTarget;
       spotLight.angle = 0.4;
-      spotLight.penumbra = 0.8;
+      spotLight.penumbra = 0.9;
       spotLight.distance = targetHeight * 5;
       spotLight.decay = 1.5;
       this.scene.add(spotLight);
@@ -313,8 +366,8 @@ float _caustics(vec2 uv) {
         const geo = new THREE.SphereGeometry(0.1, 8, 8);
         const mat = new THREE.MeshStandardMaterial({
           color: 0x000000,
-          emissive: new THREE.Color(0xffaa22),
-          emissiveIntensity: 2.0,
+          emissive: new THREE.Color(0x00ffaa),
+          emissiveIntensity: 2.5,
           transparent: true,
           opacity: 0.9,
           blending: THREE.AdditiveBlending,
@@ -1030,11 +1083,8 @@ float _caustics(vec2 uv) {
       this.koiPrevPos.set(x, y, z);
     }
 
-    // Pulsing emissive glow on castle meshes
-    for (const mesh of this.castleMeshes) {
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = 0.1 + 0.12 * Math.sin(elapsed * 0.5);
-    }
+    // Pulsing billboard halo behind Buddha statue
+    this.haloOpacity.value = 0.8 + 0.2 * Math.sin(elapsed * 0.35 + 0.5);
 
     // Floating orb circular orbits with vertical bob
     for (const orb of this.orbData) {
@@ -1195,6 +1245,16 @@ float _caustics(vec2 uv) {
     if (this.koiMixer) {
       this.koiMixer.stopAllAction();
       this.koiMixer = null;
+    }
+
+    // Dispose billboard halo
+    if (this.haloSprite) {
+      const mat = this.haloSprite.material as THREE.ShaderMaterial;
+      if (mat.uniforms['uTex']?.value) mat.uniforms['uTex'].value.dispose();
+      mat.dispose();
+      this.haloSprite.geometry.dispose();
+      this.haloSprite.removeFromParent();
+      this.haloSprite = null;
     }
 
     this.castleMeshes = [];
