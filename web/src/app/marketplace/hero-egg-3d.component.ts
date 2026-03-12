@@ -53,6 +53,8 @@ export class HeroEgg3dComponent implements OnDestroy {
   private raycaster = new THREE.Raycaster();
   private resizeObserver: ResizeObserver | null = null;
   private mixer: THREE.AnimationMixer | null = null;
+  private _whaleScene: THREE.Group | null = null; // the gltf.scene inside modelGroup
+  private _gltfLoader: GLTFLoader | null = null;
   private clock = new THREE.Clock();
 
   // Animation actions
@@ -296,103 +298,31 @@ export class HeroEgg3dComponent implements OnDestroy {
     this.resizeObserver = new ResizeObserver(onResize);
     this.resizeObserver.observe(container);
 
-    // Load whale
+    // Load whale — check cache for high-end model first
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('assets/draco/');
     const loader = new GLTFLoader();
     loader.setDRACOLoader(dracoLoader);
-    loader.load('assets/models/glow_whale_final.glb', (gltf) => {
+    this._gltfLoader = loader;
+
+    const HIGH_END_MODEL = 'assets/models/glow_whale_mr_draco.glb';
+    const LIGHTWEIGHT_MODEL = 'assets/models/glow_whale_final.glb';
+
+    const onWhaleLoaded = (gltf: import('three/examples/jsm/loaders/GLTFLoader.js').GLTF, isHighEnd: boolean) => {
+      if (this._modelGroup) return; // already loaded (race condition guard)
       const modelGroup = new THREE.Group();
       this._modelGroup = modelGroup;
 
-      const box = new THREE.Box3().setFromObject(gltf.scene);
-      const center = box.getCenter(new THREE.Vector3());
-      gltf.scene.position.sub(center);
-
-      // Position camera so visible area at z=0 = ±DESIRED_HALF_HEIGHT vertically
-      const vFov = (CAMERA_FOV * Math.PI) / 180;
-      const camZ = DESIRED_HALF_HEIGHT / Math.tan(vFov / 2);
-      camera.position.set(0, 0, camZ);
-      camera.lookAt(0, 0, 0);
-
-      // Compute swim ranges from actual frustum
-      const swimRangeY = DESIRED_HALF_HEIGHT;
-      const swimRangeX = DESIRED_HALF_HEIGHT * camera.aspect;
-      const swimRangeZ = camZ * 2.5;
-      this.swimming.setSwimRange(swimRangeX, swimRangeY, swimRangeZ);
-
-      console.log(`[whale:camera] camZ=${camZ.toFixed(2)} swimRangeX=${swimRangeX.toFixed(2)} swimRangeY=${swimRangeY.toFixed(2)} swimRangeZ=${swimRangeZ.toFixed(2)} startPos=(${this.swimming.whalePos.x.toFixed(2)},${this.swimming.whalePos.y.toFixed(2)},${this.swimming.whalePos.z.toFixed(2)})`);
-
-      let whaleMaterial: THREE.MeshStandardMaterial | null = null;
-      gltf.scene.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = false;
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          if (!whaleMaterial) whaleMaterial = mat;
-          mat.emissiveIntensity = 20;
-          if (mat.emissiveIntensity > 1.0) {
-            child.layers.enable(BLOOM_LAYER);
-            this.postProcessing?.addBloomMesh(mesh);
-          }
-        }
-      });
+      this.setupWhaleFromGltf(gltf, camera);
 
       modelGroup.add(gltf.scene);
       modelGroup.scale.set(20, 20, 20);
       scene.add(modelGroup);
 
-      // Animations
-      console.log(`[whale:init] ${gltf.animations.length} animations found: ${gltf.animations.map(a => a.name).join(', ')}`);
-      this.mixer = new THREE.AnimationMixer(gltf.scene);
-      this.mixer.addEventListener('finished', this.onGulpFinished);
-
-      for (const [dir, animName] of Object.entries(DIR_ANIMS)) {
-        const clip = gltf.animations.find(c => c.name === animName);
-        if (clip) {
-          const action = this.mixer.clipAction(clip);
-          action.setLoop(THREE.LoopRepeat, Infinity);
-          action.timeScale = 0.7;
-          action.enabled = true;
-          action.setEffectiveWeight(0);
-          action.play();
-          this.dirActions[dir as Direction] = action;
-          console.log(`[whale:init] action '${dir}' (${animName}): weight=${action.getEffectiveWeight()}, enabled=${action.enabled}, duration=${clip.duration.toFixed(2)}s`);
-        } else {
-          console.warn(`[whale:init] MISSING clip for '${dir}' (${animName})`);
-        }
-      }
-
-      const gulpClip = gltf.animations.find(c => c.name === GULP_ANIM);
-      if (gulpClip) {
-        this.gulpAction = this.mixer.clipAction(gulpClip);
-        this.gulpAction.setLoop(THREE.LoopOnce, 1);
-        this.gulpAction.clampWhenFinished = true;
-        this.gulpAction.enabled = true;
-        this.gulpAction.setEffectiveWeight(0);
-        this.gulpAction.play();
-        console.log(`[whale:init] gulp action: duration=${gulpClip.duration.toFixed(2)}s`);
-      } else {
-        console.warn(`[whale:init] MISSING gulp clip`);
-      }
-
-      const surfaceClip = gltf.animations.find(c => c.name === SURFACE_ANIM);
-      if (surfaceClip) {
-        this.surfaceAction = this.mixer.clipAction(surfaceClip);
-        this.surfaceAction.setLoop(THREE.LoopRepeat, Infinity);
-        this.surfaceAction.enabled = true;
-        this.surfaceAction.setEffectiveWeight(1);
-        this.surfaceAction.play();
-        console.log(`[whale:init] surface action: duration=${surfaceClip.duration.toFixed(2)}s, weight=1`);
-      } else {
-        console.warn(`[whale:init] MISSING surface clip`);
-      }
-
       this.swimming.pickFreeSwimWaypoint();
 
       // Phase 1: immediate — pure geometry, no GLB loads
-      this.particles = new WhaleParticles(scene, swimRangeX, swimRangeY, swimRangeZ);
+      this.particles = new WhaleParticles(scene, this.swimming.swimRangeX, this.swimming.swimRangeY, this.swimming.swimRangeZ);
       this.particles.initParticles();
       this.particles.initSeaFlora();
       this.particles.initRocks();
@@ -414,7 +344,14 @@ export class HeroEgg3dComponent implements OnDestroy {
         );
       };
       scheduleNext(0);
+
       // Tuning panel (activate via ?tune_3d=true)
+      let whaleMaterial: THREE.MeshStandardMaterial | null = null;
+      gltf.scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh && !whaleMaterial) {
+          whaleMaterial = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        }
+      });
       if (TUNE_3D && this.postProcessing && whaleMaterial) {
         this.tuningPanel = new WhaleTuningPanel({
           pp: this.postProcessing,
@@ -435,7 +372,7 @@ export class HeroEgg3dComponent implements OnDestroy {
         this.debugTrail.init(scene);
 
         this.debugMinimap = new WhaleDebugMinimap();
-        this.debugMinimap.init(swimRangeX, swimRangeY, swimRangeZ);
+        this.debugMinimap.init(this.swimming.swimRangeX, this.swimming.swimRangeY, this.swimming.swimRangeZ);
 
         this.debugGui = new WhaleDebugGui({
           onOpenDebugWindow: () => this.initDebugPopup(),
@@ -451,7 +388,29 @@ export class HeroEgg3dComponent implements OnDestroy {
         });
         this.debugGui.init(scene, gltf.scene);
       }
-    });
+
+      // If loaded the lightweight model, schedule background upgrade if network is fast
+      if (!isHighEnd) {
+        this.maybeUpgradeWhaleModel(loader, camera);
+      } else {
+        console.log('[whale:adaptive] High-end model loaded from cache — no upgrade needed');
+      }
+    };
+
+    // Try cache-first: if the high-end model is already cached, use it directly
+    fetch(HIGH_END_MODEL, { method: 'HEAD', cache: 'only-if-cached', mode: 'same-origin' })
+      .then((res) => {
+        if (res.ok) {
+          console.log('[whale:adaptive] High-end model found in cache — loading directly');
+          loader.load(HIGH_END_MODEL, (gltf) => onWhaleLoaded(gltf, true));
+        } else {
+          throw new Error('not cached');
+        }
+      })
+      .catch(() => {
+        // Not cached — load lightweight model first
+        loader.load(LIGHTWEIGHT_MODEL, (gltf) => onWhaleLoaded(gltf, false));
+      });
 
     // Animation loop
     const animate = () => {
@@ -550,6 +509,141 @@ export class HeroEgg3dComponent implements OnDestroy {
       }
     };
     animate();
+  }
+
+  /** Set up whale model: center, materials, bloom, animations */
+  private setupWhaleFromGltf(
+    gltf: import('three/examples/jsm/loaders/GLTFLoader.js').GLTF,
+    camera: THREE.PerspectiveCamera,
+  ): void {
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const center = box.getCenter(new THREE.Vector3());
+    gltf.scene.position.sub(center);
+
+    // Position camera so visible area at z=0 = ±DESIRED_HALF_HEIGHT vertically
+    const vFov = (CAMERA_FOV * Math.PI) / 180;
+    const camZ = DESIRED_HALF_HEIGHT / Math.tan(vFov / 2);
+    camera.position.set(0, 0, camZ);
+    camera.lookAt(0, 0, 0);
+
+    // Compute swim ranges from actual frustum
+    const swimRangeY = DESIRED_HALF_HEIGHT;
+    const swimRangeX = DESIRED_HALF_HEIGHT * camera.aspect;
+    const swimRangeZ = camZ * 2.5;
+    this.swimming.setSwimRange(swimRangeX, swimRangeY, swimRangeZ);
+
+    // Materials: shadows, emissive, bloom
+    gltf.scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = false;
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        mat.emissiveIntensity = 20;
+        if (mat.emissiveIntensity > 1.0) {
+          child.layers.enable(BLOOM_LAYER);
+          this.postProcessing?.addBloomMesh(mesh);
+        }
+      }
+    });
+
+    // Animations
+    if (this.mixer) {
+      this.mixer.removeEventListener('finished', this.onGulpFinished);
+      this.mixer.stopAllAction();
+    }
+    this.mixer = new THREE.AnimationMixer(gltf.scene);
+    this.mixer.addEventListener('finished', this.onGulpFinished);
+
+    for (const [dir, animName] of Object.entries(DIR_ANIMS)) {
+      const clip = gltf.animations.find(c => c.name === animName);
+      if (clip) {
+        const action = this.mixer.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.timeScale = 0.7;
+        action.enabled = true;
+        action.setEffectiveWeight(0);
+        action.play();
+        this.dirActions[dir as Direction] = action;
+      }
+    }
+
+    const gulpClip = gltf.animations.find(c => c.name === GULP_ANIM);
+    if (gulpClip) {
+      this.gulpAction = this.mixer.clipAction(gulpClip);
+      this.gulpAction.setLoop(THREE.LoopOnce, 1);
+      this.gulpAction.clampWhenFinished = true;
+      this.gulpAction.enabled = true;
+      this.gulpAction.setEffectiveWeight(0);
+      this.gulpAction.play();
+    }
+
+    const surfaceClip = gltf.animations.find(c => c.name === SURFACE_ANIM);
+    if (surfaceClip) {
+      this.surfaceAction = this.mixer.clipAction(surfaceClip);
+      this.surfaceAction.setLoop(THREE.LoopRepeat, Infinity);
+      this.surfaceAction.enabled = true;
+      this.surfaceAction.setEffectiveWeight(1);
+      this.surfaceAction.play();
+    }
+
+    this._whaleScene = gltf.scene;
+  }
+
+  /** Check network conditions and load high-end whale model if bandwidth allows */
+  private maybeUpgradeWhaleModel(loader: GLTFLoader, camera: THREE.PerspectiveCamera): void {
+    const conn = (navigator as any).connection;
+    if (conn) {
+      // Network Information API available (Chrome/Edge)
+      const dominated = conn.effectiveType === '2g' || conn.effectiveType === '3g'
+        || conn.effectiveType === 'slow-2g'
+        || (conn.downlink != null && conn.downlink < 5);
+      if (dominated) {
+        console.log(`[whale:adaptive] Slow network (${conn.effectiveType}, ${conn.downlink} Mbps) — keeping lightweight model`);
+        return;
+      }
+      console.log(`[whale:adaptive] Fast network (${conn.effectiveType}, ${conn.downlink} Mbps) — upgrading to high-end model`);
+    } else {
+      console.log('[whale:adaptive] Network Info API unavailable — attempting progressive upgrade');
+    }
+
+    // Defer upgrade to avoid competing with deferred scene loads
+    setTimeout(() => {
+      if (!this._modelGroup) return; // component destroyed
+      loader.load('assets/models/glow_whale_mr_draco.glb', (gltf) => {
+        try {
+          if (!this._modelGroup) return; // destroyed during load
+          console.log('[whale:adaptive] High-end model loaded, hot-swapping...');
+
+          // Remove old whale scene from model group
+          if (this._whaleScene) {
+            this._modelGroup.remove(this._whaleScene);
+            // Dispose old geometry/materials
+            this._whaleScene.traverse((child) => {
+              if ((child as THREE.Mesh).isMesh) {
+                const mesh = child as THREE.Mesh;
+                mesh.geometry.dispose();
+                if (Array.isArray(mesh.material)) {
+                  mesh.material.forEach(m => m.dispose());
+                } else {
+                  (mesh.material as THREE.Material).dispose();
+                }
+              }
+            });
+          }
+
+          // Set up new model with same centering, materials, bloom, animations
+          this.setupWhaleFromGltf(gltf, camera);
+          this._modelGroup.add(gltf.scene);
+
+          console.log('[whale:adaptive] Hot-swap complete — now using high-end whale model');
+        } catch (e) {
+          console.warn('[whale:adaptive] Failed to upgrade whale model, keeping current:', e);
+        }
+      }, undefined, (err) => {
+        console.warn('[whale:adaptive] Failed to load high-end whale model, scene unaffected:', err);
+      });
+    }, 3000); // Wait 3s for deferred scene loads to settle
   }
 
 }
