@@ -22,8 +22,8 @@ export class WhaleParticles {
   private haloOpacity = { value: 0.8 };
   private castleSpotLight: THREE.SpotLight | null = null;
   private castleCenter = new THREE.Vector3();
-  private orbGroup: THREE.Group | null = null;
-  private orbData: { mesh: THREE.Mesh; radius: number; speed: number; yOffset: number; phase: number }[] = [];
+  private orbMesh: THREE.InstancedMesh | null = null;
+  private orbParams: { radius: number; speed: number; yOffset: number; phase: number }[] = [];
   currentAngle = CURRENT_ANGLE_DEG;      // degrees — live animated value
   currentStrength = CURRENT_STRENGTH;    // world units/sec — live animated value
   currentAutoAnimate = true;             // set false for manual tuning override
@@ -443,10 +443,9 @@ float _caustics(vec2 uv) {
       this.scene.add(spotLight);
       this.castleSpotLight = spotLight;
 
-      // Floating light orbs
-      const orbGroup = new THREE.Group();
-      const orbCount = 8;
-      for (let i = 0; i < orbCount; i++) {
+      // Floating light orbs — single InstancedMesh (8 draw calls → 1)
+      {
+        const orbCount = 8;
         const geo = new THREE.SphereGeometry(0.1, 8, 8);
         const mat = new THREE.MeshStandardMaterial({
           color: 0x000000,
@@ -456,20 +455,22 @@ float _caustics(vec2 uv) {
           opacity: 0.9,
           blending: THREE.AdditiveBlending,
         });
-        const orb = new THREE.Mesh(geo, mat);
-        orbGroup.add(orb);
-        if (addBloomMesh) addBloomMesh(orb);
+        const orbMesh = new THREE.InstancedMesh(geo, mat, orbCount);
+        orbMesh.frustumCulled = false;
 
-        this.orbData.push({
-          mesh: orb,
-          radius: (0.15 + Math.random() * 0.25) * targetHeight,
-          speed: 0.2 + Math.random() * 0.4,
-          yOffset: (-0.15 + Math.random() * 0.5) * targetHeight,
-          phase: Math.random() * Math.PI * 2,
-        });
+        for (let i = 0; i < orbCount; i++) {
+          this.orbParams.push({
+            radius: (0.25 + Math.random() * 0.55) * targetHeight,
+            speed: 0.1 + Math.random() * 0.6,
+            yOffset: (-0.2 + Math.random() * 0.7) * targetHeight,
+            phase: (i / orbCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.8,
+          });
+        }
+
+        this.scene.add(orbMesh);
+        this.orbMesh = orbMesh;
+        if (addBloomMesh) addBloomMesh(orbMesh as unknown as THREE.Mesh);
       }
-      this.scene.add(orbGroup);
-      this.orbGroup = orbGroup;
 
       // ── Light Pillar: dust-in-sunbeam particles in a cone above statue ─
       {
@@ -1393,14 +1394,20 @@ float _caustics(vec2 uv) {
     // Pulsing billboard halo behind Buddha statue
     this.haloOpacity.value = 0.8 + 0.2 * Math.sin(elapsed * 0.35 + 0.5);
 
-    // Floating orb circular orbits with vertical bob
-    for (const orb of this.orbData) {
-      const angle = elapsed * orb.speed + orb.phase;
-      orb.mesh.position.set(
-        this.castleCenter.x + Math.cos(angle) * orb.radius,
-        this.castleCenter.y + orb.yOffset + Math.sin(elapsed * 0.8 + orb.phase) * 0.15,
-        this.castleCenter.z + Math.sin(angle) * orb.radius,
-      );
+    // Floating orb circular orbits with vertical bob (InstancedMesh)
+    if (this.orbMesh) {
+      const _m = new THREE.Matrix4();
+      for (let i = 0; i < this.orbParams.length; i++) {
+        const orb = this.orbParams[i];
+        const angle = elapsed * orb.speed + orb.phase;
+        _m.makeTranslation(
+          this.castleCenter.x + Math.cos(angle) * orb.radius,
+          this.castleCenter.y + orb.yOffset + Math.sin(elapsed * 0.8 + orb.phase) * 0.15,
+          this.castleCenter.z + Math.sin(angle) * orb.radius,
+        );
+        this.orbMesh.setMatrixAt(i, _m);
+      }
+      this.orbMesh.instanceMatrix.needsUpdate = true;
     }
 
     // Light pillar: drift particles downward in cone
@@ -1513,21 +1520,12 @@ float _caustics(vec2 uv) {
       this.castleSpotLight = null;
     }
 
-    // Dispose floating orbs
-    if (this.orbGroup) {
-      this.orbGroup.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          mesh.geometry.dispose();
-          if (Array.isArray(mesh.material)) {
-            mesh.material.forEach(m => m.dispose());
-          } else {
-            mesh.material.dispose();
-          }
-        }
-      });
-      this.orbGroup.removeFromParent();
-      this.orbGroup = null;
+    // Dispose floating orbs (InstancedMesh)
+    if (this.orbMesh) {
+      this.orbMesh.geometry.dispose();
+      (this.orbMesh.material as THREE.Material).dispose();
+      this.orbMesh.removeFromParent();
+      this.orbMesh = null;
     }
 
     // Dispose sea flora instanced meshes
@@ -1645,7 +1643,7 @@ float _caustics(vec2 uv) {
     }
 
     this.castleMeshes = [];
-    this.orbData = [];
+    this.orbParams = [];
   }
 
   // ── Adaptive FPS degradation: disable individual subsystems ──────
@@ -1688,17 +1686,12 @@ float _caustics(vec2 uv) {
 
   disableOrbs(): void {
     this.disabledSystems.add('orbs');
-    if (this.orbGroup) {
-      this.orbGroup.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          mesh.geometry.dispose();
-          (mesh.material as THREE.Material).dispose();
-        }
-      });
-      this.orbGroup.removeFromParent();
-      this.orbGroup = null;
-      this.orbData = [];
+    if (this.orbMesh) {
+      this.orbMesh.geometry.dispose();
+      (this.orbMesh.material as THREE.Material).dispose();
+      this.orbMesh.removeFromParent();
+      this.orbMesh = null;
+      this.orbParams = [];
     }
   }
 
