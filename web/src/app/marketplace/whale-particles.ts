@@ -424,7 +424,7 @@ float _caustics(vec2 uv) {
       this.haloSprite = haloMesh;
 
       // Mystical cyan-blue point light to illuminate the surroundings
-      const light = new THREE.PointLight(0x4488ff, 100, targetHeight * 4, 1.0);
+      const light = new THREE.PointLight(0x4488ff, 30, targetHeight * 4, 1.0);
       light.position.set(px, py + targetHeight * 0.7, pz + targetHeight * 0.3);
       this.scene.add(light);
 
@@ -433,7 +433,7 @@ float _caustics(vec2 uv) {
       spotTarget.position.set(px, py + targetHeight * 0.3, pz);
       this.scene.add(spotTarget);
 
-      const spotLight = new THREE.SpotLight(0x00ddff, 140);
+      const spotLight = new THREE.SpotLight(0x00ddff, 60);
       spotLight.position.set(px, py + targetHeight * 2, pz);
       spotLight.target = spotTarget;
       spotLight.angle = 0.4;
@@ -472,7 +472,7 @@ float _caustics(vec2 uv) {
         if (addBloomMesh) addBloomMesh(orbMesh as unknown as THREE.Mesh);
       }
 
-      // ── Light Pillar: dust-in-sunbeam particles in a cone above statue ─
+      // ── Light Pillar: GPU-driven dust-in-sunbeam particles in a cone above statue ─
       {
         const moteCount = 80;
         const coneHeight = targetHeight * 3.5;
@@ -480,38 +480,69 @@ float _caustics(vec2 uv) {
         const coneBotR = targetHeight * 0.1;
         this.pillarUniforms = { uTime: { value: 0 } };
 
+        // Per-particle attributes: normalized height (0..1), radial angle, radial distance factor, speed, phase
+        const aHeight = new Float32Array(moteCount);
+        const aAngle = new Float32Array(moteCount);
+        const aDistFactor = new Float32Array(moteCount);
+        const aSpeed = new Float32Array(moteCount);
+        const aPhase = new Float32Array(moteCount);
+        // Dummy positions — actual positions computed in shader
         const positions = new Float32Array(moteCount * 3);
-        const speeds = new Float32Array(moteCount);
-        const phases = new Float32Array(moteCount);
 
         for (let i = 0; i < moteCount; i++) {
-          // Random height along cone, biased toward top
-          const t = Math.random(); // 0 = bottom (statue head), 1 = top
-          const r = coneBotR + (coneTopR - coneBotR) * t;
-          const angle = Math.random() * Math.PI * 2;
-          const dist = Math.sqrt(Math.random()) * r;
-          positions[i * 3]     = px + Math.cos(angle) * dist;
-          positions[i * 3 + 1] = py + targetHeight + t * coneHeight;
-          positions[i * 3 + 2] = pz + Math.sin(angle) * dist;
-          speeds[i] = 0.05 + Math.random() * 0.1; // slow downward drift
-          phases[i] = Math.random() * Math.PI * 2;
+          aHeight[i] = Math.random();
+          aAngle[i] = Math.random() * Math.PI * 2;
+          aDistFactor[i] = Math.sqrt(Math.random());
+          aSpeed[i] = 0.05 + Math.random() * 0.1;
+          aPhase[i] = Math.random() * Math.PI * 2;
         }
 
         const geo = new THREE.BufferGeometry();
-        const posAttr = new THREE.BufferAttribute(positions, 3);
-        geo.setAttribute('position', posAttr);
-        geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute('aHeight', new THREE.BufferAttribute(aHeight, 1));
+        geo.setAttribute('aAngle', new THREE.BufferAttribute(aAngle, 1));
+        geo.setAttribute('aDistFactor', new THREE.BufferAttribute(aDistFactor, 1));
+        geo.setAttribute('aSpeed', new THREE.BufferAttribute(aSpeed, 1));
+        geo.setAttribute('aPhase', new THREE.BufferAttribute(aPhase, 1));
 
         const mat = new THREE.ShaderMaterial({
-          uniforms: this.pillarUniforms,
+          uniforms: {
+            uTime: this.pillarUniforms.uTime,
+            uBaseY: { value: py + targetHeight },
+            uConeH: { value: coneHeight },
+            uTopR: { value: coneTopR },
+            uBotR: { value: coneBotR },
+            uCenterX: { value: px },
+            uCenterZ: { value: pz },
+          },
           vertexShader: /* glsl */ `
             uniform float uTime;
+            uniform float uBaseY;
+            uniform float uConeH;
+            uniform float uTopR;
+            uniform float uBotR;
+            uniform float uCenterX;
+            uniform float uCenterZ;
+            attribute float aHeight;
+            attribute float aAngle;
+            attribute float aDistFactor;
+            attribute float aSpeed;
             attribute float aPhase;
             varying float vAlpha;
             void main() {
-              // Pulsing brightness per particle
+              // Downward drift via mod — seamless recycling
+              float t = mod(aHeight - uTime * aSpeed, 1.0);
+              float y = uBaseY + t * uConeH;
+              // Cone radius at this height
+              float r = uBotR + (uTopR - uBotR) * t;
+              float dist = aDistFactor * r;
+              // Gentle sway on the radial angle
+              float angle = aAngle + sin(uTime * 0.3 + aPhase) * 0.15;
+              float x = uCenterX + cos(angle) * dist;
+              float z = uCenterZ + sin(angle) * dist;
+
               vAlpha = 0.4 + 0.6 * sin(uTime * 1.5 + aPhase);
-              vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+              vec4 mvPos = modelViewMatrix * vec4(x, y, z, 1.0);
               gl_PointSize = (3.0 + 2.0 * sin(uTime * 1.2 + aPhase)) * (250.0 / -mvPos.z);
               gl_Position = projectionMatrix * mvPos;
             }
@@ -538,16 +569,6 @@ float _caustics(vec2 uv) {
           Math.max(coneTopR, coneHeight * 0.5) * 1.2,
         );
         this.pillarMesh = points as unknown as THREE.Mesh;
-        // Store refs for CPU animation
-        (this as any)._pillarPositions = posAttr;
-        (this as any)._pillarSpeeds = speeds;
-        (this as any)._pillarPhases = phases;
-        (this as any)._pillarConeH = coneHeight;
-        (this as any)._pillarConeTopR = coneTopR;
-        (this as any)._pillarConeBotR = coneBotR;
-        (this as any)._pillarBaseY = py + targetHeight;
-        (this as any)._pillarPx = px;
-        (this as any)._pillarPz = pz;
         this.scene.add(points);
       }
 
@@ -1418,40 +1439,9 @@ float _caustics(vec2 uv) {
       this.orbMesh.instanceMatrix.needsUpdate = true;
     }
 
-    // Light pillar: drift particles downward in cone
+    // Light pillar: GPU-only, just update time
     if (this.pillarUniforms) {
       this.pillarUniforms.uTime.value = elapsed;
-      const posAttr = (this as any)._pillarPositions as THREE.BufferAttribute | undefined;
-      const speeds = (this as any)._pillarSpeeds as Float32Array | undefined;
-      const phases = (this as any)._pillarPhases as Float32Array | undefined;
-      if (posAttr && speeds && phases) {
-        const pos = posAttr.array as Float32Array;
-        const count = pos.length / 3;
-        const baseY = (this as any)._pillarBaseY as number;
-        const coneH = (this as any)._pillarConeH as number;
-        const topR = (this as any)._pillarConeTopR as number;
-        const botR = (this as any)._pillarConeBotR as number;
-        const cx = (this as any)._pillarPx as number;
-        const cz = (this as any)._pillarPz as number;
-        for (let i = 0; i < count; i++) {
-          // Drift down
-          pos[i * 3 + 1] -= speeds[i] * delta;
-          // Gentle XZ sway
-          pos[i * 3]     += Math.sin(elapsed * 0.3 + phases[i]) * 0.001;
-          pos[i * 3 + 2] += Math.cos(elapsed * 0.25 + phases[i]) * 0.001;
-          // Recycle below cone bottom → respawn at top
-          if (pos[i * 3 + 1] < baseY) {
-            const t = 0.8 + Math.random() * 0.2;
-            const r = botR + (topR - botR) * t;
-            const angle = Math.random() * Math.PI * 2;
-            const dist = Math.sqrt(Math.random()) * r;
-            pos[i * 3]     = cx + Math.cos(angle) * dist;
-            pos[i * 3 + 1] = baseY + t * coneH;
-            pos[i * 3 + 2] = cz + Math.sin(angle) * dist;
-          }
-        }
-        posAttr.needsUpdate = true;
-      }
     }
 
     // Spiritual motes: GPU-only, just update time
@@ -1686,9 +1676,6 @@ float _caustics(vec2 uv) {
       this.pillarMesh.removeFromParent();
       this.pillarMesh = null;
       this.pillarUniforms = null;
-      (this as any)._pillarPositions = null;
-      (this as any)._pillarSpeeds = null;
-      (this as any)._pillarPhases = null;
     }
   }
 
