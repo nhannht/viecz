@@ -391,17 +391,29 @@ export class HeroEgg3dComponent implements OnDestroy {
 
       this.swimming.pickFreeSwimWaypoint();
 
-      // Particles + ocean floor
+      // Phase 1: immediate — pure geometry, no GLB loads
       this.particles = new WhaleParticles(scene, swimRangeX, swimRangeY, swimRangeZ);
       this.particles.initParticles();
-      this.particles.initOceanFloor(loader);
-      this.particles.initMountainRange(loader);
-      this.particles.initFloorProps(loader, (mesh) => this.postProcessing?.addBloomMesh(mesh));
       this.particles.initSeaFlora();
       this.particles.initRocks();
       this.particles.initBubbles();
-      this.particles.initFishFlocks(loader);
-      this.particles.initKoiFish(loader);
+
+      // Phase 2: deferred — GLB models, staggered via requestIdleCallback
+      // Priority order: ocean floor → buddha/props → mountains → fish → koi
+      const deferredInits = [
+        () => this.particles?.initOceanFloor(loader),
+        () => this.particles?.initFloorProps(loader, (mesh) => this.postProcessing?.addBloomMesh(mesh)),
+        () => this.particles?.initMountainRange(loader),
+        () => this.particles?.initFishFlocks(loader),
+        () => this.particles?.initKoiFish(loader),
+      ];
+      const scheduleNext = (i: number) => {
+        if (i >= deferredInits.length) return;
+        (window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 80)))(
+          () => { deferredInits[i](); scheduleNext(i + 1); },
+        );
+      };
+      scheduleNext(0);
       // Tuning panel (activate via ?tune_3d=true)
       if (TUNE_3D && this.postProcessing && whaleMaterial) {
         this.tuningPanel = new WhaleTuningPanel({
