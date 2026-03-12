@@ -25,10 +25,14 @@ export const BLEND_SPEED = 0.6;
 export const DIR_HOLD_TIME = 2000;
 
 // Floating particles
-export const PARTICLE_COUNT = 800;
+export const PARTICLE_COUNT = 1500;
 export const PARTICLE_DRIFT_Y = 0.15;
 export const PARTICLE_SWAY_FREQ = 0.4;
 export const PARTICLE_SWAY_AMP = 0.3;
+
+// Underwater current — Abzu-style directional drift
+export const CURRENT_ANGLE_DEG = 0;       // 0 = rightward (+X)
+export const CURRENT_STRENGTH = 0.08;     // world units/sec — subtle drift
 
 /** Shared context passed to all whale scene helpers */
 export interface WhaleSceneContext {

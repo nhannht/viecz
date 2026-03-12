@@ -96,6 +96,14 @@ export class WhaleTuningPanel {
     edgeFadeStart: 0.55,
   };
 
+  private currentParams = {
+    angleDeg: 0,
+    strength: 0.08,
+    autoAnimate: true,
+  };
+  private currentControllers: import('lil-gui').Controller[] = [];
+
+
 
   constructor(private deps: WhaleTuningDeps) {
     this.syncFromLive();
@@ -105,6 +113,7 @@ export class WhaleTuningPanel {
 
     this.buildWhaleModelFolder();
     this.buildSwimmingFolder();
+    this.buildCurrentFolder();
     this.buildOceanFloorFolder();
     this.buildFogFolder();
     this.buildBloomFolder();
@@ -158,6 +167,9 @@ export class WhaleTuningPanel {
     this.swimmingParams.turnLerp = swimming.TURN_LERP;
     this.swimmingParams.velocityLerp = swimming.VELOCITY_LERP;
     this.swimmingParams.freeSwimInterval = swimming.freeSwimInterval;
+
+    this.currentParams.angleDeg = this.deps.particles.currentAngle;
+    this.currentParams.strength = this.deps.particles.currentStrength;
   }
 
   private buildWhaleModelFolder(): void {
@@ -200,6 +212,32 @@ export class WhaleTuningPanel {
     f.add(this.swimmingParams, 'freeSwimInterval', 1000, 30000, 500).name('waypoint interval (ms)').onChange((v: number) => {
       swimming.freeSwimInterval = v;
     });
+  }
+
+  private buildCurrentFolder(): void {
+    const { particles } = this.deps;
+    const f = this.gui.addFolder('Underwater Current');
+
+    f.add(this.currentParams, 'autoAnimate').name('auto animate').onChange((v: boolean) => {
+      particles.currentAutoAnimate = v;
+    });
+
+    const angleCtrl = f.add(this.currentParams, 'angleDeg', 0, 360, 1).name('direction (deg)').onChange((v: number) => {
+      if (!particles.currentAutoAnimate) particles.currentAngle = v;
+    });
+    const strengthCtrl = f.add(this.currentParams, 'strength', 0, 0.5, 0.005).name('current strength').onChange((v: number) => {
+      if (!particles.currentAutoAnimate) particles.currentStrength = v;
+    });
+    this.currentControllers = [angleCtrl, strengthCtrl];
+  }
+
+  /** Call each frame to sync tuning panel readouts with live animated current values */
+  syncCurrentDisplay(): void {
+    const { particles } = this.deps;
+    if (!particles.currentAutoAnimate) return;
+    this.currentParams.angleDeg = Math.round(particles.currentAngle);
+    this.currentParams.strength = Math.round(particles.currentStrength * 1000) / 1000;
+    for (const ctrl of this.currentControllers) ctrl.updateDisplay();
   }
 
   private buildOceanFloorFolder(): void {
@@ -445,6 +483,10 @@ export class WhaleTuningPanel {
       `turnLerp: ${this.swimmingParams.turnLerp}`,
       `velocityLerp: ${this.swimmingParams.velocityLerp}`,
       `freeSwimInterval: ${this.swimmingParams.freeSwimInterval}`,
+      '',
+      '--- Underwater Current ---',
+      `angleDeg: ${this.currentParams.angleDeg}`,
+      `strength: ${this.currentParams.strength}`,
       '',
       '--- Ocean Floor ---',
       `tintColor: ${this.oceanFloorParams.colorHex}`,

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PARTICLE_COUNT, PARTICLE_DRIFT_Y, PARTICLE_SWAY_FREQ, PARTICLE_SWAY_AMP } from './whale-scene.constants';
+import { PARTICLE_COUNT, PARTICLE_DRIFT_Y, PARTICLE_SWAY_FREQ, PARTICLE_SWAY_AMP, CURRENT_ANGLE_DEG, CURRENT_STRENGTH } from './whale-scene.constants';
 
 /** Manages floating particles (plankton, dust, micro-bubbles) and the ocean floor */
 export class WhaleParticles {
@@ -21,13 +21,23 @@ export class WhaleParticles {
   private castleCenter = new THREE.Vector3();
   private orbGroup: THREE.Group | null = null;
   private orbData: { mesh: THREE.Mesh; radius: number; speed: number; yOffset: number; phase: number }[] = [];
-  private floraUniforms: { uTime: { value: number } } | null = null;
+  currentAngle = CURRENT_ANGLE_DEG;      // degrees — live animated value
+  currentStrength = CURRENT_STRENGTH;    // world units/sec — live animated value
+  currentAutoAnimate = true;             // set false for manual tuning override
+
+  // Dynamic current state machine
+  private currentTargetAngle = CURRENT_ANGLE_DEG;
+  private currentTargetStrength = CURRENT_STRENGTH;
+  private currentLerpSpeed = 0.3;        // how fast we lerp toward target (per sec)
+  private surgeTimer = 0;                // countdown to next surge
+  private surgeRemaining = 0;            // seconds left in active surge
+  private nextSurgeIn = 60 + Math.random() * 120; // first surge in 60–180s
+
+  private floraUniforms: { uTime: { value: number }; uCurrentDirX: { value: number }; uCurrentDirZ: { value: number }; uCurrentStrength: { value: number } } | null = null;
   private floraMeshes: THREE.InstancedMesh[] = [];
   private rockMeshes: THREE.InstancedMesh[] = [];
   private bubbleMesh: THREE.InstancedMesh | null = null;
   private bubbleUniforms: { uTime: { value: number } } | null = null;
-  private currentMesh: THREE.InstancedMesh | null = null;
-  private currentUniforms: { uTime: { value: number } } | null = null;
   private fishGroup: THREE.Group | null = null;
   private fishMixer: THREE.AnimationMixer | null = null;
   private fishBasePos = new THREE.Vector3();
@@ -333,10 +343,18 @@ float _caustics(vec2 uv) {
     const floorY = -this.swimRangeY * 1.5;
 
     // Shared uniforms
-    this.floraUniforms = { uTime: { value: 0 } };
+    this.floraUniforms = {
+      uTime: { value: 0 },
+      uCurrentDirX: { value: Math.cos(this.currentAngle * Math.PI / 180) },
+      uCurrentDirZ: { value: Math.sin(this.currentAngle * Math.PI / 180) },
+      uCurrentStrength: { value: this.currentStrength * 1.25 },
+    };
 
     const vertexShader = /* glsl */ `
       uniform float uTime;
+      uniform float uCurrentDirX;
+      uniform float uCurrentDirZ;
+      uniform float uCurrentStrength;
       attribute float aPhase;
       varying vec2 vUv;
       varying float vFogDepth;
@@ -344,8 +362,16 @@ float _caustics(vec2 uv) {
         vUv = uv;
         vec4 mvPos = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
         float swayFactor = pow(uv.y, 1.5);
-        float sway = sin(uTime * 1.2 + aPhase) * 0.08 * swayFactor;
-        mvPos.x += sway;
+
+        // Constant lean in current direction (tips lean most, roots fixed)
+        float currentLean = uCurrentDirX * uCurrentStrength * swayFactor;
+
+        // Asymmetric oscillation — downstream swing larger than upstream
+        float rawSin = sin(uTime * 1.2 + aPhase);
+        float asymmetry = 0.4 * uCurrentStrength;
+        float sway = rawSin * 0.08 * (1.0 + asymmetry * sign(rawSin)) * swayFactor;
+
+        mvPos.x += currentLean + sway;
         vFogDepth = -mvPos.z;
         gl_Position = projectionMatrix * mvPos;
       }
@@ -489,6 +515,9 @@ float _caustics(vec2 uv) {
       const mat = new THREE.ShaderMaterial({
         uniforms: {
           uTime: this.floraUniforms.uTime,
+          uCurrentDirX: this.floraUniforms.uCurrentDirX,
+          uCurrentDirZ: this.floraUniforms.uCurrentDirZ,
+          uCurrentStrength: this.floraUniforms.uCurrentStrength,
           uTex: { value: texture },
         },
         vertexShader,
@@ -768,140 +797,6 @@ float _caustics(vec2 uv) {
     this.bubbleMesh = mesh;
   }
 
-  initCurrentLines(): void {
-    this.currentUniforms = { uTime: { value: 0 } };
-
-    const instanceCount = 80;
-    // Elongated thin quad — streak shape
-    const geo = new THREE.PlaneGeometry(this.swimRangeX * 0.15, this.swimRangeY * 0.004);
-
-    const aPhase = new Float32Array(instanceCount);
-    const aSpeed = new Float32Array(instanceCount);
-    const aPosX = new Float32Array(instanceCount);
-    const aPosY = new Float32Array(instanceCount);
-    const aPosZ = new Float32Array(instanceCount);
-    const aLen = new Float32Array(instanceCount);
-
-    const spanX = this.swimRangeX * 3.0;
-    const spanY = this.swimRangeY * 2.5;
-    const spanZ = this.swimRangeZ * 2.0;
-
-    for (let i = 0; i < instanceCount; i++) {
-      aPhase[i] = Math.random() * Math.PI * 2;
-      aSpeed[i] = 0.15 + Math.random() * 0.25;
-      aPosX[i] = (Math.random() - 0.5) * spanX;
-      aPosY[i] = -this.swimRangeY * 1.2 + Math.random() * spanY;
-      aPosZ[i] = -this.swimRangeZ * 1.5 + Math.random() * spanZ;
-      aLen[i] = 0.6 + Math.random() * 0.8;
-    }
-
-    geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(aPhase, 1));
-    geo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(aSpeed, 1));
-    geo.setAttribute('aPosX', new THREE.InstancedBufferAttribute(aPosX, 1));
-    geo.setAttribute('aPosY', new THREE.InstancedBufferAttribute(aPosY, 1));
-    geo.setAttribute('aPosZ', new THREE.InstancedBufferAttribute(aPosZ, 1));
-    geo.setAttribute('aLen', new THREE.InstancedBufferAttribute(aLen, 1));
-
-    const vertexShader = /* glsl */ `
-      uniform float uTime;
-      attribute float aPhase;
-      attribute float aSpeed;
-      attribute float aPosX;
-      attribute float aPosY;
-      attribute float aPosZ;
-      attribute float aLen;
-      varying vec2 vUv;
-      varying float vAlpha;
-      varying float vFogDepth;
-
-      void main() {
-        vUv = uv;
-
-        // Cyclic horizontal drift — wraps across spanX
-        float spanX = ${spanX.toFixed(2)};
-        float t = fract((uTime * aSpeed + aPhase) / 6.2832);
-
-        // World position: drift in +X direction
-        float worldX = aPosX + t * spanX - spanX * 0.5;
-        float worldY = aPosY + sin(uTime * 0.3 + aPhase) * 0.1;
-        float worldZ = aPosZ;
-
-        // Fade in at start, fade out at end of cycle
-        float fadeIn = smoothstep(0.0, 0.15, t);
-        float fadeOut = smoothstep(1.0, 0.85, t);
-        vAlpha = fadeIn * fadeOut * 0.25;
-
-        // Scale length per instance
-        vec3 scaled = vec3(position.x * aLen, position.y, position.z);
-
-        // Slight diagonal tilt — rotate ~10° around Z
-        float ca = 0.985;  // cos(10°)
-        float sa = 0.174;  // sin(10°)
-        vec3 rotated = vec3(
-          scaled.x * ca - scaled.y * sa,
-          scaled.x * sa + scaled.y * ca,
-          scaled.z
-        );
-
-        vec3 worldPos = vec3(worldX, worldY, worldZ) + rotated;
-        vec4 mvPos = viewMatrix * vec4(worldPos, 1.0);
-        vFogDepth = -mvPos.z;
-        gl_Position = projectionMatrix * mvPos;
-      }
-    `;
-
-    const fragmentShader = /* glsl */ `
-      varying vec2 vUv;
-      varying float vAlpha;
-      varying float vFogDepth;
-
-      void main() {
-        // Alpha gradient along length — bright center, fading tips
-        float edgeFade = 1.0 - abs(vUv.x - 0.5) * 2.0;
-        edgeFade = pow(edgeFade, 2.0);
-
-        // Thin vertical falloff
-        float vertFade = 1.0 - abs(vUv.y - 0.5) * 2.0;
-        vertFade = pow(vertFade, 0.5);
-
-        float alpha = edgeFade * vertFade * vAlpha;
-        if (alpha < 0.01) discard;
-
-        // Fog matching scene FogExp2
-        float fogDensity = 0.025;
-        float fogFactor = exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
-        fogFactor = clamp(fogFactor, 0.0, 1.0);
-        vec3 fogColor = vec3(0.024, 0.102, 0.157);
-        vec3 streakColor = vec3(0.3, 0.55, 0.65);
-        vec3 finalColor = mix(fogColor, streakColor, fogFactor);
-
-        gl_FragColor = vec4(finalColor, alpha);
-      }
-    `;
-
-    const mat = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: this.currentUniforms.uTime,
-      },
-      vertexShader,
-      fragmentShader,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-
-    const instMesh = new THREE.InstancedMesh(geo, mat, instanceCount);
-    instMesh.renderOrder = 1;
-
-    const identity = new THREE.Matrix4();
-    for (let i = 0; i < instanceCount; i++) {
-      instMesh.setMatrixAt(i, identity);
-    }
-    instMesh.instanceMatrix.needsUpdate = true;
-
-    this.scene.add(instMesh);
-    this.currentMesh = instMesh;
-  }
 
   initFishFlocks(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
     gltfLoader.load('assets/models/fish_particle.glb', (gltf) => {
@@ -1000,14 +895,69 @@ float _caustics(vec2 uv) {
     if (!this.positions || !this.speeds || !this.phases) return;
     const positions = this.positions.array as Float32Array;
 
+    // ── Dynamic current animation ──────────────────────────────────
+    if (this.currentAutoAnimate) {
+      this.surgeTimer += delta;
+
+      if (this.surgeRemaining > 0) {
+        // Active surge — count down
+        this.surgeRemaining -= delta;
+        if (this.surgeRemaining <= 0) {
+          // Surge ended — set new calm target, slow lerp back
+          this.currentTargetAngle = CURRENT_ANGLE_DEG + (Math.random() - 0.5) * 60;
+          this.currentTargetStrength = CURRENT_STRENGTH * (0.6 + Math.random() * 0.8);
+          this.currentLerpSpeed = 0.15; // slow recovery
+          this.nextSurgeIn = 60 + Math.random() * 120;
+          this.surgeTimer = 0;
+        }
+      } else {
+        // Calm phase — gentle wandering target
+        // Slowly shift base target using layered sine waves
+        this.currentTargetAngle = CURRENT_ANGLE_DEG
+          + Math.sin(elapsed * 0.02) * 25
+          + Math.sin(elapsed * 0.007 + 1.3) * 15;
+        this.currentTargetStrength = CURRENT_STRENGTH
+          * (0.7 + 0.3 * Math.sin(elapsed * 0.015)
+             + 0.2 * Math.sin(elapsed * 0.04 + 2.1));
+        this.currentLerpSpeed = 0.3;
+
+        // Check for surge trigger
+        if (this.surgeTimer >= this.nextSurgeIn) {
+          // SURGE — dramatic spike
+          this.currentTargetAngle = Math.random() * 360;
+          this.currentTargetStrength = 0.35 + Math.random() * 0.15; // 0.35–0.5
+          this.currentLerpSpeed = 0.8; // fast ramp-up
+          this.surgeRemaining = 30;
+          this.surgeTimer = 0;
+        }
+      }
+
+      // Lerp current values toward targets
+      const lerpFactor = 1 - Math.exp(-this.currentLerpSpeed * delta);
+      // Angle lerp — handle wrapping (shortest path)
+      let angleDiff = this.currentTargetAngle - this.currentAngle;
+      if (angleDiff > 180) angleDiff -= 360;
+      if (angleDiff < -180) angleDiff += 360;
+      this.currentAngle += angleDiff * lerpFactor;
+      // Normalize to 0–360
+      this.currentAngle = ((this.currentAngle % 360) + 360) % 360;
+
+      this.currentStrength += (this.currentTargetStrength - this.currentStrength) * lerpFactor;
+    }
+
+    // Current drift vector (computed once per frame)
+    const currentRad = this.currentAngle * Math.PI / 180;
+    const cdx = Math.cos(currentRad) * this.currentStrength;
+    const cdz = Math.sin(currentRad) * this.currentStrength;
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const i3 = i * 3;
       const speed = this.speeds[i];
       const phase = this.phases[i];
 
       positions[i3 + 1] += PARTICLE_DRIFT_Y * speed * delta;
-      positions[i3]     += Math.sin(phase + elapsed * PARTICLE_SWAY_FREQ) * PARTICLE_SWAY_AMP * delta;
-      positions[i3 + 2] += Math.cos(phase * 0.7 + elapsed * PARTICLE_SWAY_FREQ * 0.6) * PARTICLE_SWAY_AMP * 0.3 * delta;
+      positions[i3]     += Math.sin(phase + elapsed * PARTICLE_SWAY_FREQ) * PARTICLE_SWAY_AMP * delta + cdx * delta;
+      positions[i3 + 2] += Math.cos(phase * 0.7 + elapsed * PARTICLE_SWAY_FREQ * 0.6) * PARTICLE_SWAY_AMP * 0.3 * delta + cdz * delta;
 
       if (positions[i3 + 1] > this.swimRangeY) positions[i3 + 1] = -this.swimRangeY;
       if (positions[i3] > this.swimRangeX) positions[i3] = -this.swimRangeX;
@@ -1019,9 +969,13 @@ float _caustics(vec2 uv) {
     this.positions.needsUpdate = true;
 
     if (this.floorCausticUniforms) this.floorCausticUniforms.uTime.value = elapsed;
-    if (this.floraUniforms) this.floraUniforms.uTime.value = elapsed;
+    if (this.floraUniforms) {
+      this.floraUniforms.uTime.value = elapsed;
+      this.floraUniforms.uCurrentDirX.value = Math.cos(currentRad);
+      this.floraUniforms.uCurrentDirZ.value = Math.sin(currentRad);
+      this.floraUniforms.uCurrentStrength.value = this.currentStrength * 1.25;
+    }
     if (this.bubbleUniforms) this.bubbleUniforms.uTime.value = elapsed;
-    if (this.currentUniforms) this.currentUniforms.uTime.value = elapsed;
     if (this.fishMixer) this.fishMixer.update(delta);
 
     // Fish flock group — slow rotation, drift, and bob
@@ -1190,15 +1144,6 @@ float _caustics(vec2 uv) {
       this.bubbleMesh = null;
     }
     this.bubbleUniforms = null;
-
-    // Dispose current lines
-    if (this.currentMesh) {
-      this.currentMesh.geometry.dispose();
-      (this.currentMesh.material as THREE.Material).dispose();
-      this.currentMesh.removeFromParent();
-      this.currentMesh = null;
-    }
-    this.currentUniforms = null;
 
     // Dispose fish flock
     if (this.fishGroup) {
