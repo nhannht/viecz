@@ -47,6 +47,13 @@ export class WhaleParticles {
   private koiMixer: THREE.AnimationMixer | null = null;
   private koiPrevPos = new THREE.Vector3();
 
+  // Light pillar effect
+  private pillarMesh: THREE.Mesh | null = null;
+  private pillarUniforms: { uTime: { value: number } } | null = null;
+
+  // Spiritual motes (fully GPU-driven)
+  private motesPoints: THREE.Points | null = null;
+  private motesUniforms: { uTime: { value: number } } | null = null;
 
   constructor(
     private scene: THREE.Scene,
@@ -385,6 +392,161 @@ float _caustics(vec2 uv) {
       }
       this.scene.add(orbGroup);
       this.orbGroup = orbGroup;
+
+      // ── Light Pillar: dust-in-sunbeam particles in a cone above statue ─
+      {
+        const moteCount = 80;
+        const coneHeight = targetHeight * 3.5;
+        const coneTopR = targetHeight * 0.7;
+        const coneBotR = targetHeight * 0.1;
+        this.pillarUniforms = { uTime: { value: 0 } };
+
+        const positions = new Float32Array(moteCount * 3);
+        const speeds = new Float32Array(moteCount);
+        const phases = new Float32Array(moteCount);
+
+        for (let i = 0; i < moteCount; i++) {
+          // Random height along cone, biased toward top
+          const t = Math.random(); // 0 = bottom (statue head), 1 = top
+          const r = coneBotR + (coneTopR - coneBotR) * t;
+          const angle = Math.random() * Math.PI * 2;
+          const dist = Math.sqrt(Math.random()) * r;
+          positions[i * 3]     = px + Math.cos(angle) * dist;
+          positions[i * 3 + 1] = py + targetHeight + t * coneHeight;
+          positions[i * 3 + 2] = pz + Math.sin(angle) * dist;
+          speeds[i] = 0.05 + Math.random() * 0.1; // slow downward drift
+          phases[i] = Math.random() * Math.PI * 2;
+        }
+
+        const geo = new THREE.BufferGeometry();
+        const posAttr = new THREE.BufferAttribute(positions, 3);
+        geo.setAttribute('position', posAttr);
+        geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+
+        const mat = new THREE.ShaderMaterial({
+          uniforms: this.pillarUniforms,
+          vertexShader: /* glsl */ `
+            uniform float uTime;
+            attribute float aPhase;
+            varying float vAlpha;
+            void main() {
+              // Pulsing brightness per particle
+              vAlpha = 0.4 + 0.6 * sin(uTime * 1.5 + aPhase);
+              vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+              gl_PointSize = (3.0 + 2.0 * sin(uTime * 1.2 + aPhase)) * (250.0 / -mvPos.z);
+              gl_Position = projectionMatrix * mvPos;
+            }
+          `,
+          fragmentShader: /* glsl */ `
+            varying float vAlpha;
+            void main() {
+              float d = length(gl_PointCoord - vec2(0.5));
+              if (d > 0.5) discard;
+              float soft = 1.0 - smoothstep(0.1, 0.5, d);
+              gl_FragColor = vec4(0.6, 0.9, 1.0, soft * vAlpha * 0.5);
+            }
+          `,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          fog: false,
+        });
+
+        const points = new THREE.Points(geo, mat);
+        points.frustumCulled = false;
+        this.pillarMesh = points as unknown as THREE.Mesh;
+        // Store refs for CPU animation
+        (this as any)._pillarPositions = posAttr;
+        (this as any)._pillarSpeeds = speeds;
+        (this as any)._pillarPhases = phases;
+        (this as any)._pillarConeH = coneHeight;
+        (this as any)._pillarConeTopR = coneTopR;
+        (this as any)._pillarConeBotR = coneBotR;
+        (this as any)._pillarBaseY = py + targetHeight;
+        (this as any)._pillarPx = px;
+        (this as any)._pillarPz = pz;
+        this.scene.add(points);
+      }
+
+      // ── Spiritual Motes: GPU-driven particles in cylinder around statue ─
+      {
+        const moteCount = 150;
+        const cylR = targetHeight * 1.5;
+        const cylH = targetHeight * 0.4;
+        const floorY = -this.swimRangeY * 1.5;
+        const cx = px;
+        const cy = floorY + cylH * 0.5;
+        const cz = pz;
+        this.motesUniforms = { uTime: { value: 0 } };
+
+        // Per-particle attributes: base position, speed, phase, radius offset
+        const aBasePos = new Float32Array(moteCount * 3);
+        const aSpeed = new Float32Array(moteCount);
+        const aPhase = new Float32Array(moteCount);
+
+        for (let i = 0; i < moteCount; i++) {
+          // Uniform disk distribution
+          const r = Math.sqrt(Math.random()) * cylR;
+          const theta = Math.random() * Math.PI * 2;
+          aBasePos[i * 3]     = cx + Math.cos(theta) * r;
+          aBasePos[i * 3 + 1] = Math.random() * cylH; // 0..cylH, will be wrapped via mod()
+          aBasePos[i * 3 + 2] = cz + Math.sin(theta) * r;
+          aSpeed[i] = 0.08 + Math.random() * 0.15;
+          aPhase[i] = Math.random() * Math.PI * 2;
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(aBasePos, 3));
+        geo.setAttribute('aSpeed', new THREE.BufferAttribute(aSpeed, 1));
+        geo.setAttribute('aPhase', new THREE.BufferAttribute(aPhase, 1));
+
+        const mat = new THREE.ShaderMaterial({
+          uniforms: {
+            uTime: this.motesUniforms.uTime,
+            uCylH: { value: cylH },
+            uCenterY: { value: cy - cylH * 0.5 },
+          },
+          vertexShader: /* glsl */ `
+            uniform float uTime;
+            uniform float uCylH;
+            uniform float uCenterY;
+            attribute float aSpeed;
+            attribute float aPhase;
+            varying float vAlpha;
+            void main() {
+              // Wrap Y upward via mod — seamless recycling
+              float y = mod(position.y + uTime * aSpeed, uCylH) + uCenterY;
+              // Gentle XZ sway
+              float swayX = sin(uTime * 0.4 + aPhase) * 0.08;
+              float swayZ = cos(uTime * 0.35 + aPhase) * 0.08;
+              vec3 pos = vec3(position.x + swayX, y, position.z + swayZ);
+
+              vAlpha = 0.4 + 0.6 * sin(uTime * 1.8 + aPhase);
+              vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+              gl_PointSize = (3.0 + 2.0 * sin(uTime * 1.5 + aPhase)) * (200.0 / -mvPos.z);
+              gl_Position = projectionMatrix * mvPos;
+            }
+          `,
+          fragmentShader: /* glsl */ `
+            varying float vAlpha;
+            void main() {
+              float d = length(gl_PointCoord - vec2(0.5));
+              if (d > 0.5) discard;
+              float soft = 1.0 - smoothstep(0.15, 0.5, d);
+              gl_FragColor = vec4(0.3, 0.9, 0.7, soft * vAlpha * 0.5);
+            }
+          `,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          fog: false,
+        });
+
+        const motes = new THREE.Points(geo, mat);
+        motes.frustumCulled = false;
+        this.motesPoints = motes;
+        this.scene.add(motes);
+      }
 
       this.scene.add(group);
     });
@@ -1095,6 +1257,47 @@ float _caustics(vec2 uv) {
       );
     }
 
+    // Light pillar: drift particles downward in cone
+    if (this.pillarUniforms) {
+      this.pillarUniforms.uTime.value = elapsed;
+      const posAttr = (this as any)._pillarPositions as THREE.BufferAttribute | undefined;
+      const speeds = (this as any)._pillarSpeeds as Float32Array | undefined;
+      const phases = (this as any)._pillarPhases as Float32Array | undefined;
+      if (posAttr && speeds && phases) {
+        const pos = posAttr.array as Float32Array;
+        const count = pos.length / 3;
+        const baseY = (this as any)._pillarBaseY as number;
+        const coneH = (this as any)._pillarConeH as number;
+        const topR = (this as any)._pillarConeTopR as number;
+        const botR = (this as any)._pillarConeBotR as number;
+        const cx = (this as any)._pillarPx as number;
+        const cz = (this as any)._pillarPz as number;
+        for (let i = 0; i < count; i++) {
+          // Drift down
+          pos[i * 3 + 1] -= speeds[i] * delta;
+          // Gentle XZ sway
+          pos[i * 3]     += Math.sin(elapsed * 0.3 + phases[i]) * 0.001;
+          pos[i * 3 + 2] += Math.cos(elapsed * 0.25 + phases[i]) * 0.001;
+          // Recycle below cone bottom → respawn at top
+          if (pos[i * 3 + 1] < baseY) {
+            const t = 0.8 + Math.random() * 0.2;
+            const r = botR + (topR - botR) * t;
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.sqrt(Math.random()) * r;
+            pos[i * 3]     = cx + Math.cos(angle) * dist;
+            pos[i * 3 + 1] = baseY + t * coneH;
+            pos[i * 3 + 2] = cz + Math.sin(angle) * dist;
+          }
+        }
+        posAttr.needsUpdate = true;
+      }
+    }
+
+    // Spiritual motes: GPU-only, just update time
+    if (this.motesUniforms) {
+      this.motesUniforms.uTime.value = elapsed;
+    }
+
   }
 
   dispose(): void {
@@ -1254,6 +1457,29 @@ float _caustics(vec2 uv) {
       this.haloSprite.geometry.dispose();
       this.haloSprite.removeFromParent();
       this.haloSprite = null;
+    }
+
+    // Dispose light pillar
+    if (this.pillarMesh) {
+      this.pillarMesh.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.geometry.dispose();
+          (m.material as THREE.Material).dispose();
+        }
+      });
+      this.pillarMesh.removeFromParent();
+      this.pillarMesh = null;
+      this.pillarUniforms = null;
+    }
+
+    // Dispose spiritual motes
+    if (this.motesPoints) {
+      (this.motesPoints.material as THREE.ShaderMaterial).dispose();
+      this.motesPoints.geometry.dispose();
+      this.motesPoints.removeFromParent();
+      this.motesPoints = null;
+      this.motesUniforms = null;
     }
 
     this.castleMeshes = [];
