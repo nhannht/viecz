@@ -532,7 +532,11 @@ float _caustics(vec2 uv) {
         });
 
         const points = new THREE.Points(geo, mat);
-        points.frustumCulled = false;
+        // Manual bounding sphere covering the full cone above the statue
+        geo.boundingSphere = new THREE.Sphere(
+          new THREE.Vector3(px, py + targetHeight + coneHeight * 0.5, pz),
+          Math.max(coneTopR, coneHeight * 0.5) * 1.2,
+        );
         this.pillarMesh = points as unknown as THREE.Mesh;
         // Store refs for CPU animation
         (this as any)._pillarPositions = posAttr;
@@ -622,7 +626,11 @@ float _caustics(vec2 uv) {
         });
 
         const motes = new THREE.Points(geo, mat);
-        motes.frustumCulled = false;
+        // Manual bounding sphere covering the cylinder around the statue
+        geo.boundingSphere = new THREE.Sphere(
+          new THREE.Vector3(cx, cy, cz),
+          Math.max(cylR, cylH) * 1.2,
+        );
         this.motesPoints = motes;
         this.scene.add(motes);
       }
