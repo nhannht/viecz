@@ -26,6 +26,8 @@ export class WhaleParticles {
   private rockMeshes: THREE.InstancedMesh[] = [];
   private bubbleMesh: THREE.InstancedMesh | null = null;
   private bubbleUniforms: { uTime: { value: number } } | null = null;
+  private currentMesh: THREE.InstancedMesh | null = null;
+  private currentUniforms: { uTime: { value: number } } | null = null;
   private fishGroup: THREE.Group | null = null;
   private fishMixer: THREE.AnimationMixer | null = null;
   private fishBasePos = new THREE.Vector3();
@@ -766,6 +768,141 @@ float _caustics(vec2 uv) {
     this.bubbleMesh = mesh;
   }
 
+  initCurrentLines(): void {
+    this.currentUniforms = { uTime: { value: 0 } };
+
+    const instanceCount = 80;
+    // Elongated thin quad — streak shape
+    const geo = new THREE.PlaneGeometry(this.swimRangeX * 0.15, this.swimRangeY * 0.004);
+
+    const aPhase = new Float32Array(instanceCount);
+    const aSpeed = new Float32Array(instanceCount);
+    const aPosX = new Float32Array(instanceCount);
+    const aPosY = new Float32Array(instanceCount);
+    const aPosZ = new Float32Array(instanceCount);
+    const aLen = new Float32Array(instanceCount);
+
+    const spanX = this.swimRangeX * 3.0;
+    const spanY = this.swimRangeY * 2.5;
+    const spanZ = this.swimRangeZ * 2.0;
+
+    for (let i = 0; i < instanceCount; i++) {
+      aPhase[i] = Math.random() * Math.PI * 2;
+      aSpeed[i] = 0.15 + Math.random() * 0.25;
+      aPosX[i] = (Math.random() - 0.5) * spanX;
+      aPosY[i] = -this.swimRangeY * 1.2 + Math.random() * spanY;
+      aPosZ[i] = -this.swimRangeZ * 1.5 + Math.random() * spanZ;
+      aLen[i] = 0.6 + Math.random() * 0.8;
+    }
+
+    geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(aPhase, 1));
+    geo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(aSpeed, 1));
+    geo.setAttribute('aPosX', new THREE.InstancedBufferAttribute(aPosX, 1));
+    geo.setAttribute('aPosY', new THREE.InstancedBufferAttribute(aPosY, 1));
+    geo.setAttribute('aPosZ', new THREE.InstancedBufferAttribute(aPosZ, 1));
+    geo.setAttribute('aLen', new THREE.InstancedBufferAttribute(aLen, 1));
+
+    const vertexShader = /* glsl */ `
+      uniform float uTime;
+      attribute float aPhase;
+      attribute float aSpeed;
+      attribute float aPosX;
+      attribute float aPosY;
+      attribute float aPosZ;
+      attribute float aLen;
+      varying vec2 vUv;
+      varying float vAlpha;
+      varying float vFogDepth;
+
+      void main() {
+        vUv = uv;
+
+        // Cyclic horizontal drift — wraps across spanX
+        float spanX = ${spanX.toFixed(2)};
+        float t = fract((uTime * aSpeed + aPhase) / 6.2832);
+
+        // World position: drift in +X direction
+        float worldX = aPosX + t * spanX - spanX * 0.5;
+        float worldY = aPosY + sin(uTime * 0.3 + aPhase) * 0.1;
+        float worldZ = aPosZ;
+
+        // Fade in at start, fade out at end of cycle
+        float fadeIn = smoothstep(0.0, 0.15, t);
+        float fadeOut = smoothstep(1.0, 0.85, t);
+        vAlpha = fadeIn * fadeOut * 0.25;
+
+        // Scale length per instance
+        vec3 scaled = vec3(position.x * aLen, position.y, position.z);
+
+        // Slight diagonal tilt — rotate ~10° around Z
+        float ca = 0.985;  // cos(10°)
+        float sa = 0.174;  // sin(10°)
+        vec3 rotated = vec3(
+          scaled.x * ca - scaled.y * sa,
+          scaled.x * sa + scaled.y * ca,
+          scaled.z
+        );
+
+        vec3 worldPos = vec3(worldX, worldY, worldZ) + rotated;
+        vec4 mvPos = viewMatrix * vec4(worldPos, 1.0);
+        vFogDepth = -mvPos.z;
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `;
+
+    const fragmentShader = /* glsl */ `
+      varying vec2 vUv;
+      varying float vAlpha;
+      varying float vFogDepth;
+
+      void main() {
+        // Alpha gradient along length — bright center, fading tips
+        float edgeFade = 1.0 - abs(vUv.x - 0.5) * 2.0;
+        edgeFade = pow(edgeFade, 2.0);
+
+        // Thin vertical falloff
+        float vertFade = 1.0 - abs(vUv.y - 0.5) * 2.0;
+        vertFade = pow(vertFade, 0.5);
+
+        float alpha = edgeFade * vertFade * vAlpha;
+        if (alpha < 0.01) discard;
+
+        // Fog matching scene FogExp2
+        float fogDensity = 0.025;
+        float fogFactor = exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+        fogFactor = clamp(fogFactor, 0.0, 1.0);
+        vec3 fogColor = vec3(0.024, 0.102, 0.157);
+        vec3 streakColor = vec3(0.3, 0.55, 0.65);
+        vec3 finalColor = mix(fogColor, streakColor, fogFactor);
+
+        gl_FragColor = vec4(finalColor, alpha);
+      }
+    `;
+
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: this.currentUniforms.uTime,
+      },
+      vertexShader,
+      fragmentShader,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const instMesh = new THREE.InstancedMesh(geo, mat, instanceCount);
+    instMesh.renderOrder = 1;
+
+    const identity = new THREE.Matrix4();
+    for (let i = 0; i < instanceCount; i++) {
+      instMesh.setMatrixAt(i, identity);
+    }
+    instMesh.instanceMatrix.needsUpdate = true;
+
+    this.scene.add(instMesh);
+    this.currentMesh = instMesh;
+  }
+
   initFishFlocks(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
     gltfLoader.load('assets/models/fish_particle.glb', (gltf) => {
       const group = gltf.scene;
@@ -884,6 +1021,7 @@ float _caustics(vec2 uv) {
     if (this.floorCausticUniforms) this.floorCausticUniforms.uTime.value = elapsed;
     if (this.floraUniforms) this.floraUniforms.uTime.value = elapsed;
     if (this.bubbleUniforms) this.bubbleUniforms.uTime.value = elapsed;
+    if (this.currentUniforms) this.currentUniforms.uTime.value = elapsed;
     if (this.fishMixer) this.fishMixer.update(delta);
 
     // Fish flock group — slow rotation, drift, and bob
@@ -943,6 +1081,7 @@ float _caustics(vec2 uv) {
         this.castleCenter.z + Math.sin(angle) * orb.radius,
       );
     }
+
   }
 
   dispose(): void {
@@ -1051,6 +1190,15 @@ float _caustics(vec2 uv) {
       this.bubbleMesh = null;
     }
     this.bubbleUniforms = null;
+
+    // Dispose current lines
+    if (this.currentMesh) {
+      this.currentMesh.geometry.dispose();
+      (this.currentMesh.material as THREE.Material).dispose();
+      this.currentMesh.removeFromParent();
+      this.currentMesh = null;
+    }
+    this.currentUniforms = null;
 
     // Dispose fish flock
     if (this.fishGroup) {
