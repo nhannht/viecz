@@ -267,7 +267,7 @@ float _caustics(vec2 uv) {
       // Sit on the sand floor, offset right
       const scaledMinY = bbox.min.y * s;
       const px = this.swimRangeX * 0.7;
-      const py = -this.swimRangeY * 1.5 - scaledMinY;
+      const py = -this.swimRangeY * 1.8 - scaledMinY;
       const pz = -this.swimRangeZ * 0.3;
       group.position.set(px, py, pz);
       group.rotation.y = -Math.PI / 4; // 45° clockwise
@@ -337,7 +337,6 @@ float _caustics(vec2 uv) {
       haloMesh.position.set(px, py + targetHeight * 0.5, pz);
       this.scene.add(haloMesh);
       this.haloSprite = haloMesh;
-      if (addBloomMesh) addBloomMesh(haloMesh);
 
       // Mystical cyan-blue point light to illuminate the surroundings
       const light = new THREE.PointLight(0x4488ff, 100, targetHeight * 4, 1.0);
