@@ -19,6 +19,7 @@ export const DIR_ANIMS = {
 } as const;
 export type Direction = keyof typeof DIR_ANIMS;
 
+
 export const GULP_ANIM = 'gulp';
 export const SURFACE_ANIM = 'surface';
 export const BLEND_SPEED = 0.6;

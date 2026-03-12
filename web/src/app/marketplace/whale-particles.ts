@@ -55,6 +55,12 @@ export class WhaleParticles {
   private motesPoints: THREE.Points | null = null;
   private motesUniforms: { uTime: { value: number } } | null = null;
 
+  // Marine snow (GPU-driven falling particles)
+  private marineSnowPoints: THREE.Points | null = null;
+  private marineSnowUniforms: { uTime: { value: number } } | null = null;
+
+  private disabledSystems = new Set<string>();
+
   constructor(
     private scene: THREE.Scene,
     private swimRangeX: number,
@@ -243,7 +249,6 @@ float _caustics(vec2 uv) {
         group.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
-            mesh.receiveShadow = true;
             const mat = mesh.material as THREE.MeshStandardMaterial;
             if (mat.color) mat.color.multiplyScalar(peak.brightness);
             mat.roughness = 1.0;
@@ -261,6 +266,7 @@ float _caustics(vec2 uv) {
     addBloomMesh?: (mesh: THREE.Mesh) => void,
   ): void {
     gltfLoader.load('assets/models/buddha_statue.glb', (gltf) => {
+      if (this.disabledSystems.has('props')) return;
       const group = gltf.scene;
       this.propsGroup = group;
 
@@ -546,6 +552,88 @@ float _caustics(vec2 uv) {
         motes.frustumCulled = false;
         this.motesPoints = motes;
         this.scene.add(motes);
+      }
+
+      // ── Marine Snow: GPU-driven falling particles across full scene ──
+      {
+        const snowCount = 250;
+        const spreadX = this.swimRangeX * 2;
+        const spreadZ = this.swimRangeZ * 2;
+        const topY = this.swimRangeY * 1.2;
+        const floorY = -this.swimRangeY * 1.5;
+        const fallH = topY - floorY;
+
+        this.marineSnowUniforms = { uTime: { value: 0 } };
+
+        const aBasePos = new Float32Array(snowCount * 3);
+        const aSpeed = new Float32Array(snowCount);
+        const aPhase = new Float32Array(snowCount);
+
+        for (let i = 0; i < snowCount; i++) {
+          aBasePos[i * 3]     = (Math.random() - 0.5) * spreadX;
+          aBasePos[i * 3 + 1] = Math.random() * fallH; // 0..fallH, wrapped via mod()
+          aBasePos[i * 3 + 2] = (Math.random() - 0.5) * spreadZ;
+          aSpeed[i] = 0.02 + Math.random() * 0.04;
+          aPhase[i] = Math.random() * Math.PI * 2;
+        }
+
+        const snowGeo = new THREE.BufferGeometry();
+        snowGeo.setAttribute('position', new THREE.BufferAttribute(aBasePos, 3));
+        snowGeo.setAttribute('aSpeed', new THREE.BufferAttribute(aSpeed, 1));
+        snowGeo.setAttribute('aPhase', new THREE.BufferAttribute(aPhase, 1));
+
+        const snowMat = new THREE.ShaderMaterial({
+          uniforms: {
+            uTime: this.marineSnowUniforms.uTime,
+            uFallH: { value: fallH },
+            uTopY: { value: topY },
+          },
+          vertexShader: /* glsl */ `
+            uniform float uTime;
+            uniform float uFallH;
+            uniform float uTopY;
+            attribute float aSpeed;
+            attribute float aPhase;
+            varying float vAlpha;
+            void main() {
+              // Wrap Y downward via mod — seamless recycling from top
+              float y = uTopY - mod(position.y + uTime * aSpeed, uFallH);
+              // Gentle lateral drift
+              float driftX = sin(uTime * 0.3 + aPhase) * 0.15;
+              float driftZ = cos(uTime * 0.25 + aPhase * 1.3) * 0.12;
+              vec3 pos = vec3(position.x + driftX, y, position.z + driftZ);
+
+              // Fade near top and bottom edges
+              float normY = (y - (uTopY - uFallH)) / uFallH;
+              vAlpha = smoothstep(0.0, 0.08, normY) * smoothstep(1.0, 0.92, normY);
+              // Subtle twinkle
+              vAlpha *= 0.5 + 0.5 * sin(uTime * 2.5 + aPhase);
+
+              vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+              gl_PointSize = (2.0 + 1.5 * sin(uTime * 1.2 + aPhase)) * (200.0 / -mvPos.z);
+              gl_Position = projectionMatrix * mvPos;
+            }
+          `,
+          fragmentShader: /* glsl */ `
+            varying float vAlpha;
+            void main() {
+              float d = length(gl_PointCoord - vec2(0.5));
+              if (d > 0.5) discard;
+              float soft = 1.0 - smoothstep(0.2, 0.5, d);
+              // White-ish with slight blue tint for underwater feel
+              gl_FragColor = vec4(0.75, 0.85, 0.95, soft * vAlpha * 0.25);
+            }
+          `,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          fog: false,
+        });
+
+        const snow = new THREE.Points(snowGeo, snowMat);
+        snow.frustumCulled = false;
+        this.marineSnowPoints = snow;
+        this.scene.add(snow);
       }
 
       this.scene.add(group);
@@ -1014,6 +1102,7 @@ float _caustics(vec2 uv) {
 
   initFishFlocks(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
     gltfLoader.load('assets/models/fish_particle.glb', (gltf) => {
+      if (this.disabledSystems.has('fish')) return;
       const group = gltf.scene;
       this.fishGroup = group;
 
@@ -1080,6 +1169,7 @@ float _caustics(vec2 uv) {
 
   initKoiFish(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
     gltfLoader.load('assets/models/koi_fish.glb', (gltf) => {
+      if (this.disabledSystems.has('koi')) return;
       // Use a wrapper pivot for movement/rotation — keep model internals untouched
       const pivot = new THREE.Group();
       pivot.add(gltf.scene);
@@ -1298,6 +1388,11 @@ float _caustics(vec2 uv) {
       this.motesUniforms.uTime.value = elapsed;
     }
 
+    // Marine snow: GPU-only, just update time
+    if (this.marineSnowUniforms) {
+      this.marineSnowUniforms.uTime.value = elapsed;
+    }
+
   }
 
   dispose(): void {
@@ -1482,7 +1577,149 @@ float _caustics(vec2 uv) {
       this.motesUniforms = null;
     }
 
+    // Dispose marine snow
+    if (this.marineSnowPoints) {
+      (this.marineSnowPoints.material as THREE.ShaderMaterial).dispose();
+      this.marineSnowPoints.geometry.dispose();
+      this.marineSnowPoints.removeFromParent();
+      this.marineSnowPoints = null;
+      this.marineSnowUniforms = null;
+    }
+
     this.castleMeshes = [];
     this.orbData = [];
+  }
+
+  // ── Adaptive FPS degradation: disable individual subsystems ──────
+
+  disableMarineSnow(): void {
+    this.disabledSystems.add('marineSnow');
+    if (this.marineSnowPoints) {
+      (this.marineSnowPoints.material as THREE.ShaderMaterial).dispose();
+      this.marineSnowPoints.geometry.dispose();
+      this.marineSnowPoints.removeFromParent();
+      this.marineSnowPoints = null;
+      this.marineSnowUniforms = null;
+    }
+  }
+
+  disableSpiritualMotes(): void {
+    this.disabledSystems.add('motes');
+    if (this.motesPoints) {
+      (this.motesPoints.material as THREE.ShaderMaterial).dispose();
+      this.motesPoints.geometry.dispose();
+      this.motesPoints.removeFromParent();
+      this.motesPoints = null;
+      this.motesUniforms = null;
+    }
+  }
+
+  disableLightPillar(): void {
+    this.disabledSystems.add('pillar');
+    if (this.pillarMesh) {
+      (this.pillarMesh.material as THREE.Material).dispose();
+      (this.pillarMesh as unknown as THREE.Points).geometry.dispose();
+      this.pillarMesh.removeFromParent();
+      this.pillarMesh = null;
+      this.pillarUniforms = null;
+      (this as any)._pillarPositions = null;
+      (this as any)._pillarSpeeds = null;
+      (this as any)._pillarPhases = null;
+    }
+  }
+
+  disableOrbs(): void {
+    this.disabledSystems.add('orbs');
+    if (this.orbGroup) {
+      this.orbGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          (mesh.material as THREE.Material).dispose();
+        }
+      });
+      this.orbGroup.removeFromParent();
+      this.orbGroup = null;
+      this.orbData = [];
+    }
+  }
+
+  disableFish(): void {
+    this.disabledSystems.add('fish');
+    if (this.fishMixer) {
+      this.fishMixer.stopAllAction();
+      this.fishMixer = null;
+    }
+    if (this.fishGroup) {
+      this.fishGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      this.fishGroup.removeFromParent();
+      this.fishGroup = null;
+    }
+  }
+
+  disableKoi(): void {
+    this.disabledSystems.add('koi');
+    if (this.koiMixer) {
+      this.koiMixer.stopAllAction();
+      this.koiMixer = null;
+    }
+    if (this.koiGroup) {
+      this.koiGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(m => m.dispose());
+          } else {
+            (mesh.material as THREE.Material).dispose();
+          }
+        }
+      });
+      this.koiGroup.removeFromParent();
+      this.koiGroup = null;
+    }
+  }
+
+  disableBubbles(): void {
+    this.disabledSystems.add('bubbles');
+    if (this.bubbleMesh) {
+      this.bubbleMesh.geometry.dispose();
+      const bMat = this.bubbleMesh.material as THREE.ShaderMaterial;
+      if (bMat.uniforms['uTex']?.value) bMat.uniforms['uTex'].value.dispose();
+      bMat.dispose();
+      this.bubbleMesh.removeFromParent();
+      this.bubbleMesh = null;
+      this.bubbleUniforms = null;
+    }
+  }
+
+  disableFlora(): void {
+    this.disabledSystems.add('flora');
+    for (const fm of this.floraMeshes) {
+      fm.geometry.dispose();
+      const mat = fm.material as THREE.ShaderMaterial;
+      if (mat.uniforms['uTex']?.value) mat.uniforms['uTex'].value.dispose();
+      mat.dispose();
+      fm.removeFromParent();
+    }
+    this.floraMeshes = [];
+    this.floraUniforms = null;
+  }
+
+  disableCaustics(): void {
+    this.disabledSystems.add('caustics');
+    if (this.floorCausticUniforms) {
+      this.floorCausticUniforms.uCausticStrength.value = 0;
+    }
   }
 }

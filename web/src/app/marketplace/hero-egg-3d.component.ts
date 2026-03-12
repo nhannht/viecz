@@ -68,7 +68,6 @@ export class HeroEgg3dComponent implements OnDestroy {
   private postProcessing: WhalePostProcessing | null = null;
 
   private tuningPanel: WhaleTuningPanel | null = null;
-
   // Debug helpers (only initialized when DEBUG_3D)
   private debugGui: WhaleDebugGui | null = null;
   private debugTrail: WhaleDebugTrail | null = null;
@@ -257,7 +256,7 @@ export class HeroEgg3dComponent implements OnDestroy {
     const keyLight = new THREE.DirectionalLight(0xddeeff, 2.0);
     keyLight.position.set(-3, 8, 2); // high & left — diagonal shafts
     keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.mapSize.set(1024, 1024);
     keyLight.shadow.camera.near = 0.1;
     keyLight.shadow.camera.far = 30;
     keyLight.shadow.camera.left = -12;
@@ -540,4 +539,5 @@ export class HeroEgg3dComponent implements OnDestroy {
     };
     animate();
   }
+
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DepthOfFieldEffect, Effect, EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } from 'postprocessing';
+import { BlendFunction, DepthOfFieldEffect, Effect, EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } from 'postprocessing';
 import { GodraysPass } from 'three-good-godrays';
 
 /** Subtle underwater refraction wobble — screen-space UV distortion */
@@ -28,6 +28,8 @@ export class WhalePostProcessing {
   readonly bloomEffect: SelectiveBloomEffect;
   readonly godraysPass: GodraysPass;
   readonly dofEffect: DepthOfFieldEffect;
+  private bloomPass: EffectPass;
+  private effectsPass: EffectPass;
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -48,19 +50,20 @@ export class WhalePostProcessing {
       luminanceSmoothing: 0.025,
       radius: 0.85,
     });
-    this.composer.addPass(new EffectPass(camera, this.bloomEffect));
+    this.bloomPass = new EffectPass(camera, this.bloomEffect);
+    this.composer.addPass(this.bloomPass);
 
-    // Underwater distortion — subtle refraction wobble (after bloom, before DOF)
+    // Merged effects pass — distortion + DOF in a single full-screen quad
+    // DOF has EffectAttribute.DEPTH (not CONVOLUTION), so it's safe to merge
+    // with the UV-transforming distortion effect
     const distortion = new UnderwaterDistortionEffect();
-    this.composer.addPass(new EffectPass(camera, distortion));
-
-    // Depth of field — cinematic bokeh, focus on mid-range whale
     this.dofEffect = new DepthOfFieldEffect(camera, {
       focusDistance: 8.0,
       focusRange: 10.0,
       bokehScale: 2.0,
     });
-    this.composer.addPass(new EffectPass(camera, this.dofEffect));
+    this.effectsPass = new EffectPass(camera, distortion, this.dofEffect);
+    this.composer.addPass(this.effectsPass);
 
     // God rays — shadow-map raymarched volumetric light
     // gammaCorrection: false — EffectPass already handles sRGB encoding;
@@ -70,7 +73,7 @@ export class WhalePostProcessing {
       maxDensity: 0.6,
       distanceAttenuation: 2,
       color: new THREE.Color(0x88ccff),
-      raymarchSteps: 60,
+      raymarchSteps: 30,
       blur: true,
       gammaCorrection: false,
     });
@@ -88,6 +91,18 @@ export class WhalePostProcessing {
 
   render(): void {
     this.composer.render();
+  }
+
+  disableGodrays(): void {
+    this.godraysPass.enabled = false;
+  }
+
+  disableBloom(): void {
+    this.bloomPass.enabled = false;
+  }
+
+  disableDof(): void {
+    this.dofEffect.blendMode.blendFunction = BlendFunction.DST;
   }
 
   dispose(): void {
