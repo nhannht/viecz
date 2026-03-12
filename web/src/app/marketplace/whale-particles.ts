@@ -268,7 +268,7 @@ float _caustics(vec2 uv) {
       const py = -this.swimRangeY * 1.5 - scaledMinY;
       const pz = -this.swimRangeZ * 0.3;
       group.position.set(px, py, pz);
-      group.rotation.y = -Math.PI / 2; // 90° clockwise
+      group.rotation.y = -Math.PI / 2 - Math.PI / 12; // 105° clockwise
 
       this.castleCenter.set(px, py + targetHeight * 0.5, pz);
 
@@ -818,6 +818,11 @@ float _caustics(vec2 uv) {
       group.position.set(-center.x, -center.y, -center.z - this.swimRangeZ * 1.5);
       this.fishBasePos.copy(group.position);
 
+      // Cast shadows onto ocean floor
+      group.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).castShadow = true;
+      });
+
       this.scene.add(group);
 
       // Play baked animation — make it loop seamlessly
@@ -876,6 +881,11 @@ float _caustics(vec2 uv) {
       // Rotate model so its X-axis forward aligns with -Z (Three.js forward)
       // Model faces +X, so rotate -90° around Y to face -Z
       gltf.scene.rotation.y = -Math.PI / 2;
+
+      // Cast shadows onto ocean floor
+      gltf.scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).castShadow = true;
+      });
 
       pivot.position.set(0, 0, 0);
       this.koiPrevPos.set(0, 0, 0);
