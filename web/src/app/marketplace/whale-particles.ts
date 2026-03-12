@@ -4,11 +4,12 @@ import { PARTICLE_COUNT, PARTICLE_DRIFT_Y, PARTICLE_SWAY_FREQ, PARTICLE_SWAY_AMP
 /** Manages floating particles (plankton, dust, micro-bubbles) and the ocean floor */
 export class WhaleParticles {
   private geometry: THREE.BufferGeometry | null = null;
-  private material: THREE.PointsMaterial | null = null;
   private points: THREE.Points | null = null;
-  private positions: THREE.BufferAttribute | null = null;
-  private speeds: Float32Array | null = null;
-  private phases: Float32Array | null = null;
+  private particleUniforms: {
+    uTime: { value: number };
+    uCurrentOffsetX: { value: number };
+    uCurrentOffsetZ: { value: number };
+  } | null = null;
 
   private floorGroup: THREE.Group | null = null;
   private floorMesh: THREE.Mesh | null = null;
@@ -69,48 +70,107 @@ export class WhaleParticles {
   ) {}
 
   initParticles(): void {
-    const positions = new Float32Array(PARTICLE_COUNT * 3);
-    this.speeds = new Float32Array(PARTICLE_COUNT);
-    this.phases = new Float32Array(PARTICLE_COUNT);
+    const basePos = new Float32Array(PARTICLE_COUNT * 3);
+    const aSpeed = new Float32Array(PARTICLE_COUNT);
+    const aPhase = new Float32Array(PARTICLE_COUNT);
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      positions[i * 3]     = (Math.random() - 0.5) * this.swimRangeX * 2;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * this.swimRangeY * 2;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * this.swimRangeZ * 2;
-      this.speeds[i] = 0.5 + Math.random();
-      this.phases[i] = Math.random() * Math.PI * 2;
+      basePos[i * 3]     = (Math.random() - 0.5) * this.swimRangeX * 2;
+      basePos[i * 3 + 1] = (Math.random() - 0.5) * this.swimRangeY * 2;
+      basePos[i * 3 + 2] = (Math.random() - 0.5) * this.swimRangeZ * 2;
+      aSpeed[i] = 0.5 + Math.random();
+      aPhase[i] = Math.random() * Math.PI * 2;
     }
 
     this.geometry = new THREE.BufferGeometry();
-    const posAttr = new THREE.BufferAttribute(positions, 3);
-    this.geometry.setAttribute('position', posAttr);
-    this.positions = posAttr;
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(basePos, 3));
+    this.geometry.setAttribute('aSpeed', new THREE.BufferAttribute(aSpeed, 1));
+    this.geometry.setAttribute('aPhase', new THREE.BufferAttribute(aPhase, 1));
 
-    // Soft circular sprite (generated procedurally)
-    const canvas = document.createElement('canvas');
-    canvas.width = 32;
-    canvas.height = 32;
-    const ctx = canvas.getContext('2d')!;
-    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.4, 'rgba(255,255,255,0.6)');
-    gradient.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 32, 32);
-    const particleTexture = new THREE.CanvasTexture(canvas);
+    this.particleUniforms = {
+      uTime: { value: 0 },
+      uCurrentOffsetX: { value: 0 },
+      uCurrentOffsetZ: { value: 0 },
+    };
 
-    this.material = new THREE.PointsMaterial({
-      color: 0xaaccff,
-      size: 0.04,
-      sizeAttenuation: true,
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: this.particleUniforms.uTime,
+        uCurrentOffsetX: this.particleUniforms.uCurrentOffsetX,
+        uCurrentOffsetZ: this.particleUniforms.uCurrentOffsetZ,
+        uDriftY: { value: PARTICLE_DRIFT_Y },
+        uSwayFreq: { value: PARTICLE_SWAY_FREQ },
+        uSwayAmp: { value: PARTICLE_SWAY_AMP },
+        uRangeX: { value: this.swimRangeX },
+        uRangeY: { value: this.swimRangeY },
+        uRangeZ: { value: this.swimRangeZ },
+        uPixelRatio: { value: window.devicePixelRatio || 1 },
+        uViewportHeight: { value: window.innerHeight },
+      },
+      vertexShader: /* glsl */ `
+        uniform float uTime;
+        uniform float uCurrentOffsetX;
+        uniform float uCurrentOffsetZ;
+        uniform float uDriftY;
+        uniform float uSwayFreq;
+        uniform float uSwayAmp;
+        uniform float uRangeX;
+        uniform float uRangeY;
+        uniform float uRangeZ;
+        uniform float uPixelRatio;
+        uniform float uViewportHeight;
+        attribute float aSpeed;
+        attribute float aPhase;
+        varying float vAlpha;
+
+        // Wrap value into [-range, +range]
+        float wrap(float v, float range) {
+          float span = range * 2.0;
+          return mod(v + range, span) - range;
+        }
+
+        void main() {
+          float t = uTime;
+
+          // Upward drift (Y)
+          float y = position.y + uDriftY * aSpeed * t;
+
+          // Horizontal sway + accumulated current drift
+          float x = position.x
+            + sin(aPhase + t * uSwayFreq) * uSwayAmp * 0.5
+            + uCurrentOffsetX;
+          float z = position.z
+            + cos(aPhase * 0.7 + t * uSwayFreq * 0.6) * uSwayAmp * 0.15
+            + uCurrentOffsetZ;
+
+          // Boundary wrapping
+          vec3 pos = vec3(wrap(x, uRangeX), wrap(y, uRangeY), wrap(z, uRangeZ));
+
+          // Subtle alpha pulse
+          vAlpha = 0.3 + 0.1 * sin(t * 1.2 + aPhase);
+
+          vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+          // Match Three.js PointsMaterial sizeAttenuation formula (size=0.04)
+          gl_PointSize = 0.04 * uViewportHeight * uPixelRatio / -mvPos.z;
+          gl_Position = projectionMatrix * mvPos;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying float vAlpha;
+        void main() {
+          float d = length(gl_PointCoord - vec2(0.5));
+          if (d > 0.5) discard;
+          float soft = 1.0 - smoothstep(0.15, 0.5, d);
+          gl_FragColor = vec4(0.67, 0.8, 1.0, soft * vAlpha * 0.35);
+        }
+      `,
       transparent: true,
-      opacity: 0.35,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      map: particleTexture,
+      fog: false,
     });
 
-    this.points = new THREE.Points(this.geometry, this.material);
+    this.points = new THREE.Points(this.geometry, mat);
     this.points.frustumCulled = false;
     this.scene.add(this.points);
   }
@@ -1218,9 +1278,6 @@ float _caustics(vec2 uv) {
   }
 
   update(delta: number, elapsed: number): void {
-    if (!this.positions || !this.speeds || !this.phases) return;
-    const positions = this.positions.array as Float32Array;
-
     // ── Dynamic current animation ──────────────────────────────────
     if (this.currentAutoAnimate) {
       this.surgeTimer += delta;
@@ -1271,28 +1328,15 @@ float _caustics(vec2 uv) {
       this.currentStrength += (this.currentTargetStrength - this.currentStrength) * lerpFactor;
     }
 
-    // Current drift vector (computed once per frame)
     const currentRad = this.currentAngle * Math.PI / 180;
-    const cdx = Math.cos(currentRad) * this.currentStrength;
-    const cdz = Math.sin(currentRad) * this.currentStrength;
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const i3 = i * 3;
-      const speed = this.speeds[i];
-      const phase = this.phases[i];
-
-      positions[i3 + 1] += PARTICLE_DRIFT_Y * speed * delta;
-      positions[i3]     += Math.sin(phase + elapsed * PARTICLE_SWAY_FREQ) * PARTICLE_SWAY_AMP * delta + cdx * delta;
-      positions[i3 + 2] += Math.cos(phase * 0.7 + elapsed * PARTICLE_SWAY_FREQ * 0.6) * PARTICLE_SWAY_AMP * 0.3 * delta + cdz * delta;
-
-      if (positions[i3 + 1] > this.swimRangeY) positions[i3 + 1] = -this.swimRangeY;
-      if (positions[i3] > this.swimRangeX) positions[i3] = -this.swimRangeX;
-      else if (positions[i3] < -this.swimRangeX) positions[i3] = this.swimRangeX;
-      if (positions[i3 + 2] > this.swimRangeZ) positions[i3 + 2] = -this.swimRangeZ;
-      else if (positions[i3 + 2] < -this.swimRangeZ) positions[i3 + 2] = this.swimRangeZ;
+    // GPU particles — update uniforms only (no CPU loop, no buffer upload)
+    // Current offset accumulated incrementally so dynamic direction changes work
+    if (this.particleUniforms) {
+      this.particleUniforms.uTime.value = elapsed;
+      this.particleUniforms.uCurrentOffsetX.value += Math.cos(currentRad) * this.currentStrength * delta;
+      this.particleUniforms.uCurrentOffsetZ.value += Math.sin(currentRad) * this.currentStrength * delta;
     }
-
-    this.positions.needsUpdate = true;
 
     if (this.floorCausticUniforms) this.floorCausticUniforms.uTime.value = elapsed;
     if (this.floraUniforms) {
@@ -1409,9 +1453,11 @@ float _caustics(vec2 uv) {
 
   dispose(): void {
     this.geometry?.dispose();
-    this.material?.map?.dispose();
-    this.material?.dispose();
-    if (this.points) this.points.removeFromParent();
+    if (this.points) {
+      (this.points.material as THREE.ShaderMaterial).dispose();
+      this.points.removeFromParent();
+    }
+    this.particleUniforms = null;
     this.floorMaterial?.dispose();
     if (this.floorMesh) {
       this.floorMesh.geometry.dispose();
