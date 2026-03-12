@@ -229,36 +229,48 @@ float _caustics(vec2 uv) {
   initMountainRange(gltfLoader: import('three/examples/jsm/loaders/GLTFLoader.js').GLTFLoader): void {
     // 3 peaks: left (tall), center (tallest), right (medium) — like a mountain ridge silhouette
     const peaks: { model: string; x: number; y: number; z: number; scale: number; rotY: number; brightness: number }[] = [
-      { model: 'snowy_mountain.glb',   x: -this.swimRangeX * 2.5, y: -this.swimRangeY * 2.0, z: -this.swimRangeZ * 3.0, scale: 16, rotY: 0.3,  brightness: 0.10 },
-      { model: 'mountain_distant.glb', x:  0,                     y: -this.swimRangeY * 1.8, z: -this.swimRangeZ * 3.5, scale: 20, rotY: 0,     brightness: 0.08 },
-      { model: 'snowy_mountain.glb',   x:  this.swimRangeX * 2.8, y: -this.swimRangeY * 2.2, z: -this.swimRangeZ * 2.8, scale: 12, rotY: -0.4, brightness: 0.12 },
+      { model: 'snowy_mountain.glb',   x: -this.swimRangeX * 2.5, y: -this.swimRangeY * 2.0, z: -this.swimRangeZ * 2.4, scale: 16, rotY: 0.3,  brightness: 0.28 },
+      { model: 'mountain_distant.glb', x:  0,                     y: -this.swimRangeY * 1.8, z: -this.swimRangeZ * 2.8, scale: 20, rotY: 0,     brightness: 0.22 },
+      { model: 'snowy_mountain.glb',   x:  this.swimRangeX * 2.8, y: -this.swimRangeY * 2.2, z: -this.swimRangeZ * 2.2, scale: 12, rotY: -0.4, brightness: 0.32 },
     ];
 
-    for (const peak of peaks) {
-      gltfLoader.load(`assets/models/${peak.model}`, (gltf) => {
-        const group = gltf.scene;
-        this.mountainGroups.push(group);
+    const applyPeak = (group: THREE.Group, peak: typeof peaks[0]) => {
+      this.mountainGroups.push(group);
+      const bbox = new THREE.Box3().setFromObject(group);
+      const modelWidth = bbox.max.x - bbox.min.x;
+      const s = (this.swimRangeX * peak.scale) / modelWidth;
+      group.scale.set(s, s, s);
+      group.position.set(peak.x, peak.y, peak.z);
+      group.rotation.y = peak.rotY;
 
-        const bbox = new THREE.Box3().setFromObject(group);
-        const modelWidth = bbox.max.x - bbox.min.x;
-        const s = (this.swimRangeX * peak.scale) / modelWidth;
-        group.scale.set(s, s, s);
-        group.position.set(peak.x, peak.y, peak.z);
-        group.rotation.y = peak.rotY;
-
-        group.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            const mat = mesh.material as THREE.MeshStandardMaterial;
-            if (mat.color) mat.color.multiplyScalar(peak.brightness);
-            mat.roughness = 1.0;
-            mat.metalness = 0.0;
-          }
-        });
-
-        this.scene.add(group);
+      group.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          // Clone material so brightness tint doesn't bleed between instances
+          const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+          mesh.material = mat;
+          if (mat.color) mat.color.multiplyScalar(peak.brightness);
+          mat.roughness = 1.0;
+          mat.metalness = 0.0;
+        }
       });
-    }
+
+      this.scene.add(group);
+    };
+
+    // Load snowy_mountain.glb once, clone for second instance
+    // Clone BEFORE applyPeak — clone shares original materials; applyPeak
+    // replaces them with cloned instances, so brightness tints stay independent.
+    gltfLoader.load('assets/models/snowy_mountain.glb', (gltf) => {
+      const secondPeak = gltf.scene.clone();
+      applyPeak(gltf.scene, peaks[0]);
+      applyPeak(secondPeak, peaks[2]);
+    });
+
+    // mountain_distant.glb is unique — load normally
+    gltfLoader.load('assets/models/mountain_distant.glb', (gltf) => {
+      applyPeak(gltf.scene, peaks[1]);
+    });
   }
 
   initFloorProps(
