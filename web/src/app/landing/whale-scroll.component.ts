@@ -81,15 +81,33 @@ export class WhaleScrollComponent implements OnDestroy {
     const w = host.clientWidth || window.innerWidth;
     const h = host.clientHeight || window.innerHeight;
 
-    // Scene — NO background, transparent canvas
+    // Scene — transparent canvas, env map for PBR reflections only
     const scene = new THREE.Scene();
     this.scene = scene;
 
-    // Lights: 1 ambient + 1 directional
-    scene.add(new THREE.AmbientLight(0x404060, 1.5));
-    const dir = new THREE.DirectionalLight(0xddeeff, 2.5);
-    dir.position.set(-3, 5, 4);
-    scene.add(dir);
+    // Equirectangular gradient as environment (not background) — gives PBR reflections
+    const gradCanvas = document.createElement('canvas');
+    gradCanvas.width = 2;
+    gradCanvas.height = 256;
+    const gCtx = gradCanvas.getContext('2d')!;
+    const grad = gCtx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, '#0a2a3a');
+    grad.addColorStop(0.4, '#061a28');
+    grad.addColorStop(1, '#020c14');
+    gCtx.fillStyle = grad;
+    gCtx.fillRect(0, 0, 2, 256);
+    const gradTex = new THREE.CanvasTexture(gradCanvas);
+    gradTex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = gradTex; // env only, no scene.background → transparent
+
+    // Lights — match hero setup
+    scene.add(new THREE.AmbientLight(0x303050, 0.6));
+    const keyLight = new THREE.DirectionalLight(0xddeeff, 2.0);
+    keyLight.position.set(-3, 8, 2);
+    scene.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0x4466aa, 0.3);
+    fillLight.position.set(-2, -1, -2);
+    scene.add(fillLight);
 
     // Camera — frustum-based approach (same as hero)
     const DESIRED_HALF_HEIGHT = 3.0;
@@ -145,7 +163,7 @@ export class WhaleScrollComponent implements OnDestroy {
 
         // Scale whale to fill ~60% of visible height
         // Visible height at camZ = 2 * DESIRED_HALF_HEIGHT = 6.0 units
-        const targetHeight = DESIRED_HALF_HEIGHT * 2 * 0.6; // 3.6 units
+        const targetHeight = DESIRED_HALF_HEIGHT * 2 * 0.3; // 1.8 units (half of original 60%)
         const whaleScale = targetHeight / size.y;
         group.scale.setScalar(whaleScale);
 
@@ -154,19 +172,14 @@ export class WhaleScrollComponent implements OnDestroy {
         const center2 = box2.getCenter(new THREE.Vector3());
         group.position.sub(center2);
 
-        // Replace PBR materials with MeshLambertMaterial (works without env map)
+        // Keep original PBR materials — env map provides reflections
+        // Zero out emissive (glow invisible on light bg), rely on metallic reflections
         group.traverse((child: any) => {
           if (child.isMesh && child.material) {
-            const oldMat = child.material;
-            let color = oldMat.color ? oldMat.color.clone() : new THREE.Color(0x3a7ca5);
-            if (color.r < 0.05 && color.g < 0.05 && color.b < 0.05) {
-              color = new THREE.Color(0x3a7ca5);
+            const mat = child.material as any;
+            if (mat.emissiveIntensity !== undefined) {
+              mat.emissiveIntensity = 0;
             }
-            child.material = new THREE.MeshLambertMaterial({
-              color,
-              transparent: oldMat.transparent || false,
-              opacity: oldMat.opacity ?? 1,
-            });
           }
         });
 
