@@ -16,6 +16,7 @@ import { LandingHowItWorksSection } from './landing-howitworks.section';
 import { LandingFeaturesSection } from './landing-features.section';
 import { LandingTrustSection } from './landing-trust.section';
 import { LandingCtaSection } from './landing-cta.section';
+import { WhaleScrollComponent } from './whale-scroll.component';
 
 @Component({
   selector: 'app-landing',
@@ -27,6 +28,7 @@ import { LandingCtaSection } from './landing-cta.section';
     LandingFeaturesSection,
     LandingTrustSection,
     LandingCtaSection,
+    WhaleScrollComponent,
   ],
   template: `
     <div class="landing-root" #landingRoot>
@@ -40,12 +42,15 @@ import { LandingCtaSection } from './landing-cta.section';
       <!-- Teal glow trail -->
       <div class="teal-glow" #tealGlow></div>
     </div>
+    <app-whale-scroll #whaleScroll />
   `,
   styles: `
     .landing-root {
       overflow-x: hidden;
       min-height: 100vh;
       position: relative;
+      z-index: 2;
+      background: transparent;
     }
 
     .teal-glow {
@@ -72,6 +77,7 @@ export class LandingComponent implements OnDestroy {
   @ViewChild('heroSection') heroSection!: LandingHeroSection;
   @ViewChild('howItWorksSection') howItWorksSection!: LandingHowItWorksSection;
   @ViewChild('landingRoot') landingRoot!: ElementRef<HTMLElement>;
+  @ViewChild('whaleScroll') whaleScroll!: WhaleScrollComponent;
   @ViewChild('tealGlow') tealGlowRef!: ElementRef<HTMLElement>;
 
   private themeService = inject(ThemeService);
@@ -168,6 +174,25 @@ export class LandingComponent implements OnDestroy {
         heroSt.vars.end = '+=80%';
         heroSt.refresh();
       }
+    }
+
+    // --- Lonely whale: fixed background behind content sections ---
+    if (this.whaleScroll && this.landingRoot?.nativeElement) {
+      // Hero pin ends after 150% viewport scroll — whale starts there
+      const heroEndPx = Math.round(window.innerHeight * 1.5);
+      const whaleSt = ScrollTrigger.create({
+        trigger: this.landingRoot.nativeElement,
+        start: `top+=${heroEndPx}px top`,
+        end: 'bottom bottom',
+        onUpdate: (self: any) => {
+          this.whaleScroll.setProgress(self.progress);
+        },
+        onEnter: () => this.whaleScroll.setActive(true),
+        onEnterBack: () => this.whaleScroll.setActive(true),
+        onLeave: () => this.whaleScroll.setActive(false),
+        onLeaveBack: () => this.whaleScroll.setActive(false),
+      });
+      this.scrollTriggers.push(whaleSt);
     }
 
     // --- How it works: pinned cross-dissolve (desktop) / per-slide (mobile) ---
