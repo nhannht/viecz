@@ -85,29 +85,34 @@ export class WhaleScrollComponent implements OnDestroy {
     const scene = new THREE.Scene();
     this.scene = scene;
 
-    // Equirectangular gradient as environment (not background) — gives PBR reflections
+    // Bright equirectangular env map — high contrast for visible reflections
     const gradCanvas = document.createElement('canvas');
     gradCanvas.width = 2;
     gradCanvas.height = 256;
     const gCtx = gradCanvas.getContext('2d')!;
     const grad = gCtx.createLinearGradient(0, 0, 0, 256);
-    grad.addColorStop(0, '#0a2a3a');   // top — lighter deep teal
-    grad.addColorStop(0.4, '#061a28'); // mid — dark ocean
-    grad.addColorStop(1, '#020c14');   // bottom — near-black abyss
+    grad.addColorStop(0, '#b8e0f0');   // top — bright sky highlight (specular source)
+    grad.addColorStop(0.15, '#4a8ea8'); // upper — bright teal
+    grad.addColorStop(0.4, '#1a5570'); // mid — ocean blue
+    grad.addColorStop(0.7, '#0c3350'); // lower — deep blue
+    grad.addColorStop(1, '#061a28');   // bottom — dark abyss
     gCtx.fillStyle = grad;
     gCtx.fillRect(0, 0, 2, 256);
     const gradTex = new THREE.CanvasTexture(gradCanvas);
     gradTex.mapping = THREE.EquirectangularReflectionMapping;
     scene.environment = gradTex; // env only, no scene.background → transparent
 
-    // Lights — match hero setup
-    scene.add(new THREE.AmbientLight(0x303050, 0.6));
-    const keyLight = new THREE.DirectionalLight(0xddeeff, 2.0);
+    // Lights — brighter for visible reflections on wet surface
+    scene.add(new THREE.AmbientLight(0x405060, 1.0));
+    const keyLight = new THREE.DirectionalLight(0xddeeff, 3.5);
     keyLight.position.set(-3, 8, 2);
     scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0x4466aa, 0.3);
+    const fillLight = new THREE.DirectionalLight(0x6688cc, 1.0);
     fillLight.position.set(-2, -1, -2);
     scene.add(fillLight);
+    const rimLight = new THREE.DirectionalLight(0x88ccff, 1.5);
+    rimLight.position.set(3, 2, -3);
+    scene.add(rimLight);
 
     // Camera — frustum-based approach (same as hero)
     const DESIRED_HALF_HEIGHT = 3.0;
@@ -130,7 +135,7 @@ export class WhaleScrollComponent implements OnDestroy {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.2;
     this.renderer = renderer;
 
     // Resize observer
@@ -172,13 +177,45 @@ export class WhaleScrollComponent implements OnDestroy {
         const center2 = box2.getCenter(new THREE.Vector3());
         group.position.sub(center2);
 
-        // Keep original PBR materials — env map provides reflections
-        // Zero out emissive (glow invisible on light bg), rely on metallic reflections
+        // Wet whale: clearcoat for glossy water film + low roughness + strong reflections
         group.traverse((child: any) => {
           if (child.isMesh && child.material) {
             const mat = child.material as any;
-            if (mat.emissiveIntensity !== undefined) {
-              mat.emissiveIntensity = 12;
+
+            // Upgrade to MeshPhysicalMaterial for clearcoat support
+            if (mat.isMeshStandardMaterial && !mat.isMeshPhysicalMaterial) {
+              const phys = new THREE.MeshPhysicalMaterial();
+              // Copy base properties
+              phys.color.copy(mat.color);
+              phys.map = mat.map;
+              phys.normalMap = mat.normalMap;
+              phys.normalScale.copy(mat.normalScale);
+              phys.emissive.copy(mat.emissive);
+              phys.emissiveMap = mat.emissiveMap;
+              phys.emissiveIntensity = 12;
+              phys.metalness = mat.metalness;
+              phys.metalnessMap = mat.metalnessMap;
+              phys.roughness = 0.15; // smooth wet surface
+              phys.roughnessMap = mat.roughnessMap;
+              phys.aoMap = mat.aoMap;
+              phys.side = mat.side;
+              phys.transparent = mat.transparent;
+              phys.opacity = mat.opacity;
+
+              // Wet surface — clearcoat is the thin glossy water film
+              phys.clearcoat = 1.0;
+              phys.clearcoatRoughness = 0.05;
+              phys.envMapIntensity = 2.5;
+
+              child.material = phys;
+              mat.dispose();
+            } else {
+              // Already physical or basic — just tweak
+              if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = 12;
+              if (mat.roughness !== undefined) mat.roughness = 0.15;
+              if (mat.clearcoat !== undefined) mat.clearcoat = 1.0;
+              if (mat.clearcoatRoughness !== undefined) mat.clearcoatRoughness = 0.05;
+              if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 2.5;
             }
           }
         });
