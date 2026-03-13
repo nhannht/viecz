@@ -89,6 +89,28 @@ export class LandingComponent implements OnDestroy {
     });
   }
 
+  private setupHiwMobileFallback(ScrollTrigger: any): void {
+    const slides = this.howItWorksSection?.getSectionEl()?.querySelectorAll('.hiw-slide');
+    if (!slides?.length) return;
+
+    slides.forEach((slide, i) => {
+      const el = slide as HTMLElement;
+      el.style.position = 'relative';
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
+      el.style.filter = 'none';
+      el.style.transform = 'none';
+
+      const st = ScrollTrigger.create({
+        trigger: el,
+        start: 'top 75%',
+        onEnter: () => this.howItWorksSection?.playStep(i),
+        onLeaveBack: () => this.howItWorksSection?.resetStep(i),
+      });
+      this.scrollTriggers.push(st);
+    });
+  }
+
   ngOnDestroy(): void {
     for (const st of this.scrollTriggers) {
       st.kill?.();
@@ -148,27 +170,33 @@ export class LandingComponent implements OnDestroy {
       }
     }
 
-    // --- How it works: ScrollTrigger → animated steps ---
-    // *transloco renders async, so .river-step elements may not exist yet.
-    // Poll until they appear, then create ScrollTriggers.
-    // *transloco renders async — poll until .river-step elements exist
-    const setupRiverSteps = () => {
-      const riverSteps = document.querySelectorAll('.river-step');
-      if (riverSteps.length === 0) {
-        requestAnimationFrame(setupRiverSteps);
+    // --- How it works: pinned cross-dissolve (desktop) / per-slide (mobile) ---
+    const isMobile = window.innerWidth < 768;
+    const setupHiw = () => {
+      const hiwEl = this.howItWorksSection?.getSectionEl();
+      if (!hiwEl) {
+        requestAnimationFrame(setupHiw);
         return;
       }
-      riverSteps.forEach((step, i) => {
-        const st = ScrollTrigger.create({
-          trigger: step,
-          start: 'top 75%',
-          onEnter: () => this.howItWorksSection?.playStep(i),
-          onLeaveBack: () => this.howItWorksSection?.resetStep(i),
-        });
-        this.scrollTriggers.push(st);
+
+      if (isMobile) {
+        this.setupHiwMobileFallback(ScrollTrigger);
+        return;
+      }
+
+      const hiwSt = ScrollTrigger.create({
+        trigger: hiwEl,
+        start: 'top top',
+        end: '+=400%',
+        pin: true,
+        scrub: 1,
+        onUpdate: (self: any) => {
+          this.howItWorksSection?.updateProgress(self.progress);
+        },
       });
+      this.scrollTriggers.push(hiwSt);
     };
-    setupRiverSteps();
+    setupHiw();
 
     // --- Features cards ---
     const featureCards = document.querySelectorAll('.feature-card');
