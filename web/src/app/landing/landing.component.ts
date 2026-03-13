@@ -35,7 +35,7 @@ import { WhaleScrollComponent } from './whale-scroll.component';
       <app-landing-nav />
       <app-landing-hero #heroSection />
       <app-landing-howitworks #howItWorksSection />
-      <app-landing-features />
+      <app-landing-features #featuresSection />
       <app-landing-trust />
       <app-landing-cta />
 
@@ -76,6 +76,7 @@ import { WhaleScrollComponent } from './whale-scroll.component';
 export class LandingComponent implements OnDestroy {
   @ViewChild('heroSection') heroSection!: LandingHeroSection;
   @ViewChild('howItWorksSection') howItWorksSection!: LandingHowItWorksSection;
+  @ViewChild('featuresSection') featuresSection!: LandingFeaturesSection;
   @ViewChild('landingRoot') landingRoot!: ElementRef<HTMLElement>;
   @ViewChild('whaleScroll') whaleScroll!: WhaleScrollComponent;
   @ViewChild('tealGlow') tealGlowRef!: ElementRef<HTMLElement>;
@@ -112,6 +113,28 @@ export class LandingComponent implements OnDestroy {
         start: 'top 75%',
         onEnter: () => this.howItWorksSection?.playStep(i),
         onLeaveBack: () => this.howItWorksSection?.resetStep(i),
+      });
+      this.scrollTriggers.push(st);
+    });
+  }
+
+  private setupFeaturesMobileFallback(ScrollTrigger: any): void {
+    const slides = this.featuresSection?.getSectionEl()?.querySelectorAll('.feat-slide');
+    if (!slides?.length) return;
+
+    slides.forEach((slide, i) => {
+      const el = slide as HTMLElement;
+      el.style.position = 'relative';
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
+      el.style.filter = 'none';
+      el.style.transform = 'none';
+
+      const st = ScrollTrigger.create({
+        trigger: el,
+        start: 'top 75%',
+        onEnter: () => this.featuresSection?.playStep(i),
+        onLeaveBack: () => this.featuresSection?.resetStep(i),
       });
       this.scrollTriggers.push(st);
     });
@@ -236,56 +259,32 @@ export class LandingComponent implements OnDestroy {
     };
     setupHiw();
 
-    // --- Features cards ---
-    const featureCards = document.querySelectorAll('.feature-card');
-    if (featureCards.length) {
-      gsap.from(featureCards, {
-        y: 40,
-        opacity: 0,
-        duration: 0.7,
-        ease: 'power2.out',
-        stagger: 0.12,
-        scrollTrigger: {
-          trigger: '.features-section',
-          start: 'top 75%',
-          toggleActions: 'play none none none',
+    // --- Features: pinned cross-dissolve (desktop) / per-slide (mobile) ---
+    const setupFeatures = () => {
+      const featEl = this.featuresSection?.getSectionEl();
+      if (!featEl) {
+        requestAnimationFrame(setupFeatures);
+        return;
+      }
+
+      if (isMobile) {
+        this.setupFeaturesMobileFallback(ScrollTrigger);
+        return;
+      }
+
+      const featSt = ScrollTrigger.create({
+        trigger: featEl,
+        start: 'top top',
+        end: '+=500%',
+        pin: true,
+        scrub: 1,
+        onUpdate: (self: any) => {
+          this.featuresSection?.updateProgress(self.progress);
         },
       });
-    }
-
-    // --- Features text ---
-    const featuresText = document.querySelector('.features-text');
-    if (featuresText) {
-      gsap.from(featuresText, {
-        x: -40,
-        opacity: 0,
-        duration: 0.8,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: '.features-section',
-          start: 'top 80%',
-          toggleActions: 'play none none none',
-        },
-      });
-    }
-
-    // --- Glass shard parallax ---
-    const shards = document.querySelectorAll('.glass-shard');
-    if (shards.length && !prefersReduced) {
-      const speeds = [0.2, 0.4, 0.6];
-      shards.forEach((shard, i) => {
-        gsap.to(shard, {
-          y: () => speeds[i % speeds.length] * -200,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: '.features-section',
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: 1,
-          },
-        });
-      });
-    }
+      this.scrollTriggers.push(featSt);
+    };
+    setupFeatures();
 
     // --- Trust tiles ---
     const trustTiles = document.querySelectorAll('.trust-tile');
