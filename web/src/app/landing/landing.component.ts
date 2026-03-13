@@ -32,7 +32,7 @@ import { LandingCtaSection } from './landing-cta.section';
     <div class="landing-root" #landingRoot>
       <app-landing-nav />
       <app-landing-hero #heroSection />
-      <app-landing-howitworks />
+      <app-landing-howitworks #howItWorksSection />
       <app-landing-features />
       <app-landing-trust />
       <app-landing-cta />
@@ -70,6 +70,7 @@ import { LandingCtaSection } from './landing-cta.section';
 })
 export class LandingComponent implements OnDestroy {
   @ViewChild('heroSection') heroSection!: LandingHeroSection;
+  @ViewChild('howItWorksSection') howItWorksSection!: LandingHowItWorksSection;
   @ViewChild('landingRoot') landingRoot!: ElementRef<HTMLElement>;
   @ViewChild('tealGlow') tealGlowRef!: ElementRef<HTMLElement>;
 
@@ -147,22 +148,17 @@ export class LandingComponent implements OnDestroy {
       }
     }
 
-    // --- How it works cards ---
-    const howCards = document.querySelectorAll('.howitworks-card');
-    if (howCards.length) {
-      gsap.from(howCards, {
-        y: 60,
-        opacity: 0,
-        duration: 0.8,
-        ease: 'power2.out',
-        stagger: 0.15,
-        scrollTrigger: {
-          trigger: '.howitworks-section',
-          start: 'top 80%',
-          toggleActions: 'play none none none',
-        },
+    // --- How it works: ScrollTrigger → animated steps ---
+    const riverSteps = document.querySelectorAll('.river-step');
+    riverSteps.forEach((step, i) => {
+      const st = ScrollTrigger.create({
+        trigger: step,
+        start: 'top 75%',
+        onEnter: () => this.howItWorksSection?.playStep(i),
+        onLeaveBack: () => this.howItWorksSection?.resetStep(i),
       });
-    }
+      this.scrollTriggers.push(st);
+    });
 
     // --- Features cards ---
     const featureCards = document.querySelectorAll('.feature-card');

@@ -436,7 +436,27 @@
     "ctaSub": "Join Viecz today. Post your first task in under 2 minutes.",
     "trustFree": "FREE TO JOIN",
     "trustQuick": "POST IN 2 MINUTES",
-    "trustSecure": "SECURE PAYMENTS"
+    "trustSecure": "SECURE PAYMENTS",
+    "step1Long": "Describe what you need done, set a price, and post in under 2 minutes. Your task goes live instantly.",
+    "step2Long": "Students near you see your task and apply with their proposed price. Compare ratings and pick the best fit.",
+    "step3Long": "Pay securely through escrow. Funds are held until the task is completed to your satisfaction.",
+    "mockTitleLabel": "TITLE",
+    "mockCategoryLabel": "CATEGORY",
+    "mockCategoryValue": "Delivery",
+    "mockPriceLabel": "PRICE",
+    "mockPostBtn": "POST TASK",
+    "mockTaskTitle": "PICK UP DOCUMENTS FROM FPT",
+    "mockTaskDesc": "Need someone to collect printed docs from FPT print shop and bring to dormitory B2.",
+    "mockLocation": "Thu Duc, HCMC",
+    "mockDeadline": "Tomorrow 6PM",
+    "mockApplicant1": "Minh T.",
+    "mockApplicant2": "Lan P.",
+    "mockApplicant3": "Duc N.",
+    "mockReceiptTask": "Task",
+    "mockReceiptFee": "Fee",
+    "mockReceiptTotal": "Total",
+    "mockPending": "PENDING",
+    "mockPaid": "PAID"
   },
   "taskCard": {
     "applied": "applied"

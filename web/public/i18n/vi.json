@@ -436,7 +436,27 @@
     "ctaSub": "Tham gia Viecz ngay. Đăng việc đầu tiên trong chưa đầy 2 phút.",
     "trustFree": "MIỄN PHÍ THAM GIA",
     "trustQuick": "ĐĂNG TRONG 2 PHÚT",
-    "trustSecure": "THANH TOÁN AN TOÀN"
+    "trustSecure": "THANH TOÁN AN TOÀN",
+    "step1Long": "Mô tả việc cần làm, đặt giá, và đăng trong chưa đầy 2 phút. Việc sẽ hiển thị ngay lập tức.",
+    "step2Long": "Sinh viên gần bạn thấy việc và ứng tuyển với giá đề xuất. So sánh đánh giá và chọn người phù hợp nhất.",
+    "step3Long": "Thanh toán an toàn qua ký quỹ. Tiền được giữ cho đến khi bạn hài lòng với kết quả.",
+    "mockTitleLabel": "TIÊU ĐỀ",
+    "mockCategoryLabel": "DANH MỤC",
+    "mockCategoryValue": "Giao hàng",
+    "mockPriceLabel": "GIÁ",
+    "mockPostBtn": "ĐĂNG VIỆC",
+    "mockTaskTitle": "LẤY TÀI LIỆU TỪ FPT",
+    "mockTaskDesc": "Cần người lấy tài liệu đã in từ tiệm in FPT và mang đến ký túc xá B2.",
+    "mockLocation": "Thủ Đức, TPHCM",
+    "mockDeadline": "Ngày mai 6PM",
+    "mockApplicant1": "Minh T.",
+    "mockApplicant2": "Lan P.",
+    "mockApplicant3": "Đức N.",
+    "mockReceiptTask": "Việc",
+    "mockReceiptFee": "Phí",
+    "mockReceiptTotal": "Tổng",
+    "mockPending": "CHỜ XỬ LÝ",
+    "mockPaid": "ĐÃ THANH TOÁN"
   },
   "taskCard": {
     "applied": "ứng tuyển"
