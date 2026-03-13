@@ -186,11 +186,24 @@ export class LandingComponent implements OnDestroy {
         end: 'bottom bottom',
         onUpdate: (self: any) => {
           this.whaleScroll.setProgress(self.progress);
+          // Darken page background: ramp up 0→1 in first 20%, hold, ramp down in last 20%
+          const p = self.progress;
+          let darkness: number;
+          if (p < 0.2) darkness = p / 0.2;
+          else if (p > 0.8) darkness = (1 - p) / 0.2;
+          else darkness = 1;
+          document.documentElement.style.setProperty('--whale-darkness', String(darkness));
         },
         onEnter: () => this.whaleScroll.setActive(true),
         onEnterBack: () => this.whaleScroll.setActive(true),
-        onLeave: () => this.whaleScroll.setActive(false),
-        onLeaveBack: () => this.whaleScroll.setActive(false),
+        onLeave: () => {
+          this.whaleScroll.setActive(false);
+          document.documentElement.style.setProperty('--whale-darkness', '0');
+        },
+        onLeaveBack: () => {
+          this.whaleScroll.setActive(false);
+          document.documentElement.style.setProperty('--whale-darkness', '0');
+        },
       });
       this.scrollTriggers.push(whaleSt);
     }

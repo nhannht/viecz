@@ -65,6 +65,18 @@ html.sang-frostglass body::before {
     radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.9) 0%, #FCFCF9 100%);
 }
 
+/* Whale scroll dark overlay — driven by --whale-darkness CSS var */
+html.sang-frostglass body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, #061a28 0%, #020c14 100%);
+  opacity: calc(var(--whale-darkness, 0) * 0.85);
+  transition: opacity 100ms ease-out;
+}
+
 /* === Glass card effects === */
 .sang-frostglass .bg-card {
   position: relative;

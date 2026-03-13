@@ -91,9 +91,9 @@ export class WhaleScrollComponent implements OnDestroy {
     gradCanvas.height = 256;
     const gCtx = gradCanvas.getContext('2d')!;
     const grad = gCtx.createLinearGradient(0, 0, 0, 256);
-    grad.addColorStop(0, '#0a2a3a');
-    grad.addColorStop(0.4, '#061a28');
-    grad.addColorStop(1, '#020c14');
+    grad.addColorStop(0, '#0a2a3a');   // top — lighter deep teal
+    grad.addColorStop(0.4, '#061a28'); // mid — dark ocean
+    grad.addColorStop(1, '#020c14');   // bottom — near-black abyss
     gCtx.fillStyle = grad;
     gCtx.fillRect(0, 0, 2, 256);
     const gradTex = new THREE.CanvasTexture(gradCanvas);
@@ -178,7 +178,7 @@ export class WhaleScrollComponent implements OnDestroy {
           if (child.isMesh && child.material) {
             const mat = child.material as any;
             if (mat.emissiveIntensity !== undefined) {
-              mat.emissiveIntensity = 0;
+              mat.emissiveIntensity = 12;
             }
           }
         });
