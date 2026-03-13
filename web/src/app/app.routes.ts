@@ -13,6 +13,10 @@ export const routes: Routes = [
     loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent),
   },
   {
+    path: 'dev/howitworks',
+    loadComponent: () => import('./landing/howitworks-dev.component').then(m => m.HowItWorksDevComponent),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent),
   },

@@ -4,10 +4,6 @@ import {
   inject,
   OnDestroy,
   PLATFORM_ID,
-  ViewChild,
-  ViewChildren,
-  QueryList,
-  afterNextRender,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { TranslocoDirective } from '@jsverse/transloco';
@@ -22,34 +18,34 @@ import { TranslocoDirective } from '@jsverse/transloco';
         <h2 class="section-title">{{ t('marketplace.howItWorks') }}</h2>
 
         <!-- Step 1: Post a task -->
-        <div class="river-step" #riverStep>
-          <div class="river-text" #stepText>
+        <div class="river-step">
+          <div class="river-text" [attr.data-hiw]="'text-0'">
             <span class="step-number">1</span>
             <h3 class="step-heading">{{ t('marketplace.step1Title') }}</h3>
             <p class="step-body">{{ t('landing.step1Long') }}</p>
           </div>
-          <div class="river-mock mock-panel" #stepMock>
+          <div class="river-mock mock-panel" [attr.data-hiw]="'mock-0'">
             <!-- Mini task form -->
             <div class="mock-form">
-              <div class="mock-field" #step1Field0>
+              <div class="mock-field" [attr.data-hiw]="'s1-field-0'">
                 <label class="mock-label">{{ t('landing.mockTitleLabel') }}</label>
                 <div class="mock-input typewriter-host">
-                  <span class="typewriter-text" #typewriterText>{{ t('landing.mockTaskTitle') }}</span>
-                  <span class="typewriter-cursor" #typewriterCursor></span>
+                  <span class="typewriter-text" [attr.data-hiw]="'s1-tw-text'">{{ t('landing.mockTaskTitle') }}</span>
+                  <span class="typewriter-cursor" [attr.data-hiw]="'s1-tw-cursor'"></span>
                 </div>
               </div>
-              <div class="mock-field" #step1Field1>
+              <div class="mock-field" [attr.data-hiw]="'s1-field-1'">
                 <label class="mock-label">{{ t('landing.mockCategoryLabel') }}</label>
                 <div class="mock-input">{{ t('landing.mockCategoryValue') }}</div>
               </div>
-              <div class="mock-field" #step1Field2>
+              <div class="mock-field" [attr.data-hiw]="'s1-field-2'">
                 <label class="mock-label">{{ t('landing.mockPriceLabel') }}</label>
                 <div class="mock-input">50,000 ₫</div>
               </div>
-              <button class="mock-btn" #step1Btn>{{ t('landing.mockPostBtn') }}</button>
+              <button class="mock-btn" [attr.data-hiw]="'s1-btn'">{{ t('landing.mockPostBtn') }}</button>
             </div>
             <!-- Result: task card -->
-            <div class="mock-task-card" #step1Card>
+            <div class="mock-task-card" [attr.data-hiw]="'s1-card'">
               <h4 class="mock-card-title">{{ t('landing.mockTaskTitle') }}</h4>
               <p class="mock-card-desc">{{ t('landing.mockTaskDesc') }}</p>
               <div class="mock-card-meta">
@@ -65,18 +61,18 @@ import { TranslocoDirective } from '@jsverse/transloco';
         </div>
 
         <!-- Step 2: Get matched (reversed) -->
-        <div class="river-step river-step--reversed" #riverStep>
-          <div class="river-text" #stepText>
+        <div class="river-step river-step--reversed">
+          <div class="river-text" [attr.data-hiw]="'text-1'">
             <span class="step-number">2</span>
             <h3 class="step-heading">{{ t('marketplace.step2Title') }}</h3>
             <p class="step-body">{{ t('landing.step2Long') }}</p>
           </div>
-          <div class="river-mock mock-panel" #stepMock>
+          <div class="river-mock mock-panel" [attr.data-hiw]="'mock-1'">
             <div class="mock-applicants-header">
               <span class="mock-applicants-label">{{ t('task.applications') }}</span>
-              <span class="mock-applicants-count" #step2Counter>0</span>
+              <span class="mock-applicants-count" [attr.data-hiw]="'s2-counter'">0</span>
             </div>
-            <div class="mock-applicant" #step2App0>
+            <div class="mock-applicant" [attr.data-hiw]="'s2-app-0'">
               <div class="mock-avatar" style="background: #5b8a72;"></div>
               <div class="mock-applicant-info">
                 <span class="mock-applicant-name">{{ t('landing.mockApplicant1') }}</span>
@@ -84,7 +80,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
               </div>
               <span class="mock-applicant-price">45,000 ₫</span>
             </div>
-            <div class="mock-applicant" #step2App1>
+            <div class="mock-applicant" [attr.data-hiw]="'s2-app-1'">
               <div class="mock-avatar" style="background: #8a5b7a;"></div>
               <div class="mock-applicant-info">
                 <span class="mock-applicant-name">{{ t('landing.mockApplicant2') }}</span>
@@ -92,7 +88,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
               </div>
               <span class="mock-applicant-price">50,000 ₫</span>
             </div>
-            <div class="mock-applicant" #step2App2>
+            <div class="mock-applicant" [attr.data-hiw]="'s2-app-2'">
               <div class="mock-avatar" style="background: #5b6e8a;"></div>
               <div class="mock-applicant-info">
                 <span class="mock-applicant-name">{{ t('landing.mockApplicant3') }}</span>
@@ -104,41 +100,41 @@ import { TranslocoDirective } from '@jsverse/transloco';
         </div>
 
         <!-- Step 3: Get it done -->
-        <div class="river-step" #riverStep>
-          <div class="river-text" #stepText>
+        <div class="river-step">
+          <div class="river-text" [attr.data-hiw]="'text-2'">
             <span class="step-number">3</span>
             <h3 class="step-heading">{{ t('marketplace.step3Title') }}</h3>
             <p class="step-body">{{ t('landing.step3Long') }}</p>
           </div>
-          <div class="river-mock mock-panel" #stepMock>
-            <div class="mock-receipt" #step3Receipt>
-              <div class="mock-receipt-row" #step3Row0>
+          <div class="river-mock mock-panel" [attr.data-hiw]="'mock-2'">
+            <div class="mock-receipt" [attr.data-hiw]="'s3-receipt'">
+              <div class="mock-receipt-row" [attr.data-hiw]="'s3-row-0'">
                 <span>{{ t('landing.mockReceiptTask') }}</span>
                 <span class="mock-receipt-dots"></span>
                 <span>{{ t('landing.mockTaskTitle') }}</span>
               </div>
-              <div class="mock-receipt-row" #step3Row1>
+              <div class="mock-receipt-row" [attr.data-hiw]="'s3-row-1'">
                 <span>{{ t('landing.mockPriceLabel') }}</span>
                 <span class="mock-receipt-dots"></span>
                 <span>45,000 ₫</span>
               </div>
-              <div class="mock-receipt-row" #step3Row2>
+              <div class="mock-receipt-row" [attr.data-hiw]="'s3-row-2'">
                 <span>{{ t('landing.mockReceiptFee') }}</span>
                 <span class="mock-receipt-dots"></span>
                 <span>0 ₫</span>
               </div>
-              <div class="mock-receipt-row mock-receipt-total" #step3Row3>
+              <div class="mock-receipt-row mock-receipt-total" [attr.data-hiw]="'s3-row-3'">
                 <span>{{ t('landing.mockReceiptTotal') }}</span>
                 <span class="mock-receipt-dots"></span>
                 <span>45,000 ₫</span>
               </div>
               <div class="mock-progress-bar-track">
-                <div class="mock-progress-bar-fill" #step3Bar></div>
+                <div class="mock-progress-bar-fill" [attr.data-hiw]="'s3-bar'"></div>
               </div>
               <div class="mock-status-row">
-                <span class="mock-status-text" #step3Status>{{ t('landing.mockPending') }}</span>
+                <span class="mock-status-text" [attr.data-hiw]="'s3-status'">{{ t('landing.mockPending') }}</span>
               </div>
-              <div class="mock-stamp" #step3Stamp>✓ {{ t('landing.mockPaid') }}</div>
+              <div class="mock-stamp" [attr.data-hiw]="'s3-stamp'">✓ {{ t('landing.mockPaid') }}</div>
             </div>
           </div>
         </div>
@@ -184,7 +180,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
     }
 
     .river-text {
-      /* Visible by default for SSR; hidden via JS in browser before animation */
+      opacity: 0;
+      transform: translateY(30px);
     }
 
     .step-number {
@@ -230,7 +227,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
         0 4px 24px rgba(0, 0, 0, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
       padding: 1.5rem;
-      /* Visible by default for SSR; hidden via JS in browser before animation */
+      opacity: 0;
+      transform: translateY(30px);
       overflow: hidden;
     }
 
@@ -242,7 +240,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
     }
 
     .mock-field {
-      /* Hidden via JS before animation */
+      opacity: 0;
+      transform: translateY(4px);
     }
 
     .mock-label {
@@ -271,7 +270,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
     }
 
     .typewriter-text {
-      /* clip-path set via JS before animation */
+      clip-path: inset(0 100% 0 0);
     }
 
     .typewriter-cursor {
@@ -295,7 +294,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
       padding: 0.6rem 1rem;
       cursor: default;
       text-align: center;
-      /* Hidden via JS before animation */
+      opacity: 0;
     }
 
     /* --- Mock task card result --- */
@@ -305,7 +304,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.04);
-      /* Hidden via JS before animation */
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
     }
 
     .mock-card-title {
@@ -389,7 +389,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
       gap: 0.75rem;
       padding: 0.6rem 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      /* Hidden via JS before animation */
+      opacity: 0;
+      transform: translateX(-40px);
     }
 
     .mock-applicant:last-child {
@@ -443,7 +444,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
       padding: 0.4rem 0;
       font-size: 0.7rem;
       color: var(--color-muted);
-      /* Hidden via JS before animation */
+      opacity: 0;
+      transform: translateY(8px);
     }
 
     .mock-receipt-dots {
@@ -474,7 +476,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
       background: var(--color-fg);
       border-radius: 2px;
       transform-origin: left;
-      /* scaleX(0) set via JS before animation */
+      transform: scaleX(0);
     }
 
     .mock-status-row {
@@ -498,7 +500,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
       font-weight: 700;
       letter-spacing: 0.15em;
       color: var(--color-fg);
-      /* Hidden via JS before animation */
+      opacity: 0;
+      transform: scale(0);
     }
 
     /* Receipt invert state (applied via JS) */
@@ -570,72 +573,23 @@ import { TranslocoDirective } from '@jsverse/transloco';
   `,
 })
 export class LandingHowItWorksSection implements OnDestroy {
-  @ViewChildren('riverStep') riverSteps!: QueryList<ElementRef<HTMLElement>>;
-  @ViewChildren('stepText') stepTexts!: QueryList<ElementRef<HTMLElement>>;
-  @ViewChildren('stepMock') stepMocks!: QueryList<ElementRef<HTMLElement>>;
-
-  // Step 1 refs
-  @ViewChild('typewriterText') typewriterText!: ElementRef<HTMLElement>;
-  @ViewChild('typewriterCursor') typewriterCursor!: ElementRef<HTMLElement>;
-  @ViewChild('step1Field0') step1Field0!: ElementRef<HTMLElement>;
-  @ViewChild('step1Field1') step1Field1!: ElementRef<HTMLElement>;
-  @ViewChild('step1Field2') step1Field2!: ElementRef<HTMLElement>;
-  @ViewChild('step1Btn') step1Btn!: ElementRef<HTMLElement>;
-  @ViewChild('step1Card') step1Card!: ElementRef<HTMLElement>;
-
-  // Step 2 refs
-  @ViewChild('step2Counter') step2Counter!: ElementRef<HTMLElement>;
-  @ViewChild('step2App0') step2App0!: ElementRef<HTMLElement>;
-  @ViewChild('step2App1') step2App1!: ElementRef<HTMLElement>;
-  @ViewChild('step2App2') step2App2!: ElementRef<HTMLElement>;
-
-  // Step 3 refs
-  @ViewChild('step3Receipt') step3Receipt!: ElementRef<HTMLElement>;
-  @ViewChild('step3Row0') step3Row0!: ElementRef<HTMLElement>;
-  @ViewChild('step3Row1') step3Row1!: ElementRef<HTMLElement>;
-  @ViewChild('step3Row2') step3Row2!: ElementRef<HTMLElement>;
-  @ViewChild('step3Row3') step3Row3!: ElementRef<HTMLElement>;
-  @ViewChild('step3Bar') step3Bar!: ElementRef<HTMLElement>;
-  @ViewChild('step3Status') step3Status!: ElementRef<HTMLElement>;
-  @ViewChild('step3Stamp') step3Stamp!: ElementRef<HTMLElement>;
-
+  private el = inject(ElementRef<HTMLElement>);
   private platformId = inject(PLATFORM_ID);
   private animations: Animation[][] = [[], [], []];
   private played: boolean[] = [false, false, false];
   private paidText = '';
   private pendingText = '';
-  private initialized = false;
 
-  constructor() {
-    afterNextRender(() => {
-      this.hideElementsBeforeAnimation();
-      this.initialized = true;
-    });
+  constructor() {}
+
+  /** Query a single element by data-hiw attribute from host */
+  private q(key: string): HTMLElement | null {
+    return this.el.nativeElement.querySelector(`[data-hiw="${key}"]`);
   }
 
-  /** Hide all animated elements in the browser so ScrollTrigger can reveal them.
-   *  SSR renders them visible (no opacity:0 in CSS). */
-  private hideElementsBeforeAnimation(): void {
-    // Text + mock panels
-    this.stepTexts?.forEach(ref => {
-      ref.nativeElement.style.opacity = '0';
-      ref.nativeElement.style.transform = 'translateY(30px)';
-    });
-    this.stepMocks?.forEach(ref => {
-      ref.nativeElement.style.opacity = '0';
-      ref.nativeElement.style.transform = 'translateY(30px)';
-    });
-
-    // Step 1 elements
-    this.resetStep1Elements();
-    if (this.typewriterText) this.typewriterText.nativeElement.style.clipPath = 'inset(0 100% 0 0)';
-
-    // Step 2 elements
-    this.resetStep2Elements();
-
-    // Step 3 elements
-    this.resetStep3Elements();
-    if (this.step3Bar) this.step3Bar.nativeElement.style.transform = 'scaleX(0)';
+  /** Query all elements by data-hiw prefix */
+  private qAll(prefix: string): HTMLElement[] {
+    return Array.from(this.el.nativeElement.querySelectorAll(`[data-hiw^="${prefix}"]`));
   }
 
   ngOnDestroy(): void {
@@ -650,12 +604,16 @@ export class LandingHowItWorksSection implements OnDestroy {
   /** Called by parent ScrollTrigger onEnter */
   playStep(index: number): void {
     if (this.played[index]) return;
-    this.played[index] = true;
-
     if (!isPlatformBrowser(this.platformId)) return;
 
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Verify elements exist in the DOM (transloco may not have rendered yet)
+    const textEl = this.q(`text-${index}`);
+    const mockEl = this.q(`mock-${index}`);
+    if (!textEl || !mockEl) return;
 
+    this.played[index] = true;
+
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) {
       this.showFinalState(index);
       return;
@@ -678,20 +636,11 @@ export class LandingHowItWorksSection implements OnDestroy {
     }
     this.animations[index] = [];
 
-    // Reset to initial hidden state
-    const textEl = this.stepTexts?.toArray()[index]?.nativeElement;
-    const mockEl = this.stepMocks?.toArray()[index]?.nativeElement;
+    const textEl = this.q(`text-${index}`);
+    const mockEl = this.q(`mock-${index}`);
+    if (textEl) { textEl.style.opacity = '0'; textEl.style.transform = 'translateY(30px)'; }
+    if (mockEl) { mockEl.style.opacity = '0'; mockEl.style.transform = 'translateY(30px)'; }
 
-    if (textEl) {
-      textEl.style.opacity = '0';
-      textEl.style.transform = 'translateY(30px)';
-    }
-    if (mockEl) {
-      mockEl.style.opacity = '0';
-      mockEl.style.transform = 'translateY(30px)';
-    }
-
-    // Reset step-specific elements
     switch (index) {
       case 0: this.resetStep1Elements(); break;
       case 1: this.resetStep2Elements(); break;
@@ -700,54 +649,58 @@ export class LandingHowItWorksSection implements OnDestroy {
   }
 
   private showFinalState(index: number): void {
-    const textEl = this.stepTexts?.toArray()[index]?.nativeElement;
-    const mockEl = this.stepMocks?.toArray()[index]?.nativeElement;
+    const textEl = this.q(`text-${index}`);
+    const mockEl = this.q(`mock-${index}`);
     if (textEl) { textEl.style.opacity = '1'; textEl.style.transform = 'none'; }
     if (mockEl) { mockEl.style.opacity = '1'; mockEl.style.transform = 'none'; }
 
     switch (index) {
-      case 0:
-        this.setVisible(this.step1Field0); this.setVisible(this.step1Field1); this.setVisible(this.step1Field2);
-        if (this.typewriterText) this.typewriterText.nativeElement.style.clipPath = 'inset(0 0 0 0)';
-        this.setVisible(this.step1Btn); this.setVisible(this.step1Card);
-        if (this.step1Card) this.step1Card.nativeElement.style.transform = 'none';
+      case 0: {
+        for (let i = 0; i < 3; i++) this.showEl(this.q(`s1-field-${i}`));
+        const tw = this.q('s1-tw-text');
+        if (tw) tw.style.clipPath = 'inset(0 0 0 0)';
+        this.showEl(this.q('s1-btn'));
+        const card = this.q('s1-card');
+        if (card) { card.style.opacity = '1'; card.style.transform = 'none'; }
         break;
-      case 1:
-        this.setVisible(this.step2App0); this.setVisible(this.step2App1); this.setVisible(this.step2App2);
-        [this.step2App0, this.step2App1, this.step2App2].forEach(r => {
-          if (r) r.nativeElement.style.transform = 'none';
-        });
-        if (this.step2Counter) this.step2Counter.nativeElement.textContent = '3';
-        break;
-      case 2:
-        this.setVisible(this.step3Row0); this.setVisible(this.step3Row1);
-        this.setVisible(this.step3Row2); this.setVisible(this.step3Row3);
-        [this.step3Row0, this.step3Row1, this.step3Row2, this.step3Row3].forEach(r => {
-          if (r) r.nativeElement.style.transform = 'none';
-        });
-        if (this.step3Bar) this.step3Bar.nativeElement.style.transform = 'scaleX(1)';
-        if (this.step3Stamp) { this.step3Stamp.nativeElement.style.opacity = '1'; this.step3Stamp.nativeElement.style.transform = 'scale(1)'; }
-        if (this.step3Receipt) this.step3Receipt.nativeElement.classList.add('mock-receipt--paid');
-        if (this.step3Status) {
-          this.step3Status.nativeElement.textContent = this.step3Status.nativeElement.textContent!.replace(
-            this.step3Status.nativeElement.textContent!, this.paidText || 'PAID',
-          );
+      }
+      case 1: {
+        for (let i = 0; i < 3; i++) {
+          const app = this.q(`s2-app-${i}`);
+          if (app) { app.style.opacity = '1'; app.style.transform = 'none'; }
         }
+        const counter = this.q('s2-counter');
+        if (counter) counter.textContent = '3';
         break;
+      }
+      case 2: {
+        for (let i = 0; i < 4; i++) {
+          const row = this.q(`s3-row-${i}`);
+          if (row) { row.style.opacity = '1'; row.style.transform = 'none'; }
+        }
+        const bar = this.q('s3-bar');
+        if (bar) bar.style.transform = 'scaleX(1)';
+        const stamp = this.q('s3-stamp');
+        if (stamp) { stamp.style.opacity = '1'; stamp.style.transform = 'scale(1)'; }
+        const receipt = this.q('s3-receipt');
+        if (receipt) receipt.classList.add('mock-receipt--paid');
+        const status = this.q('s3-status');
+        if (status) status.textContent = this.paidText || 'PAID';
+        break;
+      }
     }
   }
 
-  private setVisible(ref: ElementRef<HTMLElement> | undefined): void {
-    if (ref) { ref.nativeElement.style.opacity = '1'; ref.nativeElement.style.transform = 'none'; }
+  private showEl(el: HTMLElement | null): void {
+    if (el) { el.style.opacity = '1'; el.style.transform = 'none'; }
   }
 
   // ─── Step 1: Post a task ───────────────────────────────
 
   private async playStep1(): Promise<void> {
     const track = (a: Animation) => { this.animations[0].push(a); return a; };
-    const textEl = this.stepTexts?.toArray()[0]?.nativeElement;
-    const mockEl = this.stepMocks?.toArray()[0]?.nativeElement;
-    if (!textEl || !mockEl) return;
+    const textEl = this.q('text-0')!;
+    const mockEl = this.q('mock-0')!;
 
     // 0.0s — fade in text + mock panel
     const a1 = track(textEl.animate(
@@ -760,7 +713,7 @@ export class LandingHowItWorksSection implements OnDestroy {
     ));
 
     // Show first field immediately with panel
-    const f0 = this.step1Field0?.nativeElement;
+    const f0 = this.q('s1-field-0');
     if (f0) {
       track(f0.animate(
         [{ opacity: '0', transform: 'translateY(4px)' }, { opacity: '1', transform: 'translateY(0)' }],
@@ -771,14 +724,14 @@ export class LandingHowItWorksSection implements OnDestroy {
     await a1.finished;
 
     // 0.6s — typewriter reveal
-    const twText = this.typewriterText?.nativeElement;
-    const twCursor = this.typewriterCursor?.nativeElement;
+    const twCursor = this.q('s1-tw-cursor');
     if (twCursor) {
       track(twCursor.animate(
         [{ opacity: '1' }, { opacity: '0' }, { opacity: '1' }],
         { duration: 600, iterations: 4, fill: 'forwards' },
       ));
     }
+    const twText = this.q('s1-tw-text');
     if (twText) {
       const twAnim = track(twText.animate(
         [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }],
@@ -788,7 +741,7 @@ export class LandingHowItWorksSection implements OnDestroy {
     }
 
     // 1.8s — category field
-    const f1 = this.step1Field1?.nativeElement;
+    const f1 = this.q('s1-field-1');
     if (f1) {
       const a = track(f1.animate(
         [{ opacity: '0', transform: 'translateY(4px)' }, { opacity: '1', transform: 'translateY(0)' }],
@@ -798,7 +751,7 @@ export class LandingHowItWorksSection implements OnDestroy {
     }
 
     // 2.1s — price field
-    const f2 = this.step1Field2?.nativeElement;
+    const f2 = this.q('s1-field-2');
     if (f2) {
       const a = track(f2.animate(
         [{ opacity: '0', transform: 'translateY(4px)' }, { opacity: '1', transform: 'translateY(0)' }],
@@ -808,7 +761,7 @@ export class LandingHowItWorksSection implements OnDestroy {
     }
 
     // 2.5s — button pulse
-    const btn = this.step1Btn?.nativeElement;
+    const btn = this.q('s1-btn');
     if (btn) {
       const a = track(btn.animate(
         [
@@ -822,7 +775,7 @@ export class LandingHowItWorksSection implements OnDestroy {
     }
 
     // 2.8s — task card slides up
-    const card = this.step1Card?.nativeElement;
+    const card = this.q('s1-card');
     if (card) {
       track(card.animate(
         [
@@ -835,21 +788,26 @@ export class LandingHowItWorksSection implements OnDestroy {
   }
 
   private resetStep1Elements(): void {
-    [this.step1Field0, this.step1Field1, this.step1Field2, this.step1Btn].forEach(ref => {
-      if (ref) { ref.nativeElement.style.opacity = '0'; ref.nativeElement.style.transform = 'translateY(4px)'; }
-    });
-    if (this.step1Card) { this.step1Card.nativeElement.style.opacity = '0'; this.step1Card.nativeElement.style.transform = 'translateY(20px) scale(0.95)'; }
-    if (this.typewriterText) this.typewriterText.nativeElement.style.clipPath = 'inset(0 100% 0 0)';
-    if (this.typewriterCursor) this.typewriterCursor.nativeElement.style.opacity = '0';
+    for (let i = 0; i < 3; i++) {
+      const f = this.q(`s1-field-${i}`);
+      if (f) { f.style.opacity = '0'; f.style.transform = 'translateY(4px)'; }
+    }
+    const btn = this.q('s1-btn');
+    if (btn) { btn.style.opacity = '0'; }
+    const card = this.q('s1-card');
+    if (card) { card.style.opacity = '0'; card.style.transform = 'translateY(20px) scale(0.95)'; }
+    const tw = this.q('s1-tw-text');
+    if (tw) tw.style.clipPath = 'inset(0 100% 0 0)';
+    const cursor = this.q('s1-tw-cursor');
+    if (cursor) cursor.style.opacity = '0';
   }
 
   // ─── Step 2: Get matched ──────────────────────────────
 
   private async playStep2(): Promise<void> {
     const track = (a: Animation) => { this.animations[1].push(a); return a; };
-    const textEl = this.stepTexts?.toArray()[1]?.nativeElement;
-    const mockEl = this.stepMocks?.toArray()[1]?.nativeElement;
-    if (!textEl || !mockEl) return;
+    const textEl = this.q('text-1')!;
+    const mockEl = this.q('mock-1')!;
 
     // 0.0s — fade in
     track(textEl.animate(
@@ -862,15 +820,13 @@ export class LandingHowItWorksSection implements OnDestroy {
     ));
     await a2.finished;
 
-    const apps = [this.step2App0, this.step2App1, this.step2App2];
-    const counterEl = this.step2Counter?.nativeElement;
+    const counterEl = this.q('s2-counter');
 
     // 0.4s, 0.8s, 1.2s — slide in applicants
-    for (let i = 0; i < apps.length; i++) {
-      const el = apps[i]?.nativeElement;
+    for (let i = 0; i < 3; i++) {
+      const el = this.q(`s2-app-${i}`);
       if (!el) continue;
 
-      // Small delay between cards
       if (i > 0) await this.delay(200);
 
       const a = track(el.animate(
@@ -882,30 +838,32 @@ export class LandingHowItWorksSection implements OnDestroy {
       ));
       await a.finished;
 
-      // Increment counter
       if (counterEl) counterEl.textContent = String(i + 1);
     }
   }
 
   private resetStep2Elements(): void {
-    [this.step2App0, this.step2App1, this.step2App2].forEach(ref => {
-      if (ref) { ref.nativeElement.style.opacity = '0'; ref.nativeElement.style.transform = 'translateX(-40px)'; }
-    });
-    if (this.step2Counter) this.step2Counter.nativeElement.textContent = '0';
+    for (let i = 0; i < 3; i++) {
+      const app = this.q(`s2-app-${i}`);
+      if (app) { app.style.opacity = '0'; app.style.transform = 'translateX(-40px)'; }
+    }
+    const counter = this.q('s2-counter');
+    if (counter) counter.textContent = '0';
   }
 
   // ─── Step 3: Get it done ──────────────────────────────
 
   private async playStep3(): Promise<void> {
     const track = (a: Animation) => { this.animations[2].push(a); return a; };
-    const textEl = this.stepTexts?.toArray()[2]?.nativeElement;
-    const mockEl = this.stepMocks?.toArray()[2]?.nativeElement;
-    if (!textEl || !mockEl) return;
+    const textEl = this.q('text-2')!;
+    const mockEl = this.q('mock-2')!;
 
     // Capture translated text for PAID status
-    if (this.step3Status) this.pendingText = this.step3Status.nativeElement.textContent || 'PENDING';
-    if (this.step3Stamp) {
-      const stampText = this.step3Stamp.nativeElement.textContent || '✓ PAID';
+    const statusEl = this.q('s3-status');
+    if (statusEl) this.pendingText = statusEl.textContent || 'PENDING';
+    const stampEl = this.q('s3-stamp');
+    if (stampEl) {
+      const stampText = stampEl.textContent || '✓ PAID';
       this.paidText = stampText.replace('✓ ', '').trim();
     }
 
@@ -921,11 +879,10 @@ export class LandingHowItWorksSection implements OnDestroy {
     await a2.finished;
 
     // 0.6s — stagger receipt rows
-    const rows = [this.step3Row0, this.step3Row1, this.step3Row2, this.step3Row3];
-    for (const row of rows) {
-      const el = row?.nativeElement;
-      if (!el) continue;
-      track(el.animate(
+    for (let i = 0; i < 4; i++) {
+      const row = this.q(`s3-row-${i}`);
+      if (!row) continue;
+      track(row.animate(
         [{ opacity: '0', transform: 'translateY(8px)' }, { opacity: '1', transform: 'translateY(0)' }],
         { duration: 300, fill: 'forwards', easing: 'ease-out' },
       ));
@@ -936,7 +893,7 @@ export class LandingHowItWorksSection implements OnDestroy {
     await this.delay(200);
 
     // 1.2s — progress bar fills
-    const bar = this.step3Bar?.nativeElement;
+    const bar = this.q('s3-bar');
     if (bar) {
       const a = track(bar.animate(
         [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
@@ -946,19 +903,17 @@ export class LandingHowItWorksSection implements OnDestroy {
     }
 
     // 2.2s — status text change
-    const statusEl = this.step3Status?.nativeElement;
     if (statusEl) {
       statusEl.textContent = this.paidText;
       statusEl.style.color = 'var(--color-fg)';
     }
 
     // 2.4s — receipt bg invert + stamp
-    const receiptEl = this.step3Receipt?.nativeElement;
-    if (receiptEl) receiptEl.classList.add('mock-receipt--paid');
+    const receipt = this.q('s3-receipt');
+    if (receipt) receipt.classList.add('mock-receipt--paid');
 
-    const stamp = this.step3Stamp?.nativeElement;
-    if (stamp) {
-      track(stamp.animate(
+    if (stampEl) {
+      track(stampEl.animate(
         [
           { opacity: '0', transform: 'scale(0)' },
           { opacity: '1', transform: 'scale(1.1)' },
@@ -970,19 +925,21 @@ export class LandingHowItWorksSection implements OnDestroy {
   }
 
   private resetStep3Elements(): void {
-    [this.step3Row0, this.step3Row1, this.step3Row2, this.step3Row3].forEach(ref => {
-      if (ref) { ref.nativeElement.style.opacity = '0'; ref.nativeElement.style.transform = 'translateY(8px)'; }
-    });
-    if (this.step3Bar) this.step3Bar.nativeElement.style.transform = 'scaleX(0)';
-    if (this.step3Status) {
-      this.step3Status.nativeElement.textContent = this.pendingText || 'PENDING';
-      this.step3Status.nativeElement.style.color = '';
+    for (let i = 0; i < 4; i++) {
+      const row = this.q(`s3-row-${i}`);
+      if (row) { row.style.opacity = '0'; row.style.transform = 'translateY(8px)'; }
     }
-    if (this.step3Stamp) {
-      this.step3Stamp.nativeElement.style.opacity = '0';
-      this.step3Stamp.nativeElement.style.transform = 'scale(0)';
+    const bar = this.q('s3-bar');
+    if (bar) bar.style.transform = 'scaleX(0)';
+    const status = this.q('s3-status');
+    if (status) {
+      status.textContent = this.pendingText || 'PENDING';
+      status.style.color = '';
     }
-    if (this.step3Receipt) this.step3Receipt.nativeElement.classList.remove('mock-receipt--paid');
+    const stamp = this.q('s3-stamp');
+    if (stamp) { stamp.style.opacity = '0'; stamp.style.transform = 'scale(0)'; }
+    const receipt = this.q('s3-receipt');
+    if (receipt) receipt.classList.remove('mock-receipt--paid');
   }
 
   // ─── Utility ──────────────────────────────────────────

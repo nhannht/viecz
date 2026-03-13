@@ -149,16 +149,26 @@ export class LandingComponent implements OnDestroy {
     }
 
     // --- How it works: ScrollTrigger → animated steps ---
-    const riverSteps = document.querySelectorAll('.river-step');
-    riverSteps.forEach((step, i) => {
-      const st = ScrollTrigger.create({
-        trigger: step,
-        start: 'top 75%',
-        onEnter: () => this.howItWorksSection?.playStep(i),
-        onLeaveBack: () => this.howItWorksSection?.resetStep(i),
+    // *transloco renders async, so .river-step elements may not exist yet.
+    // Poll until they appear, then create ScrollTriggers.
+    // *transloco renders async — poll until .river-step elements exist
+    const setupRiverSteps = () => {
+      const riverSteps = document.querySelectorAll('.river-step');
+      if (riverSteps.length === 0) {
+        requestAnimationFrame(setupRiverSteps);
+        return;
+      }
+      riverSteps.forEach((step, i) => {
+        const st = ScrollTrigger.create({
+          trigger: step,
+          start: 'top 75%',
+          onEnter: () => this.howItWorksSection?.playStep(i),
+          onLeaveBack: () => this.howItWorksSection?.resetStep(i),
+        });
+        this.scrollTriggers.push(st);
       });
-      this.scrollTriggers.push(st);
-    });
+    };
+    setupRiverSteps();
 
     // --- Features cards ---
     const featureCards = document.querySelectorAll('.feature-card');
