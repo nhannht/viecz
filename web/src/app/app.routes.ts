@@ -1,7 +1,17 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
+import { landingRedirectGuard } from './core/landing-redirect.guard';
 
 export const routes: Routes = [
+  {
+    path: '',
+    canActivate: [landingRedirectGuard],
+    children: [],
+  },
+  {
+    path: 'landing',
+    loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent),
+  },
   {
     path: 'login',
     loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent),
@@ -24,7 +34,7 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
     children: [
       {
-        path: '',
+        path: 'marketplace',
         loadComponent: () =>
           import('./marketplace/marketplace.component').then(m => m.MarketplaceComponent),
       },

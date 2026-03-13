@@ -52,6 +52,8 @@ export class HeroEgg3dComponent implements OnDestroy {
   private camera: THREE.PerspectiveCamera | null = null;
   private raycaster = new THREE.Raycaster();
   private resizeObserver: ResizeObserver | null = null;
+  private _visible = true;
+  private _intersectionObserver: IntersectionObserver | null = null;
   private mixer: THREE.AnimationMixer | null = null;
   private _whaleScene: THREE.Group | null = null; // the gltf.scene inside modelGroup
   private clock = new THREE.Clock();
@@ -87,6 +89,7 @@ export class HeroEgg3dComponent implements OnDestroy {
   ngOnDestroy(): void {
     if (this.animationId) cancelAnimationFrame(this.animationId);
     this.resizeObserver?.disconnect();
+    this._intersectionObserver?.disconnect();
     this.mixer?.removeEventListener('finished', this.onGulpFinished);
     this.renderer?.dispose();
     this.tuningPanel?.destroy();
@@ -127,7 +130,48 @@ export class HeroEgg3dComponent implements OnDestroy {
     }
   }
 
+  private _scrollProgress = 0;
+  private _baseCamZ = 0;
+
   private _modelGroup: THREE.Group | null = null;
+
+  /** Called by landing page GSAP ScrollTrigger to animate whale exit.
+   *  p < 0.3: normal view
+   *  p 0.3→1.0: camera zooms out, model fades */
+  setScrollProgress(p: number): void {
+    this._scrollProgress = p;
+    if (!this.camera || !this._baseCamZ) return;
+
+    if (p < 0.3) {
+      this.camera.position.z = this._baseCamZ;
+    } else {
+      const t = (p - 0.3) / 0.7;
+      this.camera.position.z = this._baseCamZ * (1 + t * 2.5);
+    }
+
+    // Fade model materials
+    if (this._modelGroup && p > 0.6) {
+      const fadeT = (p - 0.6) / 0.4;
+      this._modelGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+          if (mat) {
+            mat.transparent = true;
+            mat.opacity = 1 - fadeT;
+          }
+        }
+      });
+    } else if (this._modelGroup && p <= 0.6) {
+      this._modelGroup.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+          if (mat && mat.opacity < 1) {
+            mat.opacity = 1;
+          }
+        }
+      });
+    }
+  }
 
   private onGulpFinished = (): void => {
     if (!this.swimming.isReacting) return;
@@ -297,6 +341,12 @@ export class HeroEgg3dComponent implements OnDestroy {
     this.resizeObserver = new ResizeObserver(onResize);
     this.resizeObserver.observe(container);
 
+    this._intersectionObserver = new IntersectionObserver(
+      ([entry]) => { this._visible = entry.isIntersecting; },
+      { threshold: 0 },
+    );
+    this._intersectionObserver.observe(container);
+
     // Load whale — check cache for high-end model first
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('assets/draco/');
@@ -406,6 +456,7 @@ export class HeroEgg3dComponent implements OnDestroy {
     // Animation loop
     const animate = () => {
       this.animationId = requestAnimationFrame(animate);
+      if (!this._visible) return; // skip all work when offscreen
       const delta = this.clock.getDelta();
       const elapsed = this.clock.elapsedTime;
 
@@ -516,6 +567,7 @@ export class HeroEgg3dComponent implements OnDestroy {
     const camZ = DESIRED_HALF_HEIGHT / Math.tan(vFov / 2);
     camera.position.set(0, 0, camZ);
     camera.lookAt(0, 0, 0);
+    this._baseCamZ = camZ;
 
     // Compute swim ranges from actual frustum
     const swimRangeY = DESIRED_HALF_HEIGHT;

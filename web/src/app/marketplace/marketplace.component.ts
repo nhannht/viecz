@@ -20,7 +20,6 @@ import { TaskCardComponent } from '../shared/components/task-card.component';
 import { LoadingSkeletonComponent } from '../shared/components/loading-skeleton.component';
 import { ErrorFallbackComponent } from '../shared/components/error-fallback.component';
 import { MarketplaceMapComponent } from './marketplace-map.component';
-import { HeroLiquidglassComponent } from './hero-liquidglass.component';
 
 @Component({
   selector: 'app-marketplace',
@@ -37,15 +36,10 @@ import { HeroLiquidglassComponent } from './hero-liquidglass.component';
     LoadingSkeletonComponent,
     ErrorFallbackComponent,
     MarketplaceMapComponent,
-    HeroLiquidglassComponent,
   ],
   template: `
     <ng-container *transloco="let t">
-    <div class="py-2 relative min-h-[60vh]">
-      @if (!auth.isAuthenticated()) {
-        <app-hero-liquidglass [total]="total()" />
-      }
-
+    <div class="pb-2 relative min-h-[60vh]">
       <div class="mb-4">
         <nhannht-metro-input
           [label]="t('marketplace.searchLabel')"

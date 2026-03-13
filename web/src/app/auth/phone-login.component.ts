@@ -176,7 +176,7 @@ export class PhoneLoginComponent {
         next: () => {
           this.loggingIn.set(false);
           this.firebasePhone.reset();
-          this.router.navigate(['/']);
+          this.router.navigate(['/marketplace']);
         },
         error: (err) => {
           this.loggingIn.set(false);

@@ -100,7 +100,7 @@ export class ConversationListComponent implements OnInit {
     return conv.poster?.name || this.transloco.translate('messageBubble.defaultUser');
   }
 
-  goToMarketplace = () => this.router.navigate(['/']);
+  goToMarketplace = () => this.router.navigate(['/marketplace']);
   retryLoad = () => this.load();
 
   openConversation(conv: Conversation) {

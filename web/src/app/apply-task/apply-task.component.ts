@@ -105,7 +105,7 @@ export class ApplyTaskComponent implements OnInit {
       error: () => {
         this.loading.set(false);
         this.snackbar.show(this.transloco.translate('task.taskNotFound'), this.transloco.translate('common.close'), { duration: 3000 });
-        this.router.navigate(['/']);
+        this.router.navigate(['/marketplace']);
       },
     });
   }

@@ -283,7 +283,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       error: () => {
         this.loading.set(false);
         this.snackbar.show(this.transloco.translate('task.taskNotFound'), this.transloco.translate('common.close'), { duration: 3000 });
-        this.router.navigate(['/']);
+        this.router.navigate(['/marketplace']);
       },
     });
   }
@@ -296,7 +296,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     this.taskService.delete(this.task()!.id).subscribe({
       next: () => {
         this.snackbar.show(this.transloco.translate('task.taskCancelled'), this.transloco.translate('common.close'), { duration: 3000 });
-        this.router.navigate(['/']);
+        this.router.navigate(['/marketplace']);
       },
       error: err => this.snackbar.show(err.error?.error || this.transloco.translate('common.failed'), this.transloco.translate('common.close'), { duration: 3000 }),
     });

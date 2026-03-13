@@ -199,7 +199,7 @@ export class TaskFormComponent implements OnInit {
         },
         error: () => {
           this.snackBar.show(this.transloco.translate('taskForm.taskNotFound'), undefined, { duration: 3000 });
-          this.router.navigate(['/']);
+          this.router.navigate(['/marketplace']);
           this.loadingTask.set(false);
         },
       });
@@ -281,7 +281,7 @@ export class TaskFormComponent implements OnInit {
     if (this.isEditMode()) {
       this.router.navigate(['/tasks', this.id()]);
     } else {
-      this.router.navigate(['/']);
+      this.router.navigate(['/marketplace']);
     }
   }
 }

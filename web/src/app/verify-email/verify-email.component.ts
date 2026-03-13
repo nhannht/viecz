@@ -17,14 +17,14 @@ import { LoadingSkeletonComponent } from '../shared/components/loading-skeleton.
         } @else if (success()) {
           <h2 class="font-display text-[14px] tracking-[2px] mb-4">{{ t('verifyEmail.successTitle') }}</h2>
           <p class="font-body text-[13px] mb-6">{{ t('verifyEmail.successMessage') }}</p>
-          <a routerLink="/"
+          <a routerLink="/marketplace"
              class="inline-block px-6 py-3 bg-fg text-bg font-display text-[11px] tracking-[1px] no-underline border border-fg hover:opacity-90 transition-opacity">
             {{ t('verifyEmail.goToMarketplace') }}
           </a>
         } @else {
           <h2 class="font-display text-[14px] tracking-[2px] mb-4">{{ t('verifyEmail.errorTitle') }}</h2>
           <p class="font-body text-[13px] text-muted mb-6">{{ errorMessage() }}</p>
-          <a routerLink="/"
+          <a routerLink="/marketplace"
              class="inline-block px-6 py-3 bg-fg text-bg font-display text-[11px] tracking-[1px] no-underline border border-fg hover:opacity-90 transition-opacity">
             {{ t('verifyEmail.goToMarketplace') }}
           </a>

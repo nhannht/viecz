@@ -50,7 +50,7 @@ import { TimeAgoPipe } from '../core/pipes';
       <header class="mobile-top-bar md:hidden fixed top-0 left-0 right-0 z-50
                      flex items-center justify-between px-4 py-3"
               [class.nav-visible]="navVisible()">
-        <a routerLink="/" class="logo font-display text-[14px] tracking-[2px] text-fg no-underline">
+        <a routerLink="/marketplace" class="logo font-display text-[14px] tracking-[2px] text-fg no-underline">
           {{ t('common.viecz') }}
         </a>
         @if (auth.isAuthenticated()) {
@@ -140,7 +140,7 @@ import { TimeAgoPipe } from '../core/pipes';
            [class.nav-visible]="navVisible()">
 
         <!-- Logo -->
-        <a routerLink="/" class="logo font-display text-[13px] tracking-[2px] text-fg no-underline px-1">
+        <a routerLink="/marketplace" class="logo font-display text-[13px] tracking-[2px] text-fg no-underline px-1">
           {{ t('common.viecz') }}
         </a>
 
@@ -152,7 +152,7 @@ import { TimeAgoPipe } from '../core/pipes';
           <div class="nav-links-group relative flex items-center" #navLinksGroup>
             <span class="active-pill" #navPill style="opacity:0"></span>
 
-            <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="rla-active"
+            <a routerLink="/marketplace" routerLinkActive="rla-active"
                class="nav-icon-link" [attr.title]="t('shell.marketplace')">
               <nhannht-metro-icon name="storefront" [size]="16" />
               <span class="nav-label">{{ t('shell.marketplace') }}</span>
@@ -262,7 +262,7 @@ import { TimeAgoPipe } from '../core/pipes';
         } @else {
           <!-- Unauthenticated desktop -->
           <div class="flex items-center gap-1">
-            <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="rla-active"
+            <a routerLink="/marketplace" routerLinkActive="rla-active"
                class="nav-icon-link" [attr.title]="t('shell.marketplace')">
               <nhannht-metro-icon name="storefront" [size]="16" />
               <span class="nav-label">{{ t('shell.marketplace') }}</span>
@@ -288,7 +288,7 @@ import { TimeAgoPipe } from '../core/pipes';
                     flex items-stretch rounded-xl border border-border/60"
              [class.nav-visible]="navVisible()">
 
-          <a routerLink="/"
+          <a routerLink="/marketplace"
              class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5
                     font-body text-[10px] no-underline rounded-l-xl"
              [class.bottom-tab-active]="activeTab() === 'marketplace'">
@@ -619,7 +619,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** Maps current route to a tab name for active state styling. */
   activeTab = computed(() => {
     const url = this.activeRoute();
-    if (url === '/' || url === '') return 'marketplace';
+    if (url === '/marketplace' || url === '/' || url === '') return 'marketplace';
     if (url.startsWith('/wallet')) return 'wallet';
     if (url.startsWith('/messages') || url.startsWith('/chat')) return 'chat';
     if (url.startsWith('/profile')) return 'profile';

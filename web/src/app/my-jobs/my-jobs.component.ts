@@ -103,7 +103,7 @@ export class MyJobsComponent implements OnInit {
   }
 
   goToCreate = () => this.router.navigate(['/tasks/new']);
-  goToMarketplace = () => this.router.navigate(['/']);
+  goToMarketplace = () => this.router.navigate(['/marketplace']);
   retryLoad = () => this.loadTasks(this.currentTab());
 
   private loadTasks(mode: string) {

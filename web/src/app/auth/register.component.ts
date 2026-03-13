@@ -159,7 +159,7 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
     this.auth.register(this.email, this.password, this.name, token).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/']);
+        this.router.navigate(['/marketplace']);
       },
       error: err => {
         this.loading.set(false);
