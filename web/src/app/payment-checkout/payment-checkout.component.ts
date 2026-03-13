@@ -10,7 +10,7 @@ import {
   ViewChild,
   AfterViewInit,
 } from '@angular/core';
-import { isPlatformBrowser, NgClass, CurrencyPipe, DatePipe } from '@angular/common';
+import { isPlatformBrowser, DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import QRCode from 'qrcode';
@@ -46,7 +46,7 @@ type Phase = 'pending' | 'explosion' | 'confirmed' | 'expired';
 @Component({
   selector: 'app-payment-checkout',
   standalone: true,
-  imports: [NgClass, TranslocoDirective, NhannhtMetroSpinnerComponent, NhannhtMetroProgressBarComponent, CurrencyPipe, DatePipe],
+  imports: [TranslocoDirective, NhannhtMetroSpinnerComponent, NhannhtMetroProgressBarComponent, DatePipe],
   templateUrl: './payment-checkout.component.html',
   styleUrl: './payment-checkout.component.css',
 })

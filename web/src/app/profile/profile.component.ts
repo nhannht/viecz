@@ -13,7 +13,6 @@ import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
 import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
-import { NhannhtMetroBadgeComponent } from '../shared/components/nhannht-metro-badge.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { NhannhtMetroDialogComponent } from '../shared/components/nhannht-metro-dialog.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
@@ -33,7 +32,6 @@ import google_libphonenumber from 'google-libphonenumber';
     NhannhtMetroIconComponent,
     NhannhtMetroInputComponent,
     NhannhtMetroDividerComponent,
-    NhannhtMetroBadgeComponent,
     NhannhtMetroSpinnerComponent,
     NhannhtMetroDialogComponent,
   ],

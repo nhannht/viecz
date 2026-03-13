@@ -8,7 +8,7 @@ user-invocable: true
 
 ## Overview
 
-Reviews staged Git changes before committing. Focuses on catching bugs, security vulnerabilities, and code quality issues specific to the Viecz stack (Go backend + Angular web app + Kotlin/Compose Android app).
+Three-pass code review: mechanical linters, JetBrains IDE inspections, then Claude semantic review. Only applies checklist sections relevant to the changed platforms. Blocks commits unless all CRITICAL and WARNING findings are resolved.
 
 ## Usage
 
@@ -31,11 +31,118 @@ Reviews staged Git changes before committing. Focuses on catching bugs, security
 
 ## Workflow
 
-1. **Get staged changes**: Run `git diff --cached` (or `git diff` if nothing staged)
-2. **Classify changes**: Identify which files changed and their types (Go, Angular/TypeScript, Kotlin, config, docs)
-3. **Skip non-code**: Skip review for docs-only, config-only, or formatting-only changes — just report "No code review needed"
-4. **Run checks**: Apply the relevant checklist based on file types
-5. **Report**: Output findings grouped by severity
+### Step 1 — Get Staged Changes
+
+Run `git diff --cached` (or `git diff` if nothing staged). Save the output for analysis.
+
+### Step 2 — Classify Files
+
+Parse the diff for file paths. Determine which platforms are affected:
+
+| Changed paths | Platform |
+|---------------|----------|
+| `server/` | `go` |
+| `web/` | `angular` |
+| `android/` | `kotlin` |
+| `.md`, `.yml`, `.json`, config files only | `non-code` |
+
+### Step 3 — Skip Non-Code
+
+If ALL changed files are non-code (docs, config, formatting only):
+- Report: "No code review needed — docs/config changes only"
+- Create the marker file (see Marker File section below)
+- Stop. No further review needed.
+
+### Step 4 — Pass 1: Linters (Mechanical)
+
+Run platform-specific linters on changed files ONLY. Do not run linters for platforms with no changes.
+
+**Go changes** (`server/`):
+```bash
+cd server && golangci-lint run --new-from-rev=HEAD ./...
+```
+
+**Angular changes** (`web/`):
+```bash
+cd web && bunx eslint <space-separated list of changed .ts files relative to web/>
+```
+
+**If any linter fails:**
+- Report each linter error as a **CRITICAL** finding with the linter output
+- Do NOT proceed to Pass 2
+- Do NOT create the marker file
+- Tell the user: "Fix linter errors before re-running /code-review"
+
+**If all linters pass:** proceed to Pass 2.
+
+### Step 5 — Pass 2: JetBrains IDE Inspections
+
+Run `mcp__jetbrains__get_file_problems` on each changed **code file** (`.go`, `.ts`, `.kt`). Skip non-code files (`.md`, `.yml`, `.json`, `.css`, `.html`, binary assets).
+
+Call inspections in parallel batches (up to 10 files per batch) for speed:
+```
+mcp__jetbrains__get_file_problems(filePath="<relative-path>", projectPath="/home/ubuntu/nhannht-projects/viecz")
+```
+
+**Severity mapping:**
+- JetBrains `ERROR` → report as **CRITICAL** (unused imports, unresolved references, type errors, missing symbols)
+- JetBrains `WARNING` → report as **WARNING**
+
+**Known false positives to IGNORE (do not report):**
+- `Cannot resolve '--<name>' custom property` — CSS custom properties set dynamically via JS at runtime
+- `Unresolved reference 'SENTRY_DSN'` or any `BuildConfig.*` — Android `BuildConfig` fields are generated at compile time from `build.gradle.kts`
+- Any `BuildConfig` unresolved reference in Kotlin files
+
+**If any real errors found:**
+- Report each as CRITICAL/WARNING with the JetBrains description, file path, and line number
+- Continue to Pass 3 (unlike linter failures, IDE issues don't block the semantic review pass — collect all findings together)
+
+**If JetBrains MCP is unavailable** (connection error):
+- Log: "JetBrains IDE not connected — skipping IDE inspection pass"
+- Continue to Pass 3. Do NOT fail the review because the IDE is offline.
+
+### Step 6 — Pass 3: Claude Semantic Review
+
+Read changed files using Serena/JetBrains tools for code files (`jet_brains_find_symbol`, `jet_brains_get_symbols_overview`, `search_for_pattern`). Use `Read` only for non-code files or when IDE is unavailable.
+
+Apply ONLY the checklist sections relevant to the detected platforms:
+
+| Platform | Checklist sections to apply |
+|----------|---------------------------|
+| `go` only | Go Backend + Cross-Platform + Performance (DB, Memory, Network, Scalability) |
+| `angular` only | Angular/Web + Cross-Platform + Performance (Frontend, Memory) |
+| `kotlin` only | Kotlin/Android + Cross-Platform |
+| Mixed | Union of relevant sections |
+
+Focus on things linters **cannot** catch: logic bugs, security gaps, architectural issues, design problems.
+
+### Step 7 — Report
+
+Output findings grouped by severity: **CRITICAL → WARNING → INFO → OK**
+
+Include the source of each finding (Linter, IDE, or Claude) in the report.
+
+Use the report format defined below.
+
+### Step 8 — Severity Gate
+
+- If ANY **CRITICAL** or **WARNING** findings exist → do NOT create marker. Report: "Fix these before committing."
+- If only **INFO** or no findings → create the marker file (see below).
+
+## Marker File (MANDATORY)
+
+After review completes, the marker file determines whether `git commit` will be allowed by the pre-commit hook.
+
+**If ANY CRITICAL or WARNING findings remain:**
+- Do NOT create the marker file
+- Tell the user to fix issues and re-run `/code-review`
+
+**If only INFO or no findings:**
+- Create the marker with the hash of the exact staged content:
+```bash
+git diff --cached | sha256sum | cut -d' ' -f1 > /tmp/claude-code-review-passed
+```
+This hash ensures the marker is only valid for the exact staged content that was reviewed. If the user stages additional files after review, the pre-commit hook will block and require a new review.
 
 ## Checklist
 
@@ -195,30 +302,30 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 
 ### Performance
 
-**Database**:
+**Database** (apply for `go` platform):
 - N+1 query patterns (missing `Preload()` or `Joins()` in GORM)
 - Missing indexes on columns used in `WHERE`, `ORDER BY`, or `JOIN`
 - Unbounded queries without `LIMIT` (risk of full table scan)
 - Large transactions holding locks too long
 
-**Memory & Resources**:
+**Memory & Resources** (apply for `go` and `angular` platforms):
 - Goroutine leaks (no cancellation context, no WaitGroup, no select on done channel)
 - Observable/subscription leaks (missing unsubscribe, missing `takeUntilDestroyed()`)
 - Unbounded in-memory caches or maps that grow without eviction
 - Unclosed resources (`io.Reader`, HTTP response bodies, DB connections)
 
-**Network**:
+**Network** (apply for `go` platform):
 - HTTP clients without timeouts (use `http.Client{Timeout: ...}`)
 - Missing retry with exponential backoff on transient failures
 - Missing context cancellation propagation (long-running requests can't be aborted)
 
-**Frontend (Angular)**:
+**Frontend** (apply for `angular` platform):
 - Large bundle imports (import specific modules, not entire libraries)
 - Missing lazy loading on feature routes
 - Heavy computation in templates (use `computed()` signals instead)
 - Large lists without virtual scrolling (`@angular/cdk/scrolling`)
 
-**Scalability**:
+**Scalability** (apply for `go` platform):
 - No single-instance assumptions (in-memory state that won't survive restart/scale-out)
 - Rate limiting on public-facing endpoints
 - File uploads without size limits
@@ -228,14 +335,23 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 ```markdown
 ## Pre-Commit Code Review
 
-**Files changed**: 5 (3 Go, 2 Kotlin)
+**Files changed**: 5 (3 Go, 2 TypeScript)
+**Platforms detected**: go, angular
+**Checklist sections applied**: Go Backend, Angular/Web, Cross-Platform, Performance (DB, Memory, Network, Frontend)
+**Pass 1 (Linters)**: PASSED / FAILED
+**Pass 2 (JetBrains IDE)**: PASSED / FAILED / SKIPPED (IDE offline)
 **Findings**: 2 critical, 1 warning, 3 info
 
 ---
 
 ### CRITICAL
 
-**server/internal/handlers/wallet.go:45** — Missing auth middleware
+**[IDE]** **web/src/app/marketplace/hero-liquidglass.component.ts:27** — Unused import
+> `NhannhtMetroButtonComponent` is imported but never used in the component template.
+>
+> Fix: Remove from `imports` array and import statement.
+
+**[Claude]** **server/internal/handlers/wallet.go:45** — Missing auth middleware
 > New endpoint `GET /wallet/history` has no JWT middleware.
 > Any unauthenticated user can access wallet history.
 >
@@ -245,11 +361,11 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 
 ### WARNING
 
-**android/.../CreateTaskScreen.kt:120** — Missing loading state
-> `createTask()` is called but no loading indicator is shown.
-> User can tap "Create" multiple times, causing duplicate tasks.
+**[Claude]** **web/src/app/task/task-list.component.ts:120** — Missing loading state
+> `loadTasks()` is called but no loading indicator is shown.
+> User sees blank screen during slow network.
 >
-> Fix: Disable button and show spinner while `isLoading` is true.
+> Fix: Add a `loading` signal and show a spinner.
 
 ---
 
@@ -266,23 +382,10 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 - `docs/technical/API_REFERENCE.md` — Documentation only, skipped
 ```
 
-## When to Use
+## Tools & Model Requirements
 
-Use `/code-review` before committing:
-- Business logic changes (services, handlers, ViewModels)
-- Security-sensitive code (auth, payments, wallet)
-- New API endpoints
-- Complex algorithms or state management
-
-Skip for:
-- Documentation-only changes
-- Dependency version bumps
-- Simple renames or formatting
-- Git config or CI changes
-
-## Tools Required
-
-- **Bash**: Run `git diff --cached`, `git diff`
-- **Read**: Read changed files for full context
-- **Grep**: Search for patterns (hardcoded secrets, missing error checks)
-- **Glob**: Find related test files
+- **Code reading**: Use Serena/JetBrains tools when IDE is available (`jet_brains_find_symbol`, `jet_brains_get_symbols_overview`, `search_for_pattern`). Fall back to `Read` only for non-code files or when IDE is unavailable.
+- **IDE inspections**: Use `mcp__jetbrains__get_file_problems` for each changed code file. Parallel batches of up to 10. If MCP connection fails, skip gracefully.
+- **Linter execution**: Use `Bash` tool to run `golangci-lint` and `eslint`
+- **Diff inspection**: Use `Bash` for `git diff --cached`
+- **Sub-agents**: If spawning agents for review tasks, use `model: "opus"` (NOT haiku)

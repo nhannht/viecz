@@ -12,7 +12,6 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
 import { ThemeService } from '../core/theme.service';
 import { HeroEgg3dComponent } from './hero-egg-3d.component';
@@ -24,7 +23,6 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
   imports: [
     RouterLink,
     TranslocoDirective,
-    NhannhtMetroButtonComponent,
     NhannhtMetroIconComponent,
     HeroEgg3dComponent,
   ],
@@ -104,7 +102,7 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
       position: relative;
       /* Extend up behind the nav bar */
       padding: 5rem 1rem 2rem;
-      margin: -4rem calc(-50vw + 50%) 1.5rem;
+      margin: -5rem calc(-50vw + 50%) 1.5rem;
       width: 100vw;
       overflow-x: clip;
       overflow-y: visible;

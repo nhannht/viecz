@@ -1,7 +1,6 @@
 #!/bin/bash
 # Pre-commit code review hook for Claude Code
-# Fires on PreToolUse for Bash tool calls
-# Blocks git commit and instructs Claude to run /code-review first
+# Blocks git commit unless /code-review passed for the EXACT staged content
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -11,17 +10,23 @@ if ! echo "$COMMAND" | grep -qE '^git commit|&& git commit|; git commit'; then
   exit 0
 fi
 
-# Check if code review was already done (marker file)
+# Compute hash of currently staged changes
+STAGED_HASH=$(git diff --cached | sha256sum | cut -d' ' -f1)
+
+# Check marker contains matching hash
 if [ -f "/tmp/claude-code-review-passed" ]; then
-  rm -f "/tmp/claude-code-review-passed"
-  exit 0
+  SAVED_HASH=$(cat /tmp/claude-code-review-passed)
+  if [ "$STAGED_HASH" = "$SAVED_HASH" ]; then
+    rm -f /tmp/claude-code-review-passed
+    exit 0
+  fi
 fi
 
-# Block the commit and ask Claude to review first
+# Block — hash mismatch or no marker
 jq -n '{
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "Run /code-review before committing. After review passes, create /tmp/claude-code-review-passed marker file and retry the commit."
+    "permissionDecisionReason": "Run /code-review before committing. Staged content has changed since last review (or no review was done). After review passes with no CRITICAL or WARNING findings, the marker will be created automatically."
   }
 }'
