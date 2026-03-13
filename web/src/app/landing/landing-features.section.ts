@@ -122,9 +122,11 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       overflow: hidden;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.25);
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, calc(0.05 + var(--whale-darkness, 0) * 0.45));
+      backdrop-filter: blur(calc(12px + var(--whale-darkness, 0) * 20px));
+      -webkit-backdrop-filter: blur(calc(12px + var(--whale-darkness, 0) * 20px));
       box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.06),
+        0 4px 20px rgba(0, 0, 0, calc(0.06 + var(--whale-darkness, 0) * 0.12)),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
       opacity: 0;
       transform: translateY(40px);

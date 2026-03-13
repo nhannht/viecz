@@ -41,6 +41,7 @@ export class WhaleScrollComponent implements OnDestroy {
   private renderer: any = null;
   private scene: any = null;
   private camera: any = null;
+  private composer: any = null;
   private whaleGroup: any = null;
   private resizeObserver: ResizeObserver | null = null;
   private animationId = 0;
@@ -138,6 +139,23 @@ export class WhaleScrollComponent implements OnDestroy {
     renderer.toneMappingExposure = 1.2;
     this.renderer = renderer;
 
+    // Post-processing: selective bloom for emissive glow spots
+    const { EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } = await import('postprocessing');
+    const composer = new EffectComposer(renderer, {
+      frameBufferType: THREE.HalfFloatType,
+    });
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloomEffect = new SelectiveBloomEffect(scene, camera, {
+      intensity: 1.5,
+      mipmapBlur: true,
+      luminanceThreshold: 0,
+      luminanceSmoothing: 0.025,
+      radius: 0.85,
+    });
+    composer.addPass(new EffectPass(camera, bloomEffect));
+    this.composer = composer;
+
     // Resize observer
     this.resizeObserver = new ResizeObserver(() => {
       const rw = host.clientWidth || window.innerWidth;
@@ -146,6 +164,7 @@ export class WhaleScrollComponent implements OnDestroy {
       camera.aspect = rw / rh;
       camera.updateProjectionMatrix();
       renderer.setSize(rw, rh);
+      composer.setSize(rw, rh);
     });
     this.resizeObserver.observe(host);
 
@@ -217,6 +236,9 @@ export class WhaleScrollComponent implements OnDestroy {
               if (mat.clearcoatRoughness !== undefined) mat.clearcoatRoughness = 0.05;
               if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 2.5;
             }
+
+            // Register emissive meshes for selective bloom
+            bloomEffect.selection.add(child);
           }
         });
 
@@ -225,7 +247,7 @@ export class WhaleScrollComponent implements OnDestroy {
 
         // Render one initial frame if already active (ScrollTrigger may have fired before load)
         if (this._active) {
-          renderer.render(scene, camera);
+          composer.render();
         }
       },
       undefined,
@@ -240,7 +262,7 @@ export class WhaleScrollComponent implements OnDestroy {
       if (this.whaleGroup) {
         this.whaleGroup.rotation.y = this._progress * Math.PI * 2;
       }
-      renderer.render(scene, camera);
+      composer.render();
     };
     this.ngZone.runOutsideAngular(() => animate());
   }
@@ -248,6 +270,7 @@ export class WhaleScrollComponent implements OnDestroy {
   ngOnDestroy(): void {
     if (this.animationId) cancelAnimationFrame(this.animationId);
     this.resizeObserver?.disconnect();
+    this.composer?.dispose();
     this.renderer?.dispose();
   }
 }
