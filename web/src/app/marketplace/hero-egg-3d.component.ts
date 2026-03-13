@@ -132,6 +132,7 @@ export class HeroEgg3dComponent implements OnDestroy {
 
   private _scrollProgress = 0;
   private _baseCamZ = 0;
+  private _whaleMeshes: THREE.Mesh[] = [];
 
   private _modelGroup: THREE.Group | null = null;
 
@@ -149,27 +150,23 @@ export class HeroEgg3dComponent implements OnDestroy {
       this.camera.position.z = this._baseCamZ * (1 + t * 2.5);
     }
 
-    // Fade model materials
-    if (this._modelGroup && p > 0.6) {
+    // Fade model materials (uses cached mesh list, no traversal)
+    if (p > 0.6) {
       const fadeT = (p - 0.6) / 0.4;
-      this._modelGroup.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
-          if (mat) {
-            mat.transparent = true;
-            mat.opacity = 1 - fadeT;
-          }
+      for (const mesh of this._whaleMeshes) {
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (mat) {
+          mat.transparent = true;
+          mat.opacity = 1 - fadeT;
         }
-      });
-    } else if (this._modelGroup && p <= 0.6) {
-      this._modelGroup.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
-          if (mat && mat.opacity < 1) {
-            mat.opacity = 1;
-          }
+      }
+    } else {
+      for (const mesh of this._whaleMeshes) {
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (mat && mat.opacity < 1) {
+          mat.opacity = 1;
         }
-      });
+      }
     }
   }
 
@@ -575,8 +572,9 @@ export class HeroEgg3dComponent implements OnDestroy {
     const swimRangeZ = camZ * 2.5;
     this.swimming.setSwimRange(swimRangeX, swimRangeY, swimRangeZ);
 
-    // Materials: shadows, emissive, bloom
+    // Materials: shadows, emissive, bloom — also cache meshes for scroll fade
     let firstMaterial: THREE.MeshStandardMaterial | null = null;
+    this._whaleMeshes = [];
     gltf.scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -587,6 +585,7 @@ export class HeroEgg3dComponent implements OnDestroy {
         mat.emissiveIntensity = 20;
         child.layers.enable(BLOOM_LAYER);
         this.postProcessing?.addBloomMesh(mesh);
+        this._whaleMeshes.push(mesh);
       }
     });
 
