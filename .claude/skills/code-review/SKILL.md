@@ -66,6 +66,7 @@ cd server && golangci-lint run --new-from-rev=HEAD ./...
 ```bash
 cd web && bunx eslint <space-separated list of changed .ts files relative to web/>
 ```
+ESLint now includes complexity rules (`sonarjs/cognitive-complexity`, `complexity`, `max-lines-per-function`). Any complexity warnings from the linter pass should be reported as **WARNING** findings with the specific metric and threshold.
 
 **If any linter fails:**
 - Report each linter error as a **CRITICAL** finding with the linter output
@@ -249,6 +250,13 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 - Use new control flow syntax (`@if`/`@for`/`@switch`, not `*ngIf`/`*ngFor`/`[ngSwitch]`)
 - Use signals and `computed()` for reactive state
 - Component selector prefix must be `app-` (not `nhannht-metro-*` — that's Storybook only)
+
+**Complexity** (enforced by ESLint — `sonarjs/cognitive-complexity`, `complexity`, `max-lines-per-function`):
+- Cognitive complexity > 15 per function — break into smaller functions or extract helper
+- Cyclomatic complexity > 10 — too many branches, simplify control flow
+- Functions > 100 lines — split into focused units
+- Deeply nested callbacks or promise chains — flatten with early returns or extract steps
+- Components growing beyond 300 lines — consider extracting services or child components
 
 **Testing**:
 - Tests must use Vitest (`vi.fn()`, `vi.spyOn()`) not Jasmine (`jasmine.createSpy`)

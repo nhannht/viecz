@@ -4,6 +4,7 @@ const { defineConfig } = require("eslint/config");
 const tseslint = require("typescript-eslint");
 const angular = require("angular-eslint");
 const prettierConfig = require("eslint-config-prettier");
+const sonarjs = require("eslint-plugin-sonarjs");
 
 module.exports = defineConfig([
   {
@@ -47,6 +48,12 @@ module.exports = defineConfig([
       ],
       "no-console": ["warn", { allow: ["error", "warn"] }],
       "no-useless-escape": "warn",
+      "complexity": ["warn", 10],
+      "max-lines-per-function": ["warn", { max: 100, skipBlankLines: true, skipComments: true }],
+      "sonarjs/cognitive-complexity": ["warn", 15],
+    },
+    plugins: {
+      sonarjs,
     },
   },
   // Relax rules for test files
