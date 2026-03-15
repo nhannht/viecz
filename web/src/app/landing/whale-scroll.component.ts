@@ -50,6 +50,9 @@ export class WhaleScrollComponent implements OnDestroy {
   private initialized = false;
   private mixer: any = null;
   private clock: any = null;
+  private surfaceAction: any = null;
+  private swimAction: any = null;
+  private diveAction: any = null;
 
   constructor() {
     afterNextRender(() => {
@@ -246,16 +249,30 @@ export class WhaleScrollComponent implements OnDestroy {
           }
         });
 
-        // Play built-in swim animation
+        // Play built-in animations: surface (enter), swim (cruise), dive (exit)
         if (gltf.animations.length) {
           const mixer = new THREE.AnimationMixer(gltf.scene);
-          const swimClip = gltf.animations.find((c: any) => c.name === 'move f');
-          if (swimClip) {
-            const action = mixer.clipAction(swimClip);
+          const findClip = (name: string) => gltf.animations.find((c: any) => c.name === name);
+
+          const surfaceClip = findClip('surface');
+          const swimClip = findClip('move f');
+          const diveClip = findClip('move d');
+
+          const setupAction = (clip: any, weight: number) => {
+            if (!clip) return null;
+            const action = mixer.clipAction(clip);
             action.setLoop(THREE.LoopRepeat, Infinity);
             action.timeScale = 0.7;
+            action.enabled = true;
+            action.setEffectiveWeight(weight);
             action.play();
-          }
+            return action;
+          };
+
+          // Surface starts active (whale enters), others start at weight 0
+          this.surfaceAction = setupAction(surfaceClip, 1);
+          this.swimAction = setupAction(swimClip, 0);
+          this.diveAction = setupAction(diveClip, 0);
           this.mixer = mixer;
         }
 
@@ -278,13 +295,56 @@ export class WhaleScrollComponent implements OnDestroy {
 
       if (this.mixer) {
         this.mixer.update(this.clock.getDelta());
+
+        // Blend animation weights based on scroll phase
+        const p = this._progress;
+        let surfaceW = 0, swimW = 0, diveW = 0;
+        if (p < 0.08) {
+          // Enter: surface only
+          surfaceW = 1; swimW = 0; diveW = 0;
+        } else if (p < 0.15) {
+          // Crossfade surface → swim
+          const blend = (p - 0.08) / 0.07;
+          surfaceW = 1 - blend; swimW = blend; diveW = 0;
+        } else if (p < 0.85) {
+          // Cruise: swim only
+          surfaceW = 0; swimW = 1; diveW = 0;
+        } else if (p < 0.92) {
+          // Crossfade swim → dive
+          const blend = (p - 0.85) / 0.07;
+          surfaceW = 0; swimW = 1 - blend; diveW = blend;
+        } else {
+          // Exit: dive only
+          surfaceW = 0; swimW = 0; diveW = 1;
+        }
+        this.surfaceAction?.setEffectiveWeight(surfaceW);
+        this.swimAction?.setEffectiveWeight(swimW);
+        this.diveAction?.setEffectiveWeight(diveW);
       }
       if (this.whaleGroup) {
-        const t = this._progress * Math.PI * 2;
+        const p = this._progress;
+        const t = p * Math.PI * 2;
+
+        // Enter/exit offset: whale enters from below, exits diving down
+        // smoothstep for smooth acceleration/deceleration
+        let yOffset = 0;
+        if (p < 0.10) {
+          const e = p / 0.10; // 0→1
+          const smooth = e * e * (3 - 2 * e); // smoothstep
+          yOffset = -4 * (1 - smooth);
+        } else if (p > 0.90) {
+          const e = (p - 0.90) / 0.10; // 0→1
+          const smooth = e * e * (3 - 2 * e);
+          yOffset = -4 * smooth;
+        }
+
         this.whaleGroup.position.x = 1.5 * Math.sin(t);
-        this.whaleGroup.position.y = 0.4 * Math.sin(2 * t);
+        this.whaleGroup.position.y = 0.4 * Math.sin(2 * t) + yOffset;
         this.whaleGroup.position.z = 2.5 * Math.cos(t);
         this.whaleGroup.rotation.y = Math.atan2(Math.cos(t), -Math.sin(t));
+
+        // Tilt nose down during enter/exit
+        this.whaleGroup.rotation.x = yOffset < 0 ? yOffset * 0.12 : 0;
       }
       composer.render();
     };
