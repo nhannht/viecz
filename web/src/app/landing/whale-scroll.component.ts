@@ -48,6 +48,8 @@ export class WhaleScrollComponent implements OnDestroy {
   private _progress = 0;
   private _active = false;
   private initialized = false;
+  private mixer: any = null;
+  private clock: any = null;
 
   constructor() {
     afterNextRender(() => {
@@ -77,6 +79,8 @@ export class WhaleScrollComponent implements OnDestroy {
     const THREE = await import('three');
     const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
     const { DRACOLoader } = await import('three/examples/jsm/loaders/DRACOLoader.js');
+
+    this.clock = new THREE.Clock();
 
     const host = this.hostRef.nativeElement as HTMLElement;
     const w = host.clientWidth || window.innerWidth;
@@ -242,6 +246,19 @@ export class WhaleScrollComponent implements OnDestroy {
           }
         });
 
+        // Play built-in swim animation
+        if (gltf.animations.length) {
+          const mixer = new THREE.AnimationMixer(gltf.scene);
+          const swimClip = gltf.animations.find((c: any) => c.name === 'move f');
+          if (swimClip) {
+            const action = mixer.clipAction(swimClip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.timeScale = 0.7;
+            action.play();
+          }
+          this.mixer = mixer;
+        }
+
         scene.add(group);
         this.whaleGroup = group;
 
@@ -259,8 +276,15 @@ export class WhaleScrollComponent implements OnDestroy {
       this.animationId = requestAnimationFrame(animate);
       if (!this._active) return;
 
+      if (this.mixer) {
+        this.mixer.update(this.clock.getDelta());
+      }
       if (this.whaleGroup) {
-        this.whaleGroup.rotation.y = this._progress * Math.PI * 2;
+        const t = this._progress * Math.PI * 2;
+        this.whaleGroup.position.x = 1.5 * Math.sin(t);
+        this.whaleGroup.position.y = 0.4 * Math.sin(2 * t);
+        this.whaleGroup.position.z = 2.5 * Math.cos(t);
+        this.whaleGroup.rotation.y = Math.atan2(Math.cos(t), -Math.sin(t));
       }
       composer.render();
     };
@@ -269,6 +293,7 @@ export class WhaleScrollComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     if (this.animationId) cancelAnimationFrame(this.animationId);
+    this.mixer?.stopAllAction();
     this.resizeObserver?.disconnect();
     this.composer?.dispose();
     this.renderer?.dispose();
