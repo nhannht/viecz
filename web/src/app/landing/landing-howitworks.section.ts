@@ -8,12 +8,14 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { TaskCardComponent } from '../shared/components/task-card.component';
+import { Task } from '../core/models';
 
 // Weight-based easing curves
 const EASE_LIGHT = 'cubic-bezier(0.34, 1.56, 0.64, 1)';   // snappy overshoot (fields, buttons)
 const EASE_MEDIUM = 'cubic-bezier(0.22, 1, 0.36, 1)';      // smooth momentum (text blocks)
 const EASE_HEAVY = 'cubic-bezier(0.16, 1, 0.3, 1)';        // slower settle (panels, cards)
-const EASE_ELASTIC = 'cubic-bezier(0.68, -0.55, 0.27, 1.55)'; // spring bounce (stamp)
+const _EASE_ELASTIC = 'cubic-bezier(0.68, -0.55, 0.27, 1.55)'; // spring bounce (stamp)
 
 // Cross-dissolve progress ranges
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -37,10 +39,10 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
 @Component({
   selector: 'app-landing-howitworks',
   standalone: true,
-  imports: [TranslocoDirective],
+  imports: [TranslocoDirective, TaskCardComponent],
   template: `
     <ng-container *transloco="let t">
-      <section class="howitworks-section" #sectionEl>
+      <section id="landing-howitworks" class="howitworks-section" #sectionEl>
         <h2 class="section-title">{{ t('marketplace.howItWorks') }}</h2>
 
         <div class="hiw-indicators">
@@ -51,7 +53,7 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
 
         <div class="hiw-stage">
           <!-- Step 1: Post a task -->
-          <div class="hiw-slide" [attr.data-hiw]="'slide-0'">
+          <div id="hiw-post" class="hiw-slide" [attr.data-hiw]="'slide-0'">
             <div class="river-text" [attr.data-hiw]="'text-0'">
               <span class="step-number">1</span>
               <h3 class="step-heading">{{ t('marketplace.step1Title') }}</h3>
@@ -94,7 +96,7 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
           </div>
 
           <!-- Step 2: Get matched (reversed) -->
-          <div class="hiw-slide hiw-slide--reversed" [attr.data-hiw]="'slide-1'">
+          <div id="hiw-match" class="hiw-slide hiw-slide--reversed" [attr.data-hiw]="'slide-1'">
             <div class="river-text" [attr.data-hiw]="'text-1'">
               <span class="step-number">2</span>
               <h3 class="step-heading">{{ t('marketplace.step2Title') }}</h3>
@@ -133,41 +135,15 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
           </div>
 
           <!-- Step 3: Get it done -->
-          <div class="hiw-slide" [attr.data-hiw]="'slide-2'">
+          <div id="hiw-pay" class="hiw-slide" [attr.data-hiw]="'slide-2'">
             <div class="river-text" [attr.data-hiw]="'text-2'">
               <span class="step-number">3</span>
               <h3 class="step-heading">{{ t('marketplace.step3Title') }}</h3>
               <p class="step-body">{{ t('landing.step3Long') }}</p>
             </div>
-            <div class="river-mock mock-panel" [attr.data-hiw]="'mock-2'">
-              <div class="mock-receipt" [attr.data-hiw]="'s3-receipt'">
-                <div class="mock-receipt-row" [attr.data-hiw]="'s3-row-0'">
-                  <span>{{ t('landing.mockReceiptTask') }}</span>
-                  <span class="mock-receipt-dots"></span>
-                  <span>{{ t('landing.mockTaskTitle') }}</span>
-                </div>
-                <div class="mock-receipt-row" [attr.data-hiw]="'s3-row-1'">
-                  <span>{{ t('landing.mockPriceLabel') }}</span>
-                  <span class="mock-receipt-dots"></span>
-                  <span>45,000 ₫</span>
-                </div>
-                <div class="mock-receipt-row" [attr.data-hiw]="'s3-row-2'">
-                  <span>{{ t('landing.mockReceiptFee') }}</span>
-                  <span class="mock-receipt-dots"></span>
-                  <span>0 ₫</span>
-                </div>
-                <div class="mock-receipt-row mock-receipt-total" [attr.data-hiw]="'s3-row-3'">
-                  <span>{{ t('landing.mockReceiptTotal') }}</span>
-                  <span class="mock-receipt-dots"></span>
-                  <span>45,000 ₫</span>
-                </div>
-                <div class="mock-progress-bar-track">
-                  <div class="mock-progress-bar-fill" [attr.data-hiw]="'s3-bar'"></div>
-                </div>
-                <div class="mock-status-row">
-                  <span class="mock-status-text" [attr.data-hiw]="'s3-status'">{{ t('landing.mockPending') }}</span>
-                </div>
-                <div class="mock-stamp" [attr.data-hiw]="'s3-stamp'">✓ {{ t('landing.mockPaid') }}</div>
+            <div class="river-mock completed-card-wrap" [attr.data-hiw]="'mock-2'">
+              <div class="completed-card-item" [attr.data-hiw]="'s3-card'">
+                <app-task-card [task]="completedTask" />
               </div>
             </div>
           </div>
@@ -272,12 +248,13 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       width: 28px;
       height: 28px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, calc(0.2 + var(--whale-darkness, 0) * 0.3));
       font-family: var(--font-display);
       font-size: 0.7rem;
       font-weight: 700;
-      color: var(--color-fg);
+      color: color-mix(in srgb, var(--color-fg), white calc(var(--whale-darkness, 0) * 100%));
       margin-bottom: 0.75rem;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, calc(var(--whale-darkness, 0) * 0.5));
     }
 
     .step-heading {
@@ -285,7 +262,7 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       font-size: 0.85rem;
       font-weight: 600;
       letter-spacing: 0.08em;
-      color: var(--color-fg);
+      color: color-mix(in srgb, var(--color-fg), white calc(var(--whale-darkness, 0) * 100%));
       margin: 0.5rem 0;
       text-shadow: 0 1px 4px rgba(0, 0, 0, calc(var(--whale-darkness, 0) * 0.6));
     }
@@ -293,7 +270,7 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
     .step-body {
       font-family: var(--font-body);
       font-size: 0.82rem;
-      color: var(--color-muted);
+      color: color-mix(in srgb, var(--color-muted), rgba(220, 220, 220, 0.9) calc(var(--whale-darkness, 0) * 100%));
       line-height: 1.6;
       margin: 0;
       text-shadow: 0 1px 3px rgba(0, 0, 0, calc(var(--whale-darkness, 0) * 0.4));
@@ -517,86 +494,21 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       color: var(--color-fg);
     }
 
-    /* --- Step 3: Receipt mock --- */
-    .mock-receipt {
-      font-family: var(--font-body);
+    /* --- Step 3: Completed task card --- */
+    .completed-card-wrap {
+      padding: 0;
+      background: none;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      filter: none;
     }
 
-    .mock-receipt-row {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-      padding: 0.4rem 0;
-      font-size: 0.7rem;
-      color: var(--color-muted);
+    .completed-card-item {
       opacity: 0;
-      transform: translateY(8px);
-    }
-
-    .mock-receipt-dots {
-      flex: 1;
-      border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
-      margin: 0 0.25rem;
-      min-width: 20px;
-    }
-
-    .mock-receipt-total {
-      font-weight: 600;
-      color: var(--color-fg);
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      margin-top: 0.25rem;
-      padding-top: 0.5rem;
-    }
-
-    .mock-progress-bar-track {
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      margin: 1rem 0 0.75rem;
-      overflow: hidden;
-    }
-
-    .mock-progress-bar-fill {
-      height: 100%;
-      background: var(--color-fg);
-      border-radius: 2px;
-      transform-origin: left;
-      transform: scaleX(0);
-    }
-
-    .mock-progress-bar-fill--complete {
-      box-shadow: 0 0 12px 2px var(--color-accent, var(--color-fg));
-    }
-
-    .mock-status-row {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 0.5rem;
-    }
-
-    .mock-status-text {
-      font-family: var(--font-display);
-      font-size: 0.6rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      color: var(--color-muted);
-    }
-
-    .mock-stamp {
-      text-align: center;
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      color: var(--color-fg);
-      opacity: 0;
-      transform: scale(0);
-    }
-
-    /* Receipt paid state — no background invert, just keep glass aesthetic */
-    .mock-receipt--paid {
-      border-radius: 8px;
-      padding: 1rem;
+      transform: translateY(20px) scale(0.95);
+      pointer-events: none;
     }
 
     /* --- Mobile: undo stacking, fall back to flow layout --- */
@@ -639,6 +551,37 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       .mock-panel {
         max-width: 100%;
       }
+      .river-text {
+        opacity: 1;
+        transform: none;
+      }
+      .mock-panel {
+        opacity: 1;
+        transform: none;
+        filter: none;
+      }
+      .mock-field {
+        opacity: 1;
+        transform: none;
+      }
+      .mock-btn {
+        opacity: 1;
+      }
+      .mock-task-card {
+        opacity: 1;
+        transform: none;
+      }
+      .mock-applicant {
+        opacity: 1;
+        transform: none;
+      }
+      .completed-card-item {
+        opacity: 1;
+        transform: none;
+      }
+      .typewriter-text {
+        clip-path: none;
+      }
       .hiw-indicators,
       .hiw-bg-gradient {
         display: none;
@@ -659,9 +602,16 @@ export class LandingHowItWorksSection implements OnDestroy {
   private platformId = inject(PLATFORM_ID);
   private animations: Animation[][] = [[], [], []];
   private played: boolean[] = [false, false, false];
-  private paidText = '';
-  private pendingText = '';
   private lastActiveStep = -1;
+
+  completedTask: Task = {
+    id: 99, requester_id: 0, category_id: 2,
+    title: 'Giao giấy tờ từ FPT', description: 'Nhận giấy tờ từ văn phòng FPT và giao đến địa chỉ ở Thủ Đức.',
+    price: 45000, location: 'Thủ Đức, TP.HCM', status: 'completed',
+    category: { id: 2, name: 'Delivery', name_vi: 'Giao nhận', is_active: true },
+    application_count: 3, created_at: '2026-03-14T08:30:00Z', updated_at: '2026-03-14T12:00:00Z',
+    completed_at: '2026-03-14T12:00:00Z',
+  };
 
   constructor() {}
 
@@ -926,18 +876,8 @@ export class LandingHowItWorksSection implements OnDestroy {
         break;
       }
       case 2: {
-        for (let i = 0; i < 4; i++) {
-          const row = this.q(`s3-row-${i}`);
-          if (row) { row.style.opacity = '1'; row.style.transform = 'none'; }
-        }
-        const bar = this.q('s3-bar');
-        if (bar) bar.style.transform = 'scaleX(1)';
-        const stamp = this.q('s3-stamp');
-        if (stamp) { stamp.style.opacity = '1'; stamp.style.transform = 'scale(1)'; }
-        const receipt = this.q('s3-receipt');
-        if (receipt) receipt.classList.add('mock-receipt--paid');
-        const status = this.q('s3-status');
-        if (status) status.textContent = this.paidText || 'PAID';
+        const card = this.q('s3-card');
+        if (card) { card.style.opacity = '1'; card.style.transform = 'none'; }
         break;
       }
     }
@@ -1111,105 +1051,43 @@ export class LandingHowItWorksSection implements OnDestroy {
     if (counter) counter.textContent = '0';
   }
 
-  // ─── Step 3: Get it done ──────────────────────────────
+  // ─── Step 3: Get it done — completed task card ───────
 
   private async playStep3(): Promise<void> {
     const track = (a: Animation) => { this.animations[2].push(a); return a; };
     const textEl = this.q('text-2')!;
     const mockEl = this.q('mock-2')!;
 
-    // Capture translated text for PAID status
-    const statusEl = this.q('s3-status');
-    if (statusEl) this.pendingText = statusEl.textContent || 'PENDING';
-    const stampEl = this.q('s3-stamp');
-    if (stampEl) {
-      const stampText = stampEl.textContent || '✓ PAID';
-      this.paidText = stampText.replace('✓ ', '').trim();
-    }
-
-    // 0.0s — text from LEFT, mock from RIGHT with blur
+    // Text from left
     track(textEl.animate(
       [{ opacity: '0', transform: 'translateX(-30px)' }, { opacity: '1', transform: 'translateX(0)' }],
       { duration: 600, fill: 'forwards', easing: EASE_MEDIUM },
     ));
-    const a2 = track(mockEl.animate(
-      [
-        { opacity: '0', transform: 'translateX(30px)', filter: 'blur(8px)' },
-        { opacity: '1', transform: 'translateX(0)', filter: 'blur(0px)' },
-      ],
-      { duration: 600, fill: 'forwards', easing: EASE_HEAVY },
-    ));
-    try { await a2.finished; } catch { return; }
 
-    // Micro-stagger receipt rows (40ms gaps instead of 150ms)
-    for (let i = 0; i < 4; i++) {
-      const row = this.q(`s3-row-${i}`);
-      if (!row) continue;
-      if (i > 0) await this.delay(40);
-      track(row.animate(
-        [{ opacity: '0', transform: 'translateY(8px)' }, { opacity: '1', transform: 'translateY(0)' }],
-        { duration: 300, fill: 'forwards', easing: EASE_LIGHT },
-      ));
-    }
+    // Mock container (no glass — just show it)
+    mockEl.style.opacity = '1';
+    mockEl.style.transform = 'none';
+    mockEl.style.filter = 'none';
 
-    // Wait for last row animation to settle
-    await this.delay(250);
+    await this.delay(200);
 
-    // Progress bar fills
-    const bar = this.q('s3-bar');
-    if (bar) {
-      const a = track(bar.animate(
-        [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
-        { duration: 1000, fill: 'forwards', easing: EASE_HEAVY },
-      ));
-      try { await a.finished; } catch { return; }
-
-      // Progress bar glow pulse on completion
-      bar.classList.add('mock-progress-bar-fill--complete');
-      track(bar.animate(
-        [{ opacity: '1' }, { opacity: '0.6' }, { opacity: '1' }],
-        { duration: 400, easing: EASE_LIGHT },
-      ));
-    }
-
-    // Status text change
-    if (statusEl) {
-      statusEl.textContent = this.paidText;
-      statusEl.style.color = 'var(--color-fg)';
-    }
-
-    // Receipt bg invert + stamp with bigger elastic overshoot
-    const receipt = this.q('s3-receipt');
-    if (receipt) receipt.classList.add('mock-receipt--paid');
-
-    if (stampEl) {
-      track(stampEl.animate(
+    // Task card slides up with elastic overshoot
+    const card = this.q('s3-card');
+    if (card) {
+      track(card.animate(
         [
-          { opacity: '0', transform: 'scale(0)' },
-          { opacity: '1', transform: 'scale(1.15)' },
-          { opacity: '1', transform: 'scale(1)' },
+          { opacity: '0', transform: 'translateY(20px) scale(0.95)' },
+          { opacity: '1', transform: 'translateY(-4px) scale(1.02)' },
+          { opacity: '1', transform: 'translateY(0) scale(1)' },
         ],
-        { duration: 500, fill: 'forwards', easing: EASE_ELASTIC },
+        { duration: 600, fill: 'forwards', easing: EASE_HEAVY },
       ));
     }
   }
 
   private resetStep3Elements(): void {
-    for (let i = 0; i < 4; i++) {
-      const row = this.q(`s3-row-${i}`);
-      if (row) { row.style.opacity = '0'; row.style.transform = 'translateY(8px)'; }
-    }
-    const bar = this.q('s3-bar');
-    if (bar) { bar.style.transform = 'scaleX(0)'; bar.classList.remove('mock-progress-bar-fill--complete'); }
-    const status = this.q('s3-status');
-    if (status) {
-      status.textContent = this.pendingText || 'PENDING';
-      status.style.color = '';
-    }
-    const stamp = this.q('s3-stamp');
-    if (stamp) { stamp.style.opacity = '0'; stamp.style.transform = 'scale(0)'; }
-    const receipt = this.q('s3-receipt');
-    if (receipt) receipt.classList.remove('mock-receipt--paid');
+    const card = this.q('s3-card');
+    if (card) { card.style.opacity = ''; card.style.transform = ''; }
   }
 
   // ─── Utility ──────────────────────────────────────────

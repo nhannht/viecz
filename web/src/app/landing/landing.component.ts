@@ -108,6 +108,14 @@ export class LandingComponent implements OnDestroy {
       el.style.filter = 'none';
       el.style.transform = 'none';
 
+      // Reset inner content to hidden so entrance animations play on scroll.
+      // Can't use resetStep() because played[i] is false initially.
+      const isReversed = i === 1;
+      const text = el.querySelector('.river-text') as HTMLElement;
+      const mock = el.querySelector('.river-mock') as HTMLElement;
+      if (text) { text.style.opacity = '0'; text.style.transform = `translateX(${isReversed ? '30px' : '-30px'})`; }
+      if (mock) { mock.style.opacity = '0'; mock.style.transform = `translateX(${isReversed ? '-30px' : '30px'})`; mock.style.filter = 'blur(8px)'; }
+
       const st = ScrollTrigger.create({
         trigger: el,
         start: 'top 75%',
@@ -129,6 +137,14 @@ export class LandingComponent implements OnDestroy {
       el.style.pointerEvents = 'auto';
       el.style.filter = 'none';
       el.style.transform = 'none';
+
+      // Reset inner content to hidden so entrance animations play on scroll.
+      // Can't use resetStep() because played[i] is false initially.
+      const isReversed = i === 1 || i === 3;
+      const text = el.querySelector('.river-text') as HTMLElement;
+      const mock = el.querySelector('.river-mock') as HTMLElement;
+      if (text) { text.style.opacity = '0'; text.style.transform = `translateX(${isReversed ? '30px' : '-30px'})`; }
+      if (mock) { mock.style.opacity = '0'; mock.style.transform = `translateX(${isReversed ? '-30px' : '30px'})`; mock.style.filter = 'blur(8px)'; }
 
       const st = ScrollTrigger.create({
         trigger: el,

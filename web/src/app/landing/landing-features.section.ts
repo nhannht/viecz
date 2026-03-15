@@ -8,6 +8,9 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { LandingMinimapComponent } from './landing-minimap.component';
+import { TaskCardComponent } from '../shared/components/task-card.component';
+import { Task } from '../core/models';
 
 // Weight-based easing curves (same as HIW)
 const EASE_LIGHT = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -40,10 +43,10 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
 @Component({
   selector: 'app-landing-features',
   standalone: true,
-  imports: [TranslocoDirective],
+  imports: [TranslocoDirective, LandingMinimapComponent, TaskCardComponent],
   template: `
     <ng-container *transloco="let t">
-      <section class="features-section" #sectionEl>
+      <section id="landing-features" class="features-section" #sectionEl>
         <h2 class="section-title">{{ t('landing.featuresTitle') }}</h2>
 
         <div class="feat-indicators">
@@ -54,30 +57,24 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
         </div>
 
         <div class="feat-stage">
-          <!-- Slide 0: Browse Tasks — Deck fan-out -->
-          <div class="feat-slide" [attr.data-feat]="'slide-0'">
+          <!-- Slide 0: Browse Tasks — Real task cards -->
+          <div id="feat-browse" class="feat-slide" [attr.data-feat]="'slide-0'">
             <div class="river-text" [attr.data-feat]="'text-0'">
               <span class="step-number">1</span>
               <h3 class="step-heading">{{ t('landing.featureTasks') }}</h3>
               <p class="step-body">{{ t('landing.featureTasksDesc') }}</p>
             </div>
-            <div class="river-mock mock-panel" [attr.data-feat]="'mock-0'">
-              <div class="deck-container">
-                @for (i of deckIndices; track i) {
-                  <div class="deck-card" [attr.data-feat]="'s0-deck-' + i" [style.--di]="i">
-                    <span class="deck-title">{{ t('landing.mockDeckTask' + i) }}</span>
-                    <div class="deck-row">
-                      <span class="deck-badge">{{ t('landing.mockDeckCat' + i) }}</span>
-                      <span class="deck-price">{{ t('landing.mockDeckPrice' + i) }}</span>
-                    </div>
-                  </div>
-                }
-              </div>
+            <div class="river-mock card-gallery" [attr.data-feat]="'mock-0'">
+              @for (task of mockTasks; track task.id; let i = $index) {
+                <div class="card-gallery-item" [attr.data-feat]="'s0-card-' + i" [style.--ci]="i">
+                  <app-task-card [task]="task" />
+                </div>
+              }
             </div>
           </div>
 
           <!-- Slide 1: Transparent Fees — Receipt (reversed) -->
-          <div class="feat-slide feat-slide--reversed" [attr.data-feat]="'slide-1'">
+          <div id="feat-fees" class="feat-slide feat-slide--reversed" [attr.data-feat]="'slide-1'">
             <div class="river-text" [attr.data-feat]="'text-1'">
               <span class="step-number">2</span>
               <h3 class="step-heading">{{ t('landing.featureFees') }}</h3>
@@ -104,42 +101,19 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
           </div>
 
           <!-- Slide 2: Nearby Tasks — Map pins -->
-          <div class="feat-slide" [attr.data-feat]="'slide-2'">
+          <div id="feat-nearby" class="feat-slide" [attr.data-feat]="'slide-2'">
             <div class="river-text" [attr.data-feat]="'text-2'">
               <span class="step-number">3</span>
               <h3 class="step-heading">{{ t('landing.featureLocation') }}</h3>
               <p class="step-body">{{ t('landing.featureLocationDesc') }}</p>
             </div>
-            <div class="river-mock mock-panel" [attr.data-feat]="'mock-2'">
-              <div class="map-mock">
-                <div class="map-grid"></div>
-                <div class="map-pin" [attr.data-feat]="'s2-pin-0'" style="top:25%;left:35%">
-                  <span class="pin-dot"></span>
-                  <span class="pin-ring"></span>
-                  <span class="pin-label">{{ t('landing.mockMapDistrict1') }}</span>
-                </div>
-                <div class="map-pin" [attr.data-feat]="'s2-pin-1'" style="top:18%;left:70%">
-                  <span class="pin-dot"></span>
-                  <span class="pin-ring"></span>
-                  <span class="pin-label">{{ t('landing.mockMapThuDuc') }}</span>
-                </div>
-                <div class="map-pin" [attr.data-feat]="'s2-pin-2'" style="top:65%;left:30%">
-                  <span class="pin-dot"></span>
-                  <span class="pin-ring"></span>
-                  <span class="pin-label">{{ t('landing.mockMapDist7') }}</span>
-                </div>
-                <div class="map-pin" [attr.data-feat]="'s2-pin-3'" style="top:50%;left:60%">
-                  <span class="pin-dot"></span>
-                  <span class="pin-ring"></span>
-                  <span class="pin-label">{{ t('landing.mockMapBinhThanh') }}</span>
-                </div>
-                <div class="map-label" [attr.data-feat]="'s2-label'">{{ t('landing.mockMapLabel') }}</div>
-              </div>
+            <div class="river-mock" [attr.data-feat]="'mock-2'">
+              <app-landing-minimap />
             </div>
           </div>
 
           <!-- Slide 3: Real-time Chat — Bubble sequence (reversed) -->
-          <div class="feat-slide feat-slide--reversed" [attr.data-feat]="'slide-3'">
+          <div id="feat-chat" class="feat-slide feat-slide--reversed" [attr.data-feat]="'slide-3'">
             <div class="river-text" [attr.data-feat]="'text-3'">
               <span class="step-number">4</span>
               <h3 class="step-heading">{{ t('landing.featureChat') }}</h3>
@@ -308,56 +282,25 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       overflow: hidden;
     }
 
-    /* ===== Slide 0: Deck ===== */
-    .deck-container {
-      position: relative;
-      height: 160px;
-    }
-    .deck-card {
-      position: absolute;
-      inset: 0;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, calc(0.85 - var(--whale-darkness, 0) * 0.50));
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-      padding: 0.6rem 0.75rem;
+    /* ===== Slide 0: Task card gallery ===== */
+    .card-gallery {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      transform:
-        translateY(calc(var(--di) * -6px))
-        rotate(calc(var(--di) * -1.5deg))
-        scale(calc(1 - var(--di) * 0.03));
-      z-index: calc(5 - var(--di));
+      gap: 0.6rem;
+      padding: 0;
+      background: none;
+      border: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      filter: none;
     }
-    .deck-title {
-      font-family: var(--font-display);
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      color: var(--color-fg);
-    }
-    .deck-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .deck-badge {
-      font-family: var(--font-body);
-      font-size: 0.55rem;
-      padding: 0.15rem 0.4rem;
-      border-radius: 6px;
-      background: rgba(33, 128, 141, 0.25);
-      color: color-mix(in srgb, #5fd4d8, white calc(var(--whale-darkness, 0) * 40%));
-      letter-spacing: 0.03em;
-    }
-    .deck-price {
-      font-family: var(--font-display);
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: var(--color-fg);
+
+    .card-gallery-item {
+      margin-left: calc(var(--ci) * 16px);
+      opacity: 0;
+      transform: translateX(40px);
+      pointer-events: none;
     }
 
     /* ===== Slide 1: Receipt ===== */
@@ -410,74 +353,7 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       margin-top: 0.2rem;
     }
 
-    /* ===== Slide 2: Map ===== */
-    .map-mock {
-      position: relative;
-      height: 180px;
-      border-radius: 12px;
-      background: rgba(15, 25, 35, calc(0.6 + var(--whale-darkness, 0) * 0.3));
-      overflow: hidden;
-    }
-    .map-grid {
-      position: absolute;
-      inset: 0;
-      background:
-        repeating-linear-gradient(
-          0deg,
-          rgba(255, 255, 255, 0.04) 0px,
-          transparent 1px,
-          transparent 20px
-        ),
-        repeating-linear-gradient(
-          90deg,
-          rgba(255, 255, 255, 0.04) 0px,
-          transparent 1px,
-          transparent 20px
-        );
-    }
-    .map-pin {
-      position: absolute;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: scale(0);
-    }
-    .pin-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #5fd4d8;
-      box-shadow: 0 0 6px rgba(95, 212, 216, 0.6);
-      position: relative;
-      z-index: 1;
-    }
-    .pin-ring {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 20px;
-      height: 20px;
-      margin-top: -10px;
-      margin-left: -10px;
-      border-radius: 50%;
-      border: 1.5px solid rgba(95, 212, 216, 0.4);
-      animation: ping 2s ease-out infinite;
-      opacity: 0;
-    }
-    @keyframes ping {
-      0% { transform: scale(0.8); opacity: 0.6; }
-      100% { transform: scale(2.2); opacity: 0; }
-    }
-    .map-pin[data-feat="s2-pin-1"] .pin-ring { animation-delay: 0.5s; }
-    .map-pin[data-feat="s2-pin-2"] .pin-ring { animation-delay: 1.0s; }
-    .map-pin[data-feat="s2-pin-3"] .pin-ring { animation-delay: 1.5s; }
-    .pin-label {
-      font-family: var(--font-body);
-      font-size: 0.5rem;
-      color: rgba(255, 255, 255, 0.7);
-      margin-top: 4px;
-      white-space: nowrap;
-    }
+    /* ===== Slide 2: Map (MapLibre via app-landing-minimap) ===== */
     .map-label {
       position: absolute;
       bottom: 6px;
@@ -488,6 +364,7 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       color: rgba(95, 212, 216, 0.8);
       letter-spacing: 0.03em;
       opacity: 0;
+      z-index: 2;
     }
 
     /* ===== Slide 3: Chat ===== */
@@ -581,6 +458,34 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       .mock-panel {
         max-width: 100%;
       }
+      .river-text {
+        opacity: 1;
+        transform: none;
+      }
+      .mock-panel {
+        opacity: 1;
+        transform: none;
+        filter: none;
+      }
+      .card-gallery-item {
+        opacity: 1;
+        transform: none;
+      }
+      .receipt-row {
+        opacity: 1;
+        transform: none;
+      }
+      .receipt-badge {
+        opacity: 1;
+        transform: none;
+      }
+      .chat-bubble {
+        opacity: 1;
+        transform: none;
+      }
+      .chat-typing {
+        opacity: 1;
+      }
       .feat-indicators,
       .feat-bg-gradient {
         display: none;
@@ -604,7 +509,29 @@ export class LandingFeaturesSection implements OnDestroy {
   private rafIds: number[] = [];
   private lastActiveStep = -1;
 
-  deckIndices = [0, 1, 2, 3, 4];
+  mockTasks: Task[] = [
+    {
+      id: 1, requester_id: 0, category_id: 1,
+      title: 'Dọn dẹp căn hộ', description: 'Dọn dẹp phòng trọ trước khi trả phòng, quét lau và sắp xếp đồ đạc.',
+      price: 40000, location: 'Quận 1, TP.HCM', status: 'open',
+      category: { id: 1, name: 'Cleaning', name_vi: 'Dọn dẹp', is_active: true },
+      application_count: 2, created_at: '2026-03-14T10:00:00Z', updated_at: '2026-03-14T10:00:00Z',
+    },
+    {
+      id: 2, requester_id: 0, category_id: 2,
+      title: 'Giao giấy tờ', description: 'Nhận giấy tờ từ văn phòng trường và giao đến địa chỉ ở Thủ Đức.',
+      price: 25000, location: 'Thủ Đức, TP.HCM', status: 'open',
+      category: { id: 2, name: 'Delivery', name_vi: 'Giao nhận', is_active: true },
+      application_count: 0, created_at: '2026-03-14T08:30:00Z', updated_at: '2026-03-14T08:30:00Z',
+    },
+    {
+      id: 3, requester_id: 0, category_id: 3,
+      title: 'Gia sư Giải tích', description: 'Hỗ trợ ôn thi giữa kỳ môn Giải tích, cần người giỏi tích phân.',
+      price: 80000, location: 'Bình Thạnh, TP.HCM', status: 'open',
+      category: { id: 3, name: 'Tutoring', name_vi: 'Gia sư', is_active: true },
+      application_count: 5, created_at: '2026-03-13T15:00:00Z', updated_at: '2026-03-13T15:00:00Z',
+    },
+  ];
 
   /** Expose section element for parent GSAP pin */
   getSectionEl(): HTMLElement | null {
@@ -850,10 +777,10 @@ export class LandingFeaturesSection implements OnDestroy {
 
     switch (index) {
       case 0: {
-        // Deck fanned out
-        for (let i = 0; i < 5; i++) {
-          const card = this.q(`s0-deck-${i}`);
-          if (card) card.style.transform = `translateY(${i * -22}px) rotate(${i * -3.5}deg) scale(${1 - i * 0.02})`;
+        // Task cards visible
+        for (let i = 0; i < 3; i++) {
+          const card = this.q(`s0-card-${i}`);
+          if (card) { card.style.opacity = '1'; card.style.transform = 'translateX(0)'; }
         }
         break;
       }
@@ -871,15 +798,7 @@ export class LandingFeaturesSection implements OnDestroy {
         break;
       }
       case 2: {
-        // Map pins + label visible
-        for (let i = 0; i < 4; i++) {
-          const pin = this.q(`s2-pin-${i}`);
-          if (pin) {
-            pin.style.transform = 'scale(1)';
-            const ring = pin.querySelector<HTMLElement>('.pin-ring');
-            if (ring) ring.style.opacity = '1';
-          }
-        }
+        // Map label visible (minimap handles its own markers)
         const label = this.q('s2-label');
         if (label) label.style.opacity = '1';
         break;
@@ -902,29 +821,26 @@ export class LandingFeaturesSection implements OnDestroy {
     const textEl = this.q('text-0')!;
     const mockEl = this.q('mock-0')!;
 
-    // Text from left, mock from right with blur
+    // Text from left
     track(textEl.animate(
       [{ opacity: '0', transform: 'translateX(-30px)' }, { opacity: '1', transform: 'translateX(0)' }],
       { duration: 600, fill: 'forwards', easing: EASE_MEDIUM },
     ));
-    const a1 = track(mockEl.animate(
-      [
-        { opacity: '0', transform: 'translateX(30px)', filter: 'blur(8px)' },
-        { opacity: '1', transform: 'translateX(0)', filter: 'blur(0px)' },
-      ],
-      { duration: 600, fill: 'forwards', easing: EASE_HEAVY },
-    ));
-    try { await a1.finished; } catch { return; }
 
-    // Deck cards fan out
-    for (let i = 0; i < 5; i++) {
-      const card = this.q(`s0-deck-${i}`);
+    // Mock container (card-gallery has no visual — just show it)
+    mockEl.style.opacity = '1';
+    mockEl.style.transform = 'none';
+    mockEl.style.filter = 'none';
+
+    // Stagger cards sliding in from right
+    for (let i = 0; i < 3; i++) {
+      const card = this.q(`s0-card-${i}`);
       if (!card) continue;
-      if (i > 0) await this.delay(80);
+      await this.delay(120);
       track(card.animate(
         [
-          { transform: `translateY(${i * -6}px) rotate(${i * -1.5}deg) scale(${1 - i * 0.03})` },
-          { transform: `translateY(${i * -22}px) rotate(${i * -3.5}deg) scale(${1 - i * 0.02})` },
+          { opacity: '0', transform: `translateX(60px)` },
+          { opacity: '1', transform: 'translateX(0)' },
         ],
         { duration: 500, easing: EASE_HEAVY, fill: 'forwards' },
       ));
@@ -932,9 +848,9 @@ export class LandingFeaturesSection implements OnDestroy {
   }
 
   private resetStep0Elements(): void {
-    for (let i = 0; i < 5; i++) {
-      const card = this.q(`s0-deck-${i}`);
-      if (card) card.style.transform = '';
+    for (let i = 0; i < 3; i++) {
+      const card = this.q(`s0-card-${i}`);
+      if (card) { card.style.opacity = ''; card.style.transform = ''; }
     }
   }
 
@@ -1051,27 +967,7 @@ export class LandingFeaturesSection implements OnDestroy {
     ));
     try { await a1.finished; } catch { return; }
 
-    // Pins scale in with elastic
-    for (let i = 0; i < 4; i++) {
-      const pin = this.q(`s2-pin-${i}`);
-      if (!pin) continue;
-      if (i > 0) await this.delay(150);
-
-      const a = track(pin.animate(
-        [{ transform: 'scale(0)' }, { transform: 'scale(1)' }],
-        { duration: 400, easing: EASE_ELASTIC, fill: 'forwards' },
-      ));
-
-      // Start ping ring after scale-in
-      a.finished.then(() => {
-        const ring = pin.querySelector<HTMLElement>('.pin-ring');
-        if (ring) ring.style.opacity = '1';
-      }).catch(() => { /* AbortError — animation cancelled */ });
-    }
-
-    await this.delay(600);
-
-    // Map label fade
+    // Map label fade (minimap handles its own markers)
     const label = this.q('s2-label');
     if (label) {
       track(label.animate(
@@ -1082,14 +978,6 @@ export class LandingFeaturesSection implements OnDestroy {
   }
 
   private resetStep2Elements(): void {
-    for (let i = 0; i < 4; i++) {
-      const pin = this.q(`s2-pin-${i}`);
-      if (pin) {
-        pin.style.transform = '';
-        const ring = pin.querySelector<HTMLElement>('.pin-ring');
-        if (ring) ring.style.opacity = '';
-      }
-    }
     const label = this.q('s2-label');
     if (label) label.style.opacity = '';
   }
