@@ -200,35 +200,42 @@ export class LandingComponent implements OnDestroy {
     }
 
     // --- Lonely whale: fixed background behind content sections ---
-    if (this.whaleScroll && this.landingRoot?.nativeElement) {
-      // Hero pin ends after 150% viewport scroll — whale starts there
+    // Use raw scroll listener + ScrollTrigger.maxScroll() for precise 0→1 progress
+    // across the entire page, including pin-expanded scroll distance from HIW/Features.
+    if (this.whaleScroll) {
       const heroEndPx = Math.round(window.innerHeight * 1.5);
-      const whaleSt = ScrollTrigger.create({
-        trigger: this.landingRoot.nativeElement,
-        start: `top+=${heroEndPx}px top`,
-        end: 'bottom bottom',
-        onUpdate: (self: any) => {
-          this.whaleScroll.setProgress(self.progress);
-          // Darken page background: ramp up 0→1 in first 20%, hold, ramp down in last 20%
-          const p = self.progress;
-          let darkness: number;
-          if (p < 0.2) darkness = p / 0.2;
-          else if (p > 0.8) darkness = (1 - p) / 0.2;
-          else darkness = 1;
-          document.documentElement.style.setProperty('--whale-darkness', String(darkness));
-        },
-        onEnter: () => this.whaleScroll.setActive(true),
-        onEnterBack: () => this.whaleScroll.setActive(true),
-        onLeave: () => {
-          this.whaleScroll.setActive(false);
-          document.documentElement.style.setProperty('--whale-darkness', '0');
-        },
-        onLeaveBack: () => {
-          this.whaleScroll.setActive(false);
-          document.documentElement.style.setProperty('--whale-darkness', '0');
-        },
-      });
-      this.scrollTriggers.push(whaleSt);
+      let whaleActive = false;
+      const onWhaleScroll = () => {
+        const scrollY = window.scrollY;
+        const maxScroll = ScrollTrigger.maxScroll(window);
+
+        if (scrollY < heroEndPx) {
+          if (whaleActive) {
+            whaleActive = false;
+            this.whaleScroll.setActive(false);
+            document.documentElement.style.setProperty('--whale-darkness', '0');
+          }
+          return;
+        }
+
+        if (!whaleActive) {
+          whaleActive = true;
+          this.whaleScroll.setActive(true);
+        }
+
+        const p = Math.max(0, Math.min(1, (scrollY - heroEndPx) / (maxScroll - heroEndPx)));
+        this.whaleScroll.setProgress(p);
+
+        // Darken page background: ramp up 0→1 in first 20%, hold, ramp down in last 20%
+        let darkness: number;
+        if (p < 0.2) darkness = p / 0.2;
+        else if (p > 0.8) darkness = (1 - p) / 0.2;
+        else darkness = 1;
+        document.documentElement.style.setProperty('--whale-darkness', String(darkness));
+      };
+      window.addEventListener('scroll', onWhaleScroll, { passive: true });
+      // Shim kill() so ngOnDestroy cleanup works uniformly
+      this.scrollTriggers.push({ kill: () => window.removeEventListener('scroll', onWhaleScroll) });
     }
 
     // --- How it works: pinned cross-dissolve (desktop) / per-slide (mobile) ---
