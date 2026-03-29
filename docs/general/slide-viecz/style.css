@@ -1,0 +1,284 @@
+/* ── Frost-glass global overrides ── */
+
+:root {
+  --fg: #FCFCF9;
+  --bg: #191C1D;
+  --card: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.15);
+  --accent: #32B8C6;
+  --muted: #8A9A9D;
+}
+
+/* Force dark background on every slide */
+.slidev-layout,
+.slidev-page,
+.slide-content {
+  background: #191C1D !important;
+  color: #FCFCF9 !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+/* Headings */
+h1 {
+  color: #32B8C6 !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+}
+
+h3 {
+  color: #FCFCF9 !important;
+  font-weight: 600 !important;
+}
+
+/* ── Glass cards ── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  padding: 1.5rem !important;
+}
+
+.glass-card.highlight {
+  border-left: 3px solid #32B8C6 !important;
+}
+
+.glass-card.mini {
+  padding: 0.75rem !important;
+}
+
+.glass-card.team-lead {
+  border: 2px solid #32B8C6 !important;
+  text-align: center !important;
+}
+
+.glass-card.team-member {
+  text-align: center !important;
+}
+
+/* ── Team ── */
+.team-role-lead {
+  color: #32B8C6 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 2px !important;
+  margin: 0.25rem 0 !important;
+}
+
+.team-role {
+  color: #8A9A9D !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 1px !important;
+  margin: 0.25rem 0 !important;
+}
+
+.team-detail {
+  color: #8A9A9D !important;
+  font-size: 0.8rem !important;
+  margin: 0 !important;
+}
+
+/* ── Cover ── */
+.frost-cover {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+.frost-cover h1 {
+  font-size: 4rem !important;
+  color: #32B8C6 !important;
+  font-weight: 800 !important;
+  letter-spacing: 4px !important;
+  margin: 0 !important;
+}
+
+.cover-accent {
+  width: 60px !important;
+  height: 3px !important;
+  background: #32B8C6 !important;
+  margin-bottom: 2rem !important;
+  border-radius: 2px !important;
+}
+
+.cover-subtitle {
+  font-size: 1.25rem !important;
+  color: #FCFCF9 !important;
+  opacity: 0.9 !important;
+  margin: 0.5rem 0 !important;
+}
+
+.cover-info {
+  color: #8A9A9D !important;
+  font-size: 0.85rem !important;
+  margin: 0.15rem 0 !important;
+}
+
+.closing h1 {
+  font-size: 3rem !important;
+}
+
+.closing h3 {
+  color: #32B8C6 !important;
+  font-size: 1.5rem !important;
+}
+
+/* ── Flow steps ── */
+.flow-steps {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  margin-top: 2rem !important;
+}
+
+.flow-step {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  padding: 1.25rem !important;
+  width: 200px !important;
+  text-align: center !important;
+  flex-shrink: 0 !important;
+}
+
+.flow-number {
+  width: 32px !important;
+  height: 32px !important;
+  background: #32B8C6 !important;
+  color: #191C1D !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  margin: 0 auto 0.5rem !important;
+}
+
+.flow-title {
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  color: #FCFCF9 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.flow-desc {
+  color: #8A9A9D !important;
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
+}
+
+.flow-arrow {
+  color: #32B8C6 !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  padding-top: 2rem !important;
+  margin: 0 0.25rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── Screenshots ── */
+.screenshot-large {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  width: 100% !important;
+}
+
+.screenshot-hero {
+  text-align: center !important;
+  margin: 0.5rem 0 !important;
+}
+
+.screenshot-full {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  max-height: 380px !important;
+  width: auto !important;
+}
+
+.screenshot-mobile {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  max-height: 380px !important;
+  width: auto !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+
+.screenshot-card {
+  border-radius: 6px !important;
+  width: 100% !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.caption {
+  color: #8A9A9D !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  margin-top: 0.5rem !important;
+}
+
+/* ── Accent text ── */
+.accent-text {
+  color: #32B8C6 !important;
+  font-weight: 600 !important;
+  font-size: 1.1rem !important;
+  text-align: center !important;
+}
+
+/* ── Tables ── */
+table {
+  font-size: 0.85rem !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+th {
+  background: rgba(50, 184, 198, 0.2) !important;
+  color: #32B8C6 !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  padding: 0.5rem 0.75rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+td {
+  padding: 0.4rem 0.75rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #FCFCF9 !important;
+}
+
+tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* ── Lists ── */
+li {
+  color: #FCFCF9 !important;
+  margin-bottom: 0.4rem !important;
+}
+
+li::marker {
+  color: #32B8C6 !important;
+}
+
+/* ── Strong ── */
+strong {
+  color: #32B8C6 !important;
+}
+
+/* ── Paragraphs & links ── */
+p {
+  color: #FCFCF9 !important;
+}
+
+a {
+  color: #32B8C6 !important;
+}
