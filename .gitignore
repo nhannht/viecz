@@ -80,3 +80,4 @@ uploads/
 
 # Storybook build output
 web/storybook-static/
+.gstack/

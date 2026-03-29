@@ -1,0 +1,30 @@
+# Allowed git-bug labels for Viecz project
+# Validated by scripts/git-bug-label.sh
+
+type:
+  - type:bug
+  - type:feature
+  - type:refactor
+  - type:epic
+  - type:docs
+
+priority:
+  - p:critical
+  - p:high
+  - p:med
+  - p:low
+
+component:
+  - comp:web
+  - comp:server
+  - comp:android
+  - comp:jellyfish
+  - comp:infra
+
+project:
+  - proj:kns
+  - proj:cvp
+
+status:
+  - status:in-progress
+  - status:blocked
