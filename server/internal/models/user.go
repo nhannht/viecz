@@ -64,11 +64,6 @@ func (u *User) Validate() error {
 		return fmt.Errorf("auth provider must be 'email', 'google', or 'phone'")
 	}
 
-	// Password hash only required for email authentication
-	if u.AuthProvider == "email" && (u.PasswordHash == nil || *u.PasswordHash == "") {
-		return fmt.Errorf("password hash is required for email authentication")
-	}
-
 	// Email required for email authentication
 	if u.AuthProvider == "email" && !hasEmail {
 		return fmt.Errorf("email is required for email authentication")
@@ -110,33 +105,6 @@ func (u *User) Validate() error {
 // IsValidEmail checks if the email format is valid
 func IsValidEmail(email string) bool {
 	return emailRegex.MatchString(email)
-}
-
-// IsStrongPassword checks if the password meets strength requirements
-// Minimum 8 characters, at least one uppercase, one lowercase, and one number
-func IsStrongPassword(password string) bool {
-	if len(password) < 8 {
-		return false
-	}
-
-	var (
-		hasUpper bool
-		hasLower bool
-		hasDigit bool
-	)
-
-	for _, char := range password {
-		switch {
-		case char >= 'A' && char <= 'Z':
-			hasUpper = true
-		case char >= 'a' && char <= 'z':
-			hasLower = true
-		case char >= '0' && char <= '9':
-			hasDigit = true
-		}
-	}
-
-	return hasUpper && hasLower && hasDigit
 }
 
 // BeforeCreate hook is called before creating a user

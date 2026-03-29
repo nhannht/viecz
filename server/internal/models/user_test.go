@@ -66,14 +66,13 @@ func TestUser_Validate(t *testing.T) {
 			errMsg:  "name must be less than 100 characters",
 		},
 		{
-			name: "missing password hash",
+			name: "email auth without password hash - valid (passwordless OTP)",
 			user: &User{
 				Email:        stringPtr("test@example.com"),
 				Name:         "Test User",
 				AuthProvider: "email",
 			},
-			wantErr: true,
-			errMsg:  "password hash is required for email authentication",
+			wantErr: false,
 		},
 		{
 			name: "invalid rating - negative",
@@ -224,68 +223,6 @@ func TestIsValidEmail(t *testing.T) {
 	}
 }
 
-func TestIsStrongPassword(t *testing.T) {
-	tests := []struct {
-		name     string
-		password string
-		want     bool
-	}{
-		{
-			name:     "strong password",
-			password: "Password123",
-			want:     true,
-		},
-		{
-			name:     "strong password with special chars",
-			password: "Pass@word123",
-			want:     true,
-		},
-		{
-			name:     "too short",
-			password: "Pass1",
-			want:     false,
-		},
-		{
-			name:     "no uppercase",
-			password: "password123",
-			want:     false,
-		},
-		{
-			name:     "no lowercase",
-			password: "PASSWORD123",
-			want:     false,
-		},
-		{
-			name:     "no digit",
-			password: "Password",
-			want:     false,
-		},
-		{
-			name:     "exactly 8 characters - valid",
-			password: "Pass1234",
-			want:     true,
-		},
-		{
-			name:     "empty string",
-			password: "",
-			want:     false,
-		},
-		{
-			name:     "only special characters",
-			password: "!@#$%^&*()",
-			want:     false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := IsStrongPassword(tt.password)
-			if got != tt.want {
-				t.Errorf("IsStrongPassword(%q) = %v, want %v", tt.password, got, tt.want)
-			}
-		})
-	}
-}
 
 func stringPtr(s string) *string {
 	return &s

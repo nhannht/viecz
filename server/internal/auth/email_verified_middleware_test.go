@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"viecz.vieczserver/internal/models"
-	"viecz.vieczserver/internal/services"
 )
 
 func setupMiddlewareTestRouter(userRepo *mockUserRepository, jwtSecret string) *gin.Engine {
@@ -27,10 +26,14 @@ func TestEmailVerifiedRequired_VerifiedPasses(t *testing.T) {
 	secret := "test-secret"
 	repo := newMockUserRepository()
 
-	// Register user and verify email
-	svc := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, secret)
-	user, _ := svc.Register(nil, "verified@example.com", "Password123", "Verified User")
-	user.EmailVerified = true
+	user := &models.User{
+		ID:            1,
+		Email:         strPtr("verified@example.com"),
+		Name:          "Verified User",
+		AuthProvider:  "email",
+		EmailVerified: true,
+	}
+	repo.users["verified@example.com"] = user
 
 	router := setupMiddlewareTestRouter(repo, secret)
 
@@ -50,9 +53,14 @@ func TestEmailVerifiedRequired_UnverifiedReturns403(t *testing.T) {
 	secret := "test-secret"
 	repo := newMockUserRepository()
 
-	svc := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, secret)
-	user, _ := svc.Register(nil, "unverified@example.com", "Password123", "Unverified User")
-	// EmailVerified defaults to false
+	user := &models.User{
+		ID:            1,
+		Email:         strPtr("unverified@example.com"),
+		Name:          "Unverified User",
+		AuthProvider:  "email",
+		EmailVerified: false,
+	}
+	repo.users["unverified@example.com"] = user
 
 	router := setupMiddlewareTestRouter(repo, secret)
 

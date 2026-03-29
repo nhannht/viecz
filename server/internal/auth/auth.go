@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"golang.org/x/crypto/bcrypt"
 	"viecz.vieczserver/internal/models"
 	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/services"
@@ -13,9 +12,7 @@ import (
 // Custom errors
 var (
 	ErrInvalidEmail             = fmt.Errorf("invalid email format")
-	ErrWeakPassword             = fmt.Errorf("password does not meet strength requirements")
 	ErrEmailAlreadyExists       = fmt.Errorf("email already exists")
-	ErrInvalidCredentials       = fmt.Errorf("invalid email or password")
 	ErrGoogleAuthFailed         = fmt.Errorf("google authentication failed")
 	ErrEmailAlreadyUsedByEmail  = fmt.Errorf("email already registered with email/password")
 	ErrEmailAlreadyUsedByGoogle = fmt.Errorf("email already registered with Google")
@@ -24,6 +21,7 @@ var (
 	ErrRoleAccount              = fmt.Errorf("role-based email addresses are not allowed")
 	ErrEmailAlreadyVerified     = fmt.Errorf("email is already verified")
 	ErrInvalidVerifyToken       = fmt.Errorf("invalid or expired verification token")
+	ErrNameRequired             = fmt.Errorf("name is required for new users")
 )
 
 // AuthService handles authentication operations
@@ -31,117 +29,108 @@ type AuthService struct {
 	userRepo      repository.UserRepository
 	emailVerifier services.EmailVerifierService
 	emailService  services.EmailService
+	otpService    *services.OTPService
 	jwtSecret     string
 }
 
 // NewAuthService creates a new authentication service
-func NewAuthService(userRepo repository.UserRepository, emailVerifier services.EmailVerifierService, emailService services.EmailService, jwtSecret string) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, emailVerifier services.EmailVerifierService, emailService services.EmailService, otpService *services.OTPService, jwtSecret string) *AuthService {
 	return &AuthService{
 		userRepo:      userRepo,
 		emailVerifier: emailVerifier,
 		emailService:  emailService,
+		otpService:    otpService,
 		jwtSecret:     jwtSecret,
 	}
 }
 
-// Register creates a new user with hashed password
-func (s *AuthService) Register(ctx context.Context, email, password, name string) (*models.User, error) {
-	// Validate email format
+// RequestOTP validates the email and sends an OTP code.
+// Returns isNewUser=true if no account exists for this email yet.
+// The OTP code is returned for dev mode (when SMTP is not configured).
+func (s *AuthService) RequestOTP(ctx context.Context, email string) (isNewUser bool, otpCode string, err error) {
 	if !models.IsValidEmail(email) {
-		return nil, ErrInvalidEmail
+		return false, "", ErrInvalidEmail
 	}
 
-	// Validate email domain (MX records, disposable, role account)
+	// Validate email domain
 	if err := s.emailVerifier.ValidateEmailDomain(email); err != nil {
 		switch err {
 		case services.ErrNoMXRecords:
-			return nil, ErrNoMXRecords
+			return false, "", ErrNoMXRecords
 		case services.ErrDisposableEmail:
-			return nil, ErrDisposableEmail
+			return false, "", ErrDisposableEmail
 		case services.ErrRoleAccount:
-			return nil, ErrRoleAccount
+			return false, "", ErrRoleAccount
 		default:
-			return nil, fmt.Errorf("email validation failed: %w", err)
+			return false, "", fmt.Errorf("email validation failed: %w", err)
 		}
 	}
 
-	// Validate password strength
-	if !models.IsStrongPassword(password) {
-		return nil, ErrWeakPassword
-	}
+	// Check if user exists
+	_, userErr := s.userRepo.GetByEmail(ctx, email)
+	isNewUser = userErr != nil // user not found = new user
 
-	// Check if email already exists
-	exists, err := s.userRepo.ExistsByEmail(ctx, email)
+	// Generate and send OTP
+	code, err := s.otpService.GenerateAndSend(ctx, email)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check email: %w", err)
-	}
-	if exists {
-		return nil, ErrEmailAlreadyExists
+		return false, "", err
 	}
 
-	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
-
-	// Create user
-	hashedPasswordStr := string(hashedPassword)
-	emailCopy := email
-	user := &models.User{
-		Email:        &emailCopy,
-		PasswordHash: &hashedPasswordStr,
-		Name:         name,
-		University:   "ĐHQG-HCM", // Default university
-		AuthProvider: "email", // Email/password authentication
-	}
-
-	if err := s.userRepo.Create(ctx, user); err != nil {
-		if err.Error() == "email already exists" {
-			return nil, ErrEmailAlreadyExists
-		}
-		return nil, fmt.Errorf("failed to create user: %w", err)
-	}
-
-	// Send verification email asynchronously
-	go func() {
-		emailStr := ""
-		if user.Email != nil {
-			emailStr = *user.Email
-		}
-		token, err := GenerateEmailVerifyToken(user.ID, emailStr, s.jwtSecret)
-		if err != nil {
-			fmt.Printf("Failed to generate email verify token for %s: %v\n", emailStr, err)
-			return
-		}
-		if err := s.emailService.SendVerificationEmail(emailStr, user.Name, token); err != nil {
-			fmt.Printf("Failed to send verification email to %s: %v\n", emailStr, err)
-		}
-	}()
-
-	return user, nil
+	return isNewUser, code, nil
 }
 
-// Login verifies credentials and returns the user
-func (s *AuthService) Login(ctx context.Context, email, password string) (*models.User, error) {
-	// Get user by email
+// VerifyOTPAndAuth verifies the OTP code and authenticates the user.
+// For new users, name is required and an account is created.
+// Returns the user, access token, and refresh token.
+func (s *AuthService) VerifyOTPAndAuth(ctx context.Context, email, code, name string) (*models.User, string, string, error) {
+	// Verify OTP
+	if err := s.otpService.Verify(ctx, email, code); err != nil {
+		return nil, "", "", err
+	}
+
+	// Check if user exists
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		// Don't reveal whether email exists or not
-		return nil, ErrInvalidCredentials
+		// New user — create account
+		if name == "" {
+			return nil, "", "", ErrNameRequired
+		}
+
+		emailCopy := email
+		user = &models.User{
+			Email:         &emailCopy,
+			Name:          name,
+			AuthProvider:  "email",
+			EmailVerified: true, // OTP proves email ownership
+			University:    "ĐHQG-HCM",
+		}
+
+		if err := s.userRepo.Create(ctx, user); err != nil {
+			if err.Error() == "email already exists" {
+				return nil, "", "", ErrEmailAlreadyExists
+			}
+			return nil, "", "", fmt.Errorf("failed to create user: %w", err)
+		}
+	} else {
+		// Existing user — ensure email is verified (OTP proves it)
+		if !user.EmailVerified {
+			_ = s.userRepo.SetEmailVerified(ctx, user.ID)
+			user.EmailVerified = true
+		}
 	}
 
-	// Ensure user uses email/password authentication
-	if user.AuthProvider != "email" || user.PasswordHash == nil {
-		return nil, ErrInvalidCredentials
+	// Generate tokens
+	accessToken, err := GenerateAccessToken(user, s.jwtSecret, 30)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// Compare password with hash
-	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password)); err != nil {
-		return nil, ErrInvalidCredentials
+	refreshToken, err := GenerateRefreshToken(user, s.jwtSecret, 7)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	return user, nil
+	return user, accessToken, refreshToken, nil
 }
 
 // LoginWithGoogle creates or logs in a user using Google OAuth

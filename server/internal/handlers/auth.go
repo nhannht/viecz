@@ -19,13 +19,15 @@ type AuthHandler struct {
 	resendLimiter      *auth.ResendRateLimiter
 	firebaseVerifier   auth.FirebaseVerifier
 	userRepo           repository.UserRepository
+	devMode            bool // When true, OTP code is returned in response
 }
 
 // NewAuthHandler creates a new auth handler.
 // turnstileService may be nil — if nil, Turnstile validation is skipped (dev/test).
 // firebaseVerifier may be nil — if nil, phone verification returns 503.
 // userRepo may be nil — required only for phone verification.
-func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.GoogleOAuthService, jwtSecret string, turnstileService *services.TurnstileService, firebaseVerifier auth.FirebaseVerifier, userRepo repository.UserRepository) *AuthHandler {
+// devMode: when true, OTP code is included in response (for testing without email).
+func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.GoogleOAuthService, jwtSecret string, turnstileService *services.TurnstileService, firebaseVerifier auth.FirebaseVerifier, userRepo repository.UserRepository, devMode bool) *AuthHandler {
 	return &AuthHandler{
 		authService:        authService,
 		googleOAuthService: googleOAuthService,
@@ -34,21 +36,21 @@ func NewAuthHandler(authService *auth.AuthService, googleOAuthService *auth.Goog
 		resendLimiter:      auth.NewResendRateLimiter(),
 		firebaseVerifier:   firebaseVerifier,
 		userRepo:           userRepo,
+		devMode:            devMode,
 	}
 }
 
-// RegisterRequest represents the registration request
-type RegisterRequest struct {
+// RequestOTPRequest represents the OTP request
+type RequestOTPRequest struct {
 	Email          string `json:"email" binding:"required,email"`
-	Password       string `json:"password" binding:"required,min=8"`
-	Name           string `json:"name" binding:"required"`
 	TurnstileToken string `json:"turnstile_token"`
 }
 
-// LoginRequest represents the login request
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+// VerifyOTPRequest represents the OTP verification request
+type VerifyOTPRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	Code  string `json:"code" binding:"required,len=6"`
+	Name  string `json:"name"` // Required only for new users
 }
 
 // GoogleLoginRequest represents the Google OAuth login request
@@ -63,10 +65,10 @@ type TokenResponse struct {
 	User         interface{} `json:"user"`
 }
 
-// Register handles user registration
-// POST /api/v1/auth/register
-func (h *AuthHandler) Register(c *gin.Context) {
-	var req RegisterRequest
+// RequestOTP sends a one-time passcode to the provided email.
+// POST /api/v1/auth/otp/request
+func (h *AuthHandler) RequestOTP(c *gin.Context) {
+	var req RequestOTPRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -80,8 +82,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		}
 	}
 
-	// Register user
-	user, err := h.authService.Register(c.Request.Context(), req.Email, req.Password, req.Name)
+	isNewUser, otpCode, err := h.authService.RequestOTP(c.Request.Context(), req.Email)
 	if err != nil {
 		switch err {
 		case auth.ErrInvalidEmail:
@@ -92,71 +93,55 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "email domain does not have valid mail servers"})
 		case auth.ErrRoleAccount:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "role-based email addresses (admin@, info@, etc.) are not allowed"})
-		case auth.ErrWeakPassword:
-			c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters with uppercase, lowercase, and number"})
-		case auth.ErrEmailAlreadyExists:
-			c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+		case services.ErrOTPRateLimited:
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many requests, please wait before trying again"})
+		case services.ErrOTPTooSoon:
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "please wait at least 1 minute before requesting a new code"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send verification code"})
 		}
 		return
 	}
 
-	// Generate tokens
-	accessToken, err := auth.GenerateAccessToken(user, h.jwtSecret, 30) // 30 minutes
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
-		return
+	response := gin.H{
+		"message":     "verification code sent",
+		"is_new_user": isNewUser,
 	}
 
-	refreshToken, err := auth.GenerateRefreshToken(user, h.jwtSecret, 7) // 7 days
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
-		return
+	// In dev mode (no SMTP), include the code in response for testing
+	if h.devMode {
+		response["code"] = otpCode
 	}
 
-	// Return response
-	c.JSON(http.StatusCreated, TokenResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		User:         user,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
-// Login handles user login
-// POST /api/v1/auth/login
-func (h *AuthHandler) Login(c *gin.Context) {
-	var req LoginRequest
+// VerifyOTP verifies the OTP code and authenticates the user.
+// POST /api/v1/auth/otp/verify
+func (h *AuthHandler) VerifyOTP(c *gin.Context) {
+	var req VerifyOTPRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Login user
-	user, err := h.authService.Login(c.Request.Context(), req.Email, req.Password)
+	user, accessToken, refreshToken, err := h.authService.VerifyOTPAndAuth(c.Request.Context(), req.Email, req.Code, req.Name)
 	if err != nil {
-		if err == auth.ErrInvalidCredentials {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login"})
+		switch err {
+		case services.ErrOTPInvalid:
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired verification code"})
+		case services.ErrOTPTooManyAttempts:
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many failed attempts, please request a new code"})
+		case auth.ErrNameRequired:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "name is required for new users"})
+		case auth.ErrEmailAlreadyExists:
+			c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "authentication failed"})
 		}
 		return
 	}
 
-	// Generate tokens
-	accessToken, err := auth.GenerateAccessToken(user, h.jwtSecret, 30) // 30 minutes
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate access token"})
-		return
-	}
-
-	refreshToken, err := auth.GenerateRefreshToken(user, h.jwtSecret, 7) // 7 days
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate refresh token"})
-		return
-	}
-
-	// Return response
 	c.JSON(http.StatusOK, TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

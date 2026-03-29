@@ -212,7 +212,9 @@ func main() {
 		"", "", // Mailpit: no auth required
 		"noreply@viecz.local", "http://localhost:4200",
 	)
-	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, emailService, jwtSecret)
+	otpRepo := repository.NewOTPGormRepository(db)
+	otpService := services.NewOTPService(otpRepo, emailService)
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, emailService, otpService, jwtSecret)
 
 	// Initialize Google OAuth service for testing (optional - will fail gracefully if credentials not set)
 	googleOAuthService, err := auth.NewGoogleOAuthService(
@@ -288,7 +290,7 @@ func main() {
 	log.Println("Firebase phone auth enabled")
 
 	// 6. Handlers
-	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil, firebaseVerifier, userRepo)
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, jwtSecret, nil, firebaseVerifier, userRepo, true)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(nil, paymentService, serverURL, serverURL) // serverURL used as payosReturnBaseURL for test
 	refRepo := repository.NewPaymentReferenceGormRepository(db)
@@ -368,10 +370,11 @@ func main() {
 		// Auth routes (public)
 		authRoutes := api.Group("/auth")
 		{
-			authRoutes.POST("/register", func(c *gin.Context) {
-				authHandler.Register(c)
-				if c.Writer.Status() == http.StatusCreated || c.Writer.Status() == http.StatusOK {
-					// Auto-credit wallet for test users (email verification via Mailpit)
+			authRoutes.POST("/otp/request", authHandler.RequestOTP)
+			authRoutes.POST("/otp/verify", func(c *gin.Context) {
+				authHandler.VerifyOTP(c)
+				if c.Writer.Status() == http.StatusOK {
+					// Auto-credit wallet for new test users
 					go func() {
 						time.Sleep(200 * time.Millisecond)
 						var user models.User
@@ -400,7 +403,6 @@ func main() {
 					}()
 				}
 			})
-			authRoutes.POST("/login", authHandler.Login)
 			authRoutes.POST("/google", authHandler.GoogleLogin)
 			authRoutes.POST("/phone", authHandler.PhoneLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)

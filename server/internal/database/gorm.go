@@ -72,6 +72,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Message{},
 		&models.Notification{},
 		&models.PaymentReference{},
+		&models.EmailOTP{},
 	)
 
 	if err != nil {

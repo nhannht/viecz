@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"viecz.vieczserver/internal/models"
-	"viecz.vieczserver/internal/services"
 )
 
 func setupPhoneMiddlewareTestRouter(userRepo *mockUserRepository, jwtSecret string) *gin.Engine {
@@ -27,11 +26,16 @@ func TestPhoneVerifiedRequired_VerifiedPasses(t *testing.T) {
 	secret := "test-secret"
 	repo := newMockUserRepository()
 
-	svc := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, secret)
-	user, _ := svc.Register(nil, "verified@example.com", "Password123", "Verified User")
 	phone := "+84912345678"
-	user.Phone = &phone
-	user.PhoneVerified = true
+	user := &models.User{
+		ID:            1,
+		Email:         strPtr("verified@example.com"),
+		Name:          "Verified User",
+		AuthProvider:  "email",
+		Phone:         &phone,
+		PhoneVerified: true,
+	}
+	repo.users["verified@example.com"] = user
 
 	router := setupPhoneMiddlewareTestRouter(repo, secret)
 
@@ -51,10 +55,14 @@ func TestPhoneVerifiedRequired_UnverifiedReturns403(t *testing.T) {
 	secret := "test-secret"
 	repo := newMockUserRepository()
 
-	svc := NewAuthService(repo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, secret)
-	user, _ := svc.Register(nil, "unverified@example.com", "Password123", "Unverified User")
-	// PhoneVerified defaults to false
-	_ = user
+	user := &models.User{
+		ID:            1,
+		Email:         strPtr("unverified@example.com"),
+		Name:          "Unverified User",
+		AuthProvider:  "email",
+		PhoneVerified: false,
+	}
+	repo.users["unverified@example.com"] = user
 
 	router := setupPhoneMiddlewareTestRouter(repo, secret)
 
