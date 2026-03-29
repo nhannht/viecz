@@ -10,442 +10,255 @@
   <section class="cover">
     <div class="university">Đại học Quốc gia Thành phố Hồ Chí Minh</div>
     <div class="faculty">Trường Đại học Khoa học Tự nhiên</div>
-
     <div class="competition">Cuộc thi Sáng tạo – Khởi nghiệp HCMUS I&amp;E 2025</div>
-
     <div class="title-block">
       <div class="project-title">BẢN MÔ TẢ DỰ ÁN</div>
-      <div class="subtitle">Viecz — Nền tảng trao đổi việc vặt</div>
+      <div class="subtitle">Viecz — Nền tảng kết nối việc vặt dựa trên vị trí cho sinh viên</div>
     </div>
-
     <div class="date">Tháng 3/2026</div>
+  </section>
+
+  <!-- ==================== MỤC LỤC ==================== -->
+  <section class="toc">
+    <h2 class="toc-title">Mục lục</h2>
+    <ol class="toc-list">
+      <li><a href="#sec-01">Tên dự án</a></li>
+      <li><a href="#sec-02">Lĩnh vực</a></li>
+      <li><a href="#sec-03">Vấn đề — nhu cầu mà dự án hướng tới</a></li>
+      <li><a href="#sec-04">Giải pháp — sản phẩm — công nghệ</a></li>
+      <li><a href="#sec-05">Khách hàng — thị trường mục tiêu</a></li>
+      <li><a href="#sec-06">Thuyết minh tính khả thi</a></li>
+      <li><a href="#sec-07">Ước tính tác động và lợi ích</a></li>
+      <li><a href="#sec-ref">Tài liệu tham khảo</a></li>
+    </ol>
   </section>
 
   <viecz-divider />
 
-  <!-- ==================== 1. TÊN DỰ ÁN ==================== -->
-  <section class="section">
+  <!-- 1. TÊN DỰ ÁN -->
+  <section class="section" id="sec-01">
     <viecz-card>
       <viecz-step number="01" title="Tên dự án" />
-      <p><strong>Viecz — Nền tảng trao đổi việc vặt</strong></p>
+      <p><strong>Viecz — Nền tảng kết nối việc vặt dựa trên vị trí cho sinh viên</strong></p>
+      <figure class="screenshot">
+        <img src="assets/screenshots/marketplace-map.webp" alt="Giao diện marketplace Viecz" loading="lazy" />
+        <figcaption>Giao diện marketplace Viecz — hiển thị công việc với bộ lọc danh mục</figcaption>
+      </figure>
     </viecz-card>
   </section>
 
-  <!-- ==================== 2. LĨNH VỰC ==================== -->
-  <section class="section">
+  <!-- 2. LĨNH VỰC -->
+  <section class="section" id="sec-02">
     <viecz-card>
       <viecz-step number="02" title="Lĩnh vực" />
-      <p>Ứng dụng đổi mới xã hội (ứng dụng công nghệ thông tin và chuyển đổi số)</p>
+      <p>Công nghệ thông tin — AI — Chuyển đổi số</p>
+      <figure class="screenshot">
+        <img src="assets/screenshots/marketplace-mobile.webp" alt="Giao diện mobile Viecz" loading="lazy" />
+        <figcaption>Trải nghiệm mobile-first — tối ưu cho hơn 95% sinh viên sở hữu smartphone</figcaption>
+      </figure>
     </viecz-card>
   </section>
 
-  <!-- ==================== 3. VẤN ĐỀ VÀ NHU CẦU ==================== -->
-  <section class="section">
+  <!-- 3. VẤN ĐỀ VÀ NHU CẦU -->
+  <section class="section" id="sec-03">
     <viecz-card>
-      <viecz-step number="03" title="Vấn đề và nhu cầu mà dự án hướng tới" />
+      <viecz-step number="03" title="Vấn đề — nhu cầu mà dự án hướng tới" />
 
-      <h3>3.1. Câu chuyện thực tế</h3>
+      <h3>3.1. Bối cảnh và quy mô vấn đề</h3>
       <p>
-        Hãy tưởng tượng bạn là một sinh viên năm hai. <strong>Giữa trưa nắng 40 độ,
-        bạn đứng một mình trước ký túc xá với 20 kg đồ đạc. Bạn cùng phòng đi vắng.
-        Gọi ai?</strong> Ngại quá. Bạn ước có thể đăng một dòng: "cần người giúp khiêng
-        đồ, 30 phút, 50k" — và ai đó gần đây nhận ngay.
+        Việt Nam hiện có hơn <span class="stat">2,15 triệu sinh viên đại học</span>, phân bổ tại 243 trường trên cả nước&nbsp;<a href="#ref-1" class="cite">[1]</a><a href="#ref-4" class="cite">[4]</a>. Con số này dự kiến vượt <span class="stat">3 triệu vào năm 2030</span>, với mục tiêu tỷ lệ nhập học đạt 33% độ tuổi 18–22&nbsp;<a href="#ref-7" class="cite">[7]</a>. Riêng TP.HCM tập trung khoảng <span class="stat">500.000</span> sinh viên — mật độ cao nhất cả nước.
       </p>
       <p>
-        Hay một tình huống khác: <strong>11 giờ đêm, mai thi Speaking.</strong> Bạn muốn
-        tìm ai đó luyện nói tiếng Anh 30 phút — không cần gia sư chuyên nghiệp, không cần
-        lịch cố định, chỉ cần một người cũng đang rảnh và sẵn lòng giúp. Thuê gia sư thì
-        sao? 200k/giờ cho một buổi trò chuyện — với mức lương part-time
-        <span class="stat">14.000–30.000 VND/giờ</span>&nbsp;[3], đó là cả một buổi đi làm.
-      </p>
-      <p>
-        Những tình huống này không phải chuyện hiếm. Đây là đời sống hàng ngày của hơn
-        <span class="stat">2 triệu</span> sinh viên Việt Nam. Và hiện tại, chưa có cách
-        nào thực sự tiện lợi để giải quyết.
+        Theo GSO, khoảng <span class="stat">22,1%</span> sinh viên tham gia làm thêm&nbsp;<a href="#ref-3" class="cite">[3]</a>, với mức lương <span class="stat">20.000–60.000 VND/giờ</span> (lương tối thiểu vùng I từ 01/01/2026: <span class="stat">25.500 VND/giờ</span>)&nbsp;<a href="#ref-12" class="cite">[12]</a>. Chi phí sinh hoạt trung bình tại TP.HCM khoảng <span class="stat">5 triệu VND/tháng</span> (chưa tính học phí)&nbsp;<a href="#ref-13" class="cite">[13]</a> — tạo áp lực tài chính đáng kể.
       </p>
 
-      <h3>3.2. Bối cảnh</h3>
-      <p>
-        Việt Nam hiện có hơn <span class="stat">2.15 triệu sinh viên đại học</span>&nbsp;[1],
-        con số này dự kiến vượt <span class="stat">3 triệu vào năm 2030</span>&nbsp;[7].
-        Phần lớn sinh viên có nhu cầu kiếm thêm thu nhập, nhưng cơ hội làm thêm truyền
-        thống thường đòi hỏi cam kết thời gian dài hoặc kỹ năng chuyên môn.
-      </p>
-      <p>
-        Trong khi đó, xung quanh họ có rất nhiều việc nhỏ cần người giúp — những việc
-        chỉ mất 15 phút đến vài giờ, không cần bằng cấp, chỉ cần sự sẵn lòng. Nhưng
-        không có công cụ nào kết nối hai bên một cách nhanh chóng và đáng tin cậy.
-      </p>
+      @defer (on viewport) {
+        <div echarts [options]="incomeVsCostChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
 
-      <h3>3.3. Vấn đề cụ thể</h3>
-      <p>Để dễ hình dung, hãy xem hai phía của vấn đề:</p>
-      <p>
-        <strong>Phía người cần giúp:</strong> Khi cần ai đó giúp một việc nhỏ — khiêng
-        đồ, in bài, luyện nói tiếng Anh — sinh viên thường chỉ có một cách: đăng lên
-        nhóm Zalo lớp rồi chờ. Không biết ai sẽ trả lời, không biết giá bao nhiêu, và
-        quan trọng nhất là không có gì đảm bảo nếu người kia nhận tiền rồi biến mất.
-      </p>
-      <p>
-        <strong>Phía người muốn giúp:</strong> Nhiều sinh viên có thời gian rảnh và muốn
-        kiếm thêm, nhưng không biết tìm việc ở đâu. Grab, Gojek yêu cầu xe máy. Fiverr,
-        Upwork cần kỹ năng chuyên môn và thanh toán quốc tế. Không có nền tảng nào phục
-        vụ những việc đơn giản như giao đồ ăn từ căng-tin hay giữ chỗ thư viện — những
-        việc mà bất kỳ sinh viên nào cũng có thể làm.
-      </p>
-
-      <h3>3.4. Khoảng trống thị trường</h3>
-      <p>
-        Nói cách khác, hiện tại chưa có nền tảng nào tại Việt Nam kết nối sinh viên với
-        nhau cho những việc vặt hàng ngày:
-      </p>
+      <h3>3.2. Phân tích khoảng trống thị trường</h3>
+      <viecz-table [columns]="marketGapColumns" [rows]="marketGapRows" />
+      <p>Các nền tảng gig economy toàn cầu cũng không phục vụ được phân khúc này:</p>
       <ul>
-        <li>
-          <strong>Nhóm Zalo/Facebook:</strong> Miễn phí và phổ biến, nhưng không có thanh
-          toán, không đánh giá, tin nhắn dễ bị trôi. Bạn đăng xong và hy vọng ai đó nhìn thấy.
-        </li>
-        <li>
-          <strong>Tiệm dịch vụ:</strong> Đắt, không linh hoạt. Thuê người ngoài luôn tốn
-          gấp đôi so với nhờ sinh viên giúp.
-        </li>
-        <li>
-          <strong>Nhờ miệng:</strong> Phạm vi hẹp, phụ thuộc vào mối quan hệ cá nhân.
-          Không phải ai cũng thoải mái nhờ vả.
-        </li>
+        <li><strong>Grab/Gojek</strong>: Yêu cầu phương tiện, chỉ vận chuyển — không micro-task đa dạng.</li>
+        <li><strong>Fiverr/Upwork</strong>: Chỉ online, thanh toán USD, không vị trí địa lý.</li>
+        <li><strong>TaskRabbit</strong> (Mỹ): Không hoạt động tại VN, thẻ quốc tế, phí <span class="stat">22,5%</span>&nbsp;<a href="#ref-9" class="cite">[9]</a><a href="#ref-10" class="cite">[10]</a>.</li>
       </ul>
       <p>
-        Chỉ <span class="stat">40%</span> người đi làm tại Việt Nam còn muốn gắn bó với
-        công việc văn phòng truyền thống — phần lớn đã quen với việc làm linh hoạt&nbsp;[8].
-        Nhưng các nền tảng hiện tại chỉ phục vụ tài xế, freelancer chuyên nghiệp, hoặc
-        người bán hàng online. Chưa ai nghĩ đến sinh viên — nhóm người vừa cần giúp đỡ,
-        vừa sẵn sàng giúp người khác, nhưng thiếu một công cụ để kết nối.
+        Nghiên cứu IEEE 2022 về AoAoRun (ĐH Macau) xác nhận mô hình errand service trong đại học là khả thi&nbsp;<a href="#ref-11" class="cite">[11]</a>. Connect Sphere (Mỹ, 2025) là giải pháp P2P hyperlocal cho SV&nbsp;<a href="#ref-14" class="cite">[14]</a>. GoGetter (Malaysia) đoạt giải Best Recruitment Portal 2024&nbsp;<a href="#ref-15" class="cite">[15]</a>. Tuy nhiên, <strong>chưa có nền tảng nào tại Việt Nam</strong> phục vụ micro-task trong khuôn viên đại học.
       </p>
     </viecz-card>
   </section>
 
-  <!-- ==================== 4. GIẢI PHÁP ==================== -->
-  <section class="section">
+  <!-- 4. GIẢI PHÁP -->
+  <section class="section" id="sec-04">
     <viecz-card>
-      <viecz-step number="04" title="Giải pháp / Sản phẩm / Công nghệ" />
+      <viecz-step number="04" title="Giải pháp — sản phẩm — công nghệ" />
 
-      <h3>4.1. Tổng quan giải pháp</h3>
-      <p>
-        Viecz giải quyết vấn đề trên bằng một cách rất đơn giản: cho phép sinh viên đăng
-        việc cần làm và tìm người làm ngay — có trả công hoặc không. Nhanh, tiện, có trách
-        nhiệm.
-      </p>
-      <p>
-        Nền tảng được thiết kế từ đầu cho điện thoại (mobile-first), vì đó là thiết bị
-        sinh viên dùng mọi lúc. Đồng thời, Viecz cũng hoạt động đầy đủ trên laptop qua
-        trình duyệt web. Ứng dụng Android đang thử nghiệm nội bộ, phiên bản iOS sẽ phát
-        triển trong tương lai.
-      </p>
+      <h3>4.1. Mô hình giải pháp</h3>
+      <p>Viecz là nền tảng hai chiều (two-sided marketplace) kết nối sinh viên cần giúp đỡ với sinh viên sẵn sàng nhận việc, dựa trên vị trí địa lý thời gian thực. Mỗi người dùng đồng thời là cả "cung" lẫn "cầu" — nên mạng lưới phát triển nhanh hơn marketplace một chiều.</p>
 
-      <h3>4.2. Tính năng chính</h3>
-      <p>Để bạn dễ hình dung cách Viecz hoạt động, hãy theo dõi một ví dụ:</p>
-      <ol>
-        <li>
-          <strong>Đăng việc:</strong> Bạn cần ai giúp dọn phòng KTX. Mở Viecz, đăng việc
-          trong 30 giây — mô tả ngắn, vị trí, thời gian, và mức trả công (hoặc không trả
-          công cũng được).
-        </li>
-        <li>
-          <strong>Tìm người trên bản đồ:</strong> Ngay lập tức, những sinh viên xung
-          quanh bạn thấy việc này hiện lên trên bản đồ — họ biết việc ở đâu, bao xa, cần
-          làm gì. Không cần lướt feed, không cần chờ admin duyệt.
-        </li>
-        <li>
-          <strong>Chọn và kết nối:</strong> Người quan tâm ứng tuyển, bạn xem hồ sơ và
-          chọn. Hai bên chat trực tiếp ngay trong ứng dụng để chốt chi tiết.
-        </li>
-        <li>
-          <strong>Thanh toán an toàn:</strong> Nếu có trả công, tiền được nền tảng giữ hộ
-          (escrow) cho đến khi việc hoàn thành — không bên nào phải lo bị quỵt. Nếu không
-          trả công, chỉ cần xác nhận hoàn thành là xong.
-        </li>
-      </ol>
-      <p>
-        Điểm quan trọng là toàn bộ quá trình này diễn ra rất nhanh — từ lúc đăng đến lúc
-        có người nhận thường chỉ tính bằng phút, nhờ việc kết nối dựa trên vị trí thực
-        (bản đồ) thay vì danh sách tĩnh.
-      </p>
+      <h3>4.2. Luồng hoạt động chính</h3>
+      <pre class="flow-diagram">┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  Đăng việc   │───▶│  Hiển thị    │───▶│  Ứng tuyển   │───▶│  Thanh toán  │
+│  (30 giây)   │    │  trên bản đồ │    │  + Chat      │    │  escrow      │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘</pre>
 
-      <h3>4.3. Kiến trúc công nghệ</h3>
-      <p>
-        Viecz được xây dựng hoàn toàn bằng công nghệ mã nguồn mở. Điều này quan trọng
-        vì hai lý do: thứ nhất, tiết kiệm chi phí bản quyền — phù hợp với dự án sinh
-        viên tự chủ tài chính; thứ hai, cộng đồng mã nguồn mở cung cấp tài liệu và hỗ
-        trợ phong phú, giúp đội ngũ nhỏ vẫn có thể xây dựng sản phẩm chất lượng.
-      </p>
-
-      <viecz-table [columns]="techColumns" [rows]="techRows" />
-
-      <p>
-        Ngoài ra, chat real-time qua WebSocket (tin nhắn đến ngay, không cần refresh),
-        bản đồ dùng MapTiler (miễn phí cho dự án nhỏ), và toàn bộ hạ tầng được bảo vệ
-        bởi Cloudflare (chống DDoS, tăng tốc tải trang).
-      </p>
-
-      <h3>4.4. Danh mục dịch vụ</h3>
-      <p>
-        Để cho thấy phạm vi ứng dụng của Viecz, đây là một số loại việc phổ biến mà sinh
-        viên có thể đăng:
-      </p>
-
+      <h3>4.3. Danh mục dịch vụ</h3>
       <viecz-table [columns]="serviceColumns" [rows]="serviceRows" />
 
-      <p>
-        Lưu ý: mức giá hoàn toàn do người đăng quyết định — Viecz chỉ đề xuất khoảng
-        tham khảo để hai bên dễ thỏa thuận.
-      </p>
+      <h3>4.4. Kiến trúc kỹ thuật</h3>
+      <p>Toàn bộ hệ thống xây dựng bằng công nghệ mã nguồn mở — tiết kiệm chi phí bản quyền, tận dụng cộng đồng hỗ trợ.</p>
+      <pre class="flow-diagram">         ┌─────────────────────────────┐
+         │        Cloudflare           │
+         └──────────┬──────────────────┘
+         ┌──────────┼──────────┐
+         ▼                     ▼
+   ┌───────────┐       ┌────────────┐
+   │Angular 21 │       │Android App │
+   │  (SSR)    │       │(Compose)   │
+   └─────┬─────┘       └─────┬──────┘
+         └────────┬───────────┘
+                  ▼
+        ┌──────────────────┐
+        │  Go API (Gin)    │◄── WebSocket
+        └──┬───────┬───┬───┘
+           ▼       ▼   ▼
+      PostgreSQL  Meili PayOS</pre>
+      <viecz-table [columns]="techColumns" [rows]="techRows" />
+      <p>Giám sát: <strong>GlitchTip</strong> (lỗi tự động), <strong>Prometheus</strong> (metrics), tự phục hồi (systemd), test coverage <span class="stat">>70%</span>.</p>
+
+      <h3>4.5. Tính sáng tạo và đổi mới</h3>
+      <ol>
+        <li><strong>Location-first marketplace</strong>: Bản đồ thời gian thực làm giao diện chính — phù hợp "cần gấp, cần gần".</li>
+        <li><strong>Escrow nội địa cho giao dịch siêu nhỏ</strong>: PayOS cho escrow 5.000–50.000 VND qua chuyển khoản nội địa.</li>
+        <li><strong>Mô hình hai chiều đối xứng</strong>: Mọi người dùng đều đăng việc lẫn nhận việc — mỗi user mới tăng cả cung và cầu.</li>
+      </ol>
+
     </viecz-card>
   </section>
 
-  <!-- ==================== 5. KHÁCH HÀNG VÀ THỊ TRƯỜNG ==================== -->
-  <section class="section">
+  <!-- 5. KHÁCH HÀNG VÀ THỊ TRƯỜNG -->
+  <section class="section" id="sec-05">
     <viecz-card>
-      <viecz-step number="05" title="Khách hàng và thị trường mục tiêu" />
+      <viecz-step number="05" title="Khách hàng — thị trường mục tiêu" />
 
-      <h3>5.1. Khách hàng mục tiêu</h3>
-      <p>
-        Viecz phục vụ sinh viên đại học tại TP.HCM — cả người cần thuê lẫn người muốn
-        nhận việc. Điều thú vị là hầu hết sinh viên sẽ đóng cả hai vai trò tùy lúc: hôm
-        nay cần người giúp khiêng đồ, ngày mai nhận việc thiết kế slide cho người khác.
-        Đây là đặc điểm quan trọng của mô hình — mỗi người dùng mới vừa là "cầu" vừa là
-        "cung", nên nền tảng phát triển nhanh hơn so với mô hình một chiều.
-      </p>
-      <p>Cụ thể hơn:</p>
-      <ul>
-        <li>
-          <strong>Sinh viên năm 3–4</strong> bận thực tập, thường cần người giúp nhanh
-          những việc lặt vặt.
-        </li>
-        <li>
-          <strong>Sinh viên năm 1–2</strong> có thời gian rảnh, muốn kiếm thêm thu nhập
-          linh hoạt.
-        </li>
-        <li>
-          <strong>Sinh viên có kỹ năng</strong> (thiết kế, ngoại ngữ, lập trình) có thể
-          nhận việc chuyên môn hơn với giá cao hơn.
-        </li>
-      </ul>
-      <p>
-        Về lâu dài, nền tảng có thể mở rộng ra giảng viên, cán bộ trường, và cộng đồng
-        xung quanh khu đại học.
-      </p>
+      <h3>5.1. Phân khúc khách hàng</h3>
+      <viecz-table [columns]="customerSegmentColumns" [rows]="customerSegmentRows" />
 
       <h3>5.2. Quy mô thị trường</h3>
-      <p>
-        Việt Nam có hơn <span class="stat">2.15 triệu sinh viên đại học</span>&nbsp;[1],
-        với mục tiêu vượt <span class="stat">3 triệu vào năm 2030</span>&nbsp;[7], phân
-        bổ tại 243 trường trên cả nước. Riêng TP.HCM tập trung khoảng
-        <span class="stat">500.000</span> sinh viên — đây là thị trường khởi điểm của Viecz.
-      </p>
-      <p>
-        Chúng tôi muốn thành thật: chúng tôi không ước tính thị trường theo cách nhân số
-        sinh viên với một con số chi tiêu tưởng tượng. Thay vào đó, mục tiêu rất cụ
-        thể — nếu pilot tại ĐHKHTN thu hút được vài trăm người dùng thường xuyên trong
-        học kỳ đầu, đó là cơ sở thực tế để mở rộng sang các trường lân cận.
-      </p>
+      <ul>
+        <li><strong>Tổng thị trường</strong>: 2,15 triệu SV toàn quốc&nbsp;<a href="#ref-1" class="cite">[1]</a>, vượt 3 triệu vào 2030&nbsp;<a href="#ref-7" class="cite">[7]</a>.</li>
+        <li><strong>Thị trường khả dụng</strong>: ~500.000 SV tại TP.HCM — mật độ cao, tập trung về địa lý.</li>
+        <li><strong>Mục tiêu ban đầu</strong>: ĐHKHTN ĐHQG-HCM và trường lân cận khu vực Thủ Đức.</li>
+      </ul>
+      @defer (on viewport) {
+        <div echarts [options]="tamSamSomChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
+      <p>Mục tiêu pilot: <span class="stat">200–500</span> người dùng, ít nhất <span class="stat">50</span> giao dịch trong 3 tháng đầu. Hơn <span class="stat">84%</span> người Việt sở hữu smartphone&nbsp;<a href="#ref-5" class="cite">[5]</a> và thị trường gig economy đang tăng trưởng mạnh&nbsp;<a href="#ref-8" class="cite">[8]</a> — tạo điều kiện thuận lợi cho nền tảng mobile-first.</p>
 
-      <h3>5.3. Phân tích đối thủ cạnh tranh</h3>
-      <p>
-        Để hiểu vị trí của Viecz, hãy so sánh với những gì đang có trên thị trường:
-      </p>
-
+      <h3>5.3. Lợi thế cạnh tranh</h3>
       <viecz-table [columns]="competitorColumns" [rows]="competitorRows" />
-
-      <p><strong>Vậy Viecz khác biệt ở đâu?</strong> Ba điểm chính:</p>
-
-      <p>
-        <strong>Nhanh và tiện lợi.</strong> Đăng việc trong 30 giây, người gần bạn thấy
-        ngay trên bản đồ. Không cần lướt feed dài, không cần chờ admin duyệt bài. Từ lúc
-        đăng đến lúc có người nhận — tính bằng phút, không phải giờ. Đây là điều mà nhóm
-        Zalo hay Facebook không thể làm được, vì bản chất chúng là công cụ chat, không
-        phải nền tảng việc vặt.
-      </p>
-      <p>
-        <strong>Mobile-first, bản đồ là trung tâm.</strong> Khác với hầu hết các nền tảng
-        hiển thị danh sách kéo dài, Viecz đặt bản đồ thời gian thực làm giao diện chính.
-        Bạn mở ứng dụng và thấy ngay: việc nào gần mình, bao xa, ai đang cần giúp. Hơn
-        <span class="stat">95%</span> sinh viên Việt Nam sở hữu smartphone&nbsp;[5] — Viecz
-        được thiết kế cho cách họ thực sự dùng thiết bị: nhanh, một tay, đang di chuyển.
-      </p>
-      <p>
-        <strong>Xây dựng cho môi trường Việt Nam.</strong> Đây là điểm mà các nền tảng
-        quốc tế không thể cạnh tranh. Viecz dùng PayOS — cổng thanh toán Việt Nam, hỗ trợ
-        chuyển khoản ngân hàng nội địa. Sinh viên không cần thẻ tín dụng, không cần PayPal,
-        không cần tài khoản USD. Giao diện hoàn toàn tiếng Việt, escrow giữ tiền hộ phù
-        hợp với thói quen thanh toán của người Việt. Và mức phí dự kiến chỉ
-        <span class="stat">10–15%</span> (so với 22.5% của TaskRabbit) — vì chúng tôi hiểu
-        sinh viên Việt Nam không có nhiều tiền.
-      </p>
-      <p>
-        Tóm lại, hiện tại chưa có nền tảng nào tại Việt Nam kết hợp được cả ba yếu tố:
-        <strong>tốc độ kết nối theo vị trí</strong>, <strong>thanh toán escrow nội
-        địa</strong>, và <strong>trải nghiệm mobile-first</strong> cho micro-task.
-      </p>
+      @defer (on viewport) {
+        <div echarts [options]="competitorRadarChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
     </viecz-card>
   </section>
 
-  <!-- ==================== 6. TÍNH KHẢ THI ==================== -->
-  <section class="section">
+  <!-- 6. TÍNH KHẢ THI -->
+  <section class="section" id="sec-06">
     <viecz-card>
       <viecz-step number="06" title="Thuyết minh tính khả thi" />
 
       <h3>6.1. Tính khả thi kỹ thuật</h3>
-      <p>
-        Điều đầu tiên cần nói rõ: Viecz không phải ý tưởng trên giấy. Sản phẩm đang chạy
-        thật, ngay bây giờ, tại
-        <strong>https://viecz.fishcmus.io.vn</strong>. Toàn bộ tính năng đã mô tả ở Mục 4
-        đều hoạt động: đăng việc, ứng tuyển, thanh toán, chat, tìm kiếm, bản đồ. Ứng dụng
-        Android đang thử nghiệm nội bộ.
-      </p>
-      <p>Về mặt kỹ thuật, hệ thống được xây dựng theo tiêu chuẩn phần mềm chuyên nghiệp:</p>
-      <ul>
-        <li>
-          <strong>Test coverage trên <span class="stat">70%</span></strong> — nghĩa là phần
-          lớn code đã được kiểm thử tự động, giảm rủi ro lỗi khi cập nhật.
-        </li>
-        <li>
-          <strong>Tự khởi động lại</strong> khi gặp sự cố — người dùng hầu như không bị
-          gián đoạn.
-        </li>
-        <li>
-          <strong>Theo dõi lỗi tự động</strong> (GlitchTip + Prometheus) — đội ngũ biết
-          khi nào có vấn đề trước cả người dùng, và có thể xử lý ngay.
-        </li>
-      </ul>
+      <p><strong>Viecz không phải ý tưởng trên giấy.</strong> Sản phẩm đang vận hành tại <a href="https://viecz.fishcmus.io.vn" target="_blank" rel="noopener">https://viecz.fishcmus.io.vn</a>.</p>
+      <viecz-table [columns]="techStatusColumns" [rows]="techStatusRows" />
 
       <h3>6.2. Tính khả thi kinh tế</h3>
-      <p>
-        Nguồn thu chính là phí hoa hồng từ mỗi giao dịch có trả công — khoảng
-        <span class="stat">10–15%</span> giá trị việc. Để dễ hình dung: một việc 50.000 VND,
-        nền tảng giữ lại khoảng 7.500 VND, người nhận việc được 42.500 VND. So với TaskRabbit
-        (<span class="stat">22.5%</span>), mức phí này thấp hơn đáng kể và phù hợp hơn với
-        túi tiền sinh viên.
-      </p>
-      <p>
-        Hiện tại Viecz chưa thu phí — giai đoạn pilot tập trung hoàn toàn vào việc thu hút
-        người dùng và cải thiện sản phẩm dựa trên phản hồi thực. Mô hình doanh thu sẽ được
-        kích hoạt khi đã có lượng giao dịch ổn định và người dùng đã quen với nền tảng.
-      </p>
+      <p>Phí hoa hồng <span class="stat">10–15%</span> giá trị việc. Ví dụ: việc 50.000 VND → nền tảng 7.500 VND, người nhận 42.500 VND. Thấp hơn TaskRabbit (<span class="stat">22,5%</span>)&nbsp;<a href="#ref-9" class="cite">[9]</a>. Hiện chưa thu phí — ưu tiên thu hút người dùng.</p>
+      <viecz-table [columns]="costColumns" [rows]="costRows" />
+      @defer (on viewport) {
+        <div echarts [options]="costBreakdownChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
+      <p><strong>Điểm hòa vốn</strong>: ~<span class="stat">40 giao dịch/tháng</span>. Năm đầu tiên: ~<span class="stat">10 triệu VND</span>.</p>
 
-      <h3>6.3. Chi phí và vận hành</h3>
-      <p>
-        Một lợi thế lớn của Viecz là chi phí vận hành cực thấp nhờ đội ngũ tự phát triển
-        và sử dụng hoàn toàn công nghệ mã nguồn mở:
-      </p>
-      <ul>
-        <li><strong>VPS (server duy nhất):</strong> <span class="stat">~150.000 VND/tháng</span></li>
-        <li><strong>Cloudflare CDN + bảo mật:</strong> Miễn phí</li>
-        <li><strong>PayOS (thanh toán):</strong> Miễn phí giai đoạn đầu</li>
-        <li><strong>Tổng chi phí vận hành hiện tại:</strong> khoảng <span class="stat">200.000 VND/tháng</span></li>
-      </ul>
-      <p>
-        Dự kiến năm đầu tiên, bao gồm server, domain, và chi phí marketing nhỏ (poster, sự
-        kiện tại trường): khoảng <span class="stat">10 triệu VND</span>. Con số này rất thấp
-        so với một startup thông thường — và hoàn toàn nằm trong khả năng tự chủ của đội ngũ
-        sinh viên.
-      </p>
-
-      <h3>6.4. Nhân lực</h3>
+      <h3>6.3. Nhân lực</h3>
       <viecz-table [columns]="teamColumns" [rows]="teamRows" />
 
-      <h3>6.5. Lộ trình</h3>
-      <ul>
-        <li>
-          <strong>MVP hoàn thành</strong> (10/2025 – 02/2026): Toàn bộ tính năng cốt lõi
-          đã hoạt động — đăng việc, ứng tuyển, thanh toán, chat, tìm kiếm, bản đồ.
-        </li>
-        <li>
-          <strong>Pilot tại ĐHKHTN</strong> (HK2/2026): Cho sinh viên thật dùng, thu thập
-          phản hồi, sửa lỗi, cải thiện trải nghiệm.
-        </li>
-        <li>
-          <strong>Mở rộng</strong> (nếu pilot thành công): Triển khai sang các trường lân
-          cận tại TP.HCM.
-        </li>
-      </ul>
-      <p>
-        Chúng tôi cố ý giữ lộ trình ngắn và cụ thể — không hứa hẹn những gì chưa chắc
-        chắn. Nếu pilot không hiệu quả, chúng tôi sẽ điều chỉnh sản phẩm thay vì mở rộng
-        bằng mọi giá.
-      </p>
+      <h3>6.4. Lộ trình</h3>
+      <viecz-table [columns]="roadmapColumns" [rows]="roadmapRows" />
+      @defer (on viewport) {
+        <div echarts [options]="roadmapChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
+
+      <h3>6.5. Rủi ro và biện pháp giảm thiểu</h3>
+      <viecz-table [columns]="riskColumns" [rows]="riskRows" />
     </viecz-card>
   </section>
 
-  <!-- ==================== 7. TÁC ĐỘNG ==================== -->
-  <section class="section">
+  <!-- 7. TÁC ĐỘNG -->
+  <section class="section" id="sec-07">
     <viecz-card>
       <viecz-step number="07" title="Ước tính tác động và lợi ích" />
 
       <h3>7.1. Tác động kinh tế</h3>
-      <p>
-        Sinh viên nhận việc qua Viecz có thể kiếm thêm vài trăm nghìn đến vài triệu mỗi
-        tháng, tùy thời gian rảnh — và quan trọng là không ảnh hưởng lịch học, vì các việc
-        trên Viecz linh hoạt về thời gian và địa điểm.
-      </p>
-      <p>
-        Phía người thuê cũng được lợi rõ rệt. Ví dụ: thuê thiết kế poster tại tiệm thường
-        tốn <span class="stat">200–500k</span>, nhưng nhờ sinh viên thiết kế qua Viecz chỉ
-        <span class="stat">50–150k</span> — và sinh viên thiết kế vẫn được trả công xứng
-        đáng. Không có trung gian tốn phí, không có chi phí mặt bằng — chỉ hai sinh viên
-        giúp nhau.
-      </p>
-      <p>
-        Nếu pilot thành công tại ĐHKHTN với vài trăm người dùng trong học kỳ đầu, đó đã là
-        tín hiệu thực tế để mở rộng sang các trường khác tại TP.HCM.
-      </p>
+      <p><strong>Người nhận việc</strong>: 2–3 việc/tuần → <span class="stat">400.000–600.000 VND/tháng</span> thêm.</p>
+      <p><strong>Người đăng việc</strong>: Thiết kế poster qua Viecz 50–150k (vs 200–500k tại tiệm).</p>
+      <p><strong>Vĩ mô</strong>: Khai thác nguồn lực nhàn rỗi — tạo giá trị từ tài nguyên hiện có. Chi đầu tư giáo dục đạt <span class="stat">9,5 triệu VND/SV/năm</span>, tăng 36,3% so với 2022&nbsp;<a href="#ref-20" class="cite">[20]</a> — sinh viên cần thêm nguồn thu nhập linh hoạt.</p>
 
       <h3>7.2. Tác động xã hội</h3>
-      <p>
-        Ngoài kinh tế, Viecz còn tạo ra một giá trị khó đo bằng tiền: <strong>xây dựng thói
-        quen giúp nhau có tổ chức</strong> trong cộng đồng sinh viên.
-      </p>
-      <p>
-        Khi nhận một việc trên Viecz, sinh viên phải học cách giao tiếp rõ ràng, thương
-        lượng giá cả, giữ cam kết thời gian, và chịu trách nhiệm với kết quả. Đây là những
-        kỹ năng mềm mà giảng đường ít dạy nhưng nhà tuyển dụng luôn hỏi — và Viecz tạo
-        ra môi trường thực hành tự nhiên cho chúng.
-      </p>
-      <p>
-        Quan trọng hơn, Viecz xây dựng một văn hóa tương trợ khác với "nhờ vả": không dựa
-        trên quen biết hay nể nang, mà dựa trên cam kết rõ ràng và sự tin tưởng được hệ
-        thống bảo đảm. Bất kỳ sinh viên nào cũng có thể giúp và được giúp — bất kể khoa,
-        khóa, hay mối quan hệ cá nhân.
-      </p>
+      <ul>
+        <li><strong>Kỹ năng mềm</strong>: Giao tiếp, thương lượng, quản lý thời gian qua thực hành.</li>
+        <li><strong>Văn hóa tương trợ có tổ chức</strong>: Dựa trên cam kết rõ ràng, không nể nang.</li>
+        <li><strong>Kết nối liên ngành</strong>: SV CNTT hỗ trợ SV Văn, SV Ngoại ngữ luyện speaking cho SV Hóa.</li>
+      </ul>
+
+      <h3>7.3. Chỉ số đo lường (KPI pilot)</h3>
+      <viecz-table [columns]="kpiColumns" [rows]="kpiRows" />
+      @defer (on viewport) {
+        <div echarts [options]="kpiTargetsChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
     </viecz-card>
   </section>
 
-  <!-- ==================== TÀI LIỆU THAM KHẢO ==================== -->
-  <section class="section">
+  <!-- TÀI LIỆU THAM KHẢO -->
+  <section class="section" id="sec-ref">
     <viecz-card>
       <viecz-step number="*" title="Tài liệu tham khảo" />
       <div class="references">
-        <p>[1] Statista. "Number of university students in Vietnam from 2013 to 2021." February 2024.</p>
-        <p>[2] VietnamNet. "Zalo's number of users hits 78.3 million." August 2025.</p>
-        <p>[3] Quora. "What is the pay range for part-time university student jobs in Vietnam?"</p>
-        <p>[4] Global Angle. "Vietnam's Education Sector 2025." July 2025.</p>
-        <p>[5] Edtech Agency. "Vietnam aiming for 100% smartphone used by the end of 2024." March 2024.</p>
-        <p>[6] StatCounter. "Market share of mobile operating systems in Vietnam 2024."</p>
-        <p>[7] Sài Gòn Giải Phóng. "Vietnam's university student count to surpass 3 million by 2030." March 2025.</p>
-        <p>[8] Vietnam Briefing. "Vietnam's Gig Economy for Foreign Firms." October 2023.</p>
-        <p>[9] InfoStride. "TaskRabbit Business and Revenue Model." May 2025.</p>
-        <p>[10] Appscrip. "TaskRabbit Business Model and Revenue." December 2024.</p>
-        <p>[11] IEEE Xplore. "A Cross-platform Errand Service Application for Campus." 2022.</p>
+        <p id="ref-1"><a href="#ref-1" class="cite">[1]</a> <a href="https://www.statista.com/statistics/815091/number-of-university-students-in-vietnam/" target="_blank" rel="noopener" class="ref-link">Statista, "Number of university students in Vietnam," 2/2024.</a></p>
+        <p id="ref-2"><a href="#ref-2" class="cite">[2]</a> <a href="https://vietnamnet.vn/en/zalo-s-number-of-users-hits-78-3-million-putting-telcos-at-pipeline-trap-2436470.html" target="_blank" rel="noopener" class="ref-link">VietnamNet, "Zalo's number of users hits 78.3 million," 8/2025.</a></p>
+        <p id="ref-3"><a href="#ref-3" class="cite">[3]</a> <a href="https://www.quora.com/What-is-the-pay-range-for-part-time-university-student-jobs-in-Malaysia-Vietnam-and-the-Philippines" target="_blank" rel="noopener" class="ref-link">GSO, Khảo sát lao động việc làm. SV làm thêm: 22,1% (2018).</a></p>
+        <p id="ref-4"><a href="#ref-4" class="cite">[4]</a> <a href="https://global-angle.com/vietnam-education-2025/" target="_blank" rel="noopener" class="ref-link">Global Angle, "Vietnam's Education Sector 2025," 7/2025.</a></p>
+        <p id="ref-5"><a href="#ref-5" class="cite">[5]</a> <a href="https://edtechagency.net/vietnam-aiming-for-100-smartphone-used-by-the-end-of-2024/" target="_blank" rel="noopener" class="ref-link">Edtech Agency, "Vietnam smartphone penetration," 3/2024.</a></p>
+        <p id="ref-6"><a href="#ref-6" class="cite">[6]</a> <a href="https://www.statista.com/statistics/928956/vietnam-mobile-os-share/" target="_blank" rel="noopener" class="ref-link">StatCounter, "Mobile OS market share Vietnam 2024." Android: 65,7%.</a></p>
+        <p id="ref-7"><a href="#ref-7" class="cite">[7]</a> <a href="https://en.sggp.org.vn/vietnams-university-student-count-to-surpass-3-million-by-2030-post116038.html" target="_blank" rel="noopener" class="ref-link">Sài Gòn Giải Phóng, "Mục tiêu 3 triệu SV vào 2030," 3/2025.</a></p>
+        <p id="ref-8"><a href="#ref-8" class="cite">[8]</a> <a href="https://www.vietnam-briefing.com/news/vietnams-gig-economy-for-foreign-firms.html/" target="_blank" rel="noopener" class="ref-link">Vietnam Briefing, "Vietnam's Gig Economy," 10/2023.</a></p>
+        <p id="ref-9"><a href="#ref-9" class="cite">[9]</a> <a href="https://infostride.com/taskrabbit-business-model/" target="_blank" rel="noopener" class="ref-link">InfoStride, "TaskRabbit Business Model," 5/2025. Phí: 15% + 7,5%.</a></p>
+        <p id="ref-10"><a href="#ref-10" class="cite">[10]</a> <a href="https://appscrip.com/blog/taskrabbit-business-model/" target="_blank" rel="noopener" class="ref-link">Appscrip, "TaskRabbit Revenue Model," 12/2024.</a></p>
+        <p id="ref-11"><a href="#ref-11" class="cite">[11]</a> <a href="https://ieeexplore.ieee.org/document/9930264/" target="_blank" rel="noopener" class="ref-link">C. Tian et al., "Campus Errand Service App," IEEE ICSESS, 2022.</a></p>
+        <p id="ref-12"><a href="#ref-12" class="cite">[12]</a> <a href="https://thuvienphapluat.vn/van-ban/Lao-dong-Tien-luong/Nghi-dinh-293-2025-ND-CP-muc-luong-toi-thieu-636181.aspx" target="_blank" rel="noopener" class="ref-link">NĐ 293/2025. Lương tối thiểu vùng I: 25.500 VND/giờ.</a></p>
+        <p id="ref-13"><a href="#ref-13" class="cite">[13]</a> <a href="https://vietnam.vn/chi-phi-mot-nam-cua-sinh-vien-tai-tp-hcm-la-bao-nhieu/" target="_blank" rel="noopener" class="ref-link">Vietnam.vn, "Chi phí SV tại TP.HCM," 2024. ~5tr VND/tháng.</a></p>
+        <p id="ref-14"><a href="#ref-14" class="cite">[14]</a> <a href="https://www.ijfmr.com/papers/2025/1/35046.pdf" target="_blank" rel="noopener" class="ref-link">IJFMR, "Connect Sphere: Hyperlocal P2P for Students," 2025.</a></p>
+        <p id="ref-15"><a href="#ref-15" class="cite">[15]</a> <a href="https://goget.my/" target="_blank" rel="noopener" class="ref-link">GoGetter Malaysia. Best Recruitment Portal 2024.</a></p>
+        <p id="ref-16"><a href="#ref-16" class="cite">[16]</a> <a href="https://thuvienphapluat.vn/van-ban/Lao-dong-Tien-luong/Bo-Luat-lao-dong-2019-45-2019-QH14-333670.aspx" target="_blank" rel="noopener" class="ref-link">BLLĐ 45/2019/QH14, Điều 3 và 5.</a></p>
+        <p id="ref-17"><a href="#ref-17" class="cite">[17]</a> <a href="https://thuvienphapluat.vn/van-ban/Tien-te-Ngan-hang/Thong-tu-40-2024-TT-NHNN-dich-vu-trung-gian-thanh-toan-627539.aspx" target="_blank" rel="noopener" class="ref-link">TT 40/2024/TT-NHNN — Trung gian thanh toán.</a></p>
+        <p id="ref-18"><a href="#ref-18" class="cite">[18]</a> <a href="https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Nghi-dinh-13-2023-ND-CP-bao-ve-du-lieu-ca-nhan-555799.aspx" target="_blank" rel="noopener" class="ref-link">NĐ 13/2023 — Bảo vệ dữ liệu cá nhân.</a></p>
+        <p id="ref-19"><a href="#ref-19" class="cite">[19]</a> <a href="https://thuvienphapluat.vn/van-ban/Thue-Phi-Le-Phi/Nghi-dinh-117-2025-ND-CP-quan-ly-thue-thuong-mai-dien-tu-636963.aspx" target="_blank" rel="noopener" class="ref-link">NĐ 117/2025 — Thuế TMĐT. Ngưỡng: ≥200tr VND/năm.</a></p>
+        <p id="ref-20"><a href="#ref-20" class="cite">[20]</a> <a href="https://www.gso.gov.vn/du-lieu-va-so-lieu-thong-ke/2024/04/khao-sat-muc-song-ho-gia-dinh-viet-nam-2024/" target="_blank" rel="noopener" class="ref-link">GSO, VHLSS 2024. Đầu tư giáo dục: 9,5tr VND/SV/năm.</a></p>
       </div>
     </viecz-card>
   </section>
 
-  <!-- ==================== TEAM & QR ==================== -->
+  <!-- TEAM & QR -->
   <section class="section">
     <viecz-card>
       <div class="team-info">
         <strong>Thành viên:</strong><br />
-        Nguyễn Hữu Thiện Nhân — Quản trị và giám sát hệ thống<br />
-        Trương Hoài Đức — Kết nối và xây dựng tiếng tăm cho thương hiệu<br />
-        Thái Kha Bảo — Thiết kế đồ họa cho thương hiệu<br />
-        Trần Gia Sang — Kỹ thuật viên
+        Nguyễn Hữu Thiện Nhân — Trưởng nhóm, Kiến trúc sư phần mềm<br />
+        Trương Hoài Đức — Kiểm thử, Đảm bảo chất lượng<br />
+        Thái Kha Bảo — Kiểm thử, Đảm bảo chất lượng<br />
+        Trần Gia Sang — Kiểm thử, Đảm bảo chất lượng
       </div>
       <div class="qr-code">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" width="120" height="120" shape-rendering="crispEdges">
@@ -457,9 +270,7 @@
     </viecz-card>
   </section>
 
-  <!-- ==================== FOOTER ==================== -->
   <div class="report-footer">
     <p>Dự án Viecz — Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM — Tháng 3/2026</p>
   </div>
-
 </article>

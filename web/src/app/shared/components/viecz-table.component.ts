@@ -140,21 +140,33 @@ export interface TableColumn {
 
     /* ── Print ── */
     @media print {
+      table {
+        break-inside: avoid;
+        border-color: #d0d0d0;
+      }
+
+      th {
+        background: #191C1D !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
       td {
         backdrop-filter: none;
         background: #ffffff;
+        color: #191C1D !important;
+        border-color: #d0d0d0;
       }
 
       tr:nth-child(even) td {
         background: #f5f5f5;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
 
       td:first-child {
         border-left-color: #191C1D;
-      }
-
-      table {
-        break-inside: avoid;
       }
     }
   `],

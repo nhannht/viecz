@@ -1,0 +1,23 @@
+/** Source URLs for all report references. Keyed by ref number. */
+export const REF_URLS: Record<number, string> = {
+  1: 'https://www.statista.com/statistics/815091/number-of-university-students-in-vietnam/',
+  2: 'https://vietnamnet.vn/en/zalo-s-number-of-users-hits-78-3-million-putting-telcos-at-pipeline-trap-2436470.html',
+  3: 'https://www.quora.com/What-is-the-pay-range-for-part-time-university-student-jobs-in-Malaysia-Vietnam-and-the-Philippines',
+  4: 'https://global-angle.com/vietnam-education-2025/',
+  5: 'https://edtechagency.net/vietnam-aiming-for-100-smartphone-used-by-the-end-of-2024/',
+  6: 'https://www.statista.com/statistics/928956/vietnam-mobile-os-share/',
+  7: 'https://en.sggp.org.vn/vietnams-university-student-count-to-surpass-3-million-by-2030-post116038.html',
+  8: 'https://www.vietnam-briefing.com/news/vietnams-gig-economy-for-foreign-firms.html/',
+  9: 'https://infostride.com/taskrabbit-business-model/',
+  10: 'https://appscrip.com/blog/taskrabbit-business-model/',
+  11: 'https://ieeexplore.ieee.org/document/9930264/',
+  12: 'https://thuvienphapluat.vn/van-ban/Lao-dong-Tien-luong/Nghi-dinh-293-2025-ND-CP-muc-luong-toi-thieu-636181.aspx',
+  13: 'https://vietnam.vn/chi-phi-mot-nam-cua-sinh-vien-tai-tp-hcm-la-bao-nhieu/',
+  14: 'https://www.ijfmr.com/papers/2025/1/35046.pdf',
+  15: 'https://goget.my/',
+  16: 'https://thuvienphapluat.vn/van-ban/Lao-dong-Tien-luong/Bo-Luat-lao-dong-2019-45-2019-QH14-333670.aspx',
+  17: 'https://thuvienphapluat.vn/van-ban/Tien-te-Ngan-hang/Thong-tu-40-2024-TT-NHNN-dich-vu-trung-gian-thanh-toan-627539.aspx',
+  18: 'https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Nghi-dinh-13-2023-ND-CP-bao-ve-du-lieu-ca-nhan-555799.aspx',
+  19: 'https://thuvienphapluat.vn/van-ban/Thue-Phi-Le-Phi/Nghi-dinh-117-2025-ND-CP-quan-ly-thue-thuong-mai-dien-tu-636963.aspx',
+  20: 'https://www.gso.gov.vn/du-lieu-va-so-lieu-thong-ke/2024/04/khao-sat-muc-song-ho-gia-dinh-viet-nam-2024/',
+};
