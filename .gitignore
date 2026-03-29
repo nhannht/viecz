@@ -81,3 +81,6 @@ uploads/
 # Storybook build output
 web/storybook-static/
 .gstack/
+
+# Local/private Claude rules (not shared)
+.claude/rules/*.local.md
