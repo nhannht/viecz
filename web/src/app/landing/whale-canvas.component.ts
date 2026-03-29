@@ -10,12 +10,10 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
-type Phase = 'hero' | 'scroll';
-
 /**
- * Unified whale background — single WebGL context for the entire landing page.
- * Hero phase: whale centered, plays surface animation, fades on scroll.
- * Scroll phase: whale follows figure-8 path driven by scroll progress.
+ * Unified whale background — single WebGL context, single continuous scroll path.
+ * The whale swims in from below as the user scrolls, cruises through the page,
+ * and dives out at the bottom. No phase switches, no cuts.
  *
  * All heavy imports (three.js, loaders) are dynamic for code-splitting.
  * No postprocessing library — CSS filter provides glow.
@@ -61,9 +59,8 @@ export class WhaleCanvasComponent implements OnDestroy {
   private swimAction: any;
   private diveAction: any;
 
-  private _phase: Phase = 'hero';
-  private _heroProgress = 0;
-  private _scrollProgress = 0;
+  private _progress = 0;
+  private _progressSmooth = 0;
   private _active = true;
   private _baseCamZ = 0;
   private _whaleMeshes: any[] = [];
@@ -72,7 +69,6 @@ export class WhaleCanvasComponent implements OnDestroy {
   constructor() {
     afterNextRender(() => {
       if (isPlatformBrowser(this.platformId) && !this.initialized) {
-        // Skip WebGL on slow connections or reduced motion
         const conn = (navigator as any).connection;
         if (conn && (conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g' || conn.saveData)) {
           return;
@@ -85,44 +81,9 @@ export class WhaleCanvasComponent implements OnDestroy {
     });
   }
 
-  /** Switch between hero (centered whale) and scroll (path-driven) phase */
-  setPhase(phase: Phase): void {
-    this._phase = phase;
-    if (this.scene) {
-      if (phase === 'scroll') {
-        // Scroll phase: transparent canvas, whale floats over page content
-        this.scene.background = null;
-        this.scene.fog = null;
-        if (this.renderer) {
-          this.renderer.setClearColor(0x000000, 0);
-        }
-        // Reset whale opacity
-        for (const mesh of this._whaleMeshes) {
-          const mat = mesh.material;
-          if (mat) {
-            mat.transparent = true;
-            mat.opacity = 1;
-          }
-        }
-      } else {
-        // Hero phase: dark ocean background
-        this.scene.background = this._bgTexture;
-        if (this.scene.fog === null) {
-          // Re-import THREE to create fog — but we can't easily here.
-          // Skip fog re-creation, the background gradient is enough.
-        }
-      }
-    }
-  }
-
-  /** Hero scroll progress: 0 = full view, 1 = fully faded/zoomed out */
-  setHeroProgress(p: number): void {
-    this._heroProgress = p;
-  }
-
-  /** Scroll phase progress: 0 = enter from below, 1 = exit diving down */
-  setScrollProgress(p: number): void {
-    this._scrollProgress = p;
+  /** Single scroll progress: 0 = top of page, 1 = bottom of page */
+  setProgress(p: number): void {
+    this._progress = p;
   }
 
   /** Show/hide the whale canvas */
@@ -147,11 +108,10 @@ export class WhaleCanvasComponent implements OnDestroy {
     const w = host.clientWidth || window.innerWidth;
     const h = host.clientHeight || window.innerHeight;
 
-    // Scene — transparent canvas, env map for PBR reflections
     const scene = new THREE.Scene();
     this.scene = scene;
 
-    // Gradient env map for specular reflections on wet whale
+    // Gradient env map for PBR reflections + scene background
     const gradCanvas = document.createElement('canvas');
     gradCanvas.width = 2;
     gradCanvas.height = 256;
@@ -166,12 +126,8 @@ export class WhaleCanvasComponent implements OnDestroy {
     gCtx.fillRect(0, 0, 2, 256);
     const gradTex = new THREE.CanvasTexture(gradCanvas);
     gradTex.mapping = THREE.EquirectangularReflectionMapping;
-    scene.environment = gradTex;
-    scene.background = gradTex; // Dark ocean background — visible in hero phase
+    scene.environment = gradTex; // PBR reflections only, no visible background
     this._bgTexture = gradTex;
-
-    // Exponential fog for depth
-    scene.fog = new THREE.FogExp2(0x061a28, 0.03);
 
     // Lights
     scene.add(new THREE.AmbientLight(0x405060, 1.0));
@@ -196,7 +152,6 @@ export class WhaleCanvasComponent implements OnDestroy {
     camera.lookAt(0, 0, 0);
     this.camera = camera;
 
-    // Renderer — alpha enabled so scroll phase can be transparent
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasEl,
       antialias: true,
@@ -210,7 +165,6 @@ export class WhaleCanvasComponent implements OnDestroy {
     renderer.toneMappingExposure = 1.2;
     this.renderer = renderer;
 
-    // Resize observer
     this.resizeObserver = new ResizeObserver(() => {
       const rw = host.clientWidth || window.innerWidth;
       const rh = host.clientHeight || window.innerHeight;
@@ -246,7 +200,7 @@ export class WhaleCanvasComponent implements OnDestroy {
         const center2 = box2.getCenter(new THREE.Vector3());
         group.position.sub(center2);
 
-        // Wet whale material: clearcoat + high emissive for CSS-driven glow
+        // Wet whale material
         this._whaleMeshes = [];
         group.traverse((child: any) => {
           if (child.isMesh && child.material) {
@@ -308,8 +262,6 @@ export class WhaleCanvasComponent implements OnDestroy {
 
         scene.add(group);
         this.whaleGroup = group;
-
-        // Show the canvas
         this.setActive(true);
       },
       undefined,
@@ -325,72 +277,32 @@ export class WhaleCanvasComponent implements OnDestroy {
         this.mixer.update(this.clock.getDelta());
       }
 
-      if (this._phase === 'hero') {
-        this.updateHeroPhase();
-      } else {
-        this.updateScrollPhase();
-      }
+      // Lerp for smooth motion
+      this._progressSmooth += (this._progress - this._progressSmooth) * 0.08;
+
+      this.updateWhale();
 
       renderer.render(scene, camera);
     };
     this.ngZone.runOutsideAngular(() => animate());
   }
 
-  /** Hero phase: whale centered, surface animation, camera zoom + fade on scroll */
-  private updateHeroPhase(): void {
-    const p = this._heroProgress;
-
-    // Surface animation stays dominant in hero phase
-    this.surfaceAction?.setEffectiveWeight(1);
-    this.swimAction?.setEffectiveWeight(0);
-    this.diveAction?.setEffectiveWeight(0);
-
-    // Camera zoom out as hero scrolls
-    if (this.camera && this._baseCamZ) {
-      if (p < 0.3) {
-        this.camera.position.z = this._baseCamZ;
-      } else {
-        const t = (p - 0.3) / 0.7;
-        this.camera.position.z = this._baseCamZ * (1 + t * 2.5);
-      }
-    }
-
-    // Fade whale meshes
-    if (p > 0.6) {
-      const fadeT = (p - 0.6) / 0.4;
-      for (const mesh of this._whaleMeshes) {
-        const mat = mesh.material;
-        if (mat) {
-          mat.transparent = true;
-          mat.opacity = 1 - fadeT;
-        }
-      }
-    } else {
-      for (const mesh of this._whaleMeshes) {
-        const mat = mesh.material;
-        if (mat && mat.opacity < 1) {
-          mat.opacity = 1;
-        }
-      }
-    }
-  }
-
-  /** Scroll phase: figure-8 path, animation blending by progress */
-  private updateScrollPhase(): void {
+  /** Single continuous update — position, animation, background all driven by one progress value */
+  private updateWhale(): void {
     if (!this.whaleGroup) return;
-    const p = this._scrollProgress;
+    const p = this._progressSmooth;
 
-    // Blend animation weights by scroll position
+    // --- Animation blending ---
     let surfaceW = 0, swimW = 0, diveW = 0;
-    if (p < 0.08) {
+    if (p < 0.05) {
       surfaceW = 1;
-    } else if (p < 0.15) {
-      const blend = (p - 0.08) / 0.07;
+    } else if (p < 0.12) {
+      const blend = (p - 0.05) / 0.07;
       surfaceW = 1 - blend; swimW = blend;
-    } else if (p < 0.85) {
+    } else if (p < 0.80) {
       swimW = 1;
     } else if (p < 0.92) {
-      const blend = (p - 0.85) / 0.07;
+      const blend = (p - 0.80) / 0.12;
       swimW = 1 - blend; diveW = blend;
     } else {
       diveW = 1;
@@ -399,31 +311,28 @@ export class WhaleCanvasComponent implements OnDestroy {
     this.swimAction?.setEffectiveWeight(swimW);
     this.diveAction?.setEffectiveWeight(diveW);
 
-    // Figure-8 path
+    // --- Continuous path ---
     const t = p * Math.PI * 2;
 
-    // Enter/exit Y offset with smoothstep
+    // Smoothstep enter (0→0.03) and exit (0.92→1.0)
+    // Whale enters almost immediately so it's visible in the hero section
     let yOffset = 0;
-    if (p < 0.10) {
-      const e = p / 0.10;
+    if (p < 0.03) {
+      const e = p / 0.03;
       const smooth = e * e * (3 - 2 * e);
-      yOffset = -4 * (1 - smooth);
-    } else if (p > 0.90) {
-      const e = (p - 0.90) / 0.10;
+      yOffset = -5 * (1 - smooth);
+    } else if (p > 0.92) {
+      const e = (p - 0.92) / 0.08;
       const smooth = e * e * (3 - 2 * e);
-      yOffset = -4 * smooth;
+      yOffset = -5 * smooth;
     }
 
     this.whaleGroup.position.x = 1.5 * Math.sin(t);
     this.whaleGroup.position.y = 0.4 * Math.sin(2 * t) + yOffset;
     this.whaleGroup.position.z = 2.5 * Math.cos(t);
     this.whaleGroup.rotation.y = Math.atan2(Math.cos(t), -Math.sin(t));
-    this.whaleGroup.rotation.x = yOffset < 0 ? yOffset * 0.12 : 0;
+    this.whaleGroup.rotation.x = yOffset < 0 ? yOffset * 0.10 : 0;
 
-    // Reset camera to base position for scroll phase
-    if (this.camera && this._baseCamZ) {
-      this.camera.position.z = this._baseCamZ;
-    }
   }
 
   ngOnDestroy(): void {

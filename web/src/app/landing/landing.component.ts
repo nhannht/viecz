@@ -192,9 +192,6 @@ export class LandingComponent implements OnDestroy {
         onUpdate: (self: any) => {
           const p = self.progress;
 
-          // Drive whale hero phase
-          this.whaleCanvas?.setHeroProgress(p);
-
           // Glass card fade out (0 → 0.3)
           if (glassCard) {
             const cardProgress = Math.min(p / 0.3, 1);
@@ -218,39 +215,21 @@ export class LandingComponent implements OnDestroy {
       }
     }
 
-    // --- Whale scroll phase: fixed background behind content sections ---
-    // Use raw scroll listener + ScrollTrigger.maxScroll() for precise 0→1 progress
-    // across the entire page, including pin-expanded scroll distance from HIW/Features.
+    // --- Whale: single continuous scroll progress 0→1 across entire page ---
     if (this.whaleCanvas) {
-      const heroEndPx = Math.round(window.innerHeight * 1.5);
-      let scrollPhaseActive = false;
       const onWhaleScroll = () => {
         const scrollY = window.scrollY;
         const maxScroll = ScrollTrigger.maxScroll(window);
+        const p = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
+        this.whaleCanvas.setProgress(p);
 
-        if (scrollY < heroEndPx) {
-          if (scrollPhaseActive) {
-            scrollPhaseActive = false;
-            this.whaleCanvas.setPhase('hero');
-            document.documentElement.style.setProperty('--whale-darkness', '0');
-          }
-          return;
-        }
-
-        if (!scrollPhaseActive) {
-          scrollPhaseActive = true;
-          this.whaleCanvas.setPhase('scroll');
-        }
-
-        const p = Math.max(0, Math.min(1, (scrollY - heroEndPx) / (maxScroll - heroEndPx)));
-        this.whaleCanvas.setScrollProgress(p);
-
-        // Darken page background: ramp up 0→1 in first 20%, hold, ramp down in last 20%
+        // Darken page background in middle sections
         let darkness: number;
-        if (p < 0.2) darkness = p / 0.2;
-        else if (p > 0.8) darkness = (1 - p) / 0.2;
+        if (p < 0.15) darkness = 0;
+        else if (p < 0.25) darkness = (p - 0.15) / 0.10;
+        else if (p > 0.85) darkness = (1 - p) / 0.15;
         else darkness = 1;
-        document.documentElement.style.setProperty('--whale-darkness', String(darkness));
+        document.documentElement.style.setProperty('--whale-darkness', String(Math.max(0, darkness)));
       };
       window.addEventListener('scroll', onWhaleScroll, { passive: true });
       this.scrollTriggers.push({ kill: () => window.removeEventListener('scroll', onWhaleScroll) });

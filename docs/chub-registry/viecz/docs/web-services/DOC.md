@@ -272,6 +272,61 @@ transloco.langChanges$     // Observable<string>
 /notifications     // Notifications (auth)
 ```
 
+## Landing Page 3D Scene
+
+```typescript
+// whale-canvas.component.ts — single unified WebGL context for entire landing
+// Replaces old dual-context setup (HeroEgg3dComponent + WhaleScrollComponent)
+
+// Architecture:
+// - All imports dynamic: await import('three'), await import('GLTFLoader'), etc.
+// - Loads glow_whale_landing.glb (561 KB, 3 animations: surface, move f, move d)
+// - Stripped from 3MB/20 animations via gltf-transform
+// - No postprocessing library — CSS filter: brightness(1.15) contrast(1.05) for glow
+// - No secondary scene (no particles, mountains, fish, ocean floor)
+
+// Two rendering phases:
+// Phase 1 — Hero (scroll 0% to hero pin end):
+//   - Whale centered, plays 'surface' animation
+//   - Dark ocean gradient background (scene.background = equirect gradient texture)
+//   - FogExp2 for depth
+//   - setHeroProgress(p): camera zooms out + whale fades as hero scrolls away
+//
+// Phase 2 — Scroll (after hero, rest of page):
+//   - scene.background = null (transparent canvas overlay)
+//   - Whale follows figure-8 path: x=1.5sin(t), y=0.4sin(2t)+yOffset, z=2.5cos(t)
+//   - Animation blending by progress: surface → swim (move f) → dive (move d)
+//   - Smoothstep enter from below / exit diving down
+
+// Mobile fallback — skips WebGL entirely on:
+//   - navigator.connection.effectiveType === '2g' | 'slow-2g'
+//   - navigator.connection.saveData === true
+//   - prefers-reduced-motion: reduce
+
+// Material: MeshPhysicalMaterial with clearcoat (wet whale look)
+//   emissiveIntensity: 12, roughness: 0.15
+//   clearcoat: 1.0, clearcoatRoughness: 0.05, envMapIntensity: 2.5
+
+// GSAP wiring (in landing.component.ts):
+//   Hero pin onUpdate → whaleCanvas.setHeroProgress(p)
+//   Post-hero scroll listener → whaleCanvas.setPhase('scroll') + setScrollProgress(p)
+//   CSS --whale-darkness custom property for page background dimming
+```
+
+## Landing Minimap
+
+```typescript
+// landing-minimap.component.ts — pure CSS/SVG, no MapLibre GL
+// Replaced MapLibre (263 KB gzipped + MapTiler tile fetches) with:
+//   - Inline SVG road grid pattern (curved paths mimicking HCMC streets + river)
+//   - CSS-positioned markers at approximate % coords for 4 HCMC districts
+//   - Pulsing dot + expanding ripple ring (CSS @keyframes, staggered delays)
+//   - Dark background: linear-gradient simulating desaturated map tiles
+//   - Frost overlay: linear-gradient(160deg, teal→deep blue)
+//   - Glass card opacity adapts to --whale-darkness CSS custom property
+//   - Zero JavaScript, zero runtime dependencies, zero network requests
+```
+
 ## SSR Configuration
 
 ```typescript
