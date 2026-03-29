@@ -25,7 +25,7 @@ import { LandingHowItWorksSection } from './landing-howitworks.section';
   `,
   styles: `
     .dev-root {
-      min-height: 300vh;
+      min-height: 700vh;
       position: relative;
     }
     .dev-spacer {
@@ -71,22 +71,45 @@ export class HowItWorksDevComponent implements OnDestroy {
     if (!gsapMod) return;
     const ScrollTrigger = (await import('gsap/ScrollTrigger')).ScrollTrigger;
 
-    const setupRiverSteps = () => {
-      const riverSteps = document.querySelectorAll('.river-step');
-      if (riverSteps.length === 0) {
-        requestAnimationFrame(setupRiverSteps);
+    const setupHiw = () => {
+      const hiwEl = this.howItWorksSection?.getSectionEl();
+      if (!hiwEl) {
+        requestAnimationFrame(setupHiw);
         return;
       }
-      riverSteps.forEach((step, i) => {
-        const st = ScrollTrigger.create({
-          trigger: step,
-          start: 'top 75%',
-          onEnter: () => this.howItWorksSection?.playStep(i),
-          onLeaveBack: () => this.howItWorksSection?.resetStep(i),
+
+      if (window.innerWidth < 768) {
+        // Mobile fallback: per-slide triggers, no pinning
+        const slides = hiwEl.querySelectorAll('.hiw-slide');
+        slides.forEach((slide, i) => {
+          const el = slide as HTMLElement;
+          el.style.position = 'relative';
+          el.style.opacity = '1';
+          el.style.pointerEvents = 'auto';
+          el.style.filter = 'none';
+          el.style.transform = 'none';
+
+          const st = ScrollTrigger.create({
+            trigger: el,
+            start: 'top 75%',
+            onEnter: () => this.howItWorksSection?.playStep(i),
+            onLeaveBack: () => this.howItWorksSection?.resetStep(i),
+          });
+          this.scrollTriggers.push(st);
         });
-        this.scrollTriggers.push(st);
+        return;
+      }
+
+      const hiwSt = ScrollTrigger.create({
+        trigger: hiwEl,
+        start: 'top top',
+        end: '+=400%',
+        pin: true,
+        scrub: 1,
+        onUpdate: (self: any) => this.howItWorksSection?.updateProgress(self.progress),
       });
+      this.scrollTriggers.push(hiwSt);
     };
-    setupRiverSteps();
+    setupHiw();
   }
 }

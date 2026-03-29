@@ -289,6 +289,7 @@ export class HeroEgg3dComponent implements OnDestroy {
     const gradTex = new THREE.CanvasTexture(gradCanvas);
     gradTex.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = gradTex;
+    scene.environment = gradTex; // PBR reflections for clearcoat wet surface
 
     // Exponential fog — objects fade into deep ocean at distance
     const fogColor = new THREE.Color(0x061a28);
@@ -572,7 +573,7 @@ export class HeroEgg3dComponent implements OnDestroy {
     const swimRangeZ = camZ * 2.5;
     this.swimming.setSwimRange(swimRangeX, swimRangeY, swimRangeZ);
 
-    // Materials: shadows, emissive, bloom — also cache meshes for scroll fade
+    // Materials: shadows, emissive, bloom, wet clearcoat — also cache meshes for scroll fade
     let firstMaterial: THREE.MeshStandardMaterial | null = null;
     this._whaleMeshes = [];
     gltf.scene.traverse((child) => {
@@ -581,8 +582,34 @@ export class HeroEgg3dComponent implements OnDestroy {
         mesh.castShadow = true;
         mesh.receiveShadow = false;
         const mat = mesh.material as THREE.MeshStandardMaterial;
-        if (!firstMaterial) firstMaterial = mat;
-        mat.emissiveIntensity = 20;
+
+        // Upgrade to MeshPhysicalMaterial for wet clearcoat effect
+        const phys = new THREE.MeshPhysicalMaterial();
+        phys.color.copy(mat.color);
+        phys.map = mat.map;
+        phys.normalMap = mat.normalMap;
+        if (mat.normalScale) phys.normalScale.copy(mat.normalScale);
+        phys.emissive.copy(mat.emissive);
+        phys.emissiveMap = mat.emissiveMap;
+        phys.emissiveIntensity = 20;
+        phys.metalness = mat.metalness;
+        phys.metalnessMap = mat.metalnessMap;
+        phys.roughness = 0.15;
+        phys.roughnessMap = mat.roughnessMap;
+        phys.aoMap = mat.aoMap;
+        phys.side = mat.side;
+        phys.transparent = mat.transparent;
+        phys.opacity = mat.opacity;
+
+        // Wet surface — clearcoat simulates thin glossy water film
+        phys.clearcoat = 1.0;
+        phys.clearcoatRoughness = 0.05;
+        phys.envMapIntensity = 2.5;
+
+        mesh.material = phys;
+        mat.dispose();
+
+        if (!firstMaterial) firstMaterial = phys;
         child.layers.enable(BLOOM_LAYER);
         this.postProcessing?.addBloomMesh(mesh);
         this._whaleMeshes.push(mesh);

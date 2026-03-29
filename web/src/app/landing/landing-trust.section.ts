@@ -1,14 +1,13 @@
 import { Component } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { LandingMinimapComponent } from './landing-minimap.component';
 
 @Component({
   selector: 'app-landing-trust',
   standalone: true,
-  imports: [TranslocoDirective, LandingMinimapComponent],
+  imports: [TranslocoDirective],
   template: `
     <ng-container *transloco="let t">
-      <section class="trust-section">
+      <section id="landing-trust" class="trust-section">
         <div class="stats-grid">
           @for (stat of stats; track stat.valueKey) {
             <div class="trust-tile">
@@ -17,8 +16,6 @@ import { LandingMinimapComponent } from './landing-minimap.component';
             </div>
           }
         </div>
-
-        <app-landing-minimap />
 
         <div class="testimonials-row">
           @for (quote of quotes; track quote.nameKey) {

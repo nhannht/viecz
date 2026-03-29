@@ -77,6 +77,7 @@ html.sang-frostglass body::after {
   transition: opacity 100ms ease-out;
 }
 
+
 /* === Glass card effects === */
 .sang-frostglass .bg-card {
   position: relative;
