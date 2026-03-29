@@ -140,7 +140,7 @@ describe('ShellComponent', () => {
 
   it('should have notification bell button', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const icons = compiled.querySelectorAll('nhannht-metro-icon');
+    const icons = compiled.querySelectorAll('viecz-icon');
     const notifIcon = Array.from(icons).find((el) =>
       el.getAttribute('ng-reflect-name') === 'notifications' || el.textContent?.includes('notifications'),
     );
@@ -161,7 +161,7 @@ describe('ShellComponent', () => {
 
   it('should have user menu with profile and logout', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const icons = compiled.querySelectorAll('nhannht-metro-icon');
+    const icons = compiled.querySelectorAll('viecz-icon');
     const accountIcon = Array.from(icons).find((el) =>
       el.getAttribute('ng-reflect-name') === 'account_circle' || el.textContent?.includes('account_circle'),
     );
@@ -296,7 +296,7 @@ describe('ShellComponent', () => {
     // Find the notification bell button (contains notifications icon)
     const buttons = el.querySelectorAll('button');
     const bellBtn = Array.from(buttons).find(b => {
-      const icon = b.querySelector('nhannht-metro-icon');
+      const icon = b.querySelector('viecz-icon');
       return icon?.getAttribute('ng-reflect-name') === 'notifications' || icon?.textContent?.includes('notifications');
     });
     expect(bellBtn).toBeTruthy();
@@ -309,7 +309,7 @@ describe('ShellComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
     const buttons = el.querySelectorAll('button');
     const accountBtn = Array.from(buttons).find(b => {
-      const icon = b.querySelector('nhannht-metro-icon');
+      const icon = b.querySelector('viecz-icon');
       return icon?.getAttribute('ng-reflect-name') === 'account_circle' || icon?.textContent?.includes('account_circle');
     });
     expect(accountBtn).toBeTruthy();
@@ -361,7 +361,7 @@ describe('ShellComponent', () => {
 
   it('should render snackbar component', () => {
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-snackbar')).toBeTruthy();
+    expect(el.querySelector('viecz-snackbar')).toBeTruthy();
   });
 
   // --- Template lifecycle toggle tests ---

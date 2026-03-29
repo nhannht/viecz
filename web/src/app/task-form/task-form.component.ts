@@ -7,15 +7,15 @@ import { TaskService } from '../core/task.service';
 import { CategoryService } from '../core/category.service';
 import { WalletService } from '../core/wallet.service';
 import { VndPipe } from '../core/pipes';
-import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
-import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
-import { NhannhtMetroSelectComponent } from '../shared/components/nhannht-metro-select.component';
-import { NhannhtMetroSmartDeadlineComponent } from '../shared/components/nhannht-metro-smart-deadline.component';
-import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
-import { NhannhtMetroLocationPickerComponent } from '../shared/components/nhannht-metro-location-picker.component';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczCardComponent } from '../shared/components/viecz-card.component';
+import { VieczInputComponent } from '../shared/components/viecz-input.component';
+import { VieczSelectComponent } from '../shared/components/viecz-select.component';
+import { VieczSmartDeadlineComponent } from '../shared/components/viecz-smart-deadline.component';
+import { VieczButtonComponent } from '../shared/components/viecz-button.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
+import { VieczLocationPickerComponent } from '../shared/components/viecz-location-picker.component';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { ProfileGateService } from '../core/profile-gate.service';
 import { LocationPickerValue } from '../core/models';
 
@@ -26,26 +26,26 @@ import { LocationPickerValue } from '../core/models';
     FormsModule,
     TranslocoDirective,
     VndPipe,
-    NhannhtMetroCardComponent,
-    NhannhtMetroInputComponent,
-    NhannhtMetroSelectComponent,
-    NhannhtMetroSmartDeadlineComponent,
-    NhannhtMetroButtonComponent,
-    NhannhtMetroIconComponent,
-    NhannhtMetroSpinnerComponent,
-    NhannhtMetroLocationPickerComponent,
+    VieczCardComponent,
+    VieczInputComponent,
+    VieczSelectComponent,
+    VieczSmartDeadlineComponent,
+    VieczButtonComponent,
+    VieczIconComponent,
+    VieczSpinnerComponent,
+    VieczLocationPickerComponent,
   ],
   template: `
     <ng-container *transloco="let t">
       @if (loadingTask()) {
-        <div class="flex justify-center py-16"><nhannht-metro-spinner /></div>
+        <div class="flex justify-center py-16"><viecz-spinner /></div>
       } @else {
-        <nhannht-metro-card class="block max-w-[700px] mx-auto">
+        <viecz-card class="block max-w-[700px] mx-auto">
           <h2 class="font-display text-[11px] tracking-[1px] text-fg uppercase mb-4">
             {{ isEditMode() ? t('taskForm.editTitle') : t('taskForm.createTitle') }}
           </h2>
           <form class="flex flex-col gap-1 pt-4" (ngSubmit)="onSubmit()">
-            <nhannht-metro-input
+            <viecz-input
               [label]="t('taskForm.titleLabel')"
               [placeholder]="t('taskForm.titlePlaceholder')"
               [(ngModel)]="title" name="title"
@@ -63,7 +63,7 @@ import { LocationPickerValue } from '../core/models';
               }
             </div>
 
-            <nhannht-metro-select
+            <viecz-select
               [label]="t('taskForm.categoryLabel')"
               [placeholder]="t('taskForm.categoryPlaceholder')"
               [options]="categoryOptions()"
@@ -78,7 +78,7 @@ import { LocationPickerValue } from '../core/models';
                    [class.border]="isInsufficient()"
                    [class.border-fg]="isInsufficient()"
                    [class.text-fg]="isInsufficient()">
-                <nhannht-metro-icon name="account_balance_wallet" />
+                <viecz-icon name="account_balance_wallet" />
                 <div class="flex flex-col">
                   <span class="font-body text-[10px] opacity-80">{{ t('taskForm.availableBalance') }}</span>
                   <span class="font-body text-[15px] font-semibold">
@@ -94,7 +94,7 @@ import { LocationPickerValue } from '../core/models';
               </div>
             }
 
-            <nhannht-metro-input
+            <viecz-input
               [label]="t('taskForm.priceLabel')"
               type="number"
               [placeholder]="t('taskForm.pricePlaceholder')"
@@ -102,39 +102,39 @@ import { LocationPickerValue } from '../core/models';
               [(ngModel)]="price" name="price"
               [error]="priceError()" />
 
-            <nhannht-metro-location-picker
+            <viecz-location-picker
               [label]="t('taskForm.locationLabel')"
               [placeholder]="t('taskForm.locationPickerHint')"
               [(ngModel)]="locationValue" name="locationValue"
               [error]="submitted && !locationValue.location ? t('taskForm.locationRequired') : ''" />
 
-            <nhannht-metro-smart-deadline
+            <viecz-smart-deadline
               [label]="t('taskForm.deadlineLabel')"
               [(ngModel)]="deadline" name="deadline"
               [error]="submitted && isDeadlinePast() ? t('taskForm.deadlinePast') : ''" />
 
             <div class="flex justify-end items-center gap-3 pt-4">
-              <nhannht-metro-button
+              <viecz-button
                 variant="secondary"
                 [label]="t('common.cancel')"
                 type="button"
                 (clicked)="onCancel()" />
-              <nhannht-metro-button
+              <viecz-button
                 variant="primary"
                 [disabled]="saving()"
                 type="submit">
                 @if (saving()) {
-                  <nhannht-metro-spinner size="sm" />
+                  <viecz-spinner size="sm" />
                 } @else {
                   <span class="inline-flex items-center gap-2">
-                    <nhannht-metro-icon [name]="isEditMode() ? 'save' : 'add'" [size]="18" />
+                    <viecz-icon [name]="isEditMode() ? 'save' : 'add'" [size]="18" />
                     {{ isEditMode() ? t('taskForm.saveChanges') : t('taskForm.createTitle') }}
                   </span>
                 }
-              </nhannht-metro-button>
+              </viecz-button>
             </div>
           </form>
-        </nhannht-metro-card>
+        </viecz-card>
       }
     </ng-container>
   `,
@@ -146,7 +146,7 @@ export class TaskFormComponent implements OnInit {
   private categoryService = inject(CategoryService);
   private walletService = inject(WalletService);
   private router = inject(Router);
-  private snackBar = inject(NhannhtMetroSnackbarService);
+  private snackBar = inject(VieczSnackbarService);
   private profileGate = inject(ProfileGateService);
   private transloco = inject(TranslocoService);
 

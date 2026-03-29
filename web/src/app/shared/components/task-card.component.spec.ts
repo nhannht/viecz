@@ -146,7 +146,7 @@ describe('TaskCardComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
     // The first metadata row should have no schedule icon (deadline absent),
     // but the second row (time ago) always has one — so count schedule icons.
-    const scheduleIcons = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+    const scheduleIcons = Array.from(el.querySelectorAll('viecz-icon'))
       .filter(i => i.textContent?.includes('schedule'));
     // Only the time-ago row's schedule icon should exist (1), not the deadline one (would be 2)
     expect(scheduleIcons.length).toBe(1);
@@ -173,7 +173,7 @@ describe('TaskCardComponent', () => {
       const noLocationTask = { ...mockTask, location: undefined };
       const fixture = createFixture(noLocationTask as any);
       const el = fixture.nativeElement as HTMLElement;
-      const locationIcon = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+      const locationIcon = Array.from(el.querySelectorAll('viecz-icon'))
         .find(i => i.textContent?.includes('location_on'));
       expect(locationIcon).toBeTruthy();
       expect(el.textContent).toContain('—');
@@ -182,7 +182,7 @@ describe('TaskCardComponent', () => {
     it('should show location icon when location is present', () => {
       const fixture = createFixture();
       const el = fixture.nativeElement as HTMLElement;
-      const icons = el.querySelectorAll('nhannht-metro-icon');
+      const icons = el.querySelectorAll('viecz-icon');
       const locationIcon = Array.from(icons).find(i => i.textContent?.includes('location_on'));
       expect(locationIcon).toBeTruthy();
     });
@@ -201,7 +201,7 @@ describe('TaskCardComponent', () => {
     it('should not show deadline block when task has no deadline (deadline @if false-branch)', () => {
       const noDeadlineFix = createFixture({ ...mockTask, deadline: undefined });
       const el = noDeadlineFix.nativeElement as HTMLElement;
-      const scheduleIcons = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+      const scheduleIcons = Array.from(el.querySelectorAll('viecz-icon'))
         .filter(i => i.textContent?.includes('schedule'));
       // Only the time-ago row's schedule icon (1), not the deadline one (would be 2)
       expect(scheduleIcons.length).toBe(1);
@@ -210,7 +210,7 @@ describe('TaskCardComponent', () => {
     it('should show deadline block when task has a deadline (deadline @if true-branch)', () => {
       const withDeadlineFix = createFixture({ ...mockTask, deadline: '2026-12-31T00:00:00Z' });
       const el = withDeadlineFix.nativeElement as HTMLElement;
-      const scheduleIcons = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+      const scheduleIcons = Array.from(el.querySelectorAll('viecz-icon'))
         .filter(i => i.textContent?.includes('schedule'));
       // Both deadline and time-ago rows have schedule icons
       expect(scheduleIcons.length).toBe(2);
@@ -223,7 +223,7 @@ describe('TaskCardComponent', () => {
       const fixture = createFixture(taskWithCategory);
       const el = fixture.nativeElement as HTMLElement;
       expect(el.textContent).toContain('Delivery');
-      const categoryIcon = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+      const categoryIcon = Array.from(el.querySelectorAll('viecz-icon'))
         .find(i => i.textContent?.includes('category'));
       expect(categoryIcon).toBeTruthy();
     });
@@ -231,7 +231,7 @@ describe('TaskCardComponent', () => {
     it('should not show category when absent', () => {
       const fixture = createFixture(); // mockTask has no category
       const el = fixture.nativeElement as HTMLElement;
-      const categoryIcon = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+      const categoryIcon = Array.from(el.querySelectorAll('viecz-icon'))
         .find(i => i.textContent?.includes('category'));
       expect(categoryIcon).toBeFalsy();
     });
@@ -250,7 +250,7 @@ describe('TaskCardComponent', () => {
       const el = fixture.nativeElement as HTMLElement;
       expect(el.textContent).toContain('5');
       expect(el.textContent).toContain('applied');
-      const groupIcon = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+      const groupIcon = Array.from(el.querySelectorAll('viecz-icon'))
         .find(i => i.textContent?.includes('group'));
       expect(groupIcon).toBeTruthy();
     });
@@ -258,7 +258,7 @@ describe('TaskCardComponent', () => {
     it('should not show application count when undefined', () => {
       const fixture = createFixture(); // mockTask has no application_count
       const el = fixture.nativeElement as HTMLElement;
-      const groupIcon = Array.from(el.querySelectorAll('nhannht-metro-icon'))
+      const groupIcon = Array.from(el.querySelectorAll('viecz-icon'))
         .find(i => i.textContent?.includes('group'));
       expect(groupIcon).toBeFalsy();
     });

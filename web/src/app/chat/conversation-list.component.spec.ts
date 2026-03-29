@@ -65,7 +65,7 @@ describe('ConversationListComponent', () => {
   it('should show loading spinner initially', () => {
     fixture.detectChanges();
     expect(component.loading()).toBe(true);
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
     httpTesting.expectOne('/api/v1/conversations').flush([]);
   });
 
@@ -206,7 +206,7 @@ describe('ConversationListComponent', () => {
     fixture.detectChanges();
     httpTesting.expectOne('/api/v1/conversations').flush(mockConversations);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeFalsy();
   });
 
   it('should not show error fallback or empty state when conversations exist', () => {
@@ -341,7 +341,7 @@ describe('ConversationListComponent', () => {
     // 1. loading state
     fixture.detectChanges();
     expect(component.loading()).toBe(true);
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
     // Flush with error to reach error state
     httpTesting.expectOne('/api/v1/conversations').error(new ProgressEvent('error'));

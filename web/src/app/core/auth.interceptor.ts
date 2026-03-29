@@ -2,11 +2,11 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  const snackbar = inject(NhannhtMetroSnackbarService);
+  const snackbar = inject(VieczSnackbarService);
   const token = auth.getAccessToken();
 
   // Skip auth header and error handling for external API calls (MapTiler, Nominatim, etc.)

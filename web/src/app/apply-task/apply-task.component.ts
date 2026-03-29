@@ -2,11 +2,11 @@ import { Component, inject, OnInit, signal, input } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
-import { NhannhtMetroTextareaComponent } from '../shared/components/nhannht-metro-textarea.component';
-import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczInputComponent } from '../shared/components/viecz-input.component';
+import { VieczTextareaComponent } from '../shared/components/viecz-textarea.component';
+import { VieczButtonComponent } from '../shared/components/viecz-button.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { TaskService } from '../core/task.service';
 import { ApplicationService } from '../core/application.service';
 import { ProfileGateService } from '../core/profile-gate.service';
@@ -19,17 +19,17 @@ import { VndPipe } from '../core/pipes';
   imports: [
     FormsModule,
     TranslocoDirective,
-    NhannhtMetroInputComponent,
-    NhannhtMetroTextareaComponent,
-    NhannhtMetroButtonComponent,
-    NhannhtMetroSpinnerComponent,
+    VieczInputComponent,
+    VieczTextareaComponent,
+    VieczButtonComponent,
+    VieczSpinnerComponent,
     VndPipe,
   ],
   template: `
     <ng-container *transloco="let t">
       @if (loading()) {
         <div class="flex justify-center py-16">
-          <nhannht-metro-spinner />
+          <viecz-spinner />
         </div>
       } @else if (task()) {
         <div class="max-w-[600px] mx-auto">
@@ -45,7 +45,7 @@ import { VndPipe } from '../core/pipes';
                 <span class="font-body text-[13px] font-bold text-fg">{{ t('applyTask.taskPrice') }}{{ task()!.price | vnd }}</span>
               </div>
 
-              <nhannht-metro-input
+              <viecz-input
                 [label]="t('applyTask.proposedPriceLabel')"
                 type="number"
                 [step]="1000" [min]="1000"
@@ -54,7 +54,7 @@ import { VndPipe } from '../core/pipes';
                 [error]="priceError"
               />
 
-              <nhannht-metro-textarea
+              <viecz-textarea
                 [label]="t('applyTask.messageLabel')"
                 [placeholder]="t('applyTask.messagePlaceholder')"
                 [rows]="4"
@@ -64,11 +64,11 @@ import { VndPipe } from '../core/pipes';
             </div>
 
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-border">
-              <nhannht-metro-button variant="secondary" [label]="t('common.cancel')" (clicked)="cancel()" />
+              <viecz-button variant="secondary" [label]="t('common.cancel')" (clicked)="cancel()" />
               @if (submitting()) {
-                <nhannht-metro-spinner size="sm" />
+                <viecz-spinner size="sm" />
               } @else {
-                <nhannht-metro-button variant="primary" [label]="t('applyTask.submitButton')" (clicked)="submit()" />
+                <viecz-button variant="primary" [label]="t('applyTask.submitButton')" (clicked)="submit()" />
               }
             </div>
           </div>
@@ -83,7 +83,7 @@ export class ApplyTaskComponent implements OnInit {
   private taskService = inject(TaskService);
   private applicationService = inject(ApplicationService);
   private router = inject(Router);
-  private snackbar = inject(NhannhtMetroSnackbarService);
+  private snackbar = inject(VieczSnackbarService);
   private profileGate = inject(ProfileGateService);
   private transloco = inject(TranslocoService);
 

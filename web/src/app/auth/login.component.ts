@@ -2,10 +2,10 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
-import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { VieczInputComponent } from '../shared/components/viecz-input.component';
+import { VieczButtonComponent } from '../shared/components/viecz-button.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { AuthService } from '../core/auth.service';
 import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.component';
 
@@ -15,10 +15,10 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
   imports: [
     FormsModule,
     TranslocoDirective,
-    NhannhtMetroInputComponent,
-    NhannhtMetroButtonComponent,
-    NhannhtMetroIconComponent,
-    NhannhtMetroSpinnerComponent,
+    VieczInputComponent,
+    VieczButtonComponent,
+    VieczIconComponent,
+    VieczSpinnerComponent,
     DevModeBannerComponent,
   ],
   template: `
@@ -26,7 +26,7 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
       <div class="flex justify-center items-center min-h-screen bg-bg px-4">
         <div class="w-full max-w-[420px] bg-card border border-border p-8">
           <div class="flex items-center justify-center gap-2 mb-2">
-            <nhannht-metro-icon name="work" [size]="28" />
+            <viecz-icon name="work" [size]="28" />
             <span class="font-display text-[16px] text-fg tracking-[2px]">{{ t('common.viecz') }}</span>
           </div>
 
@@ -42,7 +42,7 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
           @if (!codeSent()) {
             <!-- Step 1: Email input -->
             <form (ngSubmit)="onRequestOTP()" class="flex flex-col gap-4">
-              <nhannht-metro-input
+              <viecz-input
                 [label]="t('auth.login.emailLabel')"
                 type="email"
                 [placeholder]="t('auth.login.emailPlaceholder')"
@@ -53,10 +53,10 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
               <div class="mt-2">
                 @if (loading()) {
                   <div class="flex justify-center py-3">
-                    <nhannht-metro-spinner size="sm" />
+                    <viecz-spinner size="sm" />
                   </div>
                 } @else {
-                  <nhannht-metro-button
+                  <viecz-button
                     variant="primary"
                     [label]="t('auth.login.continue')"
                     type="submit"
@@ -80,7 +80,7 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
 
             <form (ngSubmit)="onVerifyOTP()" class="flex flex-col gap-4">
               @if (isNewUser()) {
-                <nhannht-metro-input
+                <viecz-input
                   [label]="t('auth.login.nameLabel')"
                   type="text"
                   [placeholder]="t('auth.login.namePlaceholder')"
@@ -89,7 +89,7 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
                 />
               }
 
-              <nhannht-metro-input
+              <viecz-input
                 [label]="t('auth.login.codeLabel')"
                 type="text"
                 [placeholder]="t('auth.login.codePlaceholder')"
@@ -100,10 +100,10 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
               <div class="mt-2">
                 @if (loading()) {
                   <div class="flex justify-center py-3">
-                    <nhannht-metro-spinner size="sm" />
+                    <viecz-spinner size="sm" />
                   </div>
                 } @else {
-                  <nhannht-metro-button
+                  <viecz-button
                     variant="primary"
                     [label]="t('auth.login.signInButton')"
                     type="submit"

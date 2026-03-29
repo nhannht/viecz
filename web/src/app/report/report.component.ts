@@ -5,7 +5,7 @@ import { ReportInitComponent } from './report-init.component';
 /**
  * Standalone report page rendering the HCMUS I&E 2025 competition report
  * as a styled A4 web page. Accessible at /report (no auth required).
- * Uses metro-meow editorial style: JetBrains Mono headings + Times New Roman body.
+ * Uses editorial style: JetBrains Mono headings + Times New Roman body.
  * Scroll-triggered fade-in animations on sections and tables.
  */
 @Component({

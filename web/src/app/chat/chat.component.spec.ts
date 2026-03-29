@@ -393,7 +393,7 @@ describe('ChatComponent', () => {
     // Before messages flush, loading is true
     expect(component.loading()).toBe(true);
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
     // Flush remaining requests to avoid afterEach verify error
     httpTesting.expectOne('/api/v1/conversations/5').flush({});
     httpTesting.expectOne(r => r.url === '/api/v1/conversations/5/messages').flush([]);

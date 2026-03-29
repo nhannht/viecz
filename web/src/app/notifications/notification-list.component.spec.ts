@@ -186,7 +186,7 @@ describe('NotificationListComponent', () => {
     component.loading.set(true);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
   });
 
   it('should render error fallback when error is true', () => {
@@ -199,7 +199,7 @@ describe('NotificationListComponent', () => {
 
   it('should render notification list with dividers', () => {
     const el = fixture.nativeElement as HTMLElement;
-    const dividers = el.querySelectorAll('nhannht-metro-divider');
+    const dividers = el.querySelectorAll('viecz-divider');
     expect(dividers.length).toBe(2); // one per notification
   });
 
@@ -253,20 +253,20 @@ describe('NotificationListComponent', () => {
       component.loading.set(true);
       component.notifications.set([]);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // Switch to loaded with notifications — destroys spinner, creates @for block
       component.loading.set(false);
       component.notifications.set(mockNotifications);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeFalsy();
       expect(fixture.nativeElement.textContent).toContain('New Application');
     });
 
     it('should toggle from loading to error state (destroys spinner, creates error block)', () => {
       component.loading.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // Switch to error
       component.loading.set(false);
@@ -274,7 +274,7 @@ describe('NotificationListComponent', () => {
       component.notifications.set([]);
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeTruthy();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeFalsy();
     });
 
     it('should toggle from error to empty state (destroys error block, creates empty block)', () => {

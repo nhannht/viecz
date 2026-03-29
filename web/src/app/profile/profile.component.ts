@@ -8,15 +8,15 @@ import { AuthService } from '../core/auth.service';
 import { FirebasePhoneAuthService } from '../core/firebase.service';
 import { User } from '../core/models';
 import { VndPipe } from '../core/pipes';
-import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
-import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
-import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
-import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
-import { NhannhtMetroDialogComponent } from '../shared/components/nhannht-metro-dialog.component';
+import { VieczCardComponent } from '../shared/components/viecz-card.component';
+import { VieczButtonComponent } from '../shared/components/viecz-button.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
+import { VieczInputComponent } from '../shared/components/viecz-input.component';
+import { VieczDividerComponent } from '../shared/components/viecz-divider.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
+import { VieczDialogComponent } from '../shared/components/viecz-dialog.component';
 import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.component';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import google_libphonenumber from 'google-libphonenumber';
 
 @Component({
@@ -28,24 +28,24 @@ import google_libphonenumber from 'google-libphonenumber';
     VndPipe,
     DecimalPipe,
     RouterLink,
-    NhannhtMetroCardComponent,
-    NhannhtMetroButtonComponent,
-    NhannhtMetroIconComponent,
-    NhannhtMetroInputComponent,
-    NhannhtMetroDividerComponent,
-    NhannhtMetroSpinnerComponent,
-    NhannhtMetroDialogComponent,
+    VieczCardComponent,
+    VieczButtonComponent,
+    VieczIconComponent,
+    VieczInputComponent,
+    VieczDividerComponent,
+    VieczSpinnerComponent,
+    VieczDialogComponent,
     DevModeBannerComponent,
   ],
   template: `
     <ng-container *transloco="let t">
       @if (loading()) {
         <div class="flex justify-center py-16">
-          <nhannht-metro-spinner />
+          <viecz-spinner />
         </div>
       } @else if (user()) {
         <div class="flex flex-col gap-4 max-w-[700px] mx-auto">
-          <nhannht-metro-card>
+          <viecz-card>
             <div class="flex gap-6 items-center mb-4 max-sm:flex-col max-sm:text-center">
               <div class="relative">
                 @if (user()!.avatar_url) {
@@ -53,13 +53,13 @@ import google_libphonenumber from 'google-libphonenumber';
                        class="w-24 h-24 rounded-full object-cover border-2 border-fg">
                 } @else {
                   <div class="w-24 h-24 rounded-full bg-card border border-border flex items-center justify-center text-muted">
-                    <nhannht-metro-icon name="person" [size]="48" />
+                    <viecz-icon name="person" [size]="48" />
                   </div>
                 }
                 @if (isOwnProfile()) {
                   <label class="absolute bottom-0 right-0 bg-fg text-bg rounded-full p-1.5 cursor-pointer"
                          for="avatar-input">
-                    <nhannht-metro-icon name="camera_alt" [size]="18" />
+                    <viecz-icon name="camera_alt" [size]="18" />
                     <input id="avatar-input" type="file" accept="image/*"
                            (change)="onAvatarChange($event)" hidden>
                   </label>
@@ -69,59 +69,59 @@ import google_libphonenumber from 'google-libphonenumber';
                 <h2 class="font-display text-xl tracking-[1px] text-fg m-0 mb-1">{{ user()!.name }}</h2>
                 <p class="text-muted text-[13px] m-0 mb-1">{{ user()!.email }}</p>
                 <p class="flex items-center gap-1 text-muted text-[13px] m-0 mb-2">
-                  <nhannht-metro-icon name="school" [size]="16" /> {{ user()!.university }}
+                  <viecz-icon name="school" [size]="16" /> {{ user()!.university }}
                 </p>
                 <div class="flex flex-wrap gap-2 mb-2">
                   @if (user()!.email_verified) {
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-green-700 text-green-700 text-[11px] font-bold tracking-[1px]">
-                      <nhannht-metro-icon name="mail" [size]="14" /> {{ t('profile.emailVerified') }}
+                      <viecz-icon name="mail" [size]="14" /> {{ t('profile.emailVerified') }}
                     </span>
                   } @else {
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-muted text-muted text-[11px] font-bold tracking-[1px]">
-                      <nhannht-metro-icon name="mail" [size]="14" /> {{ t('profile.emailNotVerified') }}
+                      <viecz-icon name="mail" [size]="14" /> {{ t('profile.emailNotVerified') }}
                     </span>
                   }
                   @if (user()!.phone_verified) {
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-green-700 text-green-700 text-[11px] font-bold tracking-[1px]">
-                      <nhannht-metro-icon name="phone" [size]="14" /> {{ t('profile.phoneVerified') }}
+                      <viecz-icon name="phone" [size]="14" /> {{ t('profile.phoneVerified') }}
                     </span>
                   } @else if (isOwnProfile()) {
                     <button (click)="showPhoneVerifyDialog.set(true)"
                       class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px] cursor-pointer hover:bg-fg hover:text-bg transition-colors duration-200 bg-transparent">
-                      <nhannht-metro-icon name="phone" [size]="14" /> {{ t('profile.phoneNotVerified') }}
+                      <viecz-icon name="phone" [size]="14" /> {{ t('profile.phoneNotVerified') }}
                     </button>
                   }
                 </div>
                 <div class="flex flex-wrap gap-2">
                   @if (user()!.is_verified) {
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 border border-fg text-fg text-[11px] font-bold tracking-[1px]">
-                      <nhannht-metro-icon name="verified" [size]="14" /> {{ t('profile.verified') }}
+                      <viecz-icon name="verified" [size]="14" /> {{ t('profile.verified') }}
                     </span>
                   }
                 </div>
               </div>
             </div>
 
-            <nhannht-metro-divider />
+            <viecz-divider />
 
             <div class="grid grid-cols-4 max-sm:grid-cols-2 gap-4 my-5 text-center">
               <div class="flex flex-col items-center gap-1">
-                <nhannht-metro-icon name="star" [size]="24" />
+                <viecz-icon name="star" [size]="24" />
                 <span class="text-lg font-bold font-body">{{ user()!.rating | number:'1.1-1' }}</span>
                 <span class="font-display text-[10px] tracking-[1px] text-muted">{{ t('profile.rating') }}</span>
               </div>
               <div class="flex flex-col items-center gap-1">
-                <nhannht-metro-icon name="task_alt" [size]="24" />
+                <viecz-icon name="task_alt" [size]="24" />
                 <span class="text-lg font-bold font-body">{{ user()!.total_tasks_completed }}</span>
                 <span class="font-display text-[10px] tracking-[1px] text-muted">{{ t('profile.completed') }}</span>
               </div>
               <div class="flex flex-col items-center gap-1">
-                <nhannht-metro-icon name="post_add" [size]="24" />
+                <viecz-icon name="post_add" [size]="24" />
                 <span class="text-lg font-bold font-body">{{ user()!.total_tasks_posted }}</span>
                 <span class="font-display text-[10px] tracking-[1px] text-muted">{{ t('profile.posted') }}</span>
               </div>
               <div class="flex flex-col items-center gap-1">
-                <nhannht-metro-icon name="payments" [size]="24" />
+                <viecz-icon name="payments" [size]="24" />
                 <span class="text-lg font-bold font-body">{{ user()!.total_earnings | vnd }}</span>
                 <span class="font-display text-[10px] tracking-[1px] text-muted">{{ t('profile.earned') }}</span>
               </div>
@@ -135,9 +135,9 @@ import google_libphonenumber from 'google-libphonenumber';
             }
 
             @if (isOwnProfile()) {
-              <nhannht-metro-divider />
+              <viecz-divider />
               <div class="flex flex-col gap-2 mt-2">
-                <nhannht-metro-button variant="secondary"
+                <viecz-button variant="secondary"
                   [label]="editing() ? t('common.cancel') : t('profile.editProfile')"
                   (clicked)="editing.set(!editing())" />
                 <a routerLink="/my-jobs/posted"
@@ -148,58 +148,58 @@ import google_libphonenumber from 'google-libphonenumber';
                    class="font-body text-[13px] text-muted tracking-[1px] hover:text-fg transition-colors duration-200">
                   {{ t('profile.myAppliedJobs') }}
                 </a>
-                <nhannht-metro-button variant="secondary" [label]="t('profile.logout')"
+                <viecz-button variant="secondary" [label]="t('profile.logout')"
                   (clicked)="logout()" />
               </div>
             }
-          </nhannht-metro-card>
+          </viecz-card>
 
           @if (editing()) {
-            <nhannht-metro-card>
+            <viecz-card>
               <h3 class="font-display text-[11px] tracking-[2px] text-fg m-0 mb-4">{{ t('profile.editTitle') }}</h3>
               <form class="flex flex-col gap-1" (ngSubmit)="saveProfile()">
-                <nhannht-metro-input [label]="t('profile.nameLabel')" [(ngModel)]="editName" name="name" />
-                <nhannht-metro-input [label]="t('profile.phoneLabel')" [(ngModel)]="editPhone" name="phone" type="tel" />
-                <nhannht-metro-input [label]="t('profile.bioLabel')" [(ngModel)]="editBio" name="bio"
+                <viecz-input [label]="t('profile.nameLabel')" [(ngModel)]="editName" name="name" />
+                <viecz-input [label]="t('profile.phoneLabel')" [(ngModel)]="editPhone" name="phone" type="tel" />
+                <viecz-input [label]="t('profile.bioLabel')" [(ngModel)]="editBio" name="bio"
                                      [placeholder]="t('profile.bioPlaceholder')" />
                 <div class="mt-3">
                   @if (saving()) {
-                    <nhannht-metro-spinner size="sm" [label]="t('profile.saving')" />
+                    <viecz-spinner size="sm" [label]="t('profile.saving')" />
                   } @else {
-                    <nhannht-metro-button variant="primary" [label]="t('profile.saveChanges')"
+                    <viecz-button variant="primary" [label]="t('profile.saveChanges')"
                       type="submit" />
                   }
                 </div>
               </form>
-            </nhannht-metro-card>
+            </viecz-card>
           }
         </div>
       }
 
       <!-- Phone verification dialog -->
-      <nhannht-metro-dialog [open]="showPhoneVerifyDialog()" [title]="t('profile.verifyPhoneTitle')"
+      <viecz-dialog [open]="showPhoneVerifyDialog()" [title]="t('profile.verifyPhoneTitle')"
         [confirmLabel]="firebasePhone.codeSent() ? t('profile.verifyCode') : t('profile.sendCode')"
         [cancelLabel]="t('common.cancel')"
         (confirmed)="onPhoneDialogConfirm()"
         (cancelled)="closePhoneDialog()">
         <p class="font-body text-[13px] text-muted mb-4">{{ t('profile.verifyPhoneSubtitle') }}</p>
         @if (!firebasePhone.codeSent()) {
-          <nhannht-metro-input [label]="t('profile.phoneLabel')" [(ngModel)]="phoneToVerify"
+          <viecz-input [label]="t('profile.phoneLabel')" [(ngModel)]="phoneToVerify"
             [placeholder]="t('profile.phonePlaceholder')" type="tel" />
           @if (firebasePhone.sending()) {
-            <nhannht-metro-spinner size="sm" [label]="t('profile.sendingCode')" />
+            <viecz-spinner size="sm" [label]="t('profile.sendingCode')" />
           }
         } @else {
           <p class="font-body text-[13px] text-fg mb-2">{{ phoneToVerify }}</p>
           <app-dev-mode-banner>DEV MODE — enter any code</app-dev-mode-banner>
-          <nhannht-metro-input [label]="t('profile.codeLabel')" [(ngModel)]="verificationCode"
+          <viecz-input [label]="t('profile.codeLabel')" [(ngModel)]="verificationCode"
             [placeholder]="t('profile.codePlaceholder')" />
           @if (firebasePhone.verifying()) {
-            <nhannht-metro-spinner size="sm" [label]="t('profile.verifying')" />
+            <viecz-spinner size="sm" [label]="t('profile.verifying')" />
           }
         }
         <div id="phone-verify-recaptcha"></div>
-      </nhannht-metro-dialog>
+      </viecz-dialog>
     </ng-container>
   `,
 })
@@ -209,7 +209,7 @@ export class ProfileComponent implements OnInit {
   private userService = inject(UserService);
   private auth = inject(AuthService);
   firebasePhone = inject(FirebasePhoneAuthService);
-  private snackbar = inject(NhannhtMetroSnackbarService);
+  private snackbar = inject(VieczSnackbarService);
   private transloco = inject(TranslocoService);
 
   user = signal<User | null>(null);

@@ -218,7 +218,7 @@ describe('MyJobsComponent', () => {
     const comp = fixture.debugElement.query(By.directive(MyJobsComponent)).componentInstance as MyJobsComponent;
     expect(comp.loading()).toBe(true);
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
     // Now flush to clean up
     httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockResponse);
   });
@@ -315,7 +315,7 @@ describe('MyJobsComponent', () => {
       const comp = fixture.debugElement.query(By.directive(MyJobsComponent)).componentInstance as MyJobsComponent;
       // Loading state
       expect(comp.loading()).toBe(true);
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // Flush — destroys spinner, creates task grid
       httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockResponse);
@@ -333,7 +333,7 @@ describe('MyJobsComponent', () => {
       comp.loading.set(true);
       comp.tasks.set([]);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
     });
 
     it('should toggle from error to loading (destroys error block)', () => {
@@ -348,7 +348,7 @@ describe('MyJobsComponent', () => {
       comp.error.set(false);
       comp.loading.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeFalsy();
     });
 
@@ -406,7 +406,7 @@ describe('MyJobsComponent', () => {
       fixture.detectChanges();
       const comp = fixture.debugElement.query(By.directive(MyJobsComponent)).componentInstance as MyJobsComponent;
       expect(comp.loading()).toBe(true);
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // loading → error
       httpTesting.expectOne(r => r.url === '/api/v1/tasks').error(new ProgressEvent('error'));
@@ -430,7 +430,7 @@ describe('MyJobsComponent', () => {
       comp.loading.set(true);
       comp.tasks.set([]);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
     });
 
     it('should cycle through all @switch/@case empty states', () => {

@@ -8,7 +8,7 @@ import { ProfileComponent } from './profile.component';
 import { UserService } from '../core/user.service';
 import { AuthService } from '../core/auth.service';
 import { User } from '../core/models';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { ComponentRef } from '@angular/core';
 import { provideTranslocoForTesting } from '../core/transloco-testing';
 
@@ -61,7 +61,7 @@ describe('ProfileComponent', () => {
         { provide: PLATFORM_ID, useValue: 'browser' },
         { provide: UserService, useValue: userSpy },
         { provide: AuthService, useValue: authSpy },
-        { provide: NhannhtMetroSnackbarService, useValue: snackbarSpy },
+        { provide: VieczSnackbarService, useValue: snackbarSpy },
       ],
     }).compileComponents();
 
@@ -181,7 +181,7 @@ describe('ProfileComponent', () => {
     component.saving.set(true);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
   });
 
   it('should show avatar image when avatar_url is set', () => {
@@ -197,7 +197,7 @@ describe('ProfileComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     // No avatar img, but person icon should be present
-    const icons = el.querySelectorAll('nhannht-metro-icon');
+    const icons = el.querySelectorAll('viecz-icon');
     const personIcon = Array.from(icons).find(i => i.textContent?.includes('person'));
     expect(personIcon).toBeTruthy();
   });
@@ -235,7 +235,7 @@ describe('ProfileComponent', () => {
     component.user.set(null);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
     // Should not render user content
     expect(el.textContent).not.toContain('Test User');
   });
@@ -319,7 +319,7 @@ describe('ProfileComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     // Spinner should be present, but Save Changes button should not
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
   });
 
   it('should not show bio section when bio is undefined', () => {
@@ -335,7 +335,7 @@ describe('ProfileComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const form = fixture.nativeElement.querySelector('form');
-    const inputs = form.querySelectorAll('nhannht-metro-input input');
+    const inputs = form.querySelectorAll('viecz-input input');
     const nameInput = inputs[0] as HTMLInputElement;
     expect(nameInput).toBeTruthy();
     nameInput.value = 'Updated Name';
@@ -350,7 +350,7 @@ describe('ProfileComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const form = fixture.nativeElement.querySelector('form');
-    const inputs = form.querySelectorAll('nhannht-metro-input input');
+    const inputs = form.querySelectorAll('viecz-input input');
     const phoneInput = inputs[1] as HTMLInputElement;
     expect(phoneInput).toBeTruthy();
     phoneInput.value = '0999888777';
@@ -365,7 +365,7 @@ describe('ProfileComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const form = fixture.nativeElement.querySelector('form');
-    const inputs = form.querySelectorAll('nhannht-metro-input input');
+    const inputs = form.querySelectorAll('viecz-input input');
     const bioInput = inputs[2] as HTMLInputElement;
     expect(bioInput).toBeTruthy();
     bioInput.value = 'New bio text';
@@ -387,7 +387,7 @@ describe('ProfileComponent', () => {
 
   it('should toggle editing via DOM button click', () => {
     fixture.detectChanges();
-    const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
+    const buttons = fixture.nativeElement.querySelectorAll('viecz-button button');
     const editBtn = Array.from(buttons).find(
       (b: any) => b.textContent?.includes('Edit Profile')
     ) as HTMLButtonElement | undefined;
@@ -399,7 +399,7 @@ describe('ProfileComponent', () => {
 
   it('should trigger logout via DOM button click', () => {
     fixture.detectChanges();
-    const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
+    const buttons = fixture.nativeElement.querySelectorAll('viecz-button button');
     const logoutBtn = Array.from(buttons).find(
       (b: any) => b.textContent?.includes('Logout')
     ) as HTMLButtonElement | undefined;
@@ -415,14 +415,14 @@ describe('ProfileComponent', () => {
     component.loading.set(true);
     component.user.set(null);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
     // Switch to loaded — destroys the loading block, creates user content block
     component.loading.set(false);
     component.user.set(mockUser);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Test User');
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeFalsy();
   });
 
   it('should toggle editing from false to true to false (destroys edit form block)', () => {
@@ -447,7 +447,7 @@ describe('ProfileComponent', () => {
     // Create spinner, destroy save button
     component.saving.set(true);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
     // Destroy spinner, recreate save button
     component.saving.set(false);
@@ -535,7 +535,7 @@ describe('ProfileComponent', () => {
       component.loading.set(true);
       component.user.set(null);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
       expect(fixture.nativeElement.textContent).not.toContain('Test User');
 
       // Back to user loaded
@@ -578,7 +578,7 @@ describe('ProfileComponent', () => {
 
       component.saving.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       component.saving.set(false);
       fixture.detectChanges();
@@ -586,7 +586,7 @@ describe('ProfileComponent', () => {
 
       component.saving.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
     });
 
     it('should toggle is_verified true→false→true covering verified badge block', () => {

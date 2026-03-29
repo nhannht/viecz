@@ -368,7 +368,7 @@ describe('TaskDetailComponent', () => {
     fixture.detectChanges();
     // Before flushing, loading is true
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
     // Flush to clean up
     httpTesting.expectOne('/api/v1/tasks/1').flush(mockTask);
     httpTesting.expectOne('/api/v1/tasks/1/applications').flush([]);
@@ -501,27 +501,27 @@ describe('TaskDetailComponent', () => {
     it('should toggle from loading to task content (destroys spinner block)', () => {
       fixture.detectChanges();
       // Loading state before flush
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // Flush — destroys spinner, creates content
       httpTesting.expectOne('/api/v1/tasks/1').flush(mockTask);
       httpTesting.expectOne('/api/v1/tasks/1/applications').flush([]);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('viecz-card')).toBeTruthy();
     });
 
     it('should toggle from task content to loading (destroys task content block)', () => {
       initComponent();
       const comp = fixture.debugElement.query(By.directive(TaskDetailComponent)).componentInstance as TaskDetailComponent;
-      expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-card')).toBeTruthy();
 
       // Destroy task content, show spinner
       comp.loading.set(true);
       comp.task.set(null);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-card')).toBeFalsy();
     });
 
     it('should toggle applications panel from hidden to visible (destroys/creates panel)', () => {

@@ -4,8 +4,9 @@ import {
 import { TranslocoDirective } from '@jsverse/transloco';
 
 /**
- * Lightweight CSS-only minimap with pulsing markers.
- * Replaces MapLibre GL to save ~263 KB gzipped JS + network tile fetches.
+ * Lightweight minimap with static dark map image + pulsing markers.
+ * Uses a pre-rendered CartoDB dark basemap (~46 KB WebP) instead of
+ * MapLibre GL (~263 KB gzipped JS + network tile fetches).
  *
  * Marker positions are approximate % coords for the HCMC area layout.
  */
@@ -17,32 +18,9 @@ import { TranslocoDirective } from '@jsverse/transloco';
     <ng-container *transloco="let t">
       <div class="minimap-card">
         <div class="minimap-surface">
-          <!-- Stylized map background with CSS -->
-          <div class="map-bg">
-            <!-- SVG road grid pattern -->
-            <svg class="road-grid" viewBox="0 0 480 300" preserveAspectRatio="none">
-              <!-- Major roads -->
-              <path d="M0,150 Q120,140 240,160 T480,150" stroke="rgba(255,255,255,0.08)" stroke-width="3" fill="none"/>
-              <path d="M240,0 Q250,75 230,150 T260,300" stroke="rgba(255,255,255,0.08)" stroke-width="3" fill="none"/>
-              <path d="M0,80 Q160,90 320,70 T480,85" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
-              <path d="M100,0 Q110,100 90,200 T120,300" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
-              <path d="M380,0 Q370,100 390,200 T360,300" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
-              <path d="M0,220 Q120,230 240,210 T480,225" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
-              <!-- Minor roads -->
-              <path d="M60,0 L60,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
-              <path d="M180,0 L180,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
-              <path d="M300,0 L300,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
-              <path d="M420,0 L420,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
-              <path d="M0,50 L480,50" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
-              <path d="M0,250 L480,250" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
-              <!-- River -->
-              <path d="M350,0 Q320,60 340,120 Q360,180 330,240 Q310,270 320,300"
-                    stroke="rgba(33,128,141,0.15)" stroke-width="8" fill="none" stroke-linecap="round"/>
-            </svg>
-
-            <!-- Frost overlay -->
-            <div class="frost-overlay"></div>
-          </div>
+          <!-- Real map background -->
+          <img class="map-bg" src="assets/textures/hcmc_dark_map.webp" alt="" loading="lazy" />
+          <div class="frost-overlay"></div>
 
           <!-- Markers positioned with CSS -->
           <div class="marker" style="left: 35%; top: 55%;">
@@ -100,19 +78,10 @@ import { TranslocoDirective } from '@jsverse/transloco';
     .map-bg {
       position: absolute;
       inset: 0;
-      background: linear-gradient(
-        160deg,
-        rgba(8, 25, 35, 0.95) 0%,
-        rgba(12, 35, 50, 0.9) 40%,
-        rgba(6, 20, 30, 0.95) 100%
-      );
-    }
-
-    .road-grid {
-      position: absolute;
-      inset: 0;
       width: 100%;
       height: 100%;
+      object-fit: cover;
+      pointer-events: none;
     }
 
     .frost-overlay {
@@ -121,7 +90,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
       pointer-events: none;
       z-index: 1;
       border-radius: 16px;
-      background: linear-gradient(160deg, rgba(33,128,141,0.1) 0%, rgba(20,60,80,0.18) 100%);
+      background: linear-gradient(160deg, rgba(33,128,141,0.08) 0%, rgba(20,60,80,0.12) 100%);
     }
 
     .marker {

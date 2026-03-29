@@ -2,13 +2,13 @@ import { Component, inject, OnInit, OnDestroy, signal, computed, effect, PLATFOR
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
-import { NhannhtMetroMenuComponent } from '../shared/components/nhannht-metro-menu.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
+import { VieczMenuComponent } from '../shared/components/viecz-menu.component';
 
-import { NhannhtMetroSnackbarComponent } from '../shared/components/nhannht-metro-snackbar.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { VieczSnackbarComponent } from '../shared/components/viecz-snackbar.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { ProfileCompletionDrawerComponent } from '../shared/components/profile-completion-drawer.component';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
@@ -36,10 +36,10 @@ import { TimeAgoPipe } from '../core/pipes';
     RouterLink,
     RouterLinkActive,
     TranslocoDirective,
-    NhannhtMetroIconComponent,
-    NhannhtMetroMenuComponent,
-    NhannhtMetroSnackbarComponent,
-    NhannhtMetroSpinnerComponent,
+    VieczIconComponent,
+    VieczMenuComponent,
+    VieczSnackbarComponent,
+    VieczSpinnerComponent,
     ProfileCompletionDrawerComponent,
     TimeAgoPipe,
   ],
@@ -68,7 +68,7 @@ import { TimeAgoPipe } from '../core/pipes';
               <button class="bg-transparent border-none cursor-pointer text-fg p-1 relative"
                       (click)="$event.stopPropagation(); toggleNotifMenu()"
                       [attr.aria-label]="t('shell.notifications')">
-                <nhannht-metro-icon name="notifications" [size]="22" />
+                <viecz-icon name="notifications" [size]="22" />
                 @if (unreadCount() > 0) {
                   <span class="notif-badge absolute -top-1 -right-1 bg-fg text-bg font-display
                                text-[8px] w-4 h-4 flex items-center justify-center rounded-sm">
@@ -82,11 +82,11 @@ import { TimeAgoPipe } from '../core/pipes';
                 <div class="notif-panel" (click)="$event.stopPropagation()">
                   @if (notifLoading()) {
                     <div class="notif-empty">
-                      <nhannht-metro-spinner />
+                      <viecz-spinner />
                     </div>
                   } @else if (notifications().length === 0) {
                     <div class="notif-empty">
-                      <nhannht-metro-icon name="notifications_off" [size]="32" />
+                      <viecz-icon name="notifications_off" [size]="32" />
                       <span class="font-body text-[13px] text-muted mt-2">{{ t('shell.noNotifications') }}</span>
                     </div>
                   } @else {
@@ -97,7 +97,7 @@ import { TimeAgoPipe } from '../core/pipes';
                              [style.animation-delay]="(i * 40) + 'ms'"
                              (click)="onNotifClick(n)">
                           <div class="notif-icon-wrap">
-                            <nhannht-metro-icon [name]="getTypeIcon(n.type)" [size]="18" />
+                            <viecz-icon [name]="getTypeIcon(n.type)" [size]="18" />
                           </div>
                           <div class="notif-body">
                             <div class="notif-header-row">
@@ -112,7 +112,7 @@ import { TimeAgoPipe } from '../core/pipes';
                   }
                   <a routerLink="/notifications" class="notif-footer"
                      (click)="notifMenuOpen.set(false)">
-                    <nhannht-metro-icon name="list" [size]="16" /> {{ t('shell.viewAllNotifications') }}
+                    <viecz-icon name="list" [size]="16" /> {{ t('shell.viewAllNotifications') }}
                   </a>
                 </div>
               }
@@ -155,17 +155,17 @@ import { TimeAgoPipe } from '../core/pipes';
 
             <a routerLink="/marketplace" routerLinkActive="rla-active"
                class="nav-icon-link" [attr.title]="t('shell.marketplace')">
-              <nhannht-metro-icon name="storefront" [size]="16" />
+              <viecz-icon name="storefront" [size]="16" />
               <span class="nav-label">{{ t('shell.marketplace') }}</span>
             </a>
             <a routerLink="/wallet" routerLinkActive="rla-active"
                class="nav-icon-link" [attr.title]="t('shell.wallet')">
-              <nhannht-metro-icon name="account_balance_wallet" [size]="16" />
+              <viecz-icon name="account_balance_wallet" [size]="16" />
               <span class="nav-label">{{ t('shell.wallet') }}</span>
             </a>
             <a routerLink="/messages" routerLinkActive="rla-active"
                class="nav-icon-link" [attr.title]="t('shell.chat')">
-              <nhannht-metro-icon name="chat" [size]="16" />
+              <viecz-icon name="chat" [size]="16" />
               <span class="nav-label">{{ t('shell.chat') }}</span>
             </a>
           </div>
@@ -190,7 +190,7 @@ import { TimeAgoPipe } from '../core/pipes';
                              rounded-xl hover:bg-fg/5 transition-colors relative"
                       (click)="$event.stopPropagation(); toggleNotifMenu()"
                       [attr.aria-label]="t('shell.notifications')">
-                <nhannht-metro-icon name="notifications" [size]="20" />
+                <viecz-icon name="notifications" [size]="20" />
                 @if (unreadCount() > 0) {
                   <span class="notif-badge absolute -top-0.5 -right-0.5 bg-fg text-bg
                                font-display text-[8px] w-4 h-4 flex items-center justify-center rounded-sm">
@@ -204,11 +204,11 @@ import { TimeAgoPipe } from '../core/pipes';
                 <div class="notif-panel" (click)="$event.stopPropagation()">
                   @if (notifLoading()) {
                     <div class="notif-empty">
-                      <nhannht-metro-spinner />
+                      <viecz-spinner />
                     </div>
                   } @else if (notifications().length === 0) {
                     <div class="notif-empty">
-                      <nhannht-metro-icon name="notifications_off" [size]="32" />
+                      <viecz-icon name="notifications_off" [size]="32" />
                       <span class="font-body text-[13px] text-muted mt-2">{{ t('shell.noNotifications') }}</span>
                     </div>
                   } @else {
@@ -219,7 +219,7 @@ import { TimeAgoPipe } from '../core/pipes';
                              [style.animation-delay]="(i * 40) + 'ms'"
                              (click)="onNotifClick(n)">
                           <div class="notif-icon-wrap">
-                            <nhannht-metro-icon [name]="getTypeIcon(n.type)" [size]="18" />
+                            <viecz-icon [name]="getTypeIcon(n.type)" [size]="18" />
                           </div>
                           <div class="notif-body">
                             <div class="notif-header-row">
@@ -234,7 +234,7 @@ import { TimeAgoPipe } from '../core/pipes';
                   }
                   <a routerLink="/notifications" class="notif-footer"
                      (click)="notifMenuOpen.set(false)">
-                    <nhannht-metro-icon name="list" [size]="16" /> {{ t('shell.viewAllNotifications') }}
+                    <viecz-icon name="list" [size]="16" /> {{ t('shell.viewAllNotifications') }}
                   </a>
                 </div>
               }
@@ -246,19 +246,19 @@ import { TimeAgoPipe } from '../core/pipes';
                              rounded-xl hover:bg-fg/5 transition-colors"
                       (click)="toggleUserMenu()"
                       [attr.aria-label]="t('shell.account')">
-                <nhannht-metro-icon name="account_circle" [size]="20" />
+                <viecz-icon name="account_circle" [size]="20" />
               </button>
-              <nhannht-metro-menu [open]="userMenuOpen()" (closed)="userMenuOpen.set(false)">
+              <viecz-menu [open]="userMenuOpen()" (closed)="userMenuOpen.set(false)">
                 <a [routerLink]="['/profile', auth.currentUser()?.id]"
-                   class="nhannht-metro-menu-item flex items-center gap-2"
+                   class="viecz-menu-item flex items-center gap-2"
                    (click)="userMenuOpen.set(false)">
-                  <nhannht-metro-icon name="person" [size]="16" /> {{ t('shell.profile') }}
+                  <viecz-icon name="person" [size]="16" /> {{ t('shell.profile') }}
                 </a>
-                <button class="nhannht-metro-menu-item flex items-center gap-2"
+                <button class="viecz-menu-item flex items-center gap-2"
                         (click)="auth.logout(); userMenuOpen.set(false)">
-                  <nhannht-metro-icon name="logout" [size]="16" /> {{ t('shell.logout') }}
+                  <viecz-icon name="logout" [size]="16" /> {{ t('shell.logout') }}
                 </button>
-              </nhannht-metro-menu>
+              </viecz-menu>
             </div>
           </div>
 
@@ -267,7 +267,7 @@ import { TimeAgoPipe } from '../core/pipes';
           <div class="flex items-center gap-1">
             <a routerLink="/marketplace" routerLinkActive="rla-active"
                class="nav-icon-link" [attr.title]="t('shell.marketplace')">
-              <nhannht-metro-icon name="storefront" [size]="16" />
+              <viecz-icon name="storefront" [size]="16" />
               <span class="nav-label">{{ t('shell.marketplace') }}</span>
             </a>
             <button class="bg-transparent border border-border/60 text-fg px-2 py-1
@@ -295,7 +295,7 @@ import { TimeAgoPipe } from '../core/pipes';
              class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5
                     font-body text-[10px] no-underline rounded-l-xl"
              [class.bottom-tab-active]="activeTab() === 'marketplace'">
-            <nhannht-metro-icon name="storefront" [size]="22" />
+            <viecz-icon name="storefront" [size]="22" />
             <span>{{ t('shell.marketplace') }}</span>
           </a>
 
@@ -303,7 +303,7 @@ import { TimeAgoPipe } from '../core/pipes';
              class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5
                     font-body text-[10px] no-underline"
              [class.bottom-tab-active]="activeTab() === 'wallet'">
-            <nhannht-metro-icon name="account_balance_wallet" [size]="22" />
+            <viecz-icon name="account_balance_wallet" [size]="22" />
             <span>{{ t('shell.wallet') }}</span>
           </a>
 
@@ -311,7 +311,7 @@ import { TimeAgoPipe } from '../core/pipes';
              class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5
                     font-body text-[10px] no-underline"
              [class.bottom-tab-active]="activeTab() === 'create'">
-            <nhannht-metro-icon name="add_circle" [size]="22" />
+            <viecz-icon name="add_circle" [size]="22" />
             <span>{{ t('marketplace.createTask') }}</span>
           </a>
 
@@ -319,7 +319,7 @@ import { TimeAgoPipe } from '../core/pipes';
              class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5
                     font-body text-[10px] no-underline"
              [class.bottom-tab-active]="activeTab() === 'chat'">
-            <nhannht-metro-icon name="chat" [size]="22" />
+            <viecz-icon name="chat" [size]="22" />
             <span>{{ t('shell.chat') }}</span>
           </a>
 
@@ -327,7 +327,7 @@ import { TimeAgoPipe } from '../core/pipes';
              class="bottom-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5
                     font-body text-[10px] no-underline rounded-r-xl"
              [class.bottom-tab-active]="activeTab() === 'profile'">
-            <nhannht-metro-icon name="account_circle" [size]="22" />
+            <viecz-icon name="account_circle" [size]="22" />
             <span>{{ t('shell.profile') }}</span>
           </a>
         </nav>
@@ -338,7 +338,7 @@ import { TimeAgoPipe } from '../core/pipes';
         <router-outlet />
       </main>
 
-      <nhannht-metro-snackbar [visible]="snackbarService.visible()" [message]="snackbarService.message()" />
+      <viecz-snackbar [visible]="snackbarService.visible()" [message]="snackbarService.message()" />
       <app-profile-completion-drawer />
     </ng-container>
   `,
@@ -590,7 +590,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
   lang = inject(LanguageService);
   themeService = inject(ThemeService);
-  snackbarService = inject(NhannhtMetroSnackbarService);
+  snackbarService = inject(VieczSnackbarService);
   private notifService = inject(NotificationService);
   private transloco = inject(TranslocoService);
   private wsService = inject(WebSocketService);

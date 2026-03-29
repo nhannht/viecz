@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { ChatService } from '../core/chat.service';
 import { AuthService } from '../core/auth.service';
 import { Conversation } from '../core/models';
@@ -12,7 +12,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 @Component({
   selector: 'app-conversation-list',
   standalone: true,
-  imports: [TranslocoDirective, NhannhtMetroSpinnerComponent, TimeAgoPipe, EmptyStateComponent, ErrorFallbackComponent],
+  imports: [TranslocoDirective, VieczSpinnerComponent, TimeAgoPipe, EmptyStateComponent, ErrorFallbackComponent],
   template: `
     <ng-container *transloco="let t">
       <div class="max-w-[600px] mx-auto p-4 font-body">
@@ -20,7 +20,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 
         @if (loading()) {
           <div class="flex items-center justify-center min-h-[200px]">
-            <nhannht-metro-spinner />
+            <viecz-spinner />
           </div>
         } @else if (error()) {
           <app-error-fallback [title]="t('conversationList.failedToLoadTitle')"

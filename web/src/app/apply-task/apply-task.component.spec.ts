@@ -5,7 +5,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { PLATFORM_ID, Component } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { ApplyTaskComponent } from './apply-task.component';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { Task, TaskApplication } from '../core/models';
 import { provideTranslocoForTesting } from '../core/transloco-testing';
 
@@ -48,7 +48,7 @@ describe('ApplyTaskComponent', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let httpTesting: HttpTestingController;
   let router: Router;
-  let snackbarService: NhannhtMetroSnackbarService;
+  let snackbarService: VieczSnackbarService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -65,7 +65,7 @@ describe('ApplyTaskComponent', () => {
     fixture = TestBed.createComponent(TestHostComponent);
     httpTesting = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
-    snackbarService = TestBed.inject(NhannhtMetroSnackbarService);
+    snackbarService = TestBed.inject(VieczSnackbarService);
     vi.spyOn(router, 'navigate').mockResolvedValue(true);
     vi.spyOn(snackbarService, 'show');
   });
@@ -223,7 +223,7 @@ describe('ApplyTaskComponent', () => {
     const comp = getApplyComponent();
     expect(comp.loading()).toBe(true);
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
     // Should not show the form yet
     expect(el.textContent).not.toContain('Fix my laptop');
     // Flush to avoid afterEach verify error
@@ -241,7 +241,7 @@ describe('ApplyTaskComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     // The spinner should be visible (submitting branch)
-    const spinners = el.querySelectorAll('nhannht-metro-spinner');
+    const spinners = el.querySelectorAll('viecz-spinner');
     expect(spinners.length).toBeGreaterThan(0);
     // Flush to avoid afterEach verify error
     httpTesting.expectOne('/api/v1/tasks/1/applications').flush(mockApplication);
@@ -255,7 +255,7 @@ describe('ApplyTaskComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
     // The submit button text should not be present when submitting
     // Instead a spinner replaces the button
-    const buttons = el.querySelectorAll('nhannht-metro-button');
+    const buttons = el.querySelectorAll('viecz-button');
     const submitBtn = Array.from(buttons).find(b =>
       b.getAttribute('ng-reflect-label')?.includes('Submit') || b.textContent?.includes('Submit'));
     expect(submitBtn).toBeFalsy();
@@ -281,8 +281,8 @@ describe('ApplyTaskComponent', () => {
     initComponent();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Fix my laptop');
-    expect(el.querySelector('nhannht-metro-input')).toBeTruthy();
-    expect(el.querySelector('nhannht-metro-textarea')).toBeTruthy();
+    expect(el.querySelector('viecz-input')).toBeTruthy();
+    expect(el.querySelector('viecz-textarea')).toBeTruthy();
   });
 
   it('should show cancel button in form', () => {
@@ -302,7 +302,7 @@ describe('ApplyTaskComponent', () => {
 
   it('should update proposedPrice via DOM input event', () => {
     initComponent();
-    const input = fixture.nativeElement.querySelector('nhannht-metro-input[name="proposedPrice"] input');
+    const input = fixture.nativeElement.querySelector('viecz-input[name="proposedPrice"] input');
     if (input) {
       input.value = '30000';
       input.dispatchEvent(new Event('input'));
@@ -314,7 +314,7 @@ describe('ApplyTaskComponent', () => {
 
   it('should update message via DOM textarea input event', () => {
     initComponent();
-    const textarea = fixture.nativeElement.querySelector('nhannht-metro-textarea textarea');
+    const textarea = fixture.nativeElement.querySelector('viecz-textarea textarea');
     if (textarea) {
       textarea.value = 'DOM message';
       textarea.dispatchEvent(new Event('input'));
@@ -327,12 +327,12 @@ describe('ApplyTaskComponent', () => {
   it('should trigger submit via DOM button click', async () => {
     initComponent();
     // Set values through DOM inputs to avoid ExpressionChangedAfterItHasBeenCheckedError
-    const priceInput = fixture.nativeElement.querySelector('nhannht-metro-input input') as HTMLInputElement;
+    const priceInput = fixture.nativeElement.querySelector('viecz-input input') as HTMLInputElement;
     if (priceInput) {
       priceInput.value = '50000';
       priceInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
-    const textarea = fixture.nativeElement.querySelector('nhannht-metro-textarea textarea') as HTMLTextAreaElement;
+    const textarea = fixture.nativeElement.querySelector('viecz-textarea textarea') as HTMLTextAreaElement;
     if (textarea) {
       textarea.value = 'Apply via DOM';
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -342,7 +342,7 @@ describe('ApplyTaskComponent', () => {
     fixture.detectChanges();
 
     // Find submit button by its text content ('Submit Application')
-    const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
+    const buttons = fixture.nativeElement.querySelectorAll('viecz-button button');
     const submitBtn = Array.from(buttons).find(
       (b: any) => b.textContent?.includes('Submit Application')
     ) as HTMLButtonElement | undefined;
@@ -388,10 +388,10 @@ describe('ApplyTaskComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     // The submit button is present in the @else branch
-    const submitBtns = el.querySelectorAll('nhannht-metro-button');
+    const submitBtns = el.querySelectorAll('viecz-button');
     expect(submitBtns.length).toBeGreaterThan(0);
     // The spinner from submitting should not be visible
-    const spinners = el.querySelectorAll('nhannht-metro-spinner');
+    const spinners = el.querySelectorAll('viecz-spinner');
     // Only one spinner at most (from loading, which is now false), so none expected
     expect(comp.submitting()).toBe(false);
   });
@@ -401,7 +401,7 @@ describe('ApplyTaskComponent', () => {
     fixture.detectChanges();
 
     // Find cancel button by text content ('Cancel >')
-    const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
+    const buttons = fixture.nativeElement.querySelectorAll('viecz-button button');
     const cancelBtn = Array.from(buttons).find(
       (b: any) => b.textContent?.includes('Cancel')
     ) as HTMLButtonElement | undefined;

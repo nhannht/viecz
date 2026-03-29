@@ -287,7 +287,7 @@ describe('MarketplaceComponent', () => {
     httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
     component.loadingMore.set(true);
     fixture.detectChanges();
-    const spinners = fixture.nativeElement.querySelectorAll('nhannht-metro-spinner');
+    const spinners = fixture.nativeElement.querySelectorAll('viecz-spinner');
     expect(spinners.length).toBeGreaterThan(0);
   });
 
@@ -352,7 +352,7 @@ describe('MarketplaceComponent', () => {
     httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
     fixture.detectChanges();
 
-    const input = fixture.nativeElement.querySelector('nhannht-metro-input input');
+    const input = fixture.nativeElement.querySelector('viecz-input input');
     if (input) {
       input.value = 'test search';
       input.dispatchEvent(new Event('input'));
@@ -474,7 +474,7 @@ describe('MarketplaceComponent', () => {
       httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
       component.loadingMore.set(true);
       fixture.detectChanges();
-      const spinners = fixture.nativeElement.querySelectorAll('nhannht-metro-spinner');
+      const spinners = fixture.nativeElement.querySelectorAll('viecz-spinner');
       expect(spinners.length).toBeGreaterThan(0);
 
       // Destroy loadingMore spinner block
@@ -559,7 +559,7 @@ describe('MarketplaceComponent', () => {
 
       component.loadingMore.set(true);
       fixture.detectChanges();
-      const spinners = fixture.nativeElement.querySelectorAll('nhannht-metro-spinner');
+      const spinners = fixture.nativeElement.querySelectorAll('viecz-spinner');
       expect(spinners.length).toBeGreaterThan(0);
 
       component.loadingMore.set(false);
@@ -568,7 +568,7 @@ describe('MarketplaceComponent', () => {
 
       component.loadingMore.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelectorAll('nhannht-metro-spinner').length).toBeGreaterThan(0);
+      expect(fixture.nativeElement.querySelectorAll('viecz-spinner').length).toBeGreaterThan(0);
     });
 
     it('should toggle hasMore true→false→true for noMoreTasks block', () => {

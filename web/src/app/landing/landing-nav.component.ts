@@ -2,13 +2,13 @@ import { Component, inject, signal, PLATFORM_ID, afterNextRender, HostListener }
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
 import { LanguageService } from '../core/language.service';
 
 @Component({
   selector: 'app-landing-nav',
   standalone: true,
-  imports: [RouterLink, TranslocoDirective, NhannhtMetroIconComponent],
+  imports: [RouterLink, TranslocoDirective, VieczIconComponent],
   template: `
     <ng-container *transloco="let t">
       <nav class="landing-nav" [class.scrolled]="scrolled()" [class.visible]="visible()">

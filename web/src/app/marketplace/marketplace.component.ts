@@ -8,9 +8,9 @@ import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { VieczInputComponent } from '../shared/components/viecz-input.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { TaskService } from '../core/task.service';
 import { AuthService } from '../core/auth.service';
 import { GeolocationService } from '../core/geolocation.service';
@@ -28,9 +28,9 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
     RouterLink,
     FormsModule,
     TranslocoDirective,
-    NhannhtMetroInputComponent,
-    NhannhtMetroIconComponent,
-    NhannhtMetroSpinnerComponent,
+    VieczInputComponent,
+    VieczIconComponent,
+    VieczSpinnerComponent,
     CategoryChipsComponent,
     TaskCardComponent,
     LoadingSkeletonComponent,
@@ -41,7 +41,7 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
     <ng-container *transloco="let t">
     <div class="pb-2 relative min-h-[60vh]">
       <div class="mb-4">
-        <nhannht-metro-input
+        <viecz-input
           [label]="t('marketplace.searchLabel')"
           [placeholder]="t('marketplace.searchPlaceholder')"
           [(ngModel)]="search"
@@ -57,7 +57,7 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
           [class]="viewMode() === 'map' ? 'border-fg bg-fg text-bg' : 'border-border text-fg hover:border-fg'"
           (click)="toggleNearMe()"
         >
-          <nhannht-metro-icon name="near_me" [size]="14" />
+          <viecz-icon name="near_me" [size]="14" />
           @if (geo.loading()) {
             {{ t('marketplace.nearMeLoading') }}
           } @else if (geo.isDenied()) {
@@ -87,7 +87,7 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
         <app-loading-skeleton variant="card" [count]="6" />
       } @else if (tasks().length === 0) {
         <div class="flex flex-col items-center py-16 px-4 text-center">
-          <nhannht-metro-icon name="assignment" [size]="64" />
+          <viecz-icon name="assignment" [size]="64" />
           <h3 class="font-display text-[11px] tracking-[1px] text-fg mt-3 mb-1">{{ t('marketplace.noTasksFound') }}</h3>
           <p class="font-body text-[13px] text-muted">{{ t('marketplace.noTasksHint') }}</p>
         </div>
@@ -99,7 +99,7 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
         </div>
         @if (loadingMore()) {
           <div class="flex justify-center py-6">
-            <nhannht-metro-spinner />
+            <viecz-spinner />
           </div>
         }
         @if (!hasMore()) {
@@ -113,7 +113,7 @@ import { MarketplaceMapComponent } from './marketplace-map.component';
                   hidden md:flex items-center justify-center cursor-pointer
                   hover:bg-transparent hover:text-fg transition-all duration-200"
            [attr.aria-label]="t('marketplace.createTask')">
-          <nhannht-metro-icon name="add" [size]="28" />
+          <viecz-icon name="add" [size]="28" />
         </a>
       }
     </div>

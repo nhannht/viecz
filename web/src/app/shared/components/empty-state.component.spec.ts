@@ -105,12 +105,12 @@ describe('EmptyStateComponent', () => {
     it('should update icon when icon input changes', () => {
       fixture.componentRef.setInput('icon', 'search');
       fixture.detectChanges();
-      const icon = fixture.nativeElement.querySelector('nhannht-metro-icon');
+      const icon = fixture.nativeElement.querySelector('viecz-icon');
       expect(icon.textContent.trim()).toBe('search');
 
       fixture.componentRef.setInput('icon', 'inbox');
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-icon').textContent.trim()).toBe('inbox');
+      expect(fixture.nativeElement.querySelector('viecz-icon').textContent.trim()).toBe('inbox');
     });
 
     it('should toggle actionLabel empty→set→empty→set covering button block cycle', () => {
@@ -142,7 +142,7 @@ describe('EmptyStateComponent', () => {
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
       expect(el.querySelector('h3')!.textContent).toContain('Nothing here');
-      expect(el.querySelector('nhannht-metro-icon')!.textContent!.trim()).toBe('inbox');
+      expect(el.querySelector('viecz-icon')!.textContent!.trim()).toBe('inbox');
       expect(el.querySelector('button')).toBeFalsy();
     });
   });

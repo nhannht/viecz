@@ -387,7 +387,7 @@ html.sang-frostglass body::after {
   color: #191C1D;
 }
 
-/* Custom dropdown items (nhannht-metro-bank-select, etc.) */
+/* Custom dropdown items (viecz-bank-select, etc.) */
 .sang-frostglass [role="listbox"] button:hover,
 .sang-frostglass [role="listbox"] [aria-selected="true"] {
   background: rgba(33, 128, 141, 0.08);

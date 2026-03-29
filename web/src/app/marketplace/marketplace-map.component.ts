@@ -18,7 +18,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { Task } from '../core/models';
 import { TaskCardComponent } from '../shared/components/task-card.component';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
 import { GeolocationService } from '../core/geolocation.service';
 import { GeocodingService, GeocodingFeature } from '../core/geocoding.service';
 import { environment } from '../environments/environment';
@@ -104,7 +104,7 @@ export function animateValue(
 @Component({
   selector: 'app-marketplace-map',
   standalone: true,
-  imports: [TaskCardComponent, NhannhtMetroIconComponent, TranslocoDirective, FormsModule],
+  imports: [TaskCardComponent, VieczIconComponent, TranslocoDirective, FormsModule],
   template: `
     <ng-container *transloco="let t">
       @if (mapReady()) {
@@ -118,7 +118,7 @@ export function animateValue(
               @if (showSearchBar()) {
                 <div class="bg-bg border-2 border-fg shadow-md">
                   <div class="flex items-center gap-2 px-3 py-2">
-                    <nhannht-metro-icon name="search" [size]="16" />
+                    <viecz-icon name="search" [size]="16" />
                     <input
                       type="text"
                       class="flex-1 bg-transparent font-body text-[13px] text-fg outline-none placeholder:text-muted"
@@ -128,7 +128,7 @@ export function animateValue(
                       (keydown.escape)="showSearchBar.set(false)"
                     />
                     <button class="text-muted hover:text-fg" (click)="showSearchBar.set(false); searchQuery = ''; suggestions.set([])">
-                      <nhannht-metro-icon name="close" [size]="14" />
+                      <viecz-icon name="close" [size]="14" />
                     </button>
                   </div>
                   @if (suggestions().length > 0) {
@@ -149,7 +149,7 @@ export function animateValue(
                   class="bg-bg border-2 border-fg px-3 py-2 flex items-center gap-2 shadow-md hover:bg-fg hover:text-bg transition-colors"
                   (click)="showSearchBar.set(true)"
                 >
-                  <nhannht-metro-icon name="search" [size]="16" />
+                  <viecz-icon name="search" [size]="16" />
                   <span class="font-display text-[9px] tracking-[1px]">{{ t('marketplace.mapSearchPlaceholder') }}</span>
                 </button>
               }
@@ -208,7 +208,7 @@ export function animateValue(
               (click)="onMyLocationClick()"
               [attr.aria-label]="t('marketplace.mapMyLocation')"
             >
-              <nhannht-metro-icon name="my_location" [size]="20" />
+              <viecz-icon name="my_location" [size]="20" />
             </button>
           </div>
 
@@ -254,7 +254,7 @@ export function animateValue(
                   {{ t('marketplace.mapNoTasksInArea') }}
                 }
               </span>
-              <nhannht-metro-icon [name]="drawerExpanded() ? 'expand_more' : 'expand_less'" [size]="20" />
+              <viecz-icon [name]="drawerExpanded() ? 'expand_more' : 'expand_less'" [size]="20" />
             </button>
             @if (drawerExpanded()) {
               <div class="overflow-y-auto p-3 space-y-3" style="height: calc(60vh - 50px)">

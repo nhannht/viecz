@@ -4,7 +4,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { Subscription } from 'rxjs';
 import { ChatService } from '../core/chat.service';
 import { WebSocketService, WsMessage } from '../core/websocket.service';
@@ -16,7 +16,7 @@ import { MessageBubbleComponent } from '../shared/components/message-bubble.comp
   selector: 'app-chat',
   standalone: true,
   imports: [
-    FormsModule, TranslocoDirective, NhannhtMetroSpinnerComponent, MessageBubbleComponent,
+    FormsModule, TranslocoDirective, VieczSpinnerComponent, MessageBubbleComponent,
   ],
   template: `
     <ng-container *transloco="let t">
@@ -48,7 +48,7 @@ import { MessageBubbleComponent } from '../shared/components/message-bubble.comp
 
         @if (loading()) {
           <div class="flex items-center justify-center flex-1">
-            <nhannht-metro-spinner />
+            <viecz-spinner />
           </div>
         } @else {
           <!-- Message area -->

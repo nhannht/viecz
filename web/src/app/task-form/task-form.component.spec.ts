@@ -8,7 +8,7 @@ import { of, throwError } from 'rxjs';
 import { TaskFormComponent } from './task-form.component';
 import { CategoryService } from '../core/category.service';
 import { WalletService } from '../core/wallet.service';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { Category, Task } from '../core/models';
 import { provideTranslocoForTesting } from '../core/transloco-testing';
 
@@ -79,7 +79,7 @@ describe('TaskFormComponent', () => {
         { provide: CategoryService, useValue: categoryService },
         { provide: WalletService, useValue: walletServiceSpy },
         { provide: Router, useValue: routerSpy },
-        { provide: NhannhtMetroSnackbarService, useValue: snackBarSpy },
+        { provide: VieczSnackbarService, useValue: snackBarSpy },
       ],
     });
   }
@@ -420,7 +420,7 @@ describe('TaskFormComponent', () => {
       taskForm.saving.set(true);
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
-      const spinners = el.querySelectorAll('nhannht-metro-spinner');
+      const spinners = el.querySelectorAll('viecz-spinner');
       expect(spinners.length).toBeGreaterThan(0);
     });
 
@@ -523,7 +523,7 @@ describe('TaskFormComponent', () => {
     }
 
     it('should update title via DOM input event', () => {
-      const input = fixture.nativeElement.querySelector('nhannht-metro-input[name="title"] input');
+      const input = fixture.nativeElement.querySelector('viecz-input[name="title"] input');
       if (input) {
         input.value = 'New Task Title';
         input.dispatchEvent(new Event('input'));
@@ -543,7 +543,7 @@ describe('TaskFormComponent', () => {
     });
 
     it('should update categoryId via DOM select change event', () => {
-      const select = fixture.nativeElement.querySelector('nhannht-metro-select select');
+      const select = fixture.nativeElement.querySelector('viecz-select select');
       if (select) {
         select.value = '2';
         select.dispatchEvent(new Event('change'));
@@ -553,7 +553,7 @@ describe('TaskFormComponent', () => {
     });
 
     it('should update price via DOM input event', () => {
-      const input = fixture.nativeElement.querySelector('nhannht-metro-input[name="price"] input');
+      const input = fixture.nativeElement.querySelector('viecz-input[name="price"] input');
       if (input) {
         input.value = '25000';
         input.dispatchEvent(new Event('input'));
@@ -563,12 +563,12 @@ describe('TaskFormComponent', () => {
     });
 
     it('should render location picker component', () => {
-      const picker = fixture.nativeElement.querySelector('nhannht-metro-location-picker');
+      const picker = fixture.nativeElement.querySelector('viecz-location-picker');
       expect(picker).toBeTruthy();
     });
 
     it('should render smart deadline picker component', () => {
-      const picker = fixture.nativeElement.querySelector('nhannht-metro-smart-deadline');
+      const picker = fixture.nativeElement.querySelector('viecz-smart-deadline');
       expect(picker).toBeTruthy();
     });
 
@@ -592,7 +592,7 @@ describe('TaskFormComponent', () => {
 
     it('should trigger cancel via DOM button click', () => {
       // Cancel button has text 'Cancel >' (secondary variant adds >)
-      const buttons = fixture.nativeElement.querySelectorAll('nhannht-metro-button button');
+      const buttons = fixture.nativeElement.querySelectorAll('viecz-button button');
       const cancelBtn = Array.from(buttons).find(
         (b: any) => b.textContent?.includes('Cancel')
       ) as HTMLButtonElement | undefined;
@@ -621,7 +621,7 @@ describe('TaskFormComponent', () => {
       fixture.detectChanges();
       // Before flushing, loadingTask is true
       const el = fixture.nativeElement as HTMLElement;
-      expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(el.querySelector('viecz-spinner')).toBeTruthy();
       // Flush to clean up
       httpTesting.expectOne('/api/v1/tasks/1').flush(mockTask);
     });
@@ -659,12 +659,12 @@ describe('TaskFormComponent', () => {
       // Render loading state
       comp.loadingTask.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // Toggle off — destroys spinner block, creates card block
       comp.loadingTask.set(false);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-card')).toBeTruthy();
     });
 
     it('should toggle saving spinner from false to true to false (covers both branches)', () => {
@@ -674,7 +674,7 @@ describe('TaskFormComponent', () => {
       // Create spinner block, destroy icon+text block
       comp.saving.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // Destroy spinner block, recreate icon+text block
       comp.saving.set(false);

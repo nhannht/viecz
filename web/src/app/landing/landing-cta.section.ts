@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
 
 @Component({
   selector: 'app-landing-cta',
   standalone: true,
-  imports: [RouterLink, TranslocoDirective, NhannhtMetroIconComponent],
+  imports: [RouterLink, TranslocoDirective, VieczIconComponent],
   template: `
     <ng-container *transloco="let t">
       <section id="landing-cta" class="cta-section">
@@ -18,7 +18,7 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
           <p class="cta-sub">{{ t('landing.ctaSub') }}</p>
 
           <a routerLink="/login" class="cta-button">
-            <nhannht-metro-icon name="arrow_forward" [size]="20" />
+            <viecz-icon name="arrow_forward" [size]="20" />
             {{ t('marketplace.getStarted') }}
           </a>
 

@@ -17,9 +17,9 @@ import QRCode from 'qrcode';
 
 import { WalletService } from '../core/wallet.service';
 import { BankListService, VietQRBank } from '../core/bank-list';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
-import { NhannhtMetroProgressBarComponent } from '../shared/components/nhannht-metro-progress-bar.component';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
+import { VieczProgressBarComponent } from '../shared/components/viecz-progress-bar.component';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 
 /** Payment data passed via router state */
 interface CheckoutState {
@@ -46,14 +46,14 @@ type Phase = 'pending' | 'explosion' | 'confirmed' | 'expired';
 @Component({
   selector: 'app-payment-checkout',
   standalone: true,
-  imports: [TranslocoDirective, NhannhtMetroSpinnerComponent, NhannhtMetroProgressBarComponent, DatePipe],
+  imports: [TranslocoDirective, VieczSpinnerComponent, VieczProgressBarComponent, DatePipe],
   templateUrl: './payment-checkout.component.html',
   styleUrl: './payment-checkout.component.css',
 })
 export class PaymentCheckoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private walletService = inject(WalletService);
   private router = inject(Router);
-  private snackbar = inject(NhannhtMetroSnackbarService);
+  private snackbar = inject(VieczSnackbarService);
   private transloco = inject(TranslocoService);
   private bankListService = inject(BankListService);
   private platformId = inject(PLATFORM_ID);

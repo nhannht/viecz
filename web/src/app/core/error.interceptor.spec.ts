@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { errorInterceptor } from './error.interceptor';
 import { provideTranslocoForTesting } from './transloco-testing';
 
 describe('errorInterceptor', () => {
   let http: HttpClient;
   let httpTesting: HttpTestingController;
-  let snackbarService: NhannhtMetroSnackbarService;
+  let snackbarService: VieczSnackbarService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -21,7 +21,7 @@ describe('errorInterceptor', () => {
 
     http = TestBed.inject(HttpClient);
     httpTesting = TestBed.inject(HttpTestingController);
-    snackbarService = TestBed.inject(NhannhtMetroSnackbarService);
+    snackbarService = TestBed.inject(VieczSnackbarService);
     vi.spyOn(snackbarService, 'show');
   });
 

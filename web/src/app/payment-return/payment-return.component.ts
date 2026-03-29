@@ -2,18 +2,18 @@ import { Component, inject, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { NhannhtMetroCardComponent } from '../shared/components/nhannht-metro-card.component';
-import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
+import { VieczCardComponent } from '../shared/components/viecz-card.component';
+import { VieczButtonComponent } from '../shared/components/viecz-button.component';
 import { AuthService } from '../core/auth.service';
 
 @Component({
   selector: 'app-payment-return',
   standalone: true,
-  imports: [RouterLink, TranslocoDirective, NhannhtMetroCardComponent, NhannhtMetroButtonComponent],
+  imports: [RouterLink, TranslocoDirective, VieczCardComponent, VieczButtonComponent],
   template: `
     <ng-container *transloco="let t">
       <div class="flex justify-center py-16 px-4">
-        <nhannht-metro-card class="max-w-md w-full">
+        <viecz-card class="max-w-md w-full">
           <div class="text-center">
             @if (state() === 'success') {
               <div class="text-4xl mb-4">&#10003;</div>
@@ -36,14 +36,14 @@ import { AuthService } from '../core/auth.service';
             }
 
             @if (loggedIn()) {
-              <nhannht-metro-button variant="primary" [label]="t('payment.goToWallet')"
+              <viecz-button variant="primary" [label]="t('payment.goToWallet')"
                 routerLink="/wallet" />
             } @else {
-              <nhannht-metro-button variant="primary" [label]="t('payment.logIn')"
+              <viecz-button variant="primary" [label]="t('payment.logIn')"
                 routerLink="/login" />
             }
           </div>
-        </nhannht-metro-card>
+        </viecz-card>
       </div>
     </ng-container>
   `,

@@ -2,10 +2,10 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-input.component';
-import { NhannhtMetroButtonComponent } from '../shared/components/nhannht-metro-button.component';
-import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { VieczInputComponent } from '../shared/components/viecz-input.component';
+import { VieczButtonComponent } from '../shared/components/viecz-button.component';
+import { VieczIconComponent } from '../shared/components/viecz-icon.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { AuthService } from '../core/auth.service';
 import { FirebasePhoneAuthService } from '../core/firebase.service';
 import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.component';
@@ -18,10 +18,10 @@ import google_libphonenumber from 'google-libphonenumber';
     FormsModule,
     RouterLink,
     TranslocoDirective,
-    NhannhtMetroInputComponent,
-    NhannhtMetroButtonComponent,
-    NhannhtMetroIconComponent,
-    NhannhtMetroSpinnerComponent,
+    VieczInputComponent,
+    VieczButtonComponent,
+    VieczIconComponent,
+    VieczSpinnerComponent,
     DevModeBannerComponent,
   ],
   template: `
@@ -29,7 +29,7 @@ import google_libphonenumber from 'google-libphonenumber';
       <div class="flex justify-center items-center min-h-screen bg-bg px-4">
         <div class="w-full max-w-[420px] bg-card border border-border p-8">
           <div class="flex items-center justify-center gap-2 mb-2">
-            <nhannht-metro-icon name="work" [size]="28" />
+            <viecz-icon name="work" [size]="28" />
             <span class="font-display text-[16px] text-fg tracking-[2px]">{{ t('common.viecz') }}</span>
           </div>
 
@@ -45,7 +45,7 @@ import google_libphonenumber from 'google-libphonenumber';
           @if (!codeSent()) {
             <!-- Step 1: Phone number input -->
             <form (ngSubmit)="onSendCode()" class="flex flex-col gap-4">
-              <nhannht-metro-input
+              <viecz-input
                 [label]="t('auth.phone.phoneLabel')"
                 type="tel"
                 [placeholder]="t('auth.phone.phonePlaceholder')"
@@ -56,10 +56,10 @@ import google_libphonenumber from 'google-libphonenumber';
               <div class="mt-2">
                 @if (firebasePhone.sending()) {
                   <div class="flex justify-center py-3">
-                    <nhannht-metro-spinner size="sm" [label]="t('auth.phone.sending')" />
+                    <viecz-spinner size="sm" [label]="t('auth.phone.sending')" />
                   </div>
                 } @else {
-                  <nhannht-metro-button
+                  <viecz-button
                     variant="primary"
                     [label]="t('auth.phone.continue')"
                     type="submit"
@@ -78,7 +78,7 @@ import google_libphonenumber from 'google-libphonenumber';
             <app-dev-mode-banner>DEV MODE — enter any code</app-dev-mode-banner>
 
             <form (ngSubmit)="onVerifyCode()" class="flex flex-col gap-4">
-              <nhannht-metro-input
+              <viecz-input
                 [label]="t('auth.phone.codeLabel')"
                 type="text"
                 [placeholder]="t('auth.phone.codePlaceholder')"
@@ -89,10 +89,10 @@ import google_libphonenumber from 'google-libphonenumber';
               <div class="mt-2">
                 @if (firebasePhone.verifying() || loggingIn()) {
                   <div class="flex justify-center py-3">
-                    <nhannht-metro-spinner size="sm" [label]="t('auth.phone.verifying')" />
+                    <viecz-spinner size="sm" [label]="t('auth.phone.verifying')" />
                   </div>
                 } @else {
-                  <nhannht-metro-button
+                  <viecz-button
                     variant="primary"
                     [label]="t('auth.phone.verify')"
                     type="submit"

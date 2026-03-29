@@ -7,7 +7,7 @@ import { WalletComponent } from './wallet.component';
 import { Router } from '@angular/router';
 import { WalletService } from '../core/wallet.service';
 import { Wallet, WalletTransaction } from '../core/models';
-import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
+import { VieczSnackbarService } from '../shared/services/viecz-snackbar.service';
 import { BankListService } from '../core/bank-list';
 import { provideTranslocoForTesting } from '../core/transloco-testing';
 
@@ -58,7 +58,7 @@ describe('WalletComponent', () => {
         provideHttpClientTesting(),
         provideTranslocoForTesting(),
         { provide: WalletService, useValue: walletServiceMock },
-        { provide: NhannhtMetroSnackbarService, useValue: snackbarMock },
+        { provide: VieczSnackbarService, useValue: snackbarMock },
         { provide: BankListService, useValue: { getBanks: vi.fn().mockReturnValue(of([])) } },
         { provide: Router, useValue: routerMock },
       ],
@@ -257,13 +257,13 @@ describe('WalletComponent', () => {
     expect(component.loading()).toBe(false);
     // Now the content should be visible with cards
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-card')).toBeTruthy();
+    expect(el.querySelector('viecz-card')).toBeTruthy();
   });
 
   it('should render transaction rows via @for loop', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    const txRows = el.querySelectorAll('nhannht-metro-transaction-row');
+    const txRows = el.querySelectorAll('viecz-transaction-row');
     expect(txRows.length).toBe(2);
   });
 
@@ -280,8 +280,8 @@ describe('WalletComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     // The spinner has aria-label="Depositing", and the deposit button should be hidden
-    const spinner = el.querySelector('nhannht-metro-spinner[aria-label="Depositing"]') ||
-                    el.querySelectorAll('nhannht-metro-spinner');
+    const spinner = el.querySelector('viecz-spinner[aria-label="Depositing"]') ||
+                    el.querySelectorAll('viecz-spinner');
     // When depositing, the deposit button is replaced by a spinner
     expect(component.depositing()).toBe(true);
   });
@@ -290,7 +290,7 @@ describe('WalletComponent', () => {
     fixture.detectChanges();
     expect(component.depositing()).toBe(false);
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('nhannht-metro-button')).toBeTruthy();
+    expect(el.querySelector('viecz-button')).toBeTruthy();
   });
 
   it('should render load more button when hasMore is true', () => {
@@ -308,9 +308,9 @@ describe('WalletComponent', () => {
     expect(component.hasMore()).toBe(false);
     // Count "Load More" text occurrences - only "LOAD MORE" from deposit section should exist
     const el = fixture.nativeElement as HTMLElement;
-    const transactionCard = el.querySelectorAll('nhannht-metro-card')[3]; // 4th card is transactions
+    const transactionCard = el.querySelectorAll('viecz-card')[3]; // 4th card is transactions
     if (transactionCard) {
-      const loadMoreBtn = transactionCard.querySelector('nhannht-metro-button[variant="secondary"]');
+      const loadMoreBtn = transactionCard.querySelector('viecz-button[variant="secondary"]');
       // The load more button should not exist in the transaction card
       expect(loadMoreBtn).toBeNull();
     }
@@ -350,9 +350,9 @@ describe('WalletComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(component.loading()).toBe(true);
-    expect(el.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(el.querySelector('viecz-spinner')).toBeTruthy();
     // Cards should not be rendered while loading
-    expect(el.querySelector('nhannht-metro-card')).toBeFalsy();
+    expect(el.querySelector('viecz-card')).toBeFalsy();
   });
 
   it('should set depositError via deposit validation', () => {
@@ -369,7 +369,7 @@ describe('WalletComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
     // Error fallback should be shown, not wallet cards
     expect(el.querySelector('app-error-fallback')).toBeTruthy();
-    expect(el.querySelector('nhannht-metro-card')).toBeFalsy();
+    expect(el.querySelector('viecz-card')).toBeFalsy();
   });
 
   it('should render depositing spinner in DOM and hide deposit button', () => {
@@ -378,7 +378,7 @@ describe('WalletComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     // The spinner should be present (via aria-label check)
-    const spinners = el.querySelectorAll('nhannht-metro-spinner');
+    const spinners = el.querySelectorAll('viecz-spinner');
     expect(spinners.length).toBeGreaterThan(0);
     // The deposit button label should not be visible since spinner replaces it
     expect(component.depositing()).toBe(true);
@@ -390,7 +390,7 @@ describe('WalletComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     // The deposit button should be rendered
-    const depositBtn = el.querySelector('nhannht-metro-button');
+    const depositBtn = el.querySelector('viecz-button');
     expect(depositBtn).toBeTruthy();
   });
 
@@ -450,7 +450,7 @@ describe('WalletComponent', () => {
         provideTranslocoForTesting(),
         { provide: 'PLATFORM_ID', useValue: 'server' },
         { provide: WalletService, useValue: walletSvc },
-        { provide: NhannhtMetroSnackbarService, useValue: snackSvc },
+        { provide: VieczSnackbarService, useValue: snackSvc },
         { provide: BankListService, useValue: { getBanks: vi.fn().mockReturnValue(of([])) } },
       ],
     });
@@ -471,13 +471,13 @@ describe('WalletComponent', () => {
     walletServiceMock.getTransactions.mockReturnValue(of([]));
     fixture.detectChanges();
     expect(component.loading()).toBe(true);
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
     // Switch to loaded state — destroys the spinner @if block, creates the content block
     component.loading.set(false);
     component.wallet.set(mockWallet);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('viecz-card')).toBeTruthy();
   });
 
   it('should toggle from loaded to error state (destroys content block)', () => {
@@ -490,7 +490,7 @@ describe('WalletComponent', () => {
     component.wallet.set(null);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('viecz-card')).toBeFalsy();
   });
 
   it('should toggle from error back to loading (destroys error block)', () => {
@@ -503,7 +503,7 @@ describe('WalletComponent', () => {
     component.loading.set(true);
     component.error.set(false);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeFalsy();
   });
 
@@ -539,7 +539,7 @@ describe('WalletComponent', () => {
     // Switch to has transactions — destroys empty state block, creates @for block
     component.transactions.set(mockTxs);
     fixture.detectChanges();
-    const txRows = fixture.nativeElement.querySelectorAll('nhannht-metro-transaction-row');
+    const txRows = fixture.nativeElement.querySelectorAll('viecz-transaction-row');
     expect(txRows.length).toBe(2);
   });
 
@@ -566,27 +566,27 @@ describe('WalletComponent', () => {
       walletServiceMock.get.mockReturnValue(new Subject());
       walletServiceMock.getTransactions.mockReturnValue(of([]));
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
 
       // loading → error
       component.loading.set(false);
       component.error.set(true);
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeTruthy();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeFalsy();
 
       // error → content
       component.error.set(false);
       component.wallet.set(mockWallet);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-card')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('app-error-fallback')).toBeFalsy();
 
       // content → loading again
       component.loading.set(true);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-spinner')).toBeTruthy();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-card')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('viecz-spinner')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-card')).toBeFalsy();
     });
 
     it('should toggle depositing true→false→true to exercise both @if branches repeatedly', () => {
@@ -594,18 +594,18 @@ describe('WalletComponent', () => {
       // false (initial) → true
       component.depositing.set(true);
       fixture.detectChanges();
-      const spinners1 = fixture.nativeElement.querySelectorAll('nhannht-metro-spinner');
+      const spinners1 = fixture.nativeElement.querySelectorAll('viecz-spinner');
       expect(spinners1.length).toBeGreaterThan(0);
 
       // true → false
       component.depositing.set(false);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('nhannht-metro-button')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('viecz-button')).toBeTruthy();
 
       // false → true again
       component.depositing.set(true);
       fixture.detectChanges();
-      const spinners2 = fixture.nativeElement.querySelectorAll('nhannht-metro-spinner');
+      const spinners2 = fixture.nativeElement.querySelectorAll('viecz-spinner');
       expect(spinners2.length).toBeGreaterThan(0);
     });
 
@@ -616,7 +616,7 @@ describe('WalletComponent', () => {
 
       component.transactions.set(mockTxs);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelectorAll('nhannht-metro-transaction-row').length).toBe(2);
+      expect(fixture.nativeElement.querySelectorAll('viecz-transaction-row').length).toBe(2);
       expect(fixture.nativeElement.querySelector('app-empty-state')).toBeFalsy();
 
       component.transactions.set([]);
@@ -639,7 +639,7 @@ describe('WalletComponent', () => {
       // The load more button in the transaction card should be gone
     });
 
-    it('should render depositError text in the nhannht-metro-input when set', async () => {
+    it('should render depositError text in the viecz-input when set', async () => {
       fixture.autoDetectChanges();
       await fixture.whenStable();
       component.depositAmount = 2500;
@@ -674,7 +674,7 @@ describe('WalletComponent', () => {
       fixture.detectChanges();
       const el = fixture.nativeElement as HTMLElement;
       // Content should still render (cards are present)
-      expect(el.querySelector('nhannht-metro-card')).toBeTruthy();
+      expect(el.querySelector('viecz-card')).toBeTruthy();
       // The VND pipe should handle null gracefully
     });
 

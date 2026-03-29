@@ -4,11 +4,11 @@ import { Router } from '@angular/router';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { ProfileGateService } from '../../core/profile-gate.service';
 import { AuthService } from '../../core/auth.service';
-import { NhannhtMetroInputComponent } from './nhannht-metro-input.component';
-import { NhannhtMetroTextareaComponent } from './nhannht-metro-textarea.component';
-import { NhannhtMetroButtonComponent } from './nhannht-metro-button.component';
-import { NhannhtMetroSpinnerComponent } from './nhannht-metro-spinner.component';
-import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
+import { VieczInputComponent } from './viecz-input.component';
+import { VieczTextareaComponent } from './viecz-textarea.component';
+import { VieczButtonComponent } from './viecz-button.component';
+import { VieczSpinnerComponent } from './viecz-spinner.component';
+import { VieczIconComponent } from './viecz-icon.component';
 
 /**
  * Inline bottom-sheet drawer that appears when a user tries to perform an action
@@ -24,11 +24,11 @@ import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
   imports: [
     FormsModule,
     TranslocoDirective,
-    NhannhtMetroInputComponent,
-    NhannhtMetroTextareaComponent,
-    NhannhtMetroButtonComponent,
-    NhannhtMetroSpinnerComponent,
-    NhannhtMetroIconComponent,
+    VieczInputComponent,
+    VieczTextareaComponent,
+    VieczButtonComponent,
+    VieczSpinnerComponent,
+    VieczIconComponent,
   ],
   template: `
     @if (gate.activeRequest(); as req) {
@@ -49,7 +49,7 @@ import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
             <div class="px-6 pb-6">
               <!-- header -->
               <div class="flex items-start gap-3 mb-4">
-                <nhannht-metro-icon name="person" [size]="20" />
+                <viecz-icon name="person" [size]="20" />
                 <div>
                   <h3 class="font-display text-[11px] tracking-[1px] text-fg m-0">
                     {{ heading(t, req.missingFields) }}
@@ -63,7 +63,7 @@ import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
               <!-- fields -->
               <form class="flex flex-col gap-3" (ngSubmit)="onSubmit()">
                 @if (req.missingFields.includes('name')) {
-                  <nhannht-metro-input
+                  <viecz-input
                     [label]="t('profileGate.nameLabel')"
                     [placeholder]="t('profileGate.namePlaceholder')"
                     [(ngModel)]="name"
@@ -72,7 +72,7 @@ import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
                 }
 
                 @if (req.missingFields.includes('bio')) {
-                  <nhannht-metro-textarea
+                  <viecz-textarea
                     [label]="t('profileGate.bioLabel')"
                     [placeholder]="t('profileGate.bioPlaceholder')"
                     [rows]="3"
@@ -89,23 +89,23 @@ import { NhannhtMetroIconComponent } from './nhannht-metro-icon.component';
                   </a>
 
                   <div class="flex gap-3">
-                    <nhannht-metro-button
+                    <viecz-button
                       variant="secondary"
                       [label]="t('profileGate.notNow')"
                       type="button"
                       (clicked)="gate.dismiss()" />
 
                     @if (gate.saving()) {
-                      <nhannht-metro-spinner size="sm" />
+                      <viecz-spinner size="sm" />
                     } @else {
-                      <nhannht-metro-button
+                      <viecz-button
                         variant="primary"
                         type="submit">
                         <span class="inline-flex items-center gap-2">
-                          <nhannht-metro-icon name="check" [size]="16" />
+                          <viecz-icon name="check" [size]="16" />
                           {{ buttonLabel(t, req.action) }}
                         </span>
-                      </nhannht-metro-button>
+                      </viecz-button>
                     }
                   </div>
                 </div>

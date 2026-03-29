@@ -1,8 +1,8 @@
 import { Component, inject, OnInit, signal, input, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { NhannhtMetroTabsComponent } from '../shared/components/nhannht-metro-tabs.component';
-import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
+import { VieczTabsComponent } from '../shared/components/viecz-tabs.component';
+import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { TaskService } from '../core/task.service';
 import { AuthService } from '../core/auth.service';
 import { Task } from '../core/models';
@@ -13,18 +13,18 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
 @Component({
   selector: 'app-my-jobs',
   standalone: true,
-  imports: [TranslocoDirective, NhannhtMetroTabsComponent, NhannhtMetroSpinnerComponent, TaskCardComponent, EmptyStateComponent, ErrorFallbackComponent],
+  imports: [TranslocoDirective, VieczTabsComponent, VieczSpinnerComponent, TaskCardComponent, EmptyStateComponent, ErrorFallbackComponent],
   template: `
     <ng-container *transloco="let t">
       <div class="max-w-[1200px] mx-auto">
         <h2 class="font-display text-[13px] tracking-[2px] text-fg mb-4">{{ t('myJobs.title') }}</h2>
-        <nhannht-metro-tabs
+        <viecz-tabs
           [tabs]="tabDefs"
           [activeTab]="currentTab()"
           (tabChanged)="onTabChange($event)">
           @if (loading()) {
             <div class="flex justify-center py-12">
-              <nhannht-metro-spinner />
+              <viecz-spinner />
             </div>
           } @else if (error()) {
             <app-error-fallback [title]="t('myJobs.failedToLoadTitle')"
@@ -53,7 +53,7 @@ import { ErrorFallbackComponent } from '../shared/components/error-fallback.comp
               }
             </div>
           }
-        </nhannht-metro-tabs>
+        </viecz-tabs>
       </div>
     </ng-container>
   `,
