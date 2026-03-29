@@ -16,7 +16,7 @@ import { isPlatformBrowser } from '@angular/common';
  * and dives out at the bottom. No phase switches, no cuts.
  *
  * All heavy imports (three.js, loaders) are dynamic for code-splitting.
- * No postprocessing library — CSS filter provides glow.
+ * Selective bloom via postprocessing library for emissive glow.
  */
 @Component({
   selector: 'app-whale-canvas',
@@ -35,7 +35,6 @@ import { isPlatformBrowser } from '@angular/common';
       width: 100%;
       height: 100%;
       display: block;
-      filter: brightness(1.15) contrast(1.05);
     }
   `],
 })
@@ -48,6 +47,7 @@ export class WhaleCanvasComponent implements OnDestroy {
   private renderer: any;
   private scene: any;
   private camera: any;
+  private composer: any;
   private whaleGroup: any;
   private resizeObserver: ResizeObserver | null = null;
   private animationId = 0;
@@ -65,6 +65,7 @@ export class WhaleCanvasComponent implements OnDestroy {
   private _baseCamZ = 0;
   private _whaleMeshes: any[] = [];
   private _bgTexture: any = null;
+  private _bloomEffect: any = null;
 
   constructor() {
     afterNextRender(() => {
@@ -107,7 +108,6 @@ export class WhaleCanvasComponent implements OnDestroy {
     const host = this.hostRef.nativeElement as HTMLElement;
     const w = host.clientWidth || window.innerWidth;
     const h = host.clientHeight || window.innerHeight;
-
     const scene = new THREE.Scene();
     this.scene = scene;
 
@@ -158,12 +158,29 @@ export class WhaleCanvasComponent implements OnDestroy {
       alpha: true,
       powerPreference: 'low-power',
     });
-    renderer.setSize(w, h);
+    renderer.setSize(w, h, false);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     this.renderer = renderer;
+
+    // Post-processing: selective bloom for emissive glow
+    const { EffectComposer, EffectPass, RenderPass, SelectiveBloomEffect } = await import('postprocessing');
+    const composer = new EffectComposer(renderer, {
+      frameBufferType: THREE.HalfFloatType,
+    });
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomEffect = new SelectiveBloomEffect(scene, camera, {
+      intensity: 1.5,
+      mipmapBlur: true,
+      luminanceThreshold: 0.15,
+      luminanceSmoothing: 0.025,
+      radius: 0.85,
+    });
+    composer.addPass(new EffectPass(camera, bloomEffect));
+    this.composer = composer;
+    this._bloomEffect = bloomEffect;
 
     this.resizeObserver = new ResizeObserver(() => {
       const rw = host.clientWidth || window.innerWidth;
@@ -171,7 +188,8 @@ export class WhaleCanvasComponent implements OnDestroy {
       if (rw === 0 || rh === 0) return;
       camera.aspect = rw / rh;
       camera.updateProjectionMatrix();
-      renderer.setSize(rw, rh);
+      renderer.setSize(rw, rh, false);
+      composer.setSize(rw, rh);
     });
     this.resizeObserver.observe(host);
 
@@ -235,6 +253,7 @@ export class WhaleCanvasComponent implements OnDestroy {
               if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 2.5;
             }
             this._whaleMeshes.push(child);
+            this._bloomEffect.selection.add(child);
           }
         });
 
@@ -271,10 +290,11 @@ export class WhaleCanvasComponent implements OnDestroy {
     // Render loop
     const animate = () => {
       this.animationId = requestAnimationFrame(animate);
+      const delta = this.clock.getDelta(); // Always drain clock to prevent snap on re-activation
       if (!this._active) return;
 
       if (this.mixer) {
-        this.mixer.update(this.clock.getDelta());
+        this.mixer.update(delta);
       }
 
       // Lerp for smooth motion
@@ -282,7 +302,7 @@ export class WhaleCanvasComponent implements OnDestroy {
 
       this.updateWhale();
 
-      renderer.render(scene, camera);
+      composer.render();
     };
     this.ngZone.runOutsideAngular(() => animate());
   }
@@ -339,6 +359,9 @@ export class WhaleCanvasComponent implements OnDestroy {
     if (this.animationId) cancelAnimationFrame(this.animationId);
     this.mixer?.stopAllAction();
     this.resizeObserver?.disconnect();
+    this._bloomEffect?.selection?.clear();
+    this.composer?.dispose();
+    this._bgTexture?.dispose();
     this.renderer?.dispose();
   }
 }
