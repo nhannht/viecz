@@ -20,7 +20,7 @@ import { LanguageService } from '../core/language.service';
                   [attr.title]="lang.activeLang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'">
             {{ lang.activeLang === 'vi' ? '🇻🇳 VI' : '🇬🇧 EN' }}
           </button>
-          <a routerLink="/phone" class="sign-in-btn">
+          <a routerLink="/login" class="sign-in-btn">
             {{ t('common.signIn') }}
           </a>
         </div>

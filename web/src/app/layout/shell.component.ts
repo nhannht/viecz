@@ -125,7 +125,7 @@ import { TimeAgoPipe } from '../core/pipes';
                     (click)="lang.toggle()">
               {{ lang.activeLang === 'vi' ? '\uD83C\uDDFB\uD83C\uDDF3 VI' : '\uD83C\uDDEC\uD83C\uDDE7 EN' }}
             </button>
-            <a routerLink="/phone" class="no-underline px-3 py-1.5 bg-fg text-bg rounded-lg
+            <a routerLink="/login" class="no-underline px-3 py-1.5 bg-fg text-bg rounded-lg
                                           font-display text-[10px] tracking-[1px]">
               {{ t('common.signIn') }}
             </a>
@@ -273,7 +273,7 @@ import { TimeAgoPipe } from '../core/pipes';
                     (click)="lang.toggle()">
               {{ lang.activeLang === 'vi' ? '\uD83C\uDDFB\uD83C\uDDF3 VI' : '\uD83C\uDDEC\uD83C\uDDE7 EN' }}
             </button>
-            <a routerLink="/phone"
+            <a routerLink="/login"
                class="flex items-center px-3 py-1.5 bg-fg text-bg no-underline font-display
                       text-[10px] tracking-[1px] rounded-xl hover:opacity-90 transition-opacity">
               {{ t('common.signIn') }}

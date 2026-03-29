@@ -40,7 +40,7 @@ import { AuthService } from '../core/auth.service';
                 routerLink="/wallet" />
             } @else {
               <nhannht-metro-button variant="primary" [label]="t('payment.logIn')"
-                routerLink="/phone" />
+                routerLink="/login" />
             }
           </div>
         </nhannht-metro-card>

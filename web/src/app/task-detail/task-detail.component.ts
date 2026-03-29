@@ -131,10 +131,10 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
                     </li>
                   </ul>
                   <div class="flex gap-4 items-center">
-                    <a routerLink="/phone">
+                    <a routerLink="/login">
                       <nhannht-metro-button variant="primary" [label]="t('task.registerToApply')" />
                     </a>
-                    <a routerLink="/phone" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
+                    <a routerLink="/login" class="font-body text-[13px] text-fg hover:opacity-70 transition-opacity">
                       {{ t('task.signInLink') }}
                     </a>
                   </div>

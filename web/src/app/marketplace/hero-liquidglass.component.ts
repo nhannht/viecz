@@ -68,11 +68,11 @@ import { HeroEgg3dComponent } from './hero-egg-3d.component';
             </div>
 
             <div class="hero-cta">
-              <a routerLink="/phone" class="cta-primary">
+              <a routerLink="/login" class="cta-primary">
                 <nhannht-metro-icon name="arrow_forward" [size]="18" />
                 {{ t('marketplace.getStarted') }}
               </a>
-              <a routerLink="/phone" class="cta-secondary">
+              <a routerLink="/login" class="cta-secondary">
                 {{ t('marketplace.signInLink') }}
               </a>
             </div>

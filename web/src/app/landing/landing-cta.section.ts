@@ -9,7 +9,7 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
   imports: [RouterLink, TranslocoDirective, NhannhtMetroIconComponent],
   template: `
     <ng-container *transloco="let t">
-      <section class="cta-section">
+      <section id="landing-cta" class="cta-section">
         <!-- Condensation overlay -->
         <div class="condensation-overlay"></div>
 
@@ -17,7 +17,7 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
           <h2 class="cta-heading">{{ t('landing.ctaHeading') }}</h2>
           <p class="cta-sub">{{ t('landing.ctaSub') }}</p>
 
-          <a routerLink="/phone" class="cta-button">
+          <a routerLink="/login" class="cta-button">
             <nhannht-metro-icon name="arrow_forward" [size]="20" />
             {{ t('marketplace.getStarted') }}
           </a>
