@@ -281,8 +281,8 @@ const BG_WARM = [200, 140, 60, 0.10] as const;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.25);
       background: rgba(255, 255, 255, calc(0.12 + var(--whale-darkness, 0) * 0.48));
-      backdrop-filter: blur(calc(40px + var(--whale-darkness, 0) * 20px));
-      -webkit-backdrop-filter: blur(calc(40px + var(--whale-darkness, 0) * 20px));
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
       box-shadow:
         0 2px 16px rgba(0, 0, 0, calc(0.08 + var(--whale-darkness, 0) * 0.15));
       padding: 1.5rem;

@@ -40,10 +40,11 @@ import { LanguageService } from '../core/language.service';
       gap: 1.5rem;
       padding: 10px 24px;
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, calc(0.20 + var(--whale-darkness, 0) * 0.35));
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
       min-width: 280px;
       max-width: 600px;
       width: 90vw;
@@ -56,9 +57,9 @@ import { LanguageService } from '../core/language.service';
       transform: translateX(-50%) translateY(0);
     }
     .landing-nav.scrolled {
-      background: color-mix(in srgb, var(--color-bg) 85%, transparent);
-      border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
-      box-shadow: 0 4px 24px color-mix(in srgb, var(--color-fg) 12%, transparent);
+      background: rgba(255, 255, 255, calc(0.25 + var(--whale-darkness, 0) * 0.40));
+      border-color: rgba(255, 255, 255, calc(0.25 + var(--whale-darkness, 0) * 0.15));
+      box-shadow: 0 4px 24px rgba(0, 0, 0, calc(0.08 + var(--whale-darkness, 0) * 0.12));
     }
     .nav-actions {
       display: flex;

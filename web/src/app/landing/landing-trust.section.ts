@@ -52,8 +52,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.3);
       background: rgba(255, 255, 255, calc(0.06 + var(--whale-darkness, 0) * 0.44));
-      backdrop-filter: blur(calc(32px + var(--whale-darkness, 0) * 8px)) saturate(200%);
-      -webkit-backdrop-filter: blur(calc(32px + var(--whale-darkness, 0) * 8px)) saturate(200%);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
       box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.3);

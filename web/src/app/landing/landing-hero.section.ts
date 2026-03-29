@@ -17,13 +17,8 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
     <ng-container *transloco="let t">
       <section id="landing-hero" class="landing-hero" #heroSection>
 
-        <!-- Radial fade overlay (controlled by GSAP) -->
-        <div class="hero-fade-overlay" #fadeOverlay></div>
-
         <!-- Glass card content -->
-        <div class="hero-glass-card" #glassCard [class.entered]="entered()">
-          <div class="glass-ribs"></div>
-          <div class="specular-spot"></div>
+        <div class="hero-glass-card" [class.entered]="entered()">
           <div class="card-content">
             <h1 class="hero-title">{{ t('marketplace.heroTitle') }}</h1>
             <p class="hero-subtitle">{{ t('marketplace.heroSubtitle') }}</p>
@@ -66,19 +61,6 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       overflow: hidden;
     }
 
-    .hero-fade-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      background: radial-gradient(
-        ellipse 80% 80% at 50% 50%,
-        transparent 30%,
-        var(--color-bg) 100%
-      );
-      opacity: 0;
-    }
-
     .hero-glass-card {
       position: absolute;
       z-index: 2;
@@ -89,12 +71,14 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       width: calc(100% - 2rem);
       border-radius: 24px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, calc(0.30 + var(--whale-darkness, 0) * 0.35));
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
       box-shadow:
-        0 8px 40px rgba(0, 0, 0, 0.12),
-        0 2px 10px rgba(0, 0, 0, 0.06),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        0 12px 48px rgba(0, 0, 0, 0.12),
+        0 2px 8px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
       opacity: 0;
       transition:
         transform 900ms cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -105,40 +89,9 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       transform: translateX(-50%) translateY(0) scale(1);
     }
 
-    .glass-ribs {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      border-radius: inherit;
-      background: repeating-linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.18) 0px,
-        rgba(255, 255, 255, 0.06) 4px,
-        rgba(0, 0, 0, 0.03) 7px,
-        rgba(255, 255, 255, 0.12) 10px,
-        rgba(255, 255, 255, 0.20) 14px
-      );
-      backdrop-filter: blur(18px) saturate(1.4);
-      -webkit-backdrop-filter: blur(18px) saturate(1.4);
-    }
-
-    .specular-spot {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      border-radius: inherit;
-      background: radial-gradient(
-        200px circle at 50% 35%,
-        rgba(255, 255, 255, 0.45) 0%,
-        rgba(255, 255, 255, 0.08) 40%,
-        transparent 70%
-      );
-    }
-
     .card-content {
       position: relative;
-      z-index: 3;
+      z-index: 1;
       padding: 2rem 1.5rem 1.5rem;
       text-align: center;
     }
@@ -148,16 +101,16 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       font-size: 1.3rem;
       font-weight: 700;
       letter-spacing: 0.04em;
-      color: var(--color-fg);
+      color: color-mix(in srgb, var(--color-fg), white calc(var(--whale-darkness, 0) * 100%));
       margin: 0 0 0.5rem;
       line-height: 1.3;
-      text-shadow: 0 1px 3px rgba(255, 255, 255, 0.4);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, calc(var(--whale-darkness, 0) * 0.6));
     }
 
     .hero-subtitle {
       font-family: var(--font-body);
       font-size: 0.85rem;
-      color: var(--color-muted);
+      color: color-mix(in srgb, var(--color-muted), rgba(220, 220, 220, 0.9) calc(var(--whale-darkness, 0) * 100%));
       margin: 0 0 1.5rem;
       line-height: 1.5;
     }
@@ -173,9 +126,9 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       text-align: center;
       padding: 0.8rem 0.4rem;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.22);
-      border: 1.5px solid rgba(255, 255, 255, 0.45);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      background: rgba(255, 255, 255, calc(0.25 + var(--whale-darkness, 0) * 0.25));
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
       opacity: 0;
       transform: translateY(24px) scale(0.85);
       transition:
@@ -192,15 +145,16 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       font-family: var(--font-display);
       font-size: 1.5rem;
       font-weight: 700;
-      color: var(--color-fg);
+      color: color-mix(in srgb, var(--color-fg), white calc(var(--whale-darkness, 0) * 100%));
       line-height: 1.2;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, calc(var(--whale-darkness, 0) * 0.5));
     }
     .stat-label {
       display: block;
       font-family: var(--font-display);
       font-size: 0.55rem;
       letter-spacing: 0.05em;
-      color: var(--color-muted);
+      color: color-mix(in srgb, var(--color-muted), rgba(220, 220, 220, 0.9) calc(var(--whale-darkness, 0) * 100%));
       margin-top: 0.2rem;
     }
 
@@ -250,6 +204,17 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
       .stat-value { font-size: 1.25rem; }
     }
 
+    @media (prefers-reduced-transparency: reduce) {
+      .hero-glass-card {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .stat-pill {
+        background: rgba(255, 255, 255, 0.85);
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .hero-glass-card, .stat-pill {
         transition: opacity 300ms ease !important;
@@ -266,8 +231,6 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
 })
 export class LandingHeroSection {
   @ViewChild('heroSection') heroRef!: ElementRef<HTMLElement>;
-  @ViewChild('fadeOverlay') fadeOverlayRef!: ElementRef<HTMLElement>;
-  @ViewChild('glassCard') glassCardRef!: ElementRef<HTMLElement>;
 
   entered = signal(false);
 
@@ -279,6 +242,4 @@ export class LandingHeroSection {
 
   /** Expose refs for parent GSAP orchestration */
   getHeroEl(): HTMLElement | null { return this.heroRef?.nativeElement ?? null; }
-  getFadeOverlay(): HTMLElement | null { return this.fadeOverlayRef?.nativeElement ?? null; }
-  getGlassCard(): HTMLElement | null { return this.glassCardRef?.nativeElement ?? null; }
 }

@@ -177,59 +177,27 @@ export class LandingComponent implements OnDestroy {
       gsap.globalTimeline.timeScale(Infinity);
     }
 
-    // --- Hero pin + whale exit ---
-    const heroEl = this.heroSection?.getHeroEl();
-    const fadeOverlay = this.heroSection?.getFadeOverlay();
-    const glassCard = this.heroSection?.getGlassCard();
-
-    if (heroEl) {
-      const heroSt = ScrollTrigger.create({
-        trigger: heroEl,
-        start: 'top top',
-        end: '+=150%',
-        pin: true,
-        scrub: 1,
-        onUpdate: (self: any) => {
-          const p = self.progress;
-
-          // Glass card fade out (0 → 0.3)
-          if (glassCard) {
-            const cardProgress = Math.min(p / 0.3, 1);
-            glassCard.style.opacity = String(1 - cardProgress);
-            glassCard.style.transform = `translateX(-50%) translateY(${-cardProgress * 60}px) scale(${1 - cardProgress * 0.1})`;
-          }
-
-          // Fade overlay (0.3 → 1.0)
-          if (fadeOverlay) {
-            const fadeProgress = Math.max(0, (p - 0.3) / 0.7);
-            fadeOverlay.style.opacity = String(fadeProgress);
-          }
-        },
-      });
-      this.scrollTriggers.push(heroSt);
-
-      // Mobile: shorter pin
-      if (window.innerWidth < 768) {
-        heroSt.vars.end = '+=80%';
-        heroSt.refresh();
-      }
-    }
-
     // --- Whale: single continuous scroll progress 0→1 across entire page ---
     if (this.whaleCanvas) {
+      let rafPending = false;
       const onWhaleScroll = () => {
-        const scrollY = window.scrollY;
-        const maxScroll = ScrollTrigger.maxScroll(window);
-        const p = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
-        this.whaleCanvas.setProgress(p);
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+          rafPending = false;
+          const scrollY = window.scrollY;
+          const maxScroll = ScrollTrigger.maxScroll(window);
+          const p = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
+          this.whaleCanvas.setProgress(p);
 
-        // Darken page background in middle sections
-        let darkness: number;
-        if (p < 0.15) darkness = 0;
-        else if (p < 0.25) darkness = (p - 0.15) / 0.10;
-        else if (p > 0.85) darkness = (1 - p) / 0.15;
-        else darkness = 1;
-        document.documentElement.style.setProperty('--whale-darkness', String(Math.max(0, darkness)));
+          // Darken page background: ramp up from mid-hero, stay dark until whale exits
+          let darkness: number;
+          if (p < 0.05) darkness = 0;
+          else if (p < 0.15) darkness = (p - 0.05) / 0.10;
+          else if (p > 0.85) darkness = (0.92 - p) / 0.07;
+          else darkness = 1;
+          document.documentElement.style.setProperty('--whale-darkness', String(Math.max(0, darkness)));
+        });
       };
       window.addEventListener('scroll', onWhaleScroll, { passive: true });
       this.scrollTriggers.push({ kill: () => window.removeEventListener('scroll', onWhaleScroll) });
