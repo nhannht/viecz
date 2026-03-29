@@ -15,6 +15,7 @@ import { NhannhtMetroInputComponent } from '../shared/components/nhannht-metro-i
 import { NhannhtMetroDividerComponent } from '../shared/components/nhannht-metro-divider.component';
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { NhannhtMetroDialogComponent } from '../shared/components/nhannht-metro-dialog.component';
+import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.component';
 import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-snackbar.service';
 import google_libphonenumber from 'google-libphonenumber';
 
@@ -34,6 +35,7 @@ import google_libphonenumber from 'google-libphonenumber';
     NhannhtMetroDividerComponent,
     NhannhtMetroSpinnerComponent,
     NhannhtMetroDialogComponent,
+    DevModeBannerComponent,
   ],
   template: `
     <ng-container *transloco="let t">
@@ -189,6 +191,7 @@ import google_libphonenumber from 'google-libphonenumber';
           }
         } @else {
           <p class="font-body text-[13px] text-fg mb-2">{{ phoneToVerify }}</p>
+          <app-dev-mode-banner>DEV MODE — enter any code</app-dev-mode-banner>
           <nhannht-metro-input [label]="t('profile.codeLabel')" [(ngModel)]="verificationCode"
             [placeholder]="t('profile.codePlaceholder')" />
           @if (firebasePhone.verifying()) {

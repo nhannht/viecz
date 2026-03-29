@@ -8,6 +8,7 @@ import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-ic
 import { NhannhtMetroSpinnerComponent } from '../shared/components/nhannht-metro-spinner.component';
 import { AuthService } from '../core/auth.service';
 import { FirebasePhoneAuthService } from '../core/firebase.service';
+import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.component';
 import google_libphonenumber from 'google-libphonenumber';
 
 @Component({
@@ -21,6 +22,7 @@ import google_libphonenumber from 'google-libphonenumber';
     NhannhtMetroButtonComponent,
     NhannhtMetroIconComponent,
     NhannhtMetroSpinnerComponent,
+    DevModeBannerComponent,
   ],
   template: `
     <ng-container *transloco="let t">
@@ -72,6 +74,8 @@ import google_libphonenumber from 'google-libphonenumber';
             <p class="font-body text-[13px] text-fg text-center mb-4">
               {{ t('auth.phone.codeSentTo', { phone: normalizedPhone() }) }}
             </p>
+
+            <app-dev-mode-banner>DEV MODE — enter any code</app-dev-mode-banner>
 
             <form (ngSubmit)="onVerifyCode()" class="flex flex-col gap-4">
               <nhannht-metro-input

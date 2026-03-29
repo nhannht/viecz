@@ -99,7 +99,9 @@ func main() {
 		log.Println("SMTP not configured, email service disabled")
 	}
 
-	authService := auth.NewAuthService(userRepo, emailVerifier, emailService, cfg.JWTSecret)
+	otpRepo := repository.NewOTPGormRepository(db)
+	otpService := services.NewOTPService(otpRepo, emailService)
+	authService := auth.NewAuthService(userRepo, emailVerifier, emailService, otpService, cfg.JWTSecret)
 
 	// Initialize Google OAuth service
 	googleOAuthService, err := auth.NewGoogleOAuthService(
@@ -181,9 +183,16 @@ func main() {
 	// Initialize GORM repositories (bank accounts)
 	bankAccountRepo := repository.NewBankAccountGormRepository(db)
 
+	// Dev mode: no SMTP = return OTP in response, mock phone verification
+	authDevMode := cfg.SMTPHost == ""
+
 	// Initialize Firebase phone verification (optional — nil = phone verification disabled)
 	var firebaseVerifier auth.FirebaseVerifier
-	if cfg.FirebaseCredentialsFile != "" {
+	if authDevMode {
+		// Dev mode: skip real Firebase, accept phone number as token directly
+		firebaseVerifier = &auth.NoOpFirebaseVerifier{}
+		log.Println("Dev mode: phone verification uses NoOpFirebaseVerifier (token = phone number)")
+	} else if cfg.FirebaseCredentialsFile != "" {
 		fbSvc, err := auth.NewFirebaseService(cfg.FirebaseCredentialsFile)
 		if err != nil {
 			log.Printf("Warning: Firebase not available: %v", err)
@@ -196,7 +205,7 @@ func main() {
 	}
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret, turnstileService, firebaseVerifier, userRepo)
+	authHandler := handlers.NewAuthHandler(authService, googleOAuthService, cfg.JWTSecret, turnstileService, firebaseVerifier, userRepo, authDevMode)
 	userHandler := handlers.NewUserHandler(userService)
 	paymentHandler := handlers.NewPaymentHandler(payosService, paymentService, cfg.ClientURL, cfg.PayOSReturnBaseURL)
 	refRepo := repository.NewPaymentReferenceGormRepository(db)
@@ -312,8 +321,8 @@ func main() {
 		authRoutes := api.Group("/auth")
 		authRoutes.Use(authRL)
 		{
-			authRoutes.POST("/register", authHandler.Register)
-			authRoutes.POST("/login", authHandler.Login)
+			authRoutes.POST("/otp/request", authHandler.RequestOTP)
+			authRoutes.POST("/otp/verify", authHandler.VerifyOTP)
 			authRoutes.POST("/google", authHandler.GoogleLogin)
 			authRoutes.POST("/phone", authHandler.PhoneLogin)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)

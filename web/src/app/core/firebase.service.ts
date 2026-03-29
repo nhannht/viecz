@@ -1,4 +1,4 @@
-import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
+import { Injectable, inject, isDevMode, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../environments/environment';
 
@@ -9,6 +9,8 @@ export class FirebasePhoneAuthService {
   private auth: any = null;
   private confirmationResult: any = null;
   private recaptchaVerifier: any = null;
+  private devPhoneNumber: string | null = null;
+  private readonly devMode = isDevMode();
 
   sending = signal(false);
   verifying = signal(false);
@@ -27,6 +29,12 @@ export class FirebasePhoneAuthService {
   }
 
   async sendVerificationCode(phoneNumber: string, buttonId: string): Promise<void> {
+    if (this.devMode) {
+      this.devPhoneNumber = phoneNumber;
+      this.codeSent.set(true);
+      return;
+    }
+
     await this.ensureInitialized();
     if (!this.auth) throw new Error('Firebase not configured');
 
@@ -39,7 +47,7 @@ export class FirebasePhoneAuthService {
         this.recaptchaVerifier = null;
       }
       const container = document.getElementById(buttonId);
-      if (container) container.innerHTML = '';
+      if (container) container.textContent = '';
 
       this.recaptchaVerifier = new RecaptchaVerifier(this.auth, buttonId, {
         size: 'invisible',
@@ -57,6 +65,11 @@ export class FirebasePhoneAuthService {
   }
 
   async confirmCode(code: string): Promise<string> {
+    if (this.devMode) {
+      if (!this.devPhoneNumber) throw new Error('No verification in progress');
+      return this.devPhoneNumber;
+    }
+
     if (!this.confirmationResult) throw new Error('No verification in progress');
 
     this.verifying.set(true);
@@ -71,6 +84,7 @@ export class FirebasePhoneAuthService {
 
   reset() {
     this.confirmationResult = null;
+    this.devPhoneNumber = null;
     this.codeSent.set(false);
     this.sending.set(false);
     this.verifying.set(false);
@@ -78,10 +92,9 @@ export class FirebasePhoneAuthService {
       this.recaptchaVerifier.clear();
       this.recaptchaVerifier = null;
     }
-    // Clear leftover reCAPTCHA DOM elements that .clear() misses
     if (isPlatformBrowser(this.platformId)) {
       const container = document.getElementById('phone-verify-recaptcha');
-      if (container) container.innerHTML = '';
+      if (container) container.textContent = '';
     }
   }
 }
