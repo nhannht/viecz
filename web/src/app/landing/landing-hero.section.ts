@@ -8,21 +8,14 @@ import {
 import { RouterLink } from '@angular/router';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { NhannhtMetroIconComponent } from '../shared/components/nhannht-metro-icon.component';
-import { HeroEgg3dComponent } from '../marketplace/hero-egg-3d.component';
 
 @Component({
   selector: 'app-landing-hero',
   standalone: true,
-  imports: [RouterLink, TranslocoDirective, NhannhtMetroIconComponent, HeroEgg3dComponent],
+  imports: [RouterLink, TranslocoDirective, NhannhtMetroIconComponent],
   template: `
     <ng-container *transloco="let t">
       <section id="landing-hero" class="landing-hero" #heroSection>
-        <!-- 3D whale canvas -->
-        <div class="whale-container">
-          @defer (on idle) {
-            <app-hero-egg-3d [mousePos]="whaleMousePos()" />
-          }
-        </div>
 
         <!-- Radial fade overlay (controlled by GSAP) -->
         <div class="hero-fade-overlay" #fadeOverlay></div>
@@ -71,12 +64,6 @@ import { HeroEgg3dComponent } from '../marketplace/hero-egg-3d.component';
       height: 100vh;
       min-height: 600px;
       overflow: hidden;
-    }
-
-    .whale-container {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
     }
 
     .hero-fade-overlay {
@@ -283,7 +270,6 @@ export class LandingHeroSection {
   @ViewChild('glassCard') glassCardRef!: ElementRef<HTMLElement>;
 
   entered = signal(false);
-  whaleMousePos = signal<{ x: number; y: number } | null>(null);
 
   constructor() {
     afterNextRender(() => {

@@ -16,7 +16,7 @@ import { LandingHowItWorksSection } from './landing-howitworks.section';
 import { LandingFeaturesSection } from './landing-features.section';
 import { LandingTrustSection } from './landing-trust.section';
 import { LandingCtaSection } from './landing-cta.section';
-import { WhaleScrollComponent } from './whale-scroll.component';
+import { WhaleCanvasComponent } from './whale-canvas.component';
 
 @Component({
   selector: 'app-landing',
@@ -28,7 +28,7 @@ import { WhaleScrollComponent } from './whale-scroll.component';
     LandingFeaturesSection,
     LandingTrustSection,
     LandingCtaSection,
-    WhaleScrollComponent,
+    WhaleCanvasComponent,
   ],
   template: `
     <div class="landing-root" #landingRoot>
@@ -42,7 +42,7 @@ import { WhaleScrollComponent } from './whale-scroll.component';
       <!-- Teal glow trail -->
       <div class="teal-glow" #tealGlow></div>
     </div>
-    <app-whale-scroll #whaleScroll />
+    <app-whale-canvas #whaleCanvas />
   `,
   styles: `
     .landing-root {
@@ -78,7 +78,7 @@ export class LandingComponent implements OnDestroy {
   @ViewChild('howItWorksSection') howItWorksSection!: LandingHowItWorksSection;
   @ViewChild('featuresSection') featuresSection!: LandingFeaturesSection;
   @ViewChild('landingRoot') landingRoot!: ElementRef<HTMLElement>;
-  @ViewChild('whaleScroll') whaleScroll!: WhaleScrollComponent;
+  @ViewChild('whaleCanvas') whaleCanvas!: WhaleCanvasComponent;
   @ViewChild('tealGlow') tealGlowRef!: ElementRef<HTMLElement>;
 
   private themeService = inject(ThemeService);
@@ -192,6 +192,9 @@ export class LandingComponent implements OnDestroy {
         onUpdate: (self: any) => {
           const p = self.progress;
 
+          // Drive whale hero phase
+          this.whaleCanvas?.setHeroProgress(p);
+
           // Glass card fade out (0 → 0.3)
           if (glassCard) {
             const cardProgress = Math.min(p / 0.3, 1);
@@ -215,32 +218,32 @@ export class LandingComponent implements OnDestroy {
       }
     }
 
-    // --- Lonely whale: fixed background behind content sections ---
+    // --- Whale scroll phase: fixed background behind content sections ---
     // Use raw scroll listener + ScrollTrigger.maxScroll() for precise 0→1 progress
     // across the entire page, including pin-expanded scroll distance from HIW/Features.
-    if (this.whaleScroll) {
+    if (this.whaleCanvas) {
       const heroEndPx = Math.round(window.innerHeight * 1.5);
-      let whaleActive = false;
+      let scrollPhaseActive = false;
       const onWhaleScroll = () => {
         const scrollY = window.scrollY;
         const maxScroll = ScrollTrigger.maxScroll(window);
 
         if (scrollY < heroEndPx) {
-          if (whaleActive) {
-            whaleActive = false;
-            this.whaleScroll.setActive(false);
+          if (scrollPhaseActive) {
+            scrollPhaseActive = false;
+            this.whaleCanvas.setPhase('hero');
             document.documentElement.style.setProperty('--whale-darkness', '0');
           }
           return;
         }
 
-        if (!whaleActive) {
-          whaleActive = true;
-          this.whaleScroll.setActive(true);
+        if (!scrollPhaseActive) {
+          scrollPhaseActive = true;
+          this.whaleCanvas.setPhase('scroll');
         }
 
         const p = Math.max(0, Math.min(1, (scrollY - heroEndPx) / (maxScroll - heroEndPx)));
-        this.whaleScroll.setProgress(p);
+        this.whaleCanvas.setScrollProgress(p);
 
         // Darken page background: ramp up 0→1 in first 20%, hold, ramp down in last 20%
         let darkness: number;
@@ -250,7 +253,6 @@ export class LandingComponent implements OnDestroy {
         document.documentElement.style.setProperty('--whale-darkness', String(darkness));
       };
       window.addEventListener('scroll', onWhaleScroll, { passive: true });
-      // Shim kill() so ngOnDestroy cleanup works uniformly
       this.scrollTriggers.push({ kill: () => window.removeEventListener('scroll', onWhaleScroll) });
     }
 

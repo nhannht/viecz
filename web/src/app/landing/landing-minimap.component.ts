@@ -1,23 +1,14 @@
 import {
   Component,
-  ElementRef,
-  ViewChild,
-  afterNextRender,
-  inject,
-  PLATFORM_ID,
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { environment } from '../environments/environment';
+import { TranslocoDirective } from '@jsverse/transloco';
 
-/** Real coordinates + fake job for each dot */
-const TASK_MARKERS = [
-  { lng: 106.6977, lat: 10.7769, labelKey: 'landing.mockMapDistrict1', jobKey: 'landing.mockDeckTask0' },
-  { lng: 106.7600, lat: 10.8500, labelKey: 'landing.mockMapThuDuc',    jobKey: 'landing.mockDeckTask1' },
-  { lng: 106.7100, lat: 10.8050, labelKey: 'landing.mockMapBinhThanh', jobKey: 'landing.mockDeckTask2' },
-  { lng: 106.7000, lat: 10.7350, labelKey: 'landing.mockMapDist7',     jobKey: 'landing.mockDeckTask3' },
-];
-
+/**
+ * Lightweight CSS-only minimap with pulsing markers.
+ * Replaces MapLibre GL to save ~263 KB gzipped JS + network tile fetches.
+ *
+ * Marker positions are approximate % coords for the HCMC area layout.
+ */
 @Component({
   selector: 'app-landing-minimap',
   standalone: true,
@@ -25,7 +16,59 @@ const TASK_MARKERS = [
   template: `
     <ng-container *transloco="let t">
       <div class="minimap-card">
-        <div class="minimap-surface" #mapContainer></div>
+        <div class="minimap-surface">
+          <!-- Stylized map background with CSS -->
+          <div class="map-bg">
+            <!-- SVG road grid pattern -->
+            <svg class="road-grid" viewBox="0 0 480 300" preserveAspectRatio="none">
+              <!-- Major roads -->
+              <path d="M0,150 Q120,140 240,160 T480,150" stroke="rgba(255,255,255,0.08)" stroke-width="3" fill="none"/>
+              <path d="M240,0 Q250,75 230,150 T260,300" stroke="rgba(255,255,255,0.08)" stroke-width="3" fill="none"/>
+              <path d="M0,80 Q160,90 320,70 T480,85" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
+              <path d="M100,0 Q110,100 90,200 T120,300" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
+              <path d="M380,0 Q370,100 390,200 T360,300" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
+              <path d="M0,220 Q120,230 240,210 T480,225" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/>
+              <!-- Minor roads -->
+              <path d="M60,0 L60,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
+              <path d="M180,0 L180,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
+              <path d="M300,0 L300,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
+              <path d="M420,0 L420,300" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
+              <path d="M0,50 L480,50" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
+              <path d="M0,250 L480,250" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none"/>
+              <!-- River -->
+              <path d="M350,0 Q320,60 340,120 Q360,180 330,240 Q310,270 320,300"
+                    stroke="rgba(33,128,141,0.15)" stroke-width="8" fill="none" stroke-linecap="round"/>
+            </svg>
+
+            <!-- Frost overlay -->
+            <div class="frost-overlay"></div>
+          </div>
+
+          <!-- Markers positioned with CSS -->
+          <div class="marker" style="left: 35%; top: 55%;">
+            <div class="marker-ripple" style="animation-delay: 0s"></div>
+            <div class="marker-dot" style="animation-delay: 0s"></div>
+            <div class="marker-label">{{ t('landing.mockMapDistrict1') }}</div>
+          </div>
+
+          <div class="marker" style="left: 65%; top: 20%;">
+            <div class="marker-ripple" style="animation-delay: 0.6s"></div>
+            <div class="marker-dot" style="animation-delay: 0.6s"></div>
+            <div class="marker-label">{{ t('landing.mockMapThuDuc') }}</div>
+          </div>
+
+          <div class="marker" style="left: 45%; top: 35%;">
+            <div class="marker-ripple" style="animation-delay: 1.2s"></div>
+            <div class="marker-dot" style="animation-delay: 1.2s"></div>
+            <div class="marker-label">{{ t('landing.mockMapBinhThanh') }}</div>
+          </div>
+
+          <div class="marker" style="left: 30%; top: 75%;">
+            <div class="marker-ripple" style="animation-delay: 1.8s"></div>
+            <div class="marker-dot" style="animation-delay: 1.8s"></div>
+            <div class="marker-label">{{ t('landing.mockMapDist7') }}</div>
+          </div>
+        </div>
         <span class="task-count">{{ t('landing.mockMapLabel') }}</span>
       </div>
     </ng-container>
@@ -51,6 +94,76 @@ const TASK_MARKERS = [
       aspect-ratio: 16 / 10;
       border-radius: 16px;
       overflow: hidden;
+      position: relative;
+    }
+
+    .map-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        160deg,
+        rgba(8, 25, 35, 0.95) 0%,
+        rgba(12, 35, 50, 0.9) 40%,
+        rgba(6, 20, 30, 0.95) 100%
+      );
+    }
+
+    .road-grid {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .frost-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      border-radius: 16px;
+      background: linear-gradient(160deg, rgba(33,128,141,0.1) 0%, rgba(20,60,80,0.18) 100%);
+    }
+
+    .marker {
+      position: absolute;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translate(-50%, -50%);
+    }
+
+    .marker-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #21808d;
+      box-shadow: 0 0 8px 3px rgba(33,128,141,0.6), 0 0 20px 6px rgba(33,128,141,0.3);
+      animation: mm-pulse 3s ease-in-out infinite;
+      position: relative;
+      z-index: 2;
+    }
+
+    .marker-ripple {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #21808d;
+      opacity: 0;
+      animation: mm-ripple 2.5s ease-out infinite;
+      z-index: 1;
+    }
+
+    .marker-label {
+      font-family: var(--font-display, system-ui);
+      font-size: 0.55rem;
+      letter-spacing: 0.03em;
+      color: rgba(255,255,255,0.85);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      white-space: nowrap;
+      margin-top: 4px;
+      text-align: center;
     }
 
     .task-count {
@@ -65,6 +178,16 @@ const TASK_MARKERS = [
       z-index: 1;
     }
 
+    @keyframes mm-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+    }
+
+    @keyframes mm-ripple {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(3.5); opacity: 0; }
+    }
+
     @media (max-width: 768px) {
       .minimap-card {
         max-width: 100%;
@@ -73,157 +196,4 @@ const TASK_MARKERS = [
     }
   `,
 })
-export class LandingMinimapComponent {
-  @ViewChild('mapContainer') mapContainer!: ElementRef<HTMLElement>;
-  private platformId = inject(PLATFORM_ID);
-  private transloco = inject(TranslocoService);
-
-  constructor() {
-    afterNextRender(() => {
-      requestAnimationFrame(() => this.initMap());
-    });
-  }
-
-  private async initMap(): Promise<void> {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    const maplibreModule = await import('maplibre-gl');
-    const maplibregl = maplibreModule.default || maplibreModule;
-
-    // Fit all markers with padding
-    const bounds = new maplibregl.LngLatBounds();
-    for (const m of TASK_MARKERS) bounds.extend([m.lng, m.lat]);
-
-    const map = new maplibregl.Map({
-      container: this.mapContainer.nativeElement,
-      style: `https://api.maptiler.com/maps/streets/style.json?key=${environment.mapTilerApiKey}`,
-      bounds,
-      fitBoundsOptions: { padding: 50 },
-      interactive: false,
-      attributionControl: false,
-    });
-
-    // Teal frost overlay
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position:absolute; inset:0; pointer-events:none; z-index:1; border-radius:16px;
-      background: linear-gradient(160deg, rgba(33,128,141,0.1) 0%, rgba(20,60,80,0.18) 100%);
-    `;
-    this.mapContainer.nativeElement.appendChild(overlay);
-
-    // Desaturate + darken tiles
-    map.on('render', () => {
-      const canvas = this.mapContainer.nativeElement.querySelector('canvas');
-      if (canvas && !canvas.style.filter) {
-        canvas.style.filter = 'saturate(0.4) brightness(0.75)';
-      }
-    });
-
-    map.on('load', () => {
-      TASK_MARKERS.forEach((marker, i) => {
-        const districtName = this.transloco.translate(marker.labelKey);
-        const jobName = this.transloco.translate(marker.jobKey);
-
-        // Wrapper
-        const wrapper = document.createElement('div');
-        wrapper.className = 'mm-marker';
-        wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
-
-        // Ripple ring (expanding ring animation)
-        const ripple = document.createElement('div');
-        ripple.className = 'mm-ripple';
-        ripple.style.cssText = `
-          position:absolute; width:16px; height:16px; border-radius:50%;
-          border: 2px solid #21808d; opacity:0;
-          animation: mm-ripple 2.5s ease-out infinite;
-          animation-delay: ${i * 0.6}s;
-        `;
-
-        // Dot
-        const dot = document.createElement('div');
-        dot.className = 'mm-dot';
-        dot.style.cssText = `
-          width:16px; height:16px; border-radius:50%; position:relative;
-          background: #21808d;
-          box-shadow: 0 0 8px 3px rgba(33,128,141,0.6), 0 0 20px 6px rgba(33,128,141,0.3);
-          animation: mm-pulse 3s ease-in-out infinite;
-          animation-delay: ${i * 0.6}s;
-          transition: transform 0.2s, box-shadow 0.2s;
-        `;
-
-        // Label (district name, always visible)
-        const label = document.createElement('div');
-        label.style.cssText = `
-          font-family: var(--font-display, system-ui); font-size: 0.6rem;
-          letter-spacing: 0.03em; color: rgba(255,255,255,0.9);
-          text-shadow: 0 1px 4px rgba(0,0,0,0.8); white-space: nowrap;
-          margin-top: 4px; text-align: center;
-        `;
-        label.textContent = districtName;
-
-        // Tooltip (job name, shown on hover)
-        const tooltip = document.createElement('div');
-        tooltip.style.cssText = `
-          position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%) translateY(4px);
-          background: rgba(33,128,141,0.95); color:#fff;
-          font-family: var(--font-display, system-ui); font-size: 0.65rem;
-          padding: 5px 10px; border-radius: 8px; white-space: nowrap;
-          pointer-events: none; opacity: 0;
-          transition: opacity 0.2s, transform 0.2s;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        `;
-        tooltip.textContent = jobName;
-
-        // Tooltip arrow
-        const arrow = document.createElement('div');
-        arrow.style.cssText = `
-          position:absolute; bottom:-4px; left:50%; transform:translateX(-50%);
-          width:0; height:0;
-          border-left: 5px solid transparent; border-right: 5px solid transparent;
-          border-top: 5px solid rgba(33,128,141,0.95);
-        `;
-        tooltip.appendChild(arrow);
-
-        // Hover effects
-        wrapper.addEventListener('mouseenter', () => {
-          dot.style.transform = 'scale(1.5)';
-          dot.style.boxShadow = '0 0 12px 5px rgba(33,128,141,0.8), 0 0 30px 10px rgba(33,128,141,0.4)';
-          tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateX(-50%) translateY(0)';
-        });
-        wrapper.addEventListener('mouseleave', () => {
-          dot.style.transform = '';
-          dot.style.boxShadow = '';
-          tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateX(-50%) translateY(4px)';
-        });
-
-        wrapper.appendChild(tooltip);
-        wrapper.appendChild(ripple);
-        wrapper.appendChild(dot);
-        wrapper.appendChild(label);
-
-        new maplibregl.Marker({ element: wrapper, anchor: 'center' })
-          .setLngLat([marker.lng, marker.lat])
-          .addTo(map);
-      });
-    });
-
-    // Inject animations
-    if (!document.getElementById('mm-style')) {
-      const style = document.createElement('style');
-      style.id = 'mm-style';
-      style.textContent = `
-        @keyframes mm-pulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.2); opacity: 0.8; }
-        }
-        @keyframes mm-ripple {
-          0% { transform: scale(1); opacity: 0.6; }
-          100% { transform: scale(3.5); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }
-}
+export class LandingMinimapComponent {}
