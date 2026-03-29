@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
+import { guestGuard } from './core/guest.guard';
 import { landingRedirectGuard } from './core/landing-redirect.guard';
 
 export const routes: Routes = [
@@ -18,15 +19,17 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    canActivate: [guestGuard],
     loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent),
   },
   {
     path: 'register',
-    redirectTo: 'phone',
+    redirectTo: 'login',
     pathMatch: 'full',
   },
   {
     path: 'phone',
+    canActivate: [guestGuard],
     loadComponent: () => import('./auth/phone-login.component').then(m => m.PhoneLoginComponent),
   },
   {

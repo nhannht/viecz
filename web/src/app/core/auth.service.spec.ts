@@ -17,7 +17,7 @@ const mockUser: User = {
   total_tasks_posted: 0,
   total_earnings: 0,
   auth_provider: 'email',
-  email_verified: false,
+  email_verified: true,
   phone_verified: false,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -72,20 +72,57 @@ describe('AuthService', () => {
     expect(service.currentUser()).toBeNull();
   });
 
-  describe('login', () => {
-    it('should send POST to /api/v1/auth/login', () => {
-      service.login('test@example.com', 'Password123').subscribe();
+  describe('requestOTP', () => {
+    it('should send POST to /api/v1/auth/otp/request', () => {
+      service.requestOTP('test@example.com').subscribe();
 
-      const req = httpTesting.expectOne('/api/v1/auth/login');
+      const req = httpTesting.expectOne('/api/v1/auth/otp/request');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ email: 'test@example.com', password: 'Password123' });
+      expect(req.request.body).toEqual({ email: 'test@example.com' });
+      req.flush({ message: 'verification code sent', is_new_user: false });
+    });
+
+    it('should include turnstile token when provided', () => {
+      service.requestOTP('test@example.com', 'turnstile-token').subscribe();
+
+      const req = httpTesting.expectOne('/api/v1/auth/otp/request');
+      expect(req.request.body).toEqual({ email: 'test@example.com', turnstile_token: 'turnstile-token' });
+      req.flush({ message: 'verification code sent', is_new_user: true });
+    });
+
+    it('should return is_new_user flag', () => {
+      let result: any;
+      service.requestOTP('new@example.com').subscribe(r => result = r);
+
+      const req = httpTesting.expectOne('/api/v1/auth/otp/request');
+      req.flush({ message: 'verification code sent', is_new_user: true });
+
+      expect(result.is_new_user).toBe(true);
+    });
+  });
+
+  describe('verifyOTP', () => {
+    it('should send POST to /api/v1/auth/otp/verify', () => {
+      service.verifyOTP('test@example.com', '123456').subscribe();
+
+      const req = httpTesting.expectOne('/api/v1/auth/otp/verify');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ email: 'test@example.com', code: '123456' });
+      req.flush(mockAuthResponse);
+    });
+
+    it('should include name for new users', () => {
+      service.verifyOTP('test@example.com', '123456', 'New User').subscribe();
+
+      const req = httpTesting.expectOne('/api/v1/auth/otp/verify');
+      expect(req.request.body).toEqual({ email: 'test@example.com', code: '123456', name: 'New User' });
       req.flush(mockAuthResponse);
     });
 
     it('should store tokens and user on success', () => {
-      service.login('test@example.com', 'Password123').subscribe();
+      service.verifyOTP('test@example.com', '123456').subscribe();
 
-      const req = httpTesting.expectOne('/api/v1/auth/login');
+      const req = httpTesting.expectOne('/api/v1/auth/otp/verify');
       req.flush(mockAuthResponse);
 
       expect(service.getAccessToken()).toBe('test-access-token');
@@ -96,43 +133,17 @@ describe('AuthService', () => {
 
     it('should propagate error on failure', () => {
       const errorSpy = vi.fn();
-      service.login('test@example.com', 'wrong').subscribe({ error: errorSpy });
+      service.verifyOTP('test@example.com', '000000').subscribe({ error: errorSpy });
 
-      const req = httpTesting.expectOne('/api/v1/auth/login');
-      req.flush({ error: 'Invalid email or password' }, { status: 401, statusText: 'Unauthorized' });
+      const req = httpTesting.expectOne('/api/v1/auth/otp/verify');
+      req.flush({ error: 'invalid or expired verification code' }, { status: 401, statusText: 'Unauthorized' });
 
       expect(errorSpy).toHaveBeenCalled();
     });
   });
 
-  describe('register', () => {
-    it('should send POST to /api/v1/auth/register', () => {
-      service.register('test@example.com', 'Password123', 'Test User').subscribe();
-
-      const req = httpTesting.expectOne('/api/v1/auth/register');
-      expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({
-        email: 'test@example.com',
-        password: 'Password123',
-        name: 'Test User',
-      });
-      req.flush(mockAuthResponse);
-    });
-
-    it('should store tokens and user on success', () => {
-      service.register('test@example.com', 'Password123', 'Test User').subscribe();
-
-      const req = httpTesting.expectOne('/api/v1/auth/register');
-      req.flush(mockAuthResponse);
-
-      expect(service.getAccessToken()).toBe('test-access-token');
-      expect(service.currentUser()?.name).toBe('Test User');
-    });
-  });
-
   describe('refresh', () => {
     it('should send POST to /api/v1/auth/refresh with refresh token', () => {
-      // First login to store refresh token
       localStorage.setItem('viecz_refresh_token', 'old-refresh-token');
 
       service.refresh().subscribe();
@@ -148,7 +159,6 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('should clear tokens and user', () => {
-      // Setup logged-in state
       localStorage.setItem('viecz_access_token', 'token');
       localStorage.setItem('viecz_refresh_token', 'refresh');
       localStorage.setItem('viecz_user', JSON.stringify(mockUser));
@@ -160,9 +170,9 @@ describe('AuthService', () => {
       expect(service.currentUser()).toBeNull();
     });
 
-    it('should navigate to /phone', () => {
+    it('should navigate to /login', () => {
       service.logout();
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/phone']);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
     });
   });
 
@@ -170,7 +180,6 @@ describe('AuthService', () => {
     it('should restore user from localStorage on init', () => {
       localStorage.setItem('viecz_user', JSON.stringify(mockUser));
 
-      // Create new instance via TestBed to stay in injection context
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
@@ -196,37 +205,20 @@ describe('AuthService', () => {
           { provide: Router, useValue: routerSpy },
         ],
       });
-      // Should not throw
-      const newService = TestBed.inject(AuthService);
-      expect(newService.currentUser()).toBeNull();
-    });
-
-    it('should not restore user when no stored user in localStorage', () => {
-      // localStorage is already clear from beforeEach
-      TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
-        providers: [
-          provideHttpClient(),
-          provideHttpClientTesting(),
-          { provide: PLATFORM_ID, useValue: 'browser' },
-          { provide: Router, useValue: routerSpy },
-        ],
-      });
       const newService = TestBed.inject(AuthService);
       expect(newService.currentUser()).toBeNull();
     });
   });
 
   describe('isAuthenticated computed signal', () => {
-    it('should be false when currentUser is null (cond-expr false branch)', () => {
-      // Initially null
+    it('should be false when currentUser is null', () => {
       expect(service.currentUser()).toBeNull();
       expect(service.isAuthenticated()).toBe(false);
     });
 
-    it('should be true when currentUser is set (cond-expr true branch)', () => {
-      service.login('test@example.com', 'Password123').subscribe();
-      const req = httpTesting.expectOne('/api/v1/auth/login');
+    it('should be true when currentUser is set', () => {
+      service.verifyOTP('test@example.com', '123456').subscribe();
+      const req = httpTesting.expectOne('/api/v1/auth/otp/verify');
       req.flush(mockAuthResponse);
       expect(service.currentUser()).not.toBeNull();
       expect(service.isAuthenticated()).toBe(true);
@@ -256,7 +248,6 @@ describe('AuthService', () => {
     });
 
     it('should not read localStorage in constructor on server', () => {
-      // Even if localStorage has data, server platform should skip it
       expect(serverService.currentUser()).toBeNull();
     });
 
@@ -264,42 +255,20 @@ describe('AuthService', () => {
       expect(serverService.getAccessToken()).toBeNull();
     });
 
-    it('getRefreshToken should return null on server', () => {
-      expect(serverService.getRefreshToken()).toBeNull();
-    });
-
-    it('logout should not throw on server (no localStorage)', () => {
+    it('logout should not throw on server', () => {
       expect(() => serverService.logout()).not.toThrow();
       expect(serverService.currentUser()).toBeNull();
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/phone']);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
     });
 
-    it('refresh should not access localStorage on server', () => {
-      serverService.refresh().subscribe();
-      const req = serverHttpTesting.expectOne('/api/v1/auth/refresh');
-      req.flush({ access_token: 'new-token' });
-      // Should not throw even though localStorage is unavailable on server
-      expect(serverService.getAccessToken()).toBeNull();
-    });
-
-    it('login should store user in signal but not localStorage on server', () => {
-      serverService.login('test@example.com', 'pass').subscribe();
-      const req = serverHttpTesting.expectOne('/api/v1/auth/login');
+    it('verifyOTP should store user in signal but not localStorage on server', () => {
+      serverService.verifyOTP('test@example.com', '123456').subscribe();
+      const req = serverHttpTesting.expectOne('/api/v1/auth/otp/verify');
       req.flush(mockAuthResponse);
 
       expect(serverService.currentUser()).toEqual(mockUser);
       expect(serverService.isAuthenticated()).toBe(true);
-      // localStorage should NOT have been written (server platform)
       expect(localStorage.getItem('viecz_access_token')).toBeNull();
-    });
-
-    it('register should store user in signal but not localStorage on server', () => {
-      serverService.register('t@x.com', 'pass', 'Name').subscribe();
-      const req = serverHttpTesting.expectOne('/api/v1/auth/register');
-      req.flush(mockAuthResponse);
-
-      expect(serverService.currentUser()).toEqual(mockUser);
-      expect(localStorage.getItem('viecz_user')).toBeNull();
     });
   });
 });

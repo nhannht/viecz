@@ -87,7 +87,7 @@ describe('authInterceptor', () => {
     const refreshReq = httpTesting.expectOne('/api/v1/auth/refresh');
     refreshReq.flush({}, { status: 401, statusText: 'Unauthorized' });
 
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/phone']);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
   });
 
   it('should not attempt refresh for auth endpoints', () => {

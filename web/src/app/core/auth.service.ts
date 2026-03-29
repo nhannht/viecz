@@ -30,19 +30,22 @@ export class AuthService {
     }
   }
 
-  login(email: string, password: string) {
-    return this.http
-      .post<AuthResponse>('/api/v1/auth/login', { email, password })
-      .pipe(tap(res => this.storeAuth(res)));
-  }
-
-  register(email: string, password: string, name: string, turnstileToken?: string) {
-    const body: Record<string, string> = { email, password, name };
+  requestOTP(email: string, turnstileToken?: string) {
+    const body: Record<string, string> = { email };
     if (turnstileToken) {
       body['turnstile_token'] = turnstileToken;
     }
     return this.http
-      .post<AuthResponse>('/api/v1/auth/register', body)
+      .post<{ message: string; is_new_user: boolean; code?: string }>('/api/v1/auth/otp/request', body);
+  }
+
+  verifyOTP(email: string, code: string, name?: string) {
+    const body: Record<string, string> = { email, code };
+    if (name) {
+      body['name'] = name;
+    }
+    return this.http
+      .post<AuthResponse>('/api/v1/auth/otp/verify', body)
       .pipe(tap(res => this.storeAuth(res)));
   }
 
@@ -67,7 +70,7 @@ export class AuthService {
     }
     this.currentUser.set(null);
     Sentry.setUser(null);
-    this.router.navigate(['/phone']);
+    this.router.navigate(['/login']);
   }
 
   getAccessToken(): string | null {
