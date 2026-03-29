@@ -66,7 +66,7 @@ import { NhannhtMetroSnackbarService } from '../shared/services/nhannht-metro-sn
             </div>
 
             <div class="flex justify-between items-center mb-4">
-              <nhannht-metro-badge [label]="task()!.status.toUpperCase()" [status]="badgeStatus()" />
+              <nhannht-metro-badge [label]="t(statusKey(task()!.status))" [status]="badgeStatus()" />
               <span class="text-2xl font-bold font-body">{{ task()!.price | vnd }}</span>
             </div>
 
@@ -223,6 +223,17 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
 
   get isRequester() {
     return () => this.task()?.requester_id === this.auth.currentUser()?.id;
+  }
+
+  private static readonly STATUS_KEYS: Record<string, string> = {
+    open: 'task.statusOpen',
+    in_progress: 'task.statusInProgress',
+    completed: 'task.statusCompleted',
+    cancelled: 'task.statusCancelled',
+  };
+
+  statusKey(status: string): string {
+    return TaskDetailComponent.STATUS_KEYS[status] || 'task.statusOpen';
   }
 
   badgeStatus(): 'open' | 'in_progress' | 'completed' | 'cancelled' | 'default' {

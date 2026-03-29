@@ -214,13 +214,13 @@ export class WalletComponent implements OnInit {
   loading = signal(true);
   error = signal(false);
   depositing = signal(false);
-  depositAmount = 0;
+  depositAmount: number | string = '';
   depositError = '';
   txOffset = 0;
   hasMore = signal(false);
 
   bankAccounts = signal<BankAccount[]>([]);
-  withdrawAmount = 0;
+  withdrawAmount: number | string = '';
   withdrawError = '';
   withdrawing = signal(false);
   showBankAccountForm = signal(false);

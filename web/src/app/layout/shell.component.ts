@@ -66,7 +66,8 @@ import { TimeAgoPipe } from '../core/pipes';
             <!-- Notification bell -->
             <div class="relative">
               <button class="bg-transparent border-none cursor-pointer text-fg p-1 relative"
-                      (click)="$event.stopPropagation(); toggleNotifMenu()">
+                      (click)="$event.stopPropagation(); toggleNotifMenu()"
+                      [attr.aria-label]="t('shell.notifications')">
                 <nhannht-metro-icon name="notifications" [size]="22" />
                 @if (unreadCount() > 0) {
                   <span class="notif-badge absolute -top-1 -right-1 bg-fg text-bg font-display
@@ -187,7 +188,8 @@ import { TimeAgoPipe } from '../core/pipes';
             <div class="relative">
               <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
                              rounded-xl hover:bg-fg/5 transition-colors relative"
-                      (click)="$event.stopPropagation(); toggleNotifMenu()">
+                      (click)="$event.stopPropagation(); toggleNotifMenu()"
+                      [attr.aria-label]="t('shell.notifications')">
                 <nhannht-metro-icon name="notifications" [size]="20" />
                 @if (unreadCount() > 0) {
                   <span class="notif-badge absolute -top-0.5 -right-0.5 bg-fg text-bg
@@ -242,7 +244,8 @@ import { TimeAgoPipe } from '../core/pipes';
             <div class="relative">
               <button class="bg-transparent border-none cursor-pointer text-fg p-1.5
                              rounded-xl hover:bg-fg/5 transition-colors"
-                      (click)="toggleUserMenu()">
+                      (click)="toggleUserMenu()"
+                      [attr.aria-label]="t('shell.account')">
                 <nhannht-metro-icon name="account_circle" [size]="20" />
               </button>
               <nhannht-metro-menu [open]="userMenuOpen()" (closed)="userMenuOpen.set(false)">

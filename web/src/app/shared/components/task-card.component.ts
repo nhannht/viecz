@@ -23,9 +23,9 @@ import { GlassSpecularDirective } from '../directives/glass-specular.directive';
               hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] cursor-pointer">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          <nhannht-metro-badge [label]="task().status.toUpperCase()" [status]="task().status" />
+          <nhannht-metro-badge [label]="t(statusKey(task().status))" [status]="task().status" />
           @if (isOwner()) {
-            <nhannht-metro-badge label="YOUR TASK" />
+            <nhannht-metro-badge [label]="t('task.yourTask')" />
           }
         </div>
         <span class="font-body text-[13px] font-bold text-fg">{{ task().price | vnd }}</span>
@@ -80,6 +80,17 @@ export class TaskCardComponent {
   lang = inject(LanguageService);
   task = input.required<Task>();
   private auth = inject(AuthService);
+
+  private static readonly STATUS_KEYS: Record<string, string> = {
+    open: 'task.statusOpen',
+    in_progress: 'task.statusInProgress',
+    completed: 'task.statusCompleted',
+    cancelled: 'task.statusCancelled',
+  };
+
+  statusKey(status: string): string {
+    return TaskCardComponent.STATUS_KEYS[status] || 'task.statusOpen';
+  }
 
   isOwner() {
     return this.task().requester_id === this.auth.currentUser()?.id;

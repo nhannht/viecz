@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal, input, computed } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
@@ -156,12 +157,15 @@ export class TaskFormComponent implements OnInit {
   walletBalance = signal<number | null>(null);
   balanceLoading = signal(true);
 
-  categoryOptions = computed(() =>
-    this.categoryService.categories().map(cat => ({
+  private lang = toSignal(this.transloco.langChanges$, { initialValue: this.transloco.getActiveLang() });
+
+  categoryOptions = computed(() => {
+    const l = this.lang();
+    return this.categoryService.categories().map(cat => ({
       value: String(cat.id),
-      label: cat.name_vi || cat.name,
-    }))
-  );
+      label: l === 'vi' ? (cat.name_vi || cat.name) : cat.name,
+    }));
+  });
 
   title = '';
   description = '';
