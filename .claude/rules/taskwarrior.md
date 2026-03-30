@@ -18,6 +18,15 @@ description: Task management workflow — must be followed before any code chang
 - Tags: `+bug`, `+feature`, `+task`, `+chore`, `+research`
 - Use `epic:` and `milestone:` UDAs for grouping
 
+## Post-Commit Hook
+
+A lock file (`/tmp/claude-taskwarrior-pending`) is created after every successful `git commit`. All subsequent tool calls are **blocked** until Taskwarrior is updated and the lock is removed:
+
+1. Hook creates `/tmp/claude-taskwarrior-pending` with the commit subject
+2. Every `PreToolUse` checks for the lock — blocks with exit 2 if present
+3. Update TW: `task <id> done` or `task <id> modify`
+4. Remove lock: `rm /tmp/claude-taskwarrior-pending`
+
 ## History
 - Old GitHub Issues, YouTrack (KNS-*), and git-bug references in commits are historical
 - All new issue tracking uses Taskwarrior
