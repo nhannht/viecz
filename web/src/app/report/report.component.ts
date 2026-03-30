@@ -8,16 +8,9 @@ import { VieczTableComponent } from '../shared/components/viecz-table.component'
 import { ThemeService } from '../core/theme.service';
 import {
   MARKET_GAP_COLUMNS, MARKET_GAP_ROWS,
-  SERVICE_COLUMNS, SERVICE_ROWS,
   TECH_COLUMNS, TECH_ROWS,
   CUSTOMER_SEGMENT_COLUMNS, CUSTOMER_SEGMENT_ROWS,
-  COMPETITOR_COLUMNS, COMPETITOR_ROWS,
-  TECH_STATUS_COLUMNS, TECH_STATUS_ROWS,
-  COST_COLUMNS, COST_ROWS,
   TEAM_COLUMNS, TEAM_ROWS,
-  ROADMAP_COLUMNS, ROADMAP_ROWS,
-  RISK_COLUMNS, RISK_ROWS,
-  KPI_COLUMNS, KPI_ROWS,
 } from './report.data';
 import { REF_URLS } from './report.refs';
 import {
@@ -27,6 +20,10 @@ import {
   COST_BREAKDOWN_CHART,
   ROADMAP_CHART,
   KPI_TARGETS_CHART,
+  SERVICE_PRICE_RANGE_CHART,
+  COMPETITOR_HEATMAP_CHART,
+  TECH_STATUS_DASHBOARD_CHART,
+  RISK_SCATTER_CHART,
 } from './report.charts';
 
 /**
@@ -62,7 +59,8 @@ export class ReportComponent implements OnDestroy, AfterViewInit {
 
   async ngAfterViewInit(): Promise<void> {
     if (isPlatformBrowser(this.platformId)) {
-      const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs' as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { default: mermaid } = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs' as string & { __brand: 'cdn' }) as any;
       mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'Inter, sans-serif' });
       await mermaid.run({ querySelector: '.mermaid' });
     }
@@ -99,10 +97,21 @@ export class ReportComponent implements OnDestroy, AfterViewInit {
     }
   }
 
-  printReport(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      window.print();
+  async printReport(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    // Scroll through entire page to trigger all @defer (on viewport) blocks
+    const scrollStep = window.innerHeight;
+    const maxScroll = document.body.scrollHeight;
+    for (let y = 0; y < maxScroll; y += scrollStep) {
+      window.scrollTo(0, y);
+      await new Promise(r => setTimeout(r, 100));
     }
+    // Wait for deferred charts to render
+    await new Promise(r => setTimeout(r, 2000));
+    window.scrollTo(0, 0);
+    await new Promise(r => setTimeout(r, 200));
+    window.print();
   }
 
   // ── ECharts config ──
@@ -113,28 +122,18 @@ export class ReportComponent implements OnDestroy, AfterViewInit {
   readonly costBreakdownChart = COST_BREAKDOWN_CHART;
   readonly roadmapChart = ROADMAP_CHART;
   readonly kpiTargetsChart = KPI_TARGETS_CHART;
+  readonly servicePriceRangeChart = SERVICE_PRICE_RANGE_CHART;
+  readonly competitorHeatmapChart = COMPETITOR_HEATMAP_CHART;
+  readonly techStatusDashboardChart = TECH_STATUS_DASHBOARD_CHART;
+  readonly riskScatterChart = RISK_SCATTER_CHART;
 
   // ── Table data ──
   readonly marketGapColumns = MARKET_GAP_COLUMNS;
   readonly marketGapRows = MARKET_GAP_ROWS;
-  readonly serviceColumns = SERVICE_COLUMNS;
-  readonly serviceRows = SERVICE_ROWS;
   readonly techColumns = TECH_COLUMNS;
   readonly techRows = TECH_ROWS;
   readonly customerSegmentColumns = CUSTOMER_SEGMENT_COLUMNS;
   readonly customerSegmentRows = CUSTOMER_SEGMENT_ROWS;
-  readonly competitorColumns = COMPETITOR_COLUMNS;
-  readonly competitorRows = COMPETITOR_ROWS;
-  readonly techStatusColumns = TECH_STATUS_COLUMNS;
-  readonly techStatusRows = TECH_STATUS_ROWS;
-  readonly costColumns = COST_COLUMNS;
-  readonly costRows = COST_ROWS;
   readonly teamColumns = TEAM_COLUMNS;
   readonly teamRows = TEAM_ROWS;
-  readonly roadmapColumns = ROADMAP_COLUMNS;
-  readonly roadmapRows = ROADMAP_ROWS;
-  readonly riskColumns = RISK_COLUMNS;
-  readonly riskRows = RISK_ROWS;
-  readonly kpiColumns = KPI_COLUMNS;
-  readonly kpiRows = KPI_ROWS;
 }

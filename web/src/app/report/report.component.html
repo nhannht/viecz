@@ -116,7 +116,9 @@ graph LR
       </figure>
 
       <h3>4.3. Danh mục dịch vụ</h3>
-      <viecz-table [columns]="serviceColumns" [rows]="serviceRows" />
+      @defer (on viewport) {
+        <div echarts [options]="servicePriceRangeChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
 
       <h3>4.4. Kiến trúc kỹ thuật</h3>
       <p>Toàn bộ hệ thống xây dựng bằng công nghệ mã nguồn mở — tiết kiệm chi phí bản quyền, tận dụng cộng đồng hỗ trợ.</p>
@@ -169,7 +171,9 @@ graph TD
       <p>Mục tiêu pilot: <span class="stat">200–500</span> người dùng, ít nhất <span class="stat">50</span> giao dịch trong 3 tháng đầu. Hơn <span class="stat">84%</span> người Việt sở hữu smartphone&nbsp;<a href="#ref-5" class="cite">[5]</a> và thị trường gig economy đang tăng trưởng mạnh&nbsp;<a href="#ref-8" class="cite">[8]</a> — tạo điều kiện thuận lợi cho nền tảng mobile-first.</p>
 
       <h3>5.3. Lợi thế cạnh tranh</h3>
-      <viecz-table [columns]="competitorColumns" [rows]="competitorRows" />
+      @defer (on viewport) {
+        <div echarts [options]="competitorHeatmapChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
       @defer (on viewport) {
         <div echarts [options]="competitorRadarChart" [initOpts]="chartInitOpts" class="chart-container"></div>
       } @placeholder { <div class="chart-placeholder"></div> }
@@ -183,7 +187,9 @@ graph TD
 
       <h3>6.1. Tính khả thi kỹ thuật</h3>
       <p><strong>Viecz không phải ý tưởng trên giấy.</strong> Sản phẩm đang vận hành tại <a href="https://viecz.fishcmus.io.vn" target="_blank" rel="noopener">https://viecz.fishcmus.io.vn</a>.</p>
-      <viecz-table [columns]="techStatusColumns" [rows]="techStatusRows" />
+      @defer (on viewport) {
+        <div echarts [options]="techStatusDashboardChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
       <figure class="screenshot">
         <img src="assets/screenshots/guide-login.png" alt="Màn hình đăng nhập frostglass" loading="lazy" />
         <figcaption>Giao diện đăng nhập — thiết kế frostglass, xác thực OTP qua email</figcaption>
@@ -191,7 +197,6 @@ graph TD
 
       <h3>6.2. Tính khả thi kinh tế</h3>
       <p>Phí hoa hồng <span class="stat">10–15%</span> giá trị việc. Ví dụ: việc 50.000 VND → nền tảng 7.500 VND, người nhận 42.500 VND. Thấp hơn TaskRabbit (<span class="stat">22,5%</span>)&nbsp;<a href="#ref-9" class="cite">[9]</a>. Hiện chưa thu phí — ưu tiên thu hút người dùng.</p>
-      <viecz-table [columns]="costColumns" [rows]="costRows" />
       @defer (on viewport) {
         <div echarts [options]="costBreakdownChart" [initOpts]="chartInitOpts" class="chart-container"></div>
       } @placeholder { <div class="chart-placeholder"></div> }
@@ -205,13 +210,22 @@ graph TD
       <viecz-table [columns]="teamColumns" [rows]="teamRows" />
 
       <h3>6.4. Lộ trình</h3>
-      <viecz-table [columns]="roadmapColumns" [rows]="roadmapRows" />
       @defer (on viewport) {
         <div echarts [options]="roadmapChart" [initOpts]="chartInitOpts" class="chart-container"></div>
       } @placeholder { <div class="chart-placeholder"></div> }
 
       <h3>6.5. Rủi ro và biện pháp giảm thiểu</h3>
-      <viecz-table [columns]="riskColumns" [rows]="riskRows" />
+      @defer (on viewport) {
+        <div echarts [options]="riskScatterChart" [initOpts]="chartInitOpts" class="chart-container"></div>
+      } @placeholder { <div class="chart-placeholder"></div> }
+      <ul class="risk-mitigations">
+        <li><strong>Cold start</strong> (Cao): Triển khai theo từng trường, kết hợp Đoàn trường và CLB. Hỗ trợ việc miễn phí để giảm rào cản.</li>
+        <li><strong>Phân loại lao động</strong> (TB): Tasker tự quyết nhận việc, tự đặt giá — thuộc diện "người làm việc không có quan hệ lao động"&nbsp;<a href="#ref-16" class="cite">[16]</a>.</li>
+        <li><strong>Giấy phép thanh toán</strong> (TB): Viecz không trực tiếp giữ tiền — escrow qua PayOS (đã có giấy phép từ NHNN)&nbsp;<a href="#ref-17" class="cite">[17]</a>.</li>
+        <li><strong>Bảo vệ dữ liệu</strong> (TB): Thu thập vị trí cần đồng ý riêng, rõ ràng. Đã lên kế hoạch consent management trước pilot&nbsp;<a href="#ref-18" class="cite">[18]</a>.</li>
+        <li><strong>Nghĩa vụ thuế</strong> (Thấp): Chỉ khấu trừ với doanh thu ≥200 triệu VND/năm — gần như toàn bộ SV sẽ dưới ngưỡng&nbsp;<a href="#ref-19" class="cite">[19]</a>.</li>
+        <li><strong>Cạnh tranh từ nền tảng lớn</strong> (Thấp): Phân khúc micro-task SV quá nhỏ để Grab/Gojek quan tâm. Viecz xây lợi thế mạng lưới cục bộ.</li>
+      </ul>
     </viecz-card>
   </section>
 
@@ -233,7 +247,6 @@ graph TD
       </ul>
 
       <h3>7.3. Chỉ số đo lường (KPI pilot)</h3>
-      <viecz-table [columns]="kpiColumns" [rows]="kpiRows" />
       @defer (on viewport) {
         <div echarts [options]="kpiTargetsChart" [initOpts]="chartInitOpts" class="chart-container"></div>
       } @placeholder { <div class="chart-placeholder"></div> }

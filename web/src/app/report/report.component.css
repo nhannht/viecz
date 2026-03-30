@@ -68,6 +68,18 @@
     break-inside: avoid;
   }
 
+  /* Shrink wide tables to fit print width */
+  viecz-table table {
+    font-size: 9pt !important;
+    table-layout: fixed !important;
+    word-wrap: break-word !important;
+  }
+
+  viecz-table th,
+  viecz-table td {
+    padding: 0.4rem 0.5rem !important;
+  }
+
   /* Hide glass overlay divs in print */
   .glass-frost-depth,
   .glass-noise,
@@ -469,6 +481,25 @@ app-report {
   white-space: pre;
   break-inside: avoid;
   margin: 1rem 0;
+}
+
+/* === Risk mitigation list === */
+.risk-mitigations {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.risk-mitigations li {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-fg);
+}
+
+.risk-mitigations li:last-child {
+  border-bottom: none;
 }
 
 /* === Mermaid diagrams === */
