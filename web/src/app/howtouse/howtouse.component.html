@@ -7,7 +7,7 @@
 <div class="guide-cover">
   <h1>HƯỚNG DẪN SỬ DỤNG VIECZ</h1>
   <p>Nền tảng kết nối việc vặt dựa trên vị trí cho sinh viên</p>
-  <p>Phiên bản 1.0 — Tháng 3/2026</p>
+  <p>Phiên bản 1.0</p>
 </div>
 
 <!-- Table of Contents -->
@@ -16,186 +16,170 @@
 <!-- ═══════════ CHAPTER 1 ═══════════ -->
 <section class="guide-section" id="ch1">
   <viecz-guide-chapter [chapterNumber]="1"
-    title="Đăng ký tài khoản"
-    subtitle="Tạo tài khoản mới bằng số điện thoại trong 30 giây" />
+    title="Đăng ký & Đăng nhập"
+    subtitle="Tạo tài khoản hoặc đăng nhập bằng email" />
 
   <p class="intro">
-    Viecz sử dụng xác thực bằng số điện thoại (OTP) để đảm bảo mỗi người dùng là thật.
-    Bạn chỉ cần một số điện thoại Việt Nam để bắt đầu.
+    Viecz sử dụng xác thực bằng email (OTP) — không cần mật khẩu.
+    Bạn chỉ cần một địa chỉ email để bắt đầu. Nếu đã có tài khoản, quy trình đăng nhập giống hệt.
   </p>
 
   <viecz-guide-step [stepNumber]="1"
-    instruction="Truy cập trang chủ Viecz và nhấn 'Đăng nhập bằng điện thoại' (Sign in with phone)."
-    imageSrc="/assets/screenshots/login.png"
-    imageCaption="Hình 1.1: Trang đăng nhập" />
+    instruction="Truy cập trang chủ Viecz. Bạn sẽ thấy trang đăng nhập với ô nhập email."
+    imageSrc="/assets/screenshots/guide-login.png"
+    imageCaption="Hình 1.1: Trang đăng nhập Viecz" />
 
   <viecz-guide-step [stepNumber]="2"
-    instruction="Nhập số điện thoại của bạn (ví dụ: +84 371 234 561) và nhấn 'Tiếp tục'."
-    imageSrc="/assets/screenshots/phone-verify.png"
-    imageCaption="Hình 1.2: Nhập số điện thoại" />
+    instruction="Nhập địa chỉ email của bạn (ví dụ: nhan.nguyen&#64;hcmus.edu.vn) và nhấn 'TIẾP TỤC'."
+    imageSrc="/assets/screenshots/guide-login-filled.png"
+    imageCaption="Hình 1.2: Nhập email" />
 
   <viecz-guide-step [stepNumber]="3"
-    instruction="Nhập mã OTP 6 số được gửi đến điện thoại của bạn và nhấn 'Xác nhận'. Tài khoản sẽ được tạo tự động nếu chưa có." />
+    instruction="Hệ thống sẽ gửi mã xác nhận 6 số đến email của bạn. Nếu đăng ký lần đầu, nhập tên của bạn vào ô 'TÊN CỦA BẠN'. Sau đó nhập mã xác nhận và nhấn 'ĐĂNG NHẬP'."
+    imageSrc="/assets/screenshots/guide-login-otp.png"
+    imageCaption="Hình 1.3: Nhập tên (lần đầu) và mã xác nhận" />
 
   <viecz-guide-callout type="tip">
-    Nếu không nhận được mã OTP, hãy đợi 60 giây rồi nhấn "Gửi lại mã".
+    Nếu không nhận được mã OTP, hãy kiểm tra hộp thư spam. Bạn có thể nhấn 'Gửi lại mã' để gửi lại mã mới.
+  </viecz-guide-callout>
+
+  <viecz-guide-callout type="note">
+    Viecz không dùng mật khẩu. Nếu không còn truy cập email đã đăng ký, hãy liên hệ hỗ trợ để chuyển tài khoản.
   </viecz-guide-callout>
 </section>
 
 <!-- ═══════════ CHAPTER 2 ═══════════ -->
 <section class="guide-section" id="ch2">
   <viecz-guide-chapter [chapterNumber]="2"
-    title="Đăng nhập"
-    subtitle="Truy cập tài khoản đã có" />
+    title="Tìm việc trên Chợ việc"
+    subtitle="Khám phá các công việc đang mở gần bạn" />
 
   <p class="intro">
-    Nếu bạn đã có tài khoản, đăng nhập bằng số điện thoại hoặc email đã đăng ký.
+    Chợ việc là trang chính của Viecz — nơi hiển thị tất cả công việc đang mở.
+    Bạn có thể lọc theo danh mục (Tất cả, Lắp ráp &amp; Cài đặt, Dọn dẹp, Giao hàng, Hỗ trợ sự kiện, Vận chuyển &amp; Di chuyển, Chăm sóc thú cưng, Chụp ảnh, Mua sắm &amp; Việc vặt, Hỗ trợ kỹ thuật, Gia sư &amp; Giảng dạy), tìm kiếm theo từ khóa, hoặc chuyển sang chế độ bản đồ.
   </p>
 
   <viecz-guide-step [stepNumber]="1"
-    instruction="Tại trang đăng nhập, nhập số điện thoại đã đăng ký và nhấn 'Tiếp tục'."
-    imageSrc="/assets/screenshots/login.png"
-    imageCaption="Hình 2.1: Đăng nhập" />
+    instruction="Sau khi đăng nhập, bạn sẽ thấy danh sách công việc dưới dạng thẻ (card). Mỗi thẻ hiển thị: trạng thái, giá, tiêu đề, mô tả, vị trí, hạn chót, và số người đã ứng tuyển."
+    imageSrc="/assets/screenshots/guide-marketplace.png"
+    imageCaption="Hình 2.1: Giao diện Chợ việc với các thẻ công việc" />
 
   <viecz-guide-step [stepNumber]="2"
-    instruction="Nhập mã OTP và nhấn 'Xác nhận'. Bạn sẽ được chuyển đến trang Marketplace."
-    imageSrc="/assets/screenshots/login-otp.png"
-    imageCaption="Hình 2.2: Nhập mã xác nhận" />
+    instruction="Sử dụng các nút danh mục phía trên để lọc theo loại công việc. Nhấn 'Tất cả' để xem tất cả." />
+
+  <viecz-guide-step [stepNumber]="3"
+    instruction="Nhấn 'Gần tôi' để chuyển sang chế độ bản đồ — hiển thị các công việc gần vị trí của bạn trên bản đồ tương tác. Nhấn lại để quay về danh sách. Trình duyệt sẽ xin quyền truy cập vị trí khi bạn bật tính năng này." />
+
+  <viecz-guide-step [stepNumber]="4"
+    instruction="Nhấn vào một thẻ công việc để xem chi tiết đầy đủ: mô tả, vị trí trên bản đồ, giá, thông tin người đăng, và danh sách ứng viên (nếu có)."
+    imageSrc="/assets/screenshots/guide-task-detail.png"
+    imageCaption="Hình 2.2: Chi tiết công việc với thông tin ứng viên" />
+
+  <viecz-guide-callout type="tip">
+    Công việc mới nhất sẽ hiển thị đầu tiên. Kiểm tra Chợ việc thường xuyên để không bỏ lỡ cơ hội.
+  </viecz-guide-callout>
 
   <viecz-guide-callout type="note">
-    Phiên đăng nhập có hiệu lực trong 7 ngày. Sau đó bạn cần đăng nhập lại.
+    Nếu bạn từ chối quyền truy cập vị trí, bạn vẫn có thể xem tất cả công việc — chỉ tắt tính năng lọc theo khoảng cách.
   </viecz-guide-callout>
 </section>
 
 <!-- ═══════════ CHAPTER 3 ═══════════ -->
 <section class="guide-section" id="ch3">
   <viecz-guide-chapter [chapterNumber]="3"
-    title="Tìm việc trên bản đồ"
-    subtitle="Khám phá các công việc gần bạn theo thời gian thực" />
+    title="Đăng một công việc"
+    subtitle="Tạo yêu cầu việc vặt chỉ trong 30 giây" />
 
   <p class="intro">
-    Marketplace là trang chính của Viecz — nơi hiển thị tất cả công việc đang mở.
-    Bạn có thể lọc theo danh mục, tìm kiếm theo từ khóa, hoặc xem theo vị trí trên bản đồ.
+    Bạn cần ai đó giúp khiêng đồ, luyện kỹ năng nói tiếng Anh, hay mua hộ đồ ăn?
+    Đăng một công việc lên Viecz và chờ người nhận.
   </p>
 
   <viecz-guide-step [stepNumber]="1"
-    instruction="Sau khi đăng nhập, bạn sẽ thấy danh sách công việc. Mỗi thẻ hiển thị: tên việc, giá, vị trí, và hạn chót."
-    imageSrc="/assets/screenshots/marketplace-desktop.png"
-    imageCaption="Hình 3.1: Giao diện Marketplace trên desktop" />
+    instruction="Nhấn nút 'Tạo việc' (góc dưới bên phải trên Chợ việc) để mở form đăng việc." />
 
   <viecz-guide-step [stepNumber]="2"
-    instruction="Sử dụng các nút danh mục (Cleaning, Delivery, Tutoring...) để lọc theo loại công việc." />
+    instruction="Điền đầy đủ thông tin: Tiêu đề, Mô tả chi tiết, Danh mục, Giá (VND), Vị trí trên bản đồ, và Hạn chót. Bạn có thể chọn deadline nhanh như 'Tối nay 10PM', 'Sáng mai 9AM', hoặc 'Tùy chọn...'."
+    imageSrc="/assets/screenshots/guide-task-create-filled-full.png"
+    imageCaption="Hình 3.1: Form tạo công việc đã điền đầy đủ" />
 
   <viecz-guide-step [stepNumber]="3"
-    instruction="Nhấn 'Near Me' để chỉ hiển thị các công việc gần vị trí hiện tại của bạn." />
+    instruction="Nhấn 'Tạo việc' để đăng. Công việc sẽ xuất hiện ngay trên Chợ việc cho mọi người thấy." />
 
-  <viecz-guide-step [stepNumber]="4"
-    instruction="Nhấn vào một thẻ công việc để xem chi tiết: mô tả, vị trí trên bản đồ, giá, và thông tin người đăng."
-    imageSrc="/assets/screenshots/task-detail.png"
-    imageCaption="Hình 3.2: Chi tiết công việc" />
+  <viecz-guide-callout type="warning">
+    Giá phải là bội số của 1.000 VND (ví dụ: 50.000, 150.000). Hãy đặt giá hợp lý — quá thấp sẽ không có người nhận.
+  </viecz-guide-callout>
 
-  <viecz-guide-screenshot
-    src="/assets/screenshots/marketplace-mobile.png"
-    caption="Hình 3.3: Marketplace trên điện thoại"
-    size="small" />
-
-  <viecz-guide-callout type="tip">
-    Công việc mới nhất sẽ hiển thị đầu tiên. Kiểm tra Marketplace thường xuyên để không bỏ lỡ cơ hội.
+  <viecz-guide-callout type="note">
+    Bạn cần hoàn thiện hồ sơ (tên và giới thiệu bản thân) trước khi đăng việc. Hệ thống sẽ nhắc bạn nếu hồ sơ chưa đầy đủ.
   </viecz-guide-callout>
 </section>
 
 <!-- ═══════════ CHAPTER 4 ═══════════ -->
 <section class="guide-section" id="ch4">
   <viecz-guide-chapter [chapterNumber]="4"
-    title="Đăng một công việc"
-    subtitle="Tạo yêu cầu việc vặt chỉ trong 30 giây" />
+    title="Ứng tuyển công việc"
+    subtitle="Nhận việc và đề xuất giá của bạn" />
 
   <p class="intro">
-    Bạn cần ai đó giúp khiêng đồ, luyện speaking, hay mua hộ đồ ăn?
-    Đăng một công việc lên Viecz và chờ người nhận.
+    Thấy một công việc phù hợp? Ứng tuyển ngay để người đăng biết bạn muốn nhận việc.
+    Bạn có thể giữ nguyên giá gốc hoặc đề xuất giá khác (bội số của 1.000 VND).
   </p>
 
   <viecz-guide-step [stepNumber]="1"
-    instruction="Nhấn nút 'Create Task' (góc dưới bên phải trên Marketplace) để mở form đăng việc."
-    imageSrc="/assets/screenshots/task-create.png"
-    imageCaption="Hình 4.1: Form tạo công việc" />
+    instruction="Trong trang chi tiết công việc, nhấn nút 'Ứng tuyển' để mở form ứng tuyển." />
 
   <viecz-guide-step [stepNumber]="2"
-    instruction="Điền thông tin: Tiêu đề, Mô tả chi tiết, Danh mục, Giá (VND), và Vị trí trên bản đồ." />
+    instruction="Viết tin nhắn giới thiệu bản thân, nêu kinh nghiệm liên quan. Bạn có thể điều chỉnh giá đề xuất nếu muốn."
+    imageSrc="/assets/screenshots/guide-apply-filled.png"
+    imageCaption="Hình 4.1: Form ứng tuyển với tin nhắn giới thiệu" />
 
   <viecz-guide-step [stepNumber]="3"
-    instruction="Chọn hạn chót (deadline) — bạn có thể chọn nhanh 'Tối nay', 'Ngày mai 9h sáng', hoặc tùy chỉnh." />
+    instruction="Nhấn 'Gửi đơn ứng tuyển' để gửi. Người đăng sẽ nhận được thông báo ngay lập tức." />
 
-  <viecz-guide-step [stepNumber]="4"
-    instruction="Nhấn 'Create Task' để đăng. Công việc sẽ xuất hiện ngay trên Marketplace."
-    imageSrc="/assets/screenshots/task-create-full.png"
-    imageCaption="Hình 4.2: Form đã điền đầy đủ" />
+  <viecz-guide-callout type="tip">
+    Viết tin nhắn ứng tuyển thật rõ ràng — nêu kinh nghiệm và thời gian bạn có thể đến. Điều này tăng cơ hội được chấp nhận.
+  </viecz-guide-callout>
 
-  <viecz-guide-callout type="warning">
-    Giá phải lớn hơn 1.000 VND. Hãy đặt giá hợp lý — quá thấp sẽ không có người nhận.
+  <viecz-guide-callout type="note">
+    Nếu bạn không được chọn, bạn sẽ nhận thông báo và có thể ứng tuyển công việc khác ngay lập tức. Bạn cũng cần hoàn thiện hồ sơ trước khi ứng tuyển.
   </viecz-guide-callout>
 </section>
 
 <!-- ═══════════ CHAPTER 5 ═══════════ -->
 <section class="guide-section" id="ch5">
   <viecz-guide-chapter [chapterNumber]="5"
-    title="Ứng tuyển công việc"
-    subtitle="Nhận việc và đề xuất giá của bạn" />
+    title="Chấp nhận & Trò chuyện"
+    subtitle="Chọn người nhận việc và trao đổi chi tiết" />
 
   <p class="intro">
-    Thấy một công việc phù hợp? Ứng tuyển ngay để người đăng biết bạn muốn nhận việc.
+    Khi có người ứng tuyển, bạn (người đăng việc) sẽ nhận được thông báo.
+    Xem hồ sơ ứng viên, chấp nhận, và bắt đầu chat trực tiếp.
   </p>
 
   <viecz-guide-step [stepNumber]="1"
-    instruction="Trong trang chi tiết công việc, nhấn nút 'Apply' để bắt đầu ứng tuyển."
-    imageSrc="/assets/screenshots/task-detail.png"
-    imageCaption="Hình 5.1: Nút ứng tuyển trên trang chi tiết" />
+    instruction="Kiểm tra thông báo (biểu tượng chuông trên thanh điều hướng). Bạn sẽ thấy thông báo 'Đơn ứng tuyển mới' khi có người ứng tuyển."
+    imageSrc="/assets/screenshots/guide-notifications.png"
+    imageCaption="Hình 5.1: Thông báo có người ứng tuyển và tin nhắn mới" />
 
   <viecz-guide-step [stepNumber]="2"
-    instruction="Viết tin nhắn giới thiệu và đề xuất giá (tùy chọn, có thể giữ nguyên giá gốc)."
-    imageSrc="/assets/screenshots/task-apply.png"
-    imageCaption="Hình 5.2: Form ứng tuyển" />
+    instruction="Vào trang chi tiết công việc, phần bên phải hiển thị ứng viên với tin nhắn giới thiệu và giá đề xuất. Nhấn 'Chấp nhận' trên ứng viên bạn muốn chọn."
+    imageSrc="/assets/screenshots/guide-task-detail.png"
+    imageCaption="Hình 5.2: Thông tin ứng viên trên trang chi tiết công việc" />
 
   <viecz-guide-step [stepNumber]="3"
-    instruction="Nhấn 'Gửi' để hoàn tất. Người đăng sẽ nhận được thông báo về đơn ứng tuyển của bạn." />
+    instruction="Sau khi chấp nhận, vào 'Tin nhắn' trên thanh điều hướng. Cuộc hội thoại với người nhận việc sẽ xuất hiện. Trao đổi chi tiết về thời gian, địa điểm."
+    imageSrc="/assets/screenshots/guide-chat.png"
+    imageCaption="Hình 5.3: Trò chuyện trực tiếp với người nhận việc" />
 
-  <viecz-guide-callout type="tip">
-    Viết tin nhắn ứng tuyển thật rõ ràng — nêu kinh nghiệm và thời gian bạn có thể đến. Điều này tăng cơ hội được chấp nhận.
+  <viecz-guide-callout type="note">
+    Tin nhắn được gửi theo thời gian thực — bạn sẽ thấy tin nhắn mới ngay lập tức mà không cần tải lại trang.
   </viecz-guide-callout>
 </section>
 
 <!-- ═══════════ CHAPTER 6 ═══════════ -->
 <section class="guide-section" id="ch6">
   <viecz-guide-chapter [chapterNumber]="6"
-    title="Chấp nhận & Trò chuyện"
-    subtitle="Chọn người nhận việc và trao đổi chi tiết" />
-
-  <p class="intro">
-    Khi có người ứng tuyển, bạn (người đăng việc) sẽ nhận được thông báo.
-    Xem hồ sơ ứng viên, chấp nhận, và bắt đầu chat.
-  </p>
-
-  <viecz-guide-step [stepNumber]="1"
-    instruction="Kiểm tra thông báo (biểu tượng chuông trên thanh điều hướng) để thấy đơn ứng tuyển mới."
-    imageSrc="/assets/screenshots/notifications.png"
-    imageCaption="Hình 6.1: Danh sách thông báo" />
-
-  <viecz-guide-step [stepNumber]="2"
-    instruction="Vào trang chi tiết công việc, cuộn xuống phần 'Đơn ứng tuyển'. Nhấn 'Chấp nhận' trên ứng viên bạn muốn." />
-
-  <viecz-guide-step [stepNumber]="3"
-    instruction="Sau khi chấp nhận, một cuộc hội thoại sẽ được tạo tự động. Vào 'Chat' để trao đổi chi tiết."
-    imageSrc="/assets/screenshots/messages.png"
-    imageCaption="Hình 6.2: Giao diện chat" />
-
-  <viecz-guide-callout type="note">
-    Tin nhắn được gửi theo thời gian thực qua WebSocket — bạn sẽ thấy tin nhắn mới ngay lập tức.
-  </viecz-guide-callout>
-</section>
-
-<!-- ═══════════ CHAPTER 7 ═══════════ -->
-<section class="guide-section" id="ch7">
-  <viecz-guide-chapter [chapterNumber]="7"
     title="Thanh toán & Ví"
     subtitle="Nạp tiền, thanh toán escrow, và rút tiền" />
 
@@ -205,34 +189,34 @@
   </p>
 
   <viecz-guide-step [stepNumber]="1"
-    instruction="Vào trang 'Wallet' từ thanh điều hướng. Bạn sẽ thấy số dư hiện tại."
-    imageSrc="/assets/screenshots/wallet.png"
-    imageCaption="Hình 7.1: Giao diện ví" />
+    instruction="Vào trang 'Ví tiền' từ thanh điều hướng. Bạn sẽ thấy: Số dư khả dụng, Tổng số dư, và số tiền Đang ký quỹ (escrow)."
+    imageSrc="/assets/screenshots/guide-wallet.png"
+    imageCaption="Hình 6.1: Giao diện ví với số dư và các chức năng nạp/rút tiền" />
 
   <viecz-guide-step [stepNumber]="2"
-    instruction="Để nạp tiền: nhập số tiền muốn nạp (tối thiểu 2.000 VND) và nhấn 'Nạp tiền'." />
+    instruction="Để nạp tiền: nhập số tiền (tối thiểu 2.000 VND, bội số 1.000 VND, tối đa đến giới hạn ví) vào phần 'Nạp tiền' và nhấn 'Nạp tiền'." />
 
   <viecz-guide-step [stepNumber]="3"
-    instruction="Bạn sẽ được chuyển đến trang thanh toán PayOS. Quét mã QR hoặc chuyển khoản ngân hàng để hoàn tất."
-    imageSrc="/assets/screenshots/payment-checkout.png"
-    imageCaption="Hình 7.2: Trang thanh toán PayOS" />
+    instruction="Bạn sẽ được chuyển đến trang thanh toán PayOS. Quét mã QR hoặc chuyển khoản ngân hàng để hoàn tất nạp tiền." />
 
   <viecz-guide-step [stepNumber]="4"
-    instruction="Khi bạn đăng việc, tiền sẽ được giữ trong escrow. Sau khi việc hoàn thành, tiền sẽ được chuyển cho người nhận việc." />
+    instruction="Để rút tiền: bạn cần thêm tài khoản ngân hàng qua 'Quản lý tài khoản ngân hàng' trước. Sau đó chọn tài khoản, nhập số tiền, và nhấn 'Rút tiền'." />
 
-  <viecz-guide-callout type="warning">
-    Số dư ví tối đa trong giai đoạn beta là 200.000 VND. Bạn có thể rút tiền về tài khoản ngân hàng bất kỳ lúc nào.
+  <viecz-guide-step [stepNumber]="5"
+    instruction="Khi bạn đăng việc và có người nhận, tiền sẽ được giữ trong escrow. Sau khi việc hoàn thành, tiền sẽ được chuyển cho người nhận việc." />
+
+  <viecz-guide-callout type="note">
+    Số dư ví tối đa trong giai đoạn beta là 200.000 VND.
   </viecz-guide-callout>
 
-  <viecz-guide-screenshot
-    src="/assets/screenshots/wallet-mobile.png"
-    caption="Hình 7.3: Ví trên điện thoại"
-    size="small" />
+  <viecz-guide-callout type="warning">
+    Nếu tiền đã bị trừ từ ngân hàng nhưng ví chưa cập nhật, hãy đợi 5–10 phút. Nếu vẫn chưa nhận được, gửi ảnh chụp màn hình giao dịch đến noreply&#64;fishcmus.io.vn.
+  </viecz-guide-callout>
 </section>
 
-<!-- ═══════════ CHAPTER 8 ═══════════ -->
-<section class="guide-section" id="ch8">
-  <viecz-guide-chapter [chapterNumber]="8"
+<!-- ═══════════ CHAPTER 7 ═══════════ -->
+<section class="guide-section" id="ch7">
+  <viecz-guide-chapter [chapterNumber]="7"
     title="Hoàn thành công việc"
     subtitle="Xác nhận hoàn thành và nhận thanh toán" />
 
@@ -242,21 +226,21 @@
   </p>
 
   <viecz-guide-step [stepNumber]="1"
-    instruction="Vào 'My Jobs' → 'Posted' để xem danh sách công việc bạn đã đăng."
-    imageSrc="/assets/screenshots/my-jobs-posted.png"
-    imageCaption="Hình 8.1: Danh sách công việc đã đăng" />
+    instruction="Nhấn vào biểu tượng 'Tài khoản' trên thanh điều hướng, chọn 'Hồ sơ'. Trong trang hồ sơ, nhấn 'Việc đã đăng' hoặc 'Việc đã ứng tuyển' để xem danh sách công việc. Tab 'Đã đăng', 'Đã ứng tuyển', 'Đã hoàn thành' giúp phân loại."
+    imageSrc="/assets/screenshots/guide-my-jobs.png"
+    imageCaption="Hình 7.1: Danh sách công việc đã đăng với các trạng thái khác nhau" />
 
   <viecz-guide-step [stepNumber]="2"
-    instruction="Mở công việc đã hoàn thành và nhấn 'Hoàn thành'. Tiền sẽ được giải phóng từ escrow." />
+    instruction="Mở công việc có trạng thái 'Đang thực hiện' và nhấn 'Đánh dấu hoàn thành'. Tiền sẽ được giải phóng từ ký quỹ và chuyển cho người nhận việc." />
 
   <viecz-guide-step [stepNumber]="3"
-    instruction="Người nhận việc sẽ thấy tiền xuất hiện trong ví. Cả hai bên có thể đánh giá lẫn nhau." />
+    instruction="Hãy dành 10 giây đánh giá người nhận việc — điều này giúp cộng đồng Viecz tin tưởng nhau hơn." />
 
-  <viecz-guide-callout type="tip">
-    Kiểm tra kỹ trước khi nhấn 'Hoàn thành' — sau khi xác nhận, tiền sẽ được chuyển và không thể hoàn tác.
+  <viecz-guide-callout type="warning">
+    Kiểm tra kỹ trước khi nhấn 'Đánh dấu hoàn thành' — sau khi xác nhận, tiền sẽ được chuyển và không thể hoàn tác.
   </viecz-guide-callout>
 
   <viecz-guide-callout type="note">
-    Nếu có tranh chấp, hãy liên hệ đội ngũ hỗ trợ qua email: noreply&#64;fishcmus.io.vn
+    Để hủy công việc đã có người nhận hoặc giải quyết tranh chấp, hãy liên hệ đội ngũ hỗ trợ qua email: noreply&#64;fishcmus.io.vn. Tiền escrow sẽ được hoàn lại sau khi xử lý.
   </viecz-guide-callout>
 </section>

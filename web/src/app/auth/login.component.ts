@@ -7,6 +7,7 @@ import { VieczButtonComponent } from '../shared/components/viecz-button.componen
 import { VieczIconComponent } from '../shared/components/viecz-icon.component';
 import { VieczSpinnerComponent } from '../shared/components/viecz-spinner.component';
 import { AuthService } from '../core/auth.service';
+import { LanguageService } from '../core/language.service';
 import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.component';
 
 @Component({
@@ -24,7 +25,17 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
   template: `
     <ng-container *transloco="let t">
       <div class="flex justify-center items-center min-h-screen bg-bg px-4">
-        <div class="w-full max-w-[420px] bg-card border border-border p-8">
+        <div class="w-full max-w-[420px] bg-card border border-border p-8 relative">
+
+          <!-- Language toggle -->
+          <button class="absolute top-3 right-3 bg-transparent border border-border/60 text-fg px-2 py-1
+                         font-display text-[9px] tracking-[1px] cursor-pointer
+                         rounded-lg hover:bg-fg/5 transition-colors"
+                  (click)="lang.toggle()"
+                  [attr.title]="lang.activeLang === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'">
+            {{ lang.activeLang === 'vi' ? '\uD83C\uDDFB\uD83C\uDDF3 VI' : '\uD83C\uDDEC\uD83C\uDDE7 EN' }}
+          </button>
+
           <div class="flex items-center justify-center gap-2 mb-2">
             <viecz-icon name="work" [size]="28" />
             <span class="font-display text-[16px] text-fg tracking-[2px]">{{ t('common.viecz') }}</span>
@@ -132,6 +143,7 @@ export class LoginComponent {
   private auth = inject(AuthService);
   private router = inject(Router);
   private transloco = inject(TranslocoService);
+  lang = inject(LanguageService);
 
   email = '';
   code = '';
