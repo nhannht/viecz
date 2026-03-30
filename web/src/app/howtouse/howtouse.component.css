@@ -1,0 +1,115 @@
+/* Guidebook host layout */
+app-howtouse {
+  display: block;
+  background: #FCFCF9;
+  color: #191C1D;
+  font-family: 'Inter', system-ui, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  line-height: 1.7;
+}
+
+/* Cover title */
+.guide-cover {
+  text-align: center;
+  padding: 4rem 0 3rem;
+  border-bottom: 2px solid #32B8C6;
+  margin-bottom: 2rem;
+}
+
+.guide-cover h1 {
+  font-family: 'Montserrat', 'Inter', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #32B8C6;
+  letter-spacing: 2px;
+  margin: 0 0 0.5rem;
+}
+
+.guide-cover p {
+  color: #5E6C70;
+  font-size: 1rem;
+  margin: 0.25rem 0;
+}
+
+/* Print button */
+.guide-print-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: #32B8C6;
+  color: #191C1D;
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.guide-print-btn:hover {
+  background: #21808D;
+  color: #FCFCF9;
+}
+
+/* Chapter sections */
+.guide-section {
+  margin-bottom: 3rem;
+}
+
+.guide-section p.intro {
+  color: #5E6C70;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.8;
+}
+
+/* Print overrides */
+@media print {
+  app-howtouse {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    background: white;
+  }
+
+  .guide-print-btn {
+    display: none !important;
+  }
+
+  .guide-cover {
+    break-after: page;
+  }
+
+  viecz-guide-chapter {
+    break-before: page;
+  }
+
+  viecz-guide-step,
+  viecz-guide-callout,
+  viecz-guide-screenshot {
+    break-inside: avoid;
+  }
+
+  img {
+    max-height: 500px;
+    object-fit: contain;
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  app-howtouse {
+    padding: 1.5rem 1rem;
+  }
+
+  .guide-cover h1 {
+    font-size: 1.75rem;
+  }
+}
