@@ -98,6 +98,12 @@
     white-space: pre-wrap;
   }
 
+  pre.mermaid {
+    break-inside: avoid;
+    border: 1px solid #ccc;
+    background: #fff;
+  }
+
   /* Chart placeholders: hide in print */
   .chart-placeholder {
     display: none !important;
@@ -463,6 +469,23 @@ app-report {
   white-space: pre;
   break-inside: avoid;
   margin: 1rem 0;
+}
+
+/* === Mermaid diagrams === */
+pre.mermaid {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  break-inside: avoid;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+pre.mermaid svg {
+  max-width: 100%;
+  min-height: 60px;
 }
 
 /* === Footer === */

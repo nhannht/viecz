@@ -44,6 +44,10 @@
         <img src="assets/screenshots/marketplace-desktop.png" alt="Giao diện marketplace Viecz" loading="lazy" />
         <figcaption>Giao diện marketplace Viecz — hiển thị công việc với bộ lọc danh mục</figcaption>
       </figure>
+      <figure class="screenshot">
+        <img src="assets/screenshots/guide-marketplace-map.png" alt="Bản đồ marketplace Viecz" loading="lazy" />
+        <figcaption>Bản đồ vị trí thời gian thực — tính năng cốt lõi "cần gấp, cần gần"</figcaption>
+      </figure>
     </viecz-card>
   </section>
 
@@ -99,32 +103,34 @@
       <p>Viecz là nền tảng hai chiều (two-sided marketplace) kết nối sinh viên cần giúp đỡ với sinh viên sẵn sàng nhận việc, dựa trên vị trí địa lý thời gian thực. Mỗi người dùng đồng thời là cả "cung" lẫn "cầu" — nên mạng lưới phát triển nhanh hơn marketplace một chiều.</p>
 
       <h3>4.2. Luồng hoạt động chính</h3>
-      <pre class="flow-diagram">┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  Đăng việc   │───▶│  Hiển thị    │───▶│  Ứng tuyển   │───▶│  Thanh toán  │
-│  (30 giây)   │    │  trên bản đồ │    │  + Chat      │    │  escrow      │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘</pre>
+      <pre class="mermaid">
+graph LR
+  A["Dang viec (30 giay)"] --> B["Hien thi tren ban do"]
+  B --> C["Ung tuyen + Chat"]
+  C --> D["Thanh toan escrow"]
+      </pre>
+
+      <figure class="screenshot">
+        <img src="assets/screenshots/guide-task-detail.png" alt="Chi tiết công việc với bản đồ" loading="lazy" />
+        <figcaption>Chi tiết công việc — bản đồ MapLibre hiển thị vị trí chính xác của công việc</figcaption>
+      </figure>
 
       <h3>4.3. Danh mục dịch vụ</h3>
       <viecz-table [columns]="serviceColumns" [rows]="serviceRows" />
 
       <h3>4.4. Kiến trúc kỹ thuật</h3>
       <p>Toàn bộ hệ thống xây dựng bằng công nghệ mã nguồn mở — tiết kiệm chi phí bản quyền, tận dụng cộng đồng hỗ trợ.</p>
-      <pre class="flow-diagram">         ┌─────────────────────────────┐
-         │        Cloudflare           │
-         └──────────┬──────────────────┘
-         ┌──────────┼──────────┐
-         ▼                     ▼
-   ┌───────────┐       ┌────────────┐
-   │Angular 21 │       │Android App │
-   │  (SSR)    │       │(Compose)   │
-   └─────┬─────┘       └─────┬──────┘
-         └────────┬───────────┘
-                  ▼
-        ┌──────────────────┐
-        │  Go API (Gin)    │◄── WebSocket
-        └──┬───────┬───┬───┘
-           ▼       ▼   ▼
-      PostgreSQL  Meili PayOS</pre>
+      <pre class="mermaid">
+graph TD
+  CF["Cloudflare"] --> WEB["Angular 21 - SSR"]
+  CF --> APP["Android App - Compose"]
+  WEB --> API["Go API - Gin"]
+  APP --> API
+  WS["WebSocket"] --> API
+  API --> PG["PostgreSQL"]
+  API --> MS["Meilisearch"]
+  API --> PO["PayOS"]
+      </pre>
       <viecz-table [columns]="techColumns" [rows]="techRows" />
       <p>Giám sát: <strong>GlitchTip</strong> (lỗi tự động), <strong>Prometheus</strong> (metrics), tự phục hồi (systemd), test coverage <span class="stat">>70%</span>.</p>
 
@@ -134,6 +140,11 @@
         <li><strong>Escrow nội địa cho giao dịch siêu nhỏ</strong>: PayOS cho escrow 5.000–50.000 VND qua chuyển khoản nội địa.</li>
         <li><strong>Mô hình hai chiều đối xứng</strong>: Mọi người dùng đều đăng việc lẫn nhận việc — mỗi user mới tăng cả cung và cầu.</li>
       </ol>
+
+      <figure class="screenshot">
+        <img src="assets/screenshots/guide-chat.png" alt="Chat real-time giữa hai bên" loading="lazy" />
+        <figcaption>Chat real-time qua WebSocket — trao đổi trực tiếp giữa người đăng và người nhận việc</figcaption>
+      </figure>
 
     </viecz-card>
   </section>
@@ -173,6 +184,10 @@
       <h3>6.1. Tính khả thi kỹ thuật</h3>
       <p><strong>Viecz không phải ý tưởng trên giấy.</strong> Sản phẩm đang vận hành tại <a href="https://viecz.fishcmus.io.vn" target="_blank" rel="noopener">https://viecz.fishcmus.io.vn</a>.</p>
       <viecz-table [columns]="techStatusColumns" [rows]="techStatusRows" />
+      <figure class="screenshot">
+        <img src="assets/screenshots/guide-login.png" alt="Màn hình đăng nhập frostglass" loading="lazy" />
+        <figcaption>Giao diện đăng nhập — thiết kế frostglass, xác thực OTP qua email</figcaption>
+      </figure>
 
       <h3>6.2. Tính khả thi kinh tế</h3>
       <p>Phí hoa hồng <span class="stat">10–15%</span> giá trị việc. Ví dụ: việc 50.000 VND → nền tảng 7.500 VND, người nhận 42.500 VND. Thấp hơn TaskRabbit (<span class="stat">22,5%</span>)&nbsp;<a href="#ref-9" class="cite">[9]</a>. Hiện chưa thu phí — ưu tiên thu hút người dùng.</p>
@@ -181,6 +196,10 @@
         <div echarts [options]="costBreakdownChart" [initOpts]="chartInitOpts" class="chart-container"></div>
       } @placeholder { <div class="chart-placeholder"></div> }
       <p><strong>Điểm hòa vốn</strong>: ~<span class="stat">40 giao dịch/tháng</span>. Năm đầu tiên: ~<span class="stat">10 triệu VND</span>.</p>
+      <figure class="screenshot">
+        <img src="assets/screenshots/guide-wallet.png" alt="Ví Viecz — thanh toán escrow qua PayOS" loading="lazy" />
+        <figcaption>Ví Viecz — nạp/rút tiền qua PayOS, thanh toán escrow cho mỗi giao dịch</figcaption>
+      </figure>
 
       <h3>6.3. Nhân lực</h3>
       <viecz-table [columns]="teamColumns" [rows]="teamRows" />

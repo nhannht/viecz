@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, OnDestroy, PLATFORM_ID, ViewEncapsulation } from '@angular/core';
+import { Component, AfterViewInit, HostListener, inject, OnDestroy, PLATFORM_ID, ViewEncapsulation } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { VieczCardComponent } from '../shared/components/viecz-card.component';
@@ -49,7 +49,7 @@ import {
   styleUrl: './report.component.css',
   templateUrl: './report.component.html',
 })
-export class ReportComponent implements OnDestroy {
+export class ReportComponent implements OnDestroy, AfterViewInit {
   private platformId = inject(PLATFORM_ID);
   private themeService = inject(ThemeService);
   private previousTheme = this.themeService.theme();
@@ -57,6 +57,14 @@ export class ReportComponent implements OnDestroy {
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
       this.themeService.setTheme('sang-frostglass');
+    }
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    if (isPlatformBrowser(this.platformId)) {
+      const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs' as any);
+      mermaid.initialize({ startOnLoad: false, theme: 'neutral', fontFamily: 'Inter, sans-serif' });
+      await mermaid.run({ querySelector: '.mermaid' });
     }
   }
 
