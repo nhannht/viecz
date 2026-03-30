@@ -27,6 +27,12 @@
 - Vòng 3 (Mentorship): 4–5/2026
 - Vòng 4 (Chung kết): Cuối 5/2026
 
+## PDF Export Workflow
+
+- Export from ASUS browser: `ssh asus` — files at `/home/larvartar/Downloads/temp/`
+- Copy to server: `scp asus:"/home/larvartar/Downloads/temp/<file>.pdf" "<dest>"`
+- Add bookmarks: `pikepdf` in `/tmp/pdf-env/` uv venv
+
 ## Competition Field
 
 Công nghệ thông tin – AI – Chuyển đổi số

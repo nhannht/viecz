@@ -274,6 +274,56 @@ strong {
   color: #32B8C6 !important;
 }
 
+/* ── Larger screenshot cards (2-col layout) ── */
+.screenshot-card-lg {
+  border-radius: 6px !important;
+  width: 100% !important;
+  max-height: 160px !important;
+  object-fit: cover !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* ── Market funnel ── */
+.market-funnel {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  margin-top: 2rem !important;
+  gap: 0.5rem !important;
+}
+
+.funnel-level {
+  text-align: center !important;
+  padding: 1rem 2rem !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.funnel-tam {
+  width: 90% !important;
+  background: rgba(50, 184, 198, 0.15) !important;
+  border: 1px solid rgba(50, 184, 198, 0.3) !important;
+  font-size: 1.1rem !important;
+}
+
+.funnel-sam {
+  width: 65% !important;
+  background: rgba(50, 184, 198, 0.25) !important;
+  border: 1px solid rgba(50, 184, 198, 0.4) !important;
+  font-size: 1rem !important;
+}
+
+.funnel-som {
+  width: 40% !important;
+  background: rgba(33, 128, 141, 0.5) !important;
+  border: 1px solid rgba(33, 128, 141, 0.7) !important;
+  font-size: 0.9rem !important;
+}
+
+.funnel-label {
+  color: #FCFCF9 !important;
+}
+
 /* ── Paragraphs & links ── */
 p {
   color: #FCFCF9 !important;
