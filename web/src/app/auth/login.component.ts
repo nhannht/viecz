@@ -25,7 +25,7 @@ import { DevModeBannerComponent } from '../shared/components/dev-mode-banner.com
   template: `
     <ng-container *transloco="let t">
       <div class="flex justify-center items-center min-h-screen bg-bg px-4">
-        <div class="w-full max-w-[420px] bg-card border border-border p-8 relative">
+        <div class="w-full max-w-[420px] bg-card/80 border border-border/40 p-8 relative rounded-2xl shadow-lg" style="backdrop-filter: blur(12px)">
 
           <!-- Language toggle -->
           <button class="absolute top-3 right-3 bg-transparent border border-border/60 text-fg px-2 py-1
