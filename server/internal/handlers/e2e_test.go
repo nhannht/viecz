@@ -107,7 +107,9 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	walletTransactionRepo := repository.NewWalletTransactionGormRepository(db)
 
 	// 5. Real services
-	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, "e2e-test-secret")
+	otpRepo := repository.NewOTPGormRepository(db)
+	otpService := services.NewOTPService(otpRepo, &services.NoOpEmailService{})
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, otpService, e2eJWTSecret)
 	userService := services.NewUserService(userRepo, taskRepo)
 	walletService := services.NewWalletService(walletRepo, walletTransactionRepo, db, 200000)
 	// 6. MockPayOS
@@ -121,7 +123,7 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 	taskService := services.NewTaskService(taskRepo, applicationRepo, categoryRepo, userRepo, walletService, nil, nil, nil, paymentService)
 
 	// 9. Handlers
-	authHandler := NewAuthHandler(authService, nil, e2eJWTSecret, nil, nil, nil)
+	authHandler := NewAuthHandler(authService, nil, e2eJWTSecret, nil, nil, userRepo, true)
 	userHandler := NewUserHandler(userService)
 	taskHandler := NewTaskHandler(taskService, applicationRepo)
 	walletHandler := NewWalletHandler(walletService, mockPayOS, transactionRepo, taskRepo, "http://localhost:8080")
@@ -139,8 +141,8 @@ func setupE2ERouter(t *testing.T) (*gin.Engine, *e2eMockPayOS, func()) {
 		// Auth routes (public)
 		authRoutes := api.Group("/auth")
 		{
-			authRoutes.POST("/register", authHandler.Register)
-			authRoutes.POST("/login", authHandler.Login)
+			authRoutes.POST("/otp/request", authHandler.RequestOTP)
+			authRoutes.POST("/otp/verify", authHandler.VerifyOTP)
 		}
 
 		// Payment webhook (public)
@@ -224,27 +226,49 @@ type registerResponse struct {
 	User         json.RawMessage `json:"user"`
 }
 
-func registerUser(t *testing.T, router *gin.Engine, email, password, name string) (accessToken string, userID int64) {
+func registerUser(t *testing.T, router *gin.Engine, email, _, name string) (accessToken string, userID int64) {
 	t.Helper()
 
-	body, _ := json.Marshal(map[string]string{
-		"email":    email,
-		"password": password,
-		"name":     name,
-	})
-
+	// Step 1: Request OTP
+	reqBody, _ := json.Marshal(map[string]string{"email": email})
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/otp/request", bytes.NewReader(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Register %s: expected 201, got %d: %s", email, w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("RequestOTP %s: expected 200, got %d: %s", email, w.Code, w.Body.String())
+	}
+
+	// In devMode, the OTP code is returned in the response
+	var otpResp struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &otpResp); err != nil {
+		t.Fatalf("Failed to parse OTP response: %v", err)
+	}
+	if otpResp.Code == "" {
+		t.Fatalf("Expected code in dev mode response for %s", email)
+	}
+
+	// Step 2: Verify OTP (creates user if new)
+	verifyBody, _ := json.Marshal(map[string]string{
+		"email": email,
+		"code":  otpResp.Code,
+		"name":  name,
+	})
+	w2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/auth/otp/verify", bytes.NewReader(verifyBody))
+	req2.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("VerifyOTP %s: expected 200, got %d: %s", email, w2.Code, w2.Body.String())
 	}
 
 	var resp registerResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("Failed to parse register response: %v", err)
+	if err := json.Unmarshal(w2.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("Failed to parse verify response: %v", err)
 	}
 
 	// Extract user ID from nested user object
@@ -252,7 +276,7 @@ func registerUser(t *testing.T, router *gin.Engine, email, password, name string
 		ID int64 `json:"id"`
 	}
 	if err := json.Unmarshal(resp.User, &user); err != nil {
-		t.Fatalf("Failed to parse user from register response: %v", err)
+		t.Fatalf("Failed to parse user from verify response: %v", err)
 	}
 
 	return resp.AccessToken, user.ID

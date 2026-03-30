@@ -166,7 +166,7 @@ describe('TaskFormComponent', () => {
       const taskFormDebug = fixture.debugElement.children[0];
       const taskForm = taskFormDebug.componentInstance as TaskFormComponent;
       taskForm.onCancel();
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/']);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/marketplace']);
     });
 
     it('should not submit with price 0 or negative', () => {
@@ -253,7 +253,7 @@ describe('TaskFormComponent', () => {
         { error: 'not found' },
         { status: 404, statusText: 'Not Found' },
       );
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/']);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/marketplace']);
     });
 
     it('should handle update error', () => {
@@ -493,13 +493,12 @@ describe('TaskFormComponent', () => {
       httpTesting.verify();
     });
 
-    it('should use cat.name when cat.name_vi is empty string (covers || fallback)', () => {
+    it('should use cat.name when test lang is en (covers language-aware label)', () => {
       const comp = fixture.debugElement.children[0].componentInstance as TaskFormComponent;
       const options = comp.categoryOptions();
-      // First category: name_vi is '' (falsy) → falls back to cat.name 'Delivery'
+      // Test runs in 'en' locale, so cat.name is always used
       expect(options[0].label).toBe('Delivery');
-      // Second category: name_vi is 'Don dep' (truthy) → uses name_vi
-      expect(options[1].label).toBe('Don dep');
+      expect(options[1].label).toBe('Cleaning');
     });
   });
 
@@ -599,7 +598,7 @@ describe('TaskFormComponent', () => {
       expect(cancelBtn).toBeTruthy();
       cancelBtn!.click();
       fixture.detectChanges();
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['/']);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/marketplace']);
     });
   });
 

@@ -115,7 +115,7 @@ describe('ApplyTaskComponent', () => {
       { error: 'not found' },
       { status: 404, statusText: 'Not Found' },
     );
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/marketplace']);
   });
 
   it('should submit application with proposed price and message', () => {

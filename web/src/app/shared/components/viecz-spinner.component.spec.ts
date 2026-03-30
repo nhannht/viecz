@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
 import { VieczSpinnerComponent } from './viecz-spinner.component';
+import { ThemeService } from '../../core/theme.service';
 
 @Component({
   standalone: true,
@@ -17,8 +18,11 @@ describe('VieczSpinnerComponent', () => {
   let host: TestHostComponent;
 
   beforeEach(async () => {
+    // Force theme to 'light' so the ASCII cube branch renders (not glass spinner)
+    localStorage.setItem('metro-theme', 'light');
     await TestBed.configureTestingModule({
       imports: [TestHostComponent],
+      providers: [ThemeService],
     }).compileComponents();
     fixture = TestBed.createComponent(TestHostComponent);
     host = fixture.componentInstance;
@@ -27,6 +31,7 @@ describe('VieczSpinnerComponent', () => {
 
   afterEach(() => {
     fixture.destroy();
+    localStorage.removeItem('metro-theme');
   });
 
   it('should have role progressbar', () => {

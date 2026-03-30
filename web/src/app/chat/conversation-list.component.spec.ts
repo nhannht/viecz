@@ -145,7 +145,7 @@ describe('ConversationListComponent', () => {
     fixture.detectChanges();
     httpTesting.expectOne('/api/v1/conversations').flush([]);
     component.goToMarketplace();
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/marketplace']);
   });
 
   it('getLastMessageLabel should include other name and message', () => {

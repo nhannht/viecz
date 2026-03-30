@@ -21,25 +21,24 @@ describe('ThemeService', () => {
     allClasses.forEach(c => document.documentElement.classList.remove(c));
   });
 
-  it('defaults to light theme', () => {
-    expect(service.theme()).toBe('light');
+  it('defaults to sang-frostglass theme', () => {
+    expect(service.theme()).toBe('sang-frostglass');
   });
 
   it('cycles through all 3 themes', () => {
     service.init();
 
     service.toggle();
-    expect(service.theme()).toBe('sang-frostglass');
-    expect(document.documentElement.classList.contains('sang-frostglass')).toBe(true);
-
-    service.toggle();
     expect(service.theme()).toBe('dracula');
     expect(document.documentElement.classList.contains('dracula')).toBe(true);
-    expect(document.documentElement.classList.contains('sang-frostglass')).toBe(false);
 
     service.toggle();
     expect(service.theme()).toBe('light');
     expect(document.documentElement.classList.contains('dracula')).toBe(false);
+
+    service.toggle();
+    expect(service.theme()).toBe('sang-frostglass');
+    expect(document.documentElement.classList.contains('sang-frostglass')).toBe(true);
   });
 
   it('persists theme across service instances', () => {
@@ -66,7 +65,7 @@ describe('ThemeService', () => {
       providers: [{ provide: PLATFORM_ID, useValue: 'browser' }],
     });
     const freshService = TestBed.inject(ThemeService);
-    expect(freshService.theme()).toBe('light');
+    expect(freshService.theme()).toBe('sang-frostglass');
   });
 
   it('removes all other theme classes when switching', () => {

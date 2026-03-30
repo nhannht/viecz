@@ -271,14 +271,14 @@ describe('MarketplaceComponent', () => {
     httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
   });
 
-  it('should show hero section when unauthenticated', () => {
+  it('should show search section when unauthenticated', () => {
     // auth.isAuthenticated() returns false by default (no AuthService override)
     fixture.detectChanges();
     httpTesting.match('/api/v1/categories').forEach(r => r.flush([]));
     httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('STUDENT MICRO-TASK MARKETPLACE');
+    expect(el.textContent).toContain('SEARCH TASKS');
   });
 
   it('should show loadingMore spinner', () => {
@@ -511,15 +511,14 @@ describe('MarketplaceComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('No more tasks');
     });
 
-    it('should verify auth state toggles FAB visibility (unauthenticated by default)', () => {
+    it('should show search section for unauthenticated users (default state)', () => {
       fixture.detectChanges();
       httpTesting.match('/api/v1/categories').forEach(r => r.flush([]));
       httpTesting.expectOne(r => r.url === '/api/v1/tasks').flush(mockTaskList);
       fixture.detectChanges();
       // Default is unauthenticated — no FAB (auth.isAuthenticated() returns false)
-      const fab = fixture.nativeElement.querySelector('[aria-label]');
-      // The hero section should be visible for unauthenticated users
-      expect(fixture.nativeElement.textContent).toContain('STUDENT MICRO-TASK MARKETPLACE');
+      // The search section should be visible for unauthenticated users
+      expect(fixture.nativeElement.textContent).toContain('SEARCH TASKS');
     });
 
     it('should toggle from task list to empty state (destroys task grid block)', () => {

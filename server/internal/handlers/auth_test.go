@@ -5,14 +5,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"viecz.vieczserver/internal/auth"
 	"viecz.vieczserver/internal/models"
+	"viecz.vieczserver/internal/repository"
 	"viecz.vieczserver/internal/services"
 )
 
@@ -104,7 +107,6 @@ func (m *mockUserRepository) GetByEmail(ctx context.Context, email string) (*mod
 	return user, nil
 }
 
-// Implement other UserRepository methods (not used in handler tests but required by interface)
 func (m *mockUserRepository) GetByID(ctx context.Context, id int64) (*models.User, error) {
 	if m.shouldFail {
 		return nil, errors.New("user not found")
@@ -180,50 +182,125 @@ func (m *mockUserRepository) SetPhoneVerified(ctx context.Context, userID int64,
 	return nil
 }
 
+// Mock OTP repository for testing
+type mockOTPRepository struct {
+	otps       map[string]*models.EmailOTP
+	shouldFail bool
+}
+
+func newMockOTPRepository() *mockOTPRepository {
+	return &mockOTPRepository{
+		otps: make(map[string]*models.EmailOTP),
+	}
+}
+
+func (m *mockOTPRepository) Create(ctx context.Context, otp *models.EmailOTP) error {
+	if m.shouldFail {
+		return errors.New("create failed")
+	}
+	otp.ID = int64(len(m.otps) + 1)
+	m.otps[otp.Email] = otp
+	return nil
+}
+
+func (m *mockOTPRepository) GetLatestValid(ctx context.Context, email string) (*models.EmailOTP, error) {
+	if m.shouldFail {
+		return nil, errors.New("not found")
+	}
+	otp, exists := m.otps[email]
+	if !exists {
+		return nil, fmt.Errorf("no valid OTP found")
+	}
+	if otp.UsedAt != nil || otp.ExpiresAt.Before(time.Now()) {
+		return nil, fmt.Errorf("OTP expired or used")
+	}
+	return otp, nil
+}
+
+func (m *mockOTPRepository) IncrementAttempts(ctx context.Context, otpID int64) error {
+	return nil
+}
+
+func (m *mockOTPRepository) MarkUsed(ctx context.Context, otpID int64) error {
+	for _, otp := range m.otps {
+		if otp.ID == otpID {
+			now := time.Now()
+			otp.UsedAt = &now
+			return nil
+		}
+	}
+	return nil
+}
+
+func (m *mockOTPRepository) InvalidateAllForEmail(ctx context.Context, email string) error {
+	delete(m.otps, email)
+	return nil
+}
+
+func (m *mockOTPRepository) CountRecentByEmail(ctx context.Context, email string, window time.Duration) (int64, error) {
+	return 0, nil
+}
+
+func (m *mockOTPRepository) GetLastCreatedAt(ctx context.Context, email string) (*time.Time, error) {
+	return nil, nil
+}
+
+func (m *mockOTPRepository) DeleteExpired(ctx context.Context) error {
+	return nil
+}
+
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.New()
 }
 
-func TestAuthHandler_Register(t *testing.T) {
+func createTestHandler(userRepo repository.UserRepository, otpRepo repository.OTPRepository, jwtSecret string, turnstileSvc *services.TurnstileService) *AuthHandler {
+	otpService := services.NewOTPService(otpRepo, &services.NoOpEmailService{})
+	authService := auth.NewAuthService(userRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, otpService, jwtSecret)
+	return NewAuthHandler(authService, nil, jwtSecret, turnstileSvc, nil, userRepo, true)
+}
+
+func TestAuthHandler_RequestOTP(t *testing.T) {
 	jwtSecret := "test-secret-key-for-testing-12345"
 
 	tests := []struct {
 		name               string
 		requestBody        interface{}
-		setupRepo          func(*mockUserRepository)
 		expectedStatusCode int
 		checkResponse      func(*testing.T, map[string]interface{})
 	}{
 		{
-			name: "successful registration",
-			requestBody: RegisterRequest{
-				Email:    "test@example.com",
-				Password: "Password123",
-				Name:     "Test User",
+			name: "successful OTP request for new user",
+			requestBody: RequestOTPRequest{
+				Email: "newuser@example.com",
 			},
-			setupRepo:          func(repo *mockUserRepository) {}, // Empty repo
-			expectedStatusCode: http.StatusCreated,
+			expectedStatusCode: http.StatusOK,
 			checkResponse: func(t *testing.T, response map[string]interface{}) {
-				if response["access_token"] == nil {
-					t.Error("Expected access_token in response")
+				if response["message"] == nil {
+					t.Error("Expected message in response")
 				}
-				if response["refresh_token"] == nil {
-					t.Error("Expected refresh_token in response")
+				if response["is_new_user"] != true {
+					t.Error("Expected is_new_user to be true for new user")
 				}
-				if response["user"] == nil {
-					t.Error("Expected user in response")
+			},
+		},
+		{
+			name: "successful OTP request for existing user",
+			requestBody: RequestOTPRequest{
+				Email: "existing@example.com",
+			},
+			expectedStatusCode: http.StatusOK,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				if response["is_new_user"] != false {
+					t.Error("Expected is_new_user to be false for existing user")
 				}
 			},
 		},
 		{
 			name: "invalid email format",
-			requestBody: RegisterRequest{
-				Email:    "invalid-email",
-				Password: "Password123",
-				Name:     "Test User",
+			requestBody: RequestOTPRequest{
+				Email: "invalid-email",
 			},
-			setupRepo:          func(repo *mockUserRepository) {},
 			expectedStatusCode: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, response map[string]interface{}) {
 				if response["error"] == nil {
@@ -232,52 +309,8 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 		},
 		{
-			name: "weak password",
-			requestBody: RegisterRequest{
-				Email:    "test@example.com",
-				Password: "weak",
-				Name:     "Test User",
-			},
-			setupRepo:          func(repo *mockUserRepository) {},
-			expectedStatusCode: http.StatusBadRequest,
-			checkResponse: func(t *testing.T, response map[string]interface{}) {
-				if response["error"] == nil {
-					t.Error("Expected error message in response")
-				}
-			},
-		},
-		{
-			name: "email already exists",
-			requestBody: RegisterRequest{
-				Email:    "existing@example.com",
-				Password: "Password123",
-				Name:     "Test User",
-			},
-			setupRepo: func(repo *mockUserRepository) {
-				repo.users["existing@example.com"] = &models.User{
-					ID:    1,
-					Email: strPtr("existing@example.com"),
-					Name:  "Existing User",
-				}
-			},
-			expectedStatusCode: http.StatusConflict,
-			checkResponse: func(t *testing.T, response map[string]interface{}) {
-				if response["error"] == nil {
-					t.Error("Expected error message in response")
-				}
-				errorMsg := response["error"].(string)
-				if errorMsg != "email already exists" {
-					t.Errorf("Expected 'email already exists', got '%s'", errorMsg)
-				}
-			},
-		},
-		{
-			name: "missing required fields",
-			requestBody: map[string]interface{}{
-				"email": "test@example.com",
-				// Missing password and name
-			},
-			setupRepo:          func(repo *mockUserRepository) {},
+			name: "missing email",
+			requestBody: map[string]interface{}{},
 			expectedStatusCode: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, response map[string]interface{}) {
 				if response["error"] == nil {
@@ -289,32 +322,33 @@ func TestAuthHandler_Register(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
 			mockUserRepo := newMockUserRepository()
-			if tt.setupRepo != nil {
-				tt.setupRepo(mockUserRepo)
+			// Add existing user for the "existing user" test case
+			mockUserRepo.users["existing@example.com"] = &models.User{
+				ID:           1,
+				Email:        strPtr("existing@example.com"),
+				Name:         "Existing User",
+				AuthProvider: "email",
 			}
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
-			router := setupTestRouter()
-			router.POST("/auth/register", handler.Register)
+			mockUserRepo.usersById[1] = mockUserRepo.users["existing@example.com"]
 
-			// Create request
+			mockOTPRepo := newMockOTPRepository()
+			handler := createTestHandler(mockUserRepo, mockOTPRepo, jwtSecret, nil)
+			router := setupTestRouter()
+			router.POST("/auth/otp/request", handler.RequestOTP)
+
 			body, _ := json.Marshal(tt.requestBody)
-			req := httptest.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(body))
+			req := httptest.NewRequest(http.MethodPost, "/auth/otp/request", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 
-			// Execute
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			// Assert status code
 			if w.Code != tt.expectedStatusCode {
 				t.Errorf("Expected status code %d, got %d. Response: %s",
 					tt.expectedStatusCode, w.Code, w.Body.String())
 			}
 
-			// Parse and check response
 			var response map[string]interface{}
 			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 				t.Fatalf("Failed to parse response: %v", err)
@@ -327,34 +361,34 @@ func TestAuthHandler_Register(t *testing.T) {
 	}
 }
 
-func TestAuthHandler_Login(t *testing.T) {
+func TestAuthHandler_VerifyOTP(t *testing.T) {
 	jwtSecret := "test-secret-key-for-testing-12345"
 
 	tests := []struct {
 		name               string
 		requestBody        interface{}
-		setupRepo          func(*mockUserRepository)
+		setupOTP           func(*mockOTPRepository)
+		setupUser          func(*mockUserRepository)
 		expectedStatusCode int
 		checkResponse      func(*testing.T, map[string]interface{})
 	}{
 		{
-			name: "successful login",
-			requestBody: LoginRequest{
-				Email:    "test@example.com",
-				Password: "Password123",
+			name: "successful verification for new user",
+			requestBody: VerifyOTPRequest{
+				Email: "new@example.com",
+				Code:  "123456",
+				Name:  "New User",
 			},
-			setupRepo: func(repo *mockUserRepository) {
-				// Create user with hashed password
-				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("Password123"), bcrypt.DefaultCost)
-				hashedPasswordStr := string(hashedPassword)
-				repo.users["test@example.com"] = &models.User{
-					ID:           1,
-					Email:        strPtr("test@example.com"),
-					Name:         "Test User",
-					PasswordHash: &hashedPasswordStr,
-					AuthProvider: "email",
+			setupOTP: func(repo *mockOTPRepository) {
+				repo.otps["new@example.com"] = &models.EmailOTP{
+					ID:          1,
+					Email:       "new@example.com",
+					Code:        "123456",
+					MaxAttempts: 5,
+					ExpiresAt:   time.Now().Add(10 * time.Minute),
 				}
 			},
+			setupUser:          func(repo *mockUserRepository) {},
 			expectedStatusCode: http.StatusOK,
 			checkResponse: func(t *testing.T, response map[string]interface{}) {
 				if response["access_token"] == nil {
@@ -369,40 +403,21 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid credentials",
-			requestBody: LoginRequest{
-				Email:    "test@example.com",
-				Password: "WrongPassword",
+			name: "invalid OTP code",
+			requestBody: VerifyOTPRequest{
+				Email: "test@example.com",
+				Code:  "999999",
 			},
-			setupRepo: func(repo *mockUserRepository) {
-				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("Password123"), bcrypt.DefaultCost)
-				hashedPasswordStr := string(hashedPassword)
-				repo.users["test@example.com"] = &models.User{
-					ID:           1,
-					Email:        strPtr("test@example.com"),
-					Name:         "Test User",
-					PasswordHash: &hashedPasswordStr,
-					AuthProvider: "email",
+			setupOTP: func(repo *mockOTPRepository) {
+				repo.otps["test@example.com"] = &models.EmailOTP{
+					ID:          1,
+					Email:       "test@example.com",
+					Code:        "123456",
+					MaxAttempts: 5,
+					ExpiresAt:   time.Now().Add(10 * time.Minute),
 				}
 			},
-			expectedStatusCode: http.StatusUnauthorized,
-			checkResponse: func(t *testing.T, response map[string]interface{}) {
-				if response["error"] == nil {
-					t.Error("Expected error message in response")
-				}
-				errorMsg := response["error"].(string)
-				if errorMsg != "invalid email or password" {
-					t.Errorf("Expected 'invalid email or password', got '%s'", errorMsg)
-				}
-			},
-		},
-		{
-			name: "user not found",
-			requestBody: LoginRequest{
-				Email:    "nonexistent@example.com",
-				Password: "Password123",
-			},
-			setupRepo:          func(repo *mockUserRepository) {},
+			setupUser:          func(repo *mockUserRepository) {},
 			expectedStatusCode: http.StatusUnauthorized,
 			checkResponse: func(t *testing.T, response map[string]interface{}) {
 				if response["error"] == nil {
@@ -411,12 +426,12 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 		},
 		{
-			name: "missing password",
+			name: "missing code",
 			requestBody: map[string]interface{}{
 				"email": "test@example.com",
-				// Missing password
 			},
-			setupRepo:          func(repo *mockUserRepository) {},
+			setupOTP:           func(repo *mockOTPRepository) {},
+			setupUser:          func(repo *mockUserRepository) {},
 			expectedStatusCode: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, response map[string]interface{}) {
 				if response["error"] == nil {
@@ -428,32 +443,31 @@ func TestAuthHandler_Login(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
 			mockUserRepo := newMockUserRepository()
-			if tt.setupRepo != nil {
-				tt.setupRepo(mockUserRepo)
+			mockOTPRepo := newMockOTPRepository()
+			if tt.setupOTP != nil {
+				tt.setupOTP(mockOTPRepo)
 			}
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
-			router := setupTestRouter()
-			router.POST("/auth/login", handler.Login)
+			if tt.setupUser != nil {
+				tt.setupUser(mockUserRepo)
+			}
 
-			// Create request
+			handler := createTestHandler(mockUserRepo, mockOTPRepo, jwtSecret, nil)
+			router := setupTestRouter()
+			router.POST("/auth/otp/verify", handler.VerifyOTP)
+
 			body, _ := json.Marshal(tt.requestBody)
-			req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(body))
+			req := httptest.NewRequest(http.MethodPost, "/auth/otp/verify", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 
-			// Execute
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			// Assert status code
 			if w.Code != tt.expectedStatusCode {
 				t.Errorf("Expected status code %d, got %d. Response: %s",
 					tt.expectedStatusCode, w.Code, w.Body.String())
 			}
 
-			// Parse and check response
 			var response map[string]interface{}
 			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 				t.Fatalf("Failed to parse response: %v", err)
@@ -493,7 +507,6 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 				if response["access_token"] == nil {
 					t.Error("Expected access_token in response")
 				}
-				// Verify it's a valid token
 				accessToken := response["access_token"].(string)
 				if accessToken == "" {
 					t.Error("Expected non-empty access token")
@@ -518,9 +531,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 		},
 		{
 			name: "missing refresh token",
-			requestBody: map[string]interface{}{
-				// Missing refresh_token field
-			},
+			requestBody: map[string]interface{}{},
 			expectedStatusCode: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, response map[string]interface{}) {
 				if response["error"] == nil {
@@ -532,29 +543,24 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
 			mockUserRepo := newMockUserRepository()
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
+			mockOTPRepo := newMockOTPRepository()
+			handler := createTestHandler(mockUserRepo, mockOTPRepo, jwtSecret, nil)
 			router := setupTestRouter()
 			router.POST("/auth/refresh", handler.RefreshToken)
 
-			// Create request
 			body, _ := json.Marshal(tt.requestBody)
 			req := httptest.NewRequest(http.MethodPost, "/auth/refresh", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 
-			// Execute
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
-			// Assert status code
 			if w.Code != tt.expectedStatusCode {
 				t.Errorf("Expected status code %d, got %d. Response: %s",
 					tt.expectedStatusCode, w.Code, w.Body.String())
 			}
 
-			// Parse and check response
 			var response map[string]interface{}
 			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 				t.Fatalf("Failed to parse response: %v", err)
@@ -616,8 +622,8 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 			if tt.setupRepo != nil {
 				tt.setupRepo(mockUserRepo)
 			}
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
+			mockOTPRepo := newMockOTPRepository()
+			handler := createTestHandler(mockUserRepo, mockOTPRepo, jwtSecret, nil)
 			router := setupTestRouter()
 			router.POST("/auth/verify-email", handler.VerifyEmail)
 
@@ -650,8 +656,8 @@ func TestAuthHandler_ResendVerification(t *testing.T) {
 	}
 	mockUserRepo.usersById[1] = mockUserRepo.users["test@example.com"]
 
-	authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-	handler := NewAuthHandler(authService, nil, jwtSecret, nil, nil, nil)
+	mockOTPRepo := newMockOTPRepository()
+	handler := createTestHandler(mockUserRepo, mockOTPRepo, jwtSecret, nil)
 	router := setupTestRouter()
 	router.Use(func(c *gin.Context) {
 		c.Set("user_id", int64(1))
@@ -678,7 +684,7 @@ func TestAuthHandler_ResendVerification(t *testing.T) {
 	}
 }
 
-func TestAuthHandler_Register_WithTurnstile(t *testing.T) {
+func TestAuthHandler_RequestOTP_WithTurnstile(t *testing.T) {
 	jwtSecret := "test-secret-key-for-testing-12345"
 
 	// Start mock Turnstile server
@@ -695,7 +701,6 @@ func TestAuthHandler_Register_WithTurnstile(t *testing.T) {
 	defer turnstileServer.Close()
 
 	turnstileSvc := services.NewTurnstileService("test-secret")
-	// Override URL to point to mock server
 	turnstileSvc.SetVerifyURL(turnstileServer.URL)
 
 	tests := []struct {
@@ -704,31 +709,25 @@ func TestAuthHandler_Register_WithTurnstile(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name: "register with valid turnstile token",
+			name: "OTP request with valid turnstile token",
 			requestBody: map[string]string{
 				"email":           "test@example.com",
-				"password":        "Password123",
-				"name":            "Test User",
 				"turnstile_token": "valid-turnstile-token",
 			},
-			expectedStatusCode: http.StatusCreated,
+			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name: "register with invalid turnstile token",
+			name: "OTP request with invalid turnstile token",
 			requestBody: map[string]string{
 				"email":           "test@example.com",
-				"password":        "Password123",
-				"name":            "Test User",
 				"turnstile_token": "bad-token",
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "register with missing turnstile token",
+			name: "OTP request with missing turnstile token",
 			requestBody: map[string]string{
-				"email":    "test2@example.com",
-				"password": "Password123",
-				"name":     "Test User",
+				"email": "test2@example.com",
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
@@ -737,13 +736,13 @@ func TestAuthHandler_Register_WithTurnstile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUserRepo := newMockUserRepository()
-			authService := auth.NewAuthService(mockUserRepo, &services.NoOpEmailVerifier{}, &services.NoOpEmailService{}, jwtSecret)
-			handler := NewAuthHandler(authService, nil, jwtSecret, turnstileSvc, nil, nil)
+			mockOTPRepo := newMockOTPRepository()
+			handler := createTestHandler(mockUserRepo, mockOTPRepo, jwtSecret, turnstileSvc)
 			router := setupTestRouter()
-			router.POST("/auth/register", handler.Register)
+			router.POST("/auth/otp/request", handler.RequestOTP)
 
 			body, _ := json.Marshal(tt.requestBody)
-			req := httptest.NewRequest(http.MethodPost, "/auth/register", bytes.NewBuffer(body))
+			req := httptest.NewRequest(http.MethodPost, "/auth/otp/request", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 
 			w := httptest.NewRecorder()

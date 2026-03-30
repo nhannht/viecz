@@ -197,7 +197,7 @@ describe('TaskDetailComponent', () => {
       { error: 'not found' },
       { status: 404, statusText: 'Not Found' },
     );
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/marketplace']);
   });
 
   it('should show overdue badge when task is overdue', () => {
@@ -219,7 +219,7 @@ describe('TaskDetailComponent', () => {
     const comp = detailDebugEl.componentInstance as TaskDetailComponent;
     comp.deleteTask();
     httpTesting.expectOne('/api/v1/tasks/1').flush({ message: 'ok' });
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/marketplace']);
   });
 
   it('should show error on delete failure', () => {
@@ -229,7 +229,7 @@ describe('TaskDetailComponent', () => {
     comp.deleteTask();
     httpTesting.expectOne('/api/v1/tasks/1').flush({ error: 'forbidden' }, { status: 403, statusText: 'Forbidden' });
     // No navigation since it failed
-    expect(router.navigate).not.toHaveBeenCalledWith(['/']);
+    expect(router.navigate).not.toHaveBeenCalledWith(['/marketplace']);
   });
 
   it('should set pendingAppId and show escrow dialog on acceptApp', () => {
@@ -461,7 +461,7 @@ describe('TaskDetailComponent', () => {
     comp.deleteTask();
     httpTesting.expectOne('/api/v1/tasks/1').flush({}, { status: 500, statusText: 'Server Error' });
     // err.error?.error is undefined, so fallback translation 'Failed' is used
-    expect(router.navigate).not.toHaveBeenCalledWith(['/']);
+    expect(router.navigate).not.toHaveBeenCalledWith(['/marketplace']);
   });
 
   it('should show fallback error on completeTask failure without details', () => {

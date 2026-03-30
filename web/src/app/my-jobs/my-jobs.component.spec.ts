@@ -192,7 +192,7 @@ describe('MyJobsComponent', () => {
     initComponent();
     const comp = fixture.debugElement.query(By.directive(MyJobsComponent)).componentInstance as MyJobsComponent;
     comp.goToMarketplace();
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/marketplace']);
   });
 
   it('retryLoad should reload tasks for current tab', () => {

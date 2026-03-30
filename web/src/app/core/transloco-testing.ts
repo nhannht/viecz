@@ -67,6 +67,8 @@ const translations: Record<string, Translation> = {
       distanceAway: '{{distance}} away',
     },
     task: {
+      statusOpen: 'OPEN', statusInProgress: 'IN PROGRESS', statusCompleted: 'COMPLETED', statusCancelled: 'CANCELLED',
+      yourTask: 'YOUR TASK',
       editTask: 'Edit Task', deleteTask: 'Delete Task', description: 'DESCRIPTION',
       deadline: 'Deadline: ', overdue: 'OVERDUE', posted: 'Posted ',
       ctaTitle: 'WANT TO APPLY FOR THIS TASK?', ctaSubtitle: 'Create a free account to:',
