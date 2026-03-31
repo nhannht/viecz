@@ -48,7 +48,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run tests with coverage
-        run: bunx ng test --watch=false --coverage --coverage-reporters json-summary text
+        run: bunx ng test -- --coverage --coverage.reporter=json-summary --coverage.reporter=text
 
       - name: Check coverage threshold
         run: |
