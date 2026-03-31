@@ -154,7 +154,7 @@ func main() {
 	log.Println("PostgreSQL (port 5433) | Mock PayOS | Auto-complete deposits")
 
 	// Initialize Sentry (defaults to viecz-server project; override with SENTRY_DSN env var)
-	sentryDSN := getEnvDefault("SENTRY_DSN", "https://__GLITCHTIP_DSN_SERVER__@glitchtip.fishcmus.io.vn/1")
+	sentryDSN := getEnvDefault("SENTRY_DSN", "https://a2beebfa6dfe4731a997600d29dae69c@glitchtip.fishcmus.io.vn/1")
 	if sentryDSN != "" {
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              sentryDSN,

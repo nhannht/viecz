@@ -1,0 +1,13 @@
+# Gitleaks config — allowlist for client-side keys that are safe to commit.
+# Firebase API keys are public by design (https://firebase.google.com/docs/projects/api-keys)
+
+[[rules]]
+id = "gcp-api-key"
+description = "GCP API Key"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+
+[rules.allowlist]
+paths = [
+  '''web/src/app/environments/environment\.ts''',
+  '''web/src/app/environments/environment\.prod\.ts''',
+]
