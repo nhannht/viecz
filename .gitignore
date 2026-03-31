@@ -87,3 +87,10 @@ web/storybook-static/
 
 # Local/private Claude rules (not shared)
 .claude/rules/*.local.md
+
+# Serena infrastructure memories (may contain credentials)
+.serena/memories/infrastructure/
+
+# Firebase credentials
+server/firebase-credentials.json
+server/firebase-service-account.json
