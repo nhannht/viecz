@@ -1,5 +1,9 @@
 # Viecz — Location-Based Micro-Task Marketplace for Students
 
+[![Server Tests](https://github.com/nhannht/viecz/actions/workflows/server-tests.yml/badge.svg)](https://github.com/nhannht/viecz/actions/workflows/server-tests.yml)
+[![Web Tests](https://github.com/nhannht/viecz/actions/workflows/web-tests.yml/badge.svg)](https://github.com/nhannht/viecz/actions/workflows/web-tests.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+
 > A two-sided marketplace connecting students who need help with students ready to work, powered by real-time location and escrow payments.
 
 **Live:** [viecz.fishcmus.io.vn](https://viecz.fishcmus.io.vn) · **User Guide:** [/howtouse](https://viecz.fishcmus.io.vn/howtouse)
@@ -10,12 +14,12 @@
 
 ## The Problem
 
-Vietnam has 2.15 million university students. Around 22% do side work, but existing options (Zalo groups, friends, commercial services) don't serve **micro-tasks** — the 15-minute to few-hour jobs that happen every day on campus:
+Vietnam has over 2.15 million university students [[1]](#references). Around 22% do side work [[3]](#references), but existing options don't serve **micro-tasks** — the 15-minute to few-hour jobs that happen every day on campus:
 
-- Need someone to carry furniture up to the dorm — 30 min, willing to pay 50,000 VND, but no way to find help right now
-- Need English speaking practice before an exam — don't need a professional tutor at 200,000 VND/hr, just a fellow student for 30 min
+- Need someone to carry furniture up to the dorm — 30 min, 50,000 VND, but no way to find help *right now*
+- Need English speaking practice before an exam — don't need a 200,000 VND/hr tutor, just a fellow student for 30 min
 
-No platform in Vietnam, Indonesia, Thailand, or the Philippines currently combines (1) real-time location matching, (2) domestic escrow payments, and (3) a mobile-first experience for student micro-tasks.
+These needs repeat daily across every campus, but today students only have Zalo groups (messages get buried, no payments, no trust system) or asking friends (limited reach, social pressure). No platform in Vietnam combines real-time location matching, domestic escrow payments, and a student-focused experience for micro-tasks.
 
 ## How It Works
 
@@ -28,10 +32,10 @@ No platform in Vietnam, Indonesia, Thailand, or the Philippines currently combin
  location, price     see it instantly    negotiate details   until job done
 ```
 
-1. **Post a task** — Describe what you need, pick a location on the map, set a price and deadline. Takes under 30 seconds.
-2. **Discover nearby** — Tasks appear on a real-time map. Filter by category, search by keyword, or browse the list view.
-3. **Apply & chat** — Interested students apply with an intro message and optional price negotiation. Real-time WebSocket chat after acceptance.
-4. **Escrow payment** — Money is held via PayOS (Vietnamese bank transfer) until the poster confirms completion. No international credit card needed.
+1. **Post a task** — Describe what you need, pick a location on the map, set a price and deadline. Under 30 seconds.
+2. **Discover nearby** — Tasks appear on a real-time map. Filter by category, search by keyword, or browse the list.
+3. **Apply & chat** — Send an intro message, optionally negotiate the price. Real-time WebSocket chat after acceptance.
+4. **Escrow payment** — Money is held via PayOS (Vietnamese bank transfer) until the poster confirms completion. No international card needed.
 
 ### Task Categories
 
@@ -74,46 +78,32 @@ No platform in Vietnam, Indonesia, Thailand, or the Philippines currently combin
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   Cloudflare                     │
-│            (CDN, DDoS protection)                │
-└────────────────────┬────────────────────────────┘
-                     │
-         ┌───────────┼───────────┐
-         ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐
-│   Angular 21    │    │   Android App   │
-│   (SSR, Web)    │    │   (Kotlin,      │
-│                 │    │   Jetpack       │
-│                 │    │   Compose)      │
-└────────┬────────┘    └────────┬────────┘
-         │                      │
-         └──────────┬───────────┘
-                    ▼
-         ┌─────────────────┐
-         │   Go API (Gin)  │◄──── WebSocket (chat)
-         │   REST + WS     │
-         └──┬──────┬───┬───┘
-            │      │   │
-            ▼      ▼   ▼
-     ┌──────┐ ┌──────┐ ┌──────┐
-     │Postgr│ │Meili-│ │PayOS │
-     │eSQL  │ │search│ │      │
-     └──────┘ └──────┘ └──────┘
+         Cloudflare (CDN + DDoS)
+                  │
+       ┌──────────┼──────────┐
+       ▼                     ▼
+  Angular 21 (SSR)    Android (Kotlin)
+       │                     │
+       └──────────┬──────────┘
+                  ▼
+          Go API (Gin)  ◄── WebSocket
+          │       │       │
+          ▼       ▼       ▼
+      PostgreSQL  Meilisearch  PayOS
 ```
 
 | Component | Technology | Role |
 |-----------|-----------|------|
-| Backend API | Go (Gin) | Business logic, RESTful API. Single server handles thousands of concurrent connections. |
-| Database | PostgreSQL | Transactional data with ACID guarantees. |
-| Search | Meilisearch | Full-text search with typo tolerance — important for quick mobile searches. |
-| Web | Angular 21 (SSR) | Server-Side Rendering for fast loads and SEO. Responsive desktop + mobile. |
-| Android | Kotlin + Jetpack Compose | Native Material Design 3 app (Android holds 65.7% market share in Vietnam). |
-| Payments | PayOS | Vietnamese payment gateway — domestic bank transfers, no international card needed. |
-| Chat | WebSocket | Real-time messaging between matched users. |
-| Maps | MapLibre + MapTiler | Real-time interactive maps with location-based task discovery. |
-| Monitoring | GlitchTip + Prometheus | Error tracking and performance metrics. |
-| Bot | discord.py + FastAPI | Discord integration for notifications (Jellyfish submodule). |
+| Backend API | Go (Gin) | Business logic, REST API, handles thousands of concurrent connections |
+| Database | PostgreSQL | Transactional data with ACID guarantees |
+| Search | Meilisearch | Full-text search with typo tolerance for quick mobile searches |
+| Web | Angular 21 (SSR) | Server-Side Rendering for fast loads and SEO. Responsive. |
+| Android | Kotlin + Jetpack Compose | Native Material Design 3 app |
+| Payments | PayOS | Vietnamese payment gateway — domestic bank transfers |
+| Chat | WebSocket | Real-time messaging between matched users |
+| Maps | MapLibre + MapTiler | Interactive maps with location-based task discovery |
+| Monitoring | GlitchTip + Prometheus | Error tracking and performance metrics |
+| Bot | discord.py + FastAPI | Discord notifications ([Jellyfish](https://github.com/nhannht/jellyfish) submodule) |
 
 ## Getting Started
 
@@ -122,8 +112,8 @@ No platform in Vietnam, Indonesia, Thailand, or the Philippines currently combin
 - Go 1.25+
 - Bun (for Angular)
 - PostgreSQL 15+
-- Docker (for Meilisearch, mail server)
-- Android Studio (for mobile app)
+- Docker (for Meilisearch)
+- Android Studio (optional, for mobile app)
 
 ### Development Setup
 
@@ -133,115 +123,108 @@ git clone --recurse-submodules https://github.com/nhannht/viecz.git
 cd viecz
 
 # Start test databases
-docker compose -f docker-compose.testdb.yml up -d  # PostgreSQL :5433, Meilisearch :7700
+docker compose -f docker-compose.testdb.yml up -d
 
 # Backend
 cd server
-source .env.dev  # or: set -a && source .env.dev && set +a
-go run cmd/server/main.go
+cp .env.example .env.dev          # edit with your local values
+set -a && source .env.dev && set +a
+go run cmd/server/main.go         # API on :9999
 
 # Frontend (separate terminal)
 cd web
 bun install
-bunx ng serve  # http://localhost:4200, proxies API to :9999
+bunx ng serve                     # http://localhost:4200, proxies to :9999
 
-# Android (separate terminal)
+# Android (optional, separate terminal)
 cd android
-adb reverse tcp:9999 tcp:9999  # Required for emulator
+adb reverse tcp:9999 tcp:9999
 ./gradlew installDevDebug
 ```
+
+> **Note:** `source .env.dev` alone won't export variables. Always use `set -a && source .env.dev && set +a`.
 
 ### Running Tests
 
 ```bash
-# Go tests
-cd server && go test ./...
-
-# Angular tests
-cd web && bunx ng test
-
-# Linting
-cd server && golangci-lint run ./...
-cd web && bunx eslint 'src/**/*.ts'
-
-# Android
-cd android && ./gradlew testDevDebugUnitTest
+cd server && go test ./...                    # Go tests
+cd web && bunx ng test                        # Angular tests
+cd server && golangci-lint run ./...           # Go linting
+cd web && bunx eslint 'src/**/*.ts'           # TS linting
+cd android && ./gradlew testDevDebugUnitTest  # Android tests
 ```
 
 ## User Guide
 
-> Full interactive guide with screenshots: [viecz.fishcmus.io.vn/howtouse](https://viecz.fishcmus.io.vn/howtouse)
+> **Full interactive guide with screenshots:** [viecz.fishcmus.io.vn/howtouse](https://viecz.fishcmus.io.vn/howtouse)
 
-### 1. Sign Up & Login
+Quick overview:
 
-Viecz uses **passwordless OTP authentication** — no password to remember. Enter your email, receive a 6-digit code, and you're in. First-time users just add their name.
+1. **Login** — Enter email, receive 6-digit OTP, done. No password needed.
+2. **Browse** — Marketplace cards or map view. Filter by 11 categories. Tap "Near me" for location-based discovery.
+3. **Post** — Title, description, category, price, map pin, deadline. 30 seconds.
+4. **Apply** — Intro message + optional counter-offer. Poster gets notified instantly.
+5. **Chat** — Real-time WebSocket messaging after acceptance.
+6. **Pay** — Deposit via PayOS (QR/bank transfer, min 2,000 VND). Escrow holds funds until job confirmed complete.
+7. **Complete** — Poster confirms → funds release to worker's wallet. Rate each other.
 
-### 2. Browse the Marketplace
+## Why Viecz?
 
-The marketplace shows all open tasks as cards. Each card displays status, price, title, description, location, deadline, and number of applicants. Toggle **"Near me"** to switch to map view — see tasks plotted by location with distance indicators. Filter by 11 categories (Assembly, Cleaning, Delivery, Events, Pet Care, Photography, Shopping, Tech Support, Tutoring, etc.).
+| | Zalo Groups | Grab/Gojek | TaskRabbit (US) | **Viecz** |
+|---|---|---|---|---|
+| Location matching | No | Transport only | By area | **Real-time map** |
+| Escrow payments | No | Internal only | Int'l card required | **VN bank transfer** |
+| Diverse micro-tasks | Unstructured | No | Yes | **Yes** |
+| Student-focused | No | No | No | **Yes** |
+| Transaction fee | 0% | N/A | 22.5% | **10–15%** |
+| Active in Vietnam | Yes | Yes | No | **Yes** |
 
-### 3. Post a Task
+## Team
 
-Hit the **"Create task"** button. Fill in title, description, category, price (multiples of 1,000 VND), pick a location on the map, and set a deadline. Quick deadline options: "Tonight 10PM", "Tomorrow 9AM", or custom. Your task appears on the marketplace instantly.
-
-### 4. Apply for a Task
-
-Found something interesting? Tap **"Apply"**, write an intro message about your experience, optionally propose a different price. The poster gets notified immediately.
-
-### 5. Accept & Chat
-
-When someone applies, you'll see their profile and message in the task detail. Hit **"Accept"** to choose them, then chat in real-time via the Messages tab to coordinate details.
-
-### 6. Wallet & Payment
-
-- **Deposit**: Minimum 2,000 VND via PayOS (QR code or bank transfer)
-- **Escrow**: When a task is accepted, funds are held until completion
-- **Withdrawal**: Add your bank account, then withdraw anytime
-- Beta wallet cap: 200,000 VND
-
-### 7. Complete & Rate
-
-The poster marks the task as complete → escrow funds release to the worker's wallet. Leave a rating to build community trust.
-
-## Market Context
-
-| | Zalo/Facebook | Grab/Gojek | TaskRabbit (US) | GoGetter (MY) | **Viecz** |
-|---|---|---|---|---|---|
-| Location matching | No | Transport only | By area | No | **Real-time** |
-| Escrow payments | No | Internal | International card | Yes | **VN bank transfer** |
-| Diverse micro-tasks | Unstructured | No | Yes | Limited | **Yes** |
-| Student-focused | No | No | No | Partial | **Yes** |
-| Transaction fee | 0% | N/A | 22.5% | N/A | **10–15%** |
-| Active in Vietnam | Yes | Yes | No | No | **Yes** |
-
-## Economics
-
-| Metric | Value |
-|--------|-------|
-| Monthly operating cost | ~200,000 VND (~$8) |
-| Revenue model | 10–15% commission per paid transaction |
-| Break-even | ~40 transactions/month |
-| First-year total cost | ~10M VND (~$400) including marketing |
-
-No external funding required to operate.
+| Name | Role |
+|------|------|
+| **Nguyen Huu Thien Nhan** | Team lead — Software architect. Designed and built the full stack (backend, web, mobile, infrastructure). |
+| **Truong Hoai Duc** | Market research — Business development. User surveys, go-to-market strategy, university partnerships. |
+| **Thai Kha Bao** | UX/UI design — Brand identity. Interface design, user experience, visual identity system. |
+| **Tran Gia Sang** | QA — Quality assurance. Feature testing, user feedback collection, pre/post-launch quality. |
 
 ## Roadmap
 
 | Phase | Timeline | Status |
 |-------|----------|--------|
-| MVP — all core features | Oct 2025 – Feb 2026 | Done |
-| Pilot at HCMUS | Semester 2/2026 | In progress |
-| Evaluate & iterate | Jul–Aug 2026 | Planned |
-| Expand to nearby universities | Semester 1/2027 | Planned |
+| MVP — all 7 core features | Oct 2025 – Feb 2026 | Done |
+| Pilot at VNUHCM — University of Science | Semester 2/2026 (Mar–Jun) | In progress |
+| Evaluate & iterate based on pilot data | Jul–Aug 2026 | Planned |
+| Expand to nearby universities in HCMC | Semester 1/2027 | Planned |
+
+**Pilot target:** 200–500 registered users, ≥50 completed transactions, ≥80% completion rate in 3 months.
 
 ## Competition Entry
 
-This project is a submission to **HCMUS I&E 2025** (Innovation & Entrepreneurship Competition), VNUHCM — University of Science, under the field: *Information Technology — AI — Digital Transformation*.
+Submission to **HCMUS I&E 2025** (Cuộc thi Sáng tạo — Khởi nghiệp), VNUHCM — University of Science.
+
+- **Field:** Information Technology — AI — Digital Transformation
+- **Round 1 (Registration):** Dec 2025 – Mar 2026
+- **Round 2 (Preliminary):** Apr 2026
+- **Round 3 (Mentorship):** Apr–May 2026
+- **Round 4 (Finals):** Late May 2026
+
+Full project description (Vietnamese): [`docs/general/THÔNG TIN CUỘC THI/`](docs/general/THÔNG%20TIN%20CUỘC%20THI/)
+
+## References
+
+1. Statista, "Number of university students in Vietnam 2013–2021," Feb 2024.
+2. VietnamNet, "Zalo's number of users hits 78.3 million," Aug 2025.
+3. GSO Vietnam, Labour Force Survey — 22.1% of university students do side work (2018).
+4. Global Angle, "Vietnam's Education Sector 2025" — 243 universities (176 public, 67 private).
+5. StatCounter, "Mobile OS market share Vietnam 2024" — Android 65.7%, iOS 33.7%.
+6. C. Tian et al., "A Cross-platform Errand Service Application for Campus," IEEE ICSESS 2022.
+7. InfoStride, "TaskRabbit Business and Revenue Model," May 2025 — 15% commission + 7.5% trust fee.
 
 ## License
 
-This project's source code is publicly available for educational and reference purposes. See individual component licenses for third-party dependencies.
+[AGPL-3.0](LICENSE). Third-party dependencies have their own licenses.
 
 ---
 
-Built at [VNUHCM — University of Science](https://hcmus.edu.vn/) · March 2026
+Built at [VNUHCM — University of Science](https://hcmus.edu.vn/) · 2026
