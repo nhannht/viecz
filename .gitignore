@@ -85,8 +85,9 @@ uploads/
 web/storybook-static/
 .gstack/
 
-# Local/private Claude rules (not shared)
+# Local/private files (not shared)
 .claude/rules/*.local.md
+*.local.yml
 
 # Serena infrastructure memories (may contain credentials)
 .serena/memories/infrastructure/
