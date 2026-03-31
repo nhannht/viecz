@@ -15,3 +15,5 @@ description: Build, test, lint commands
 # Restrictions
 
 **NEVER run `bun start`, `ng serve`, `bun run build`, or `ng build` from Claude.** Check dev server output via the local dev environment rules.
+
+**Mail**: Use `/mail-local-management` skill. JMAP via `curl --netrc-file ~/.netrc -k https://127.0.0.1:8443/jmap/`, account ID `"c"`.
