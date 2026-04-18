@@ -17,7 +17,6 @@ STAGED_HASH=$(git diff --cached | sha256sum | cut -d' ' -f1)
 if [ -f "/tmp/claude-code-review-passed" ]; then
   SAVED_HASH=$(cat /tmp/claude-code-review-passed)
   if [ "$STAGED_HASH" = "$SAVED_HASH" ]; then
-    rm -f /tmp/claude-code-review-passed
     exit 0
   fi
 fi

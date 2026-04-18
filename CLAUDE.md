@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## Project Overview
-- **`mobile/`** — Ionic/Capacitor Android wrapper (wraps Angular web app)
+- **`mobile/`** — Capacitor (Android WebView wrapper, `mobile/android/` for native project)
 - **`server/`** — Go (Gin, GORM, PostgreSQL, JWT, WebSocket, PayOS, Meilisearch)
 - **`web/`** — Angular 21 (SSR, viecz design system, Vitest, Bun)
 - **`jellyfish/`** — Python submodule: Discord bot + webhook server (discord.py, FastAPI)

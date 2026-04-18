@@ -547,149 +547,86 @@ Both share: `turnstileSiteKey`, `mapTilerApiKey`, `sentryDsn` (GlitchTip), `fire
 
 ---
 
-## 6. Android Client
+## 6. Mobile Client (Capacitor)
+
+### Architecture
+
+The mobile app is a Capacitor wrapper that hosts the compiled Angular web app in a WebView. The native Android project is at `mobile/android/` and uses Gradle.
+
+```
+mobile/
+├── src/               # Angular web source (same as web/)
+├── dist/web/          # Compiled Angular app (built by `bun run build`)
+├── android/           # Native Android project
+│   ├── gradlew
+│   └── app/build.gradle.kts
+└── capacitor.config.ts  # Capacitor configuration
+```
+
+### Build & Deploy
+
+```bash
+# 1. Build Angular web app
+cd mobile && bun install && bun run build
+
+# 2. Sync Capacitor (copies dist/web/ into Android native project)
+bunx cap sync android
+
+# 3. Build native APK
+cd mobile/android && ./gradlew assembleDebug
+
+# 4. Install on device/emulator
+cd mobile/android && ./gradlew installDebug
+```
+
+### Key Points
+
+- **Single codebase**: Same Angular app runs on web (SSR via Express) and mobile (WebView via Capacitor)
+- **No Kotlin UI**: All UI is Angular + Tailwind CSS 4. Kotlin code is minimal (Capacitor plugin integration only)
+- **Native plugins**: Capacitor provides access to camera, notifications, file storage, etc. via JavaScript Bridge
+- **Offline**: Capacitor provides localStorage and file system APIs; full offline support not yet implemented
+- **Deep links**: Handled by Capacitor's intent integration with Android
 
 ### Prerequisites
 
-- Android Studio (or Gradle CLI)
+- Node.js v24+ (for `bun`)
+- Bun (package manager)
 - JDK 21
 - Android SDK: compileSdk 36, minSdk 30, targetSdk 36
-- A Git tag matching `android/*` (for CalVer versioning)
+- Gradle (included in project)
 
-### Build Configuration
+### Build Flavors (Gradle)
 
-**Plugins** (in `android/app/build.gradle.kts`):
-- `android.application`, `kotlin.android`, `ksp`
-- `hilt` — dependency injection
-- `google.services` — Firebase
-- `firebase.appdistribution` — Firebase App Distribution
-- `app.versioning` — CalVer from Git tags
-- `kotlin.plugin.compose` 2.0.21
-- `jacoco` — code coverage
-
-### Build Flavors
-
-| Flavor | Application ID | API Base URL | App Name |
+| Flavor | Application ID | API Base URL | Notes |
 |---|---|---|---|
-| `dev` | `com.viecz.vieczandroid.dev` | `http://10.0.2.2:9999/api/v1/` | Viecz Dev |
-| `prod` | `com.viecz.vieczandroid` | `https://viecz-api.fishcmus.io.vn/api/v1/` | Viecz |
+| `debug` | `com.viecz.viecz.dev` | `http://localhost:8080/api/v1/` (or via `adb reverse`) | Development |
+| `release` | `com.viecz.viecz` | `https://viecz-api.fishcmus.io.vn/api/v1/` | Production |
 
-Both flavors coexist on the same device (different application IDs). The `dev` flavor includes a **Showkase** component browser as a second launcher icon.
+### Versioning
 
-### Build Variants
-
-| Variant | Use Case |
-|---|---|
-| `devDebug` | Local development against test server |
-| `devRelease` | Release build against test server |
-| `prodDebug` | Debug build against production API |
-| `prodRelease` | Release build for distribution |
-
-### Building
-
-```bash
-cd android
-
-# Dev debug (local test server)
-./gradlew assembleDevDebug
-./gradlew installDevDebug
-
-# Production release (signed APK)
-./gradlew assembleProdRelease
-
-# Run unit tests
-./gradlew testDevDebugUnitTest
-```
-
-### Versioning (CalVer)
-
-Uses [ReactiveCircus/app-versioning](https://github.com/ReactiveCircus/app-versioning) Gradle plugin. Version is derived from Git tags:
-
-**Tag format**: `android/YYYY.R` or `android/YYYY.R.P`
-
-| Component | Meaning | Example |
-|---|---|---|
-| `YYYY` | Release year | `2026` |
-| `R` | Release number within year | `2` |
-| `P` | Patch (optional, 0 = omitted) | `1` |
-
-**Computed values**:
-- `versionCode` = `YYYY * 10000 + R * 100 + P`
-- `versionName` = tag without prefix + flavor suffix (`-dev` for dev, `-rel` for release)
-
-| Git tag | versionName (prod) | versionName (dev) | versionCode |
-|---|---|---|---|
-| `android/2026.1` | `2026.1` | `2026.1-dev` | `20260100` |
-| `android/2026.2` | `2026.2` | `2026.2-dev` | `20260200` |
-| `android/2026.2.1` | `2026.2.1` | `2026.2.1-dev` | `20260201` |
-
-**Bumping version**:
-
-```bash
-git tag android/2026.3
-git push origin android/2026.3
-```
+Gradle builds the APK with a version derived from `package.json` version in `mobile/package.json`. Update there for new releases.
 
 ### Signing
 
-Release builds use a keystore configured via `android/keystore.properties`:
+Release builds require a signing key. Configure via `mobile/android/keystore.properties` (gitignored):
 
 ```properties
-storeFile=../viecz-release.jks
-storePassword=<generated-password>
+storeFile=../../viecz-release.jks
+storePassword=<password>
 keyAlias=viecz
-keyPassword=<generated-password>
+keyPassword=<password>
 ```
 
-Both `keystore.properties` and `*.jks` are **gitignored**. Must be provisioned manually on CI/dev machines. For CI, base64-encode and store as GitHub Secrets.
+Both `keystore.properties` and `*.jks` are gitignored. Provision manually on dev machines.
 
-### Required Local Files (gitignored)
-
-| File | Purpose | Required? |
-|---|---|---|
-| `android/keystore.properties` | Release signing config | For release builds |
-| `android/viecz-release.jks` | Release keystore | For release builds |
-| `android/app/google-services.json` | Firebase config | Yes (two clients: prod + dev) |
-| `android/local.properties` | API URL overrides, API keys | Optional (has defaults) |
-
-### `local.properties` Keys
-
-| Key | Default | Description |
-|---|---|---|
-| `API_BASE_URL_DEV` | `http://10.0.2.2:9999/api/v1/` | Dev flavor API URL |
-| `API_BASE_URL_PROD` | `https://viecz-api.fishcmus.io.vn/api/v1/` | Prod flavor API URL |
-| `GOOGLE_CLIENT_ID` | `""` | Google Sign-In client ID |
-| `SENTRY_DSN` | `""` | GlitchTip/Sentry DSN |
-| `MAPTILER_API_KEY` | `__MAPTILER_API_KEY__` | MapTiler API key |
-
-### Physical Device vs Emulator
-
-| Device Type | API Access | Setup |
-|---|---|---|
-| Emulator | `10.0.2.2:9999` (loopback) | Works natively |
-| Physical (USB) | `localhost:9999` via ADB | `adb reverse tcp:9999 tcp:9999` |
-
-Detection: `adb devices` shows IP for physical, `emulator-XXXX` for emulator.
-
-### Deep Links
-
-Configured in `AndroidManifest.xml`:
-- `https://viecz-api.fishcmus.io.vn/api/v1/payments/return` (PayOS return, `autoVerify=true`)
-- `viecz://payment` (custom scheme)
-
-Network security config allows cleartext traffic for dev/localhost.
-
-### Firebase App Distribution
-
-Configured in `build.gradle.kts` for `release` build type:
-- `artifactType = "APK"`
-- `groups = "internal-testers"`
-
-**No CI/CD workflow exists yet** — releases are currently manual via:
+### Testing
 
 ```bash
-cd android
-./gradlew assembleProdRelease appDistributionUploadProdRelease
+# Angular web tests (same as web client)
+cd mobile && npx ng test
+
+# Native Android plugin tests (if any)
+cd mobile/android && ./gradlew testDebugUnitTest
 ```
 
 ---

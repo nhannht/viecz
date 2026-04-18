@@ -12,7 +12,7 @@ handles escrow payments and real-time chat between the two parties.
 
 The system is a multi-client architecture with a shared backend:
 
-- **Android client** -- Native Android app (Kotlin / Jetpack Compose)
+- **Mobile client** -- Capacitor wrapper (at `mobile/`) hosting the Angular web app in a WebView; native project at `mobile/android/` (built with Gradle)
 - **Web client** -- Angular 21 SPA with SSR (nhannht-metro-meow + Tailwind CSS 4)
 - **Server** -- Go REST API + WebSocket (Gin framework)
 - **Database** -- PostgreSQL (production, port 5432) / PostgreSQL (test server, port 5433, Docker tmpfs)
@@ -25,9 +25,8 @@ The system is a multi-client architecture with a shared backend:
 
 ```mermaid
 graph TD
-    subgraph AndroidApp["Android App (Kotlin/Compose)"]
-        Retrofit["Retrofit - HTTP"]
-        OkHttp["OkHttp - WebSocket"]
+    subgraph MobileApp["Mobile App (Capacitor WebView)"]
+        WebView["WebView<br/>(hosts Angular web)"]
     end
 
     subgraph WebApp["Web Client (Angular 21)"]
@@ -59,8 +58,8 @@ graph TD
     PayOS["PayOS (payment gateway)"]
     Meilisearch["Meilisearch (optional)"]
 
-    Retrofit -->|HTTPS| CloudflareTunnel
-    OkHttp -->|WSS| CloudflareTunnel
+    WebView -->|hosts| HttpClient
+    WebView -->|hosts| WsService
     HttpClient -->|HTTPS| CloudflareTunnel
     WsService -->|WSS| CloudflareTunnel
     CloudflareTunnel --> Handlers
@@ -77,10 +76,8 @@ graph TD
 
 | Layer        | Technology                                              |
 |--------------|---------------------------------------------------------|
-| Android UI   | Kotlin, Jetpack Compose, Material Design 3              |
-| Android DI   | Hilt (Dagger)                                           |
-| Android Net  | Retrofit + Moshi, OkHttp (HTTP + WebSocket)             |
-| Android DB   | Room (local cache for tasks, categories, notifications) |
+| Mobile       | Capacitor 6 (WebView wrapper at `mobile/`), native at `mobile/android/` (Gradle) |
+| Mobile UI    | Angular 21 (same as web, hosted in WebView)             |
 | Web UI       | Angular 21, nhannht-metro-meow, Tailwind CSS 4, TypeScript 5.9 |
 | Web State    | Angular Signals + RxJS 7.8                              |
 | Web HTTP     | Angular HttpClient + functional interceptors            |
@@ -94,7 +91,7 @@ graph TD
 | Search       | Meilisearch v1.16 (optional; falls back to PostgreSQL LIKE) |
 | Database     | PostgreSQL 15+ (prod :5432), PostgreSQL (test :5433, Docker tmpfs) |
 | Config       | godotenv (.env) + OS environment variables              |
-| Firebase     | Analytics, App Distribution                             |
+| Firebase     | Phone authentication (optional)                         |
 
 ---
 
@@ -497,104 +494,49 @@ sequenceDiagram
 
 ---
 
-## 8. Android App Architecture
+## 8. Mobile App Architecture (Capacitor)
 
-### 8.1 Package Structure
+### 8.1 Overview
 
-```
-android/app/src/main/java/com/viecz/vieczandroid/
-├── VieczApplication.kt          # @HiltAndroidApp
-├── MainActivity.kt              # Single activity, hosts NavHost
-├── data/
-│   ├── api/                     # Retrofit API interfaces
-│   │   ├── AuthApi.kt           #   POST /auth/register, /login, /refresh
-│   │   ├── TaskApi.kt           #   CRUD /tasks, /applications
-│   │   ├── CategoryApi.kt       #   GET /categories
-│   │   ├── UserApi.kt           #   GET/PUT /users
-│   │   ├── WalletApi.kt         #   GET/POST /wallet
-│   │   ├── PaymentApi.kt        #   POST /payments/escrow, /release, /refund
-│   │   ├── MessageApi.kt        #   GET/POST /conversations
-│   │   ├── AuthInterceptor.kt   #   Injects Bearer token from TokenManager
-│   │   └── ErrorResponse.kt     #   Error model
-│   ├── auth/
-│   │   └── AuthEventManager.kt  # Emits 401 events for global logout
-│   ├── local/
-│   │   ├── TokenManager.kt      # SharedPreferences for JWT tokens
-│   │   ├── database/
-│   │   │   ├── AppDatabase.kt   # Room database (tasks, categories, notifications)
-│   │   │   └── Converters.kt    # Room type converters
-│   │   ├── dao/                  # Room DAOs
-│   │   └── entities/             # Room entities
-│   ├── models/                   # API data classes (Task, User, Wallet, etc.)
-│   ├── repository/               # Repository classes (API + optional Room cache)
-│   └── websocket/
-│       └── WebSocketClient.kt   # OkHttp WebSocket client, Moshi serialization
-├── di/
-│   ├── NetworkModule.kt         # Hilt: OkHttp, Retrofit, Moshi, API interfaces
-│   └── DataModule.kt            # Hilt: TokenManager, Room DB, Repositories
-├── ui/
-│   ├── navigation/
-│   │   └── Navigation.kt       # NavHost with all routes
-│   ├── screens/                 # Composable screens
-│   │   ├── SplashScreen.kt
-│   │   ├── LoginScreen.kt
-│   │   ├── RegisterScreen.kt
-│   │   ├── MainScreen.kt       # Bottom nav container (Home, Chat, Profile tabs)
-│   │   ├── HomeScreen.kt       # Task feed
-│   │   ├── TaskDetailScreen.kt
-│   │   ├── CreateTaskScreen.kt
-│   │   ├── ApplyTaskScreen.kt
-│   │   ├── WalletScreen.kt
-│   │   ├── ChatScreen.kt
-│   │   ├── ConversationListScreen.kt
-│   │   ├── ProfileScreen.kt
-│   │   ├── MyJobsScreen.kt
-│   │   └── NotificationScreen.kt
-│   ├── viewmodels/              # Hilt ViewModels with StateFlow
-│   ├── components/              # Reusable composables (TaskCard, etc.)
-│   └── theme/                   # Material 3 theme, colors, typography
-└── utils/                       # Formatting, validation, HTTP error parsing
-```
-
-### 8.2 MVVM Data Flow
-
-```mermaid
-graph TD
-    Screen["Composable<br/>Screen"] <--> ViewModel["ViewModel<br/>(StateFlow)"]
-    ViewModel <--> Repository
-    Repository <--> Retrofit["Retrofit<br/>API"]
-    Repository --> Room["Room<br/>(optional local cache)"]
-```
-
-- **Screen** observes ViewModel `StateFlow` via `collectAsState()`
-- **ViewModel** calls Repository methods, updates state
-- **Repository** coordinates between Retrofit (remote) and Room (local cache)
-- **Hilt** provides all dependencies via constructor injection
-
-### 8.3 Navigation
-
-Single-activity app with Jetpack Navigation Compose. Key routes:
+The mobile app is a Capacitor wrapper that hosts the Angular web app in a WebView. The native Android project is at `mobile/android/` and is built with Gradle. The wrapper manages native plugins (camera, notifications, etc.) and exposes them to the Angular app via Capacitor Bridge.
 
 ```
-splash → login ↔ register → main (bottom nav: home, conversations, profile)
-                                    │
-                                    ├── task_detail/{taskId}
-                                    ├── create_task
-                                    ├── apply_task/{taskId}/{price}
-                                    ├── chat/{conversationId}
-                                    ├── wallet
-                                    ├── my_jobs/{mode}
-                                    └── notifications
+mobile/
+├── package.json          # Web workspace config
+├── angular.json          # Angular build config
+├── src/                  # Angular web app (same as web/)
+├── dist/web/             # Compiled Angular app
+└── android/              # Native Android project (Gradle)
+    ├── gradlew
+    ├── app/build.gradle.kts
+    ├── app/src/main/AndroidManifest.xml
+    └── app/src/main/java/...  # Android-specific code
 ```
 
-### 8.4 Product Flavors
+### 8.2 Build & Deployment
 
-| Flavor | API Base URL                        | App Name   | App ID Suffix |
-|--------|-------------------------------------|------------|---------------|
-| `dev`  | `http://10.0.2.2:9999/api/v1/`      | Viecz Dev  | `.dev`        |
-| `prod` | Production server URL               | Viecz      | (none)        |
+```bash
+# 1. Build Angular web app
+cd mobile && bun run build
 
-Both flavors can coexist on the same device.
+# 2. Sync Capacitor (copies dist/ into Android native project)
+bunx cap sync android
+
+# 3. Build native APK
+cd mobile/android && ./gradlew assembleDebug
+
+# 4. For physical device via ADB
+adb reverse tcp:9999 tcp:9999  # if using test server
+cd mobile/android && ./gradlew installDebug
+```
+
+### 8.3 Key Points
+
+- **No Kotlin/Compose UI** — all UI is Angular web (nhannht-metro-meow + Tailwind CSS 4)
+- **Single codebase** — same Angular app runs on web (SSR) and mobile (WebView)
+- **Native plugins** — Capacitor allows accessing camera, notifications, file storage, etc. via JS Bridge
+- **Offline** — Capacitor provides local storage APIs; offline cache handled by web app's service worker (not yet implemented)
+- **Deep links** — handled via Capacitor's intent handling in Android
 
 ---
 

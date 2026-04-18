@@ -48,7 +48,8 @@ Angular's `signal()`, `input()`, and `computed()` generate synthetic `cond-expr`
 |----------|-----------|--------|---------|
 | Web (Angular 21) | Vitest 4 | `@angular/build:unit-test` | `cd web && npx ng test` |
 | Server (Go) | `testing` | `go test` | `cd server && go test ./...` |
-| Android (Kotlin) | JUnit 5 + Compose Test | Gradle | `cd android && ./gradlew testDevDebugUnitTest` |
+| Mobile (Angular in Capacitor) | Vitest 4 | `@angular/build:unit-test` | `cd mobile && npx ng test` |
+| Android native | Gradle/JUnit | Gradle | `cd mobile/android && ./gradlew testDebugUnitTest` |
 
 ---
 
@@ -189,110 +190,57 @@ Go's built-in `go test -cover` only reports **statement coverage**. It does not 
 
 ---
 
-## Android
+## Android / Mobile (Capacitor)
 
-### Running Tests
+### Web App Tests (Angular in Capacitor)
+
+Same as web client — runs in Vitest with jsdom:
 
 ```bash
-cd android
+cd mobile
 
-# Unit tests (JVM, Robolectric)
-./gradlew testDevDebugUnitTest
+# Unit tests
+npx ng test
 
-# Instrumented tests (requires device/emulator)
-./gradlew connectedDevDebugAndroidTest
+# With coverage
+npx ng test --coverage
 ```
 
-### Test Tiers
+### Native Android Tests (Gradle)
 
-Tests are organized by value — what they actually catch vs their maintenance cost.
+The native Android project at `mobile/android/` contains platform-specific tests:
 
-#### Tier 1: High Value (keep and expand)
+```bash
+cd mobile/android
 
-| Category | Files | Tests | What it catches |
-|----------|-------|-------|-----------------|
-| ViewModel tests | 8 | 102 | Business logic bugs, state machine errors, error handling gaps |
-| Repository tests | 7 | 90 | HTTP error mapping, caching, data flow contract breaks |
-| API tests (MockWebServer) | 8 | 60 | Retrofit serialization, wrong HTTP methods/paths, response mapping |
-| E2E tests (real server) | 6 | 9 | Full user flow regressions across UI + server + DB |
-| WebSocket tests | 1 | 11 | Real-time chat connection/message bugs |
-| AuthInterceptor tests | 1 | 9 | Token attachment, 401 logout trigger |
-| TokenManager tests | 1 | 10 | Auth persistence (DataStore) |
+# Unit tests (JVM)
+./gradlew testDebugUnitTest
 
-#### Tier 2: Medium Value (keep as-is)
+# Instrumented tests (requires device/emulator)
+./gradlew connectedDebugAndroidTest
+```
 
-| Category | Files | Tests | What it catches |
-|----------|-------|-------|-----------------|
-| MetroComponentsTest | 1 | 17 | Design system component regressions |
-| NetworkModuleTest | 1 | 15 | Wrong base URLs, missing interceptors |
-| ConvertersTest | 1 | 14 | Room TypeConverter data corruption |
-| MainActivityTest | 1 | 8 | Deep link parsing, payment result handling |
+**Note:** Most app logic runs in Angular (web layer). Native Android tests cover only platform-specific functionality (native plugins, intents, etc.). The bulk of business logic is tested via the Angular Vitest suite.
 
-#### Removed (Tier 3 — low value)
+### Coverage Targets — Angular Web Layer
 
-The following test categories were removed (2026-02-25) because they added maintenance cost without catching real bugs:
+The Angular web app (which runs in Capacitor on mobile) has the following coverage targets:
 
-- **Screen render tests** (Robolectric) — tested that Compose renders static text. Broke on every UI change (e.g., Metro migration changed label casing). E2E tests cover the same screens with real rendering.
-- **Duplicate component tests** — instrumented versions of Robolectric tests. Same assertions, twice the maintenance.
-- **Mock-server E2E tests** (S01, S04, S06, S08, S17) — tested against canned fake responses. The real-server E2E tests (S13+) catch more bugs because they run against the actual Go server with real PostgreSQL.
-- **Navigation route constant tests** — tested string values like `"splash"`. If wrong, the app crashes immediately.
-- **Theme color tests** — tested hex color values. Visual bugs are caught by eyes, not assertions.
-- **Placeholder tests** — `2 + 2 == 4`.
-- **Trivial DI/database/error model tests** — tested framework behavior (Hilt, Room, Moshi), not app logic.
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Statements | 90% | Currently at 97% |
+| Branches | 80% | Angular signal internals inflate branch count ~10% |
+| Functions | 90% | Currently at 91% |
+| Lines | 90% | Currently at 98% |
 
-#### What NOT to test on Android
+**Mobile app testing strategy:** Since the Capacitor wrapper is thin (mostly WebView + native plugins), the primary test layer is the Angular web suite. Native Android tests cover only platform-specific plugin usage (camera, notifications, file storage, etc.).
 
-- Static text rendering ("does the button say SIGN IN")
-- Framework behavior (Moshi deserializes JSON, Room stores data, Hilt resolves dependencies)
-- String constants (route names, database names, color hex values)
-- The same thing twice (Robolectric + instrumented for identical assertions)
+**What TO test on mobile/Android:**
 
-#### What TO test
-
-- **Behavior**: "when user clicks Login with valid credentials, ViewModel emits Success" > "Login button text says SIGN IN"
-- **State machines**: ViewModel state transitions (Idle → Loading → Success/Error)
-- **Error handling**: HTTP errors, network failures, empty states
-- **Business rules**: form validation, escrow calculations, wallet balance checks
-- **Full flows**: E2E with real server (S13 full job lifecycle is the gold standard)
-
-### E2E Tests
-
-See `android/E2E_TESTING_GUIDE.md` for full details. Key rules:
-
-- E2E tests use `@E2ETest` annotation
-- Naming: `S<number>_<Name>E2ETest.kt`
-- Only real-server E2E tests remain (S13-S19, extend `RealServerBaseE2ETest`)
-- Always `performScrollToNode` before clicking in LazyColumn
-- Use `waitUntil` + `performClick` instead of `assertIsDisplayed` for async elements
-- `RealServerBaseE2ETest` requires Go test server on port 9999
-
-### Coverage Targets — Per Package
-
-Overall coverage (25.5%) is misleading because Compose UI screens are ~40% of the codebase but contain no testable logic. Target coverage per package based on bug cost:
-
-| Package | Current | Target | Rationale |
-|---------|---------|--------|-----------|
-| `ui.viewmodels` | 69.5% | **75%** | Business logic, state machines. Where real bugs live. |
-| `data.repository` | 62.8% | **65%** | HTTP error mapping, caching. |
-| `data.api` | 93.5% | **90%** | Retrofit contracts. Already exceeds target. |
-| `data.models` | 90.0% | **80%** | Data class validation. Already exceeds target. |
-| `data.websocket` | 62.3% | **60%** | Real-time chat. Already meets target. |
-| `ui.components.metro` | 47.6% | **50%** | Design system regressions. Close to target. |
-| `ui.screens` | 0% | **0%** | Compose layouts — covered by E2E, not unit tests. |
-| `ui.navigation` | 0% | **0%** | Wiring — covered by E2E. |
-| `data.local.dao` | 0% | **0%** | Room-generated code — covered by E2E. |
-
-**Do not chase overall %.** 25% overall is correct if the high-bug-cost layers (ViewModels, Repositories, API) are at 65-90%. Inflating coverage with screen render assertions adds maintenance cost without catching bugs.
-
-**The metric that matters:** "How often do bugs reach production that tests would have caught?"
-
-### Current Test Count (2026-02-25)
-
-| Source set | @Test methods |
-|------------|---------------|
-| Unit (JVM) | 348 |
-| Instrumented (device) | 28 |
-| **Total** | **376** |
+- **Native plugin integration**: Camera capture, notification handling, file system access
+- **Capacitor bridge calls**: Ensuring correct method names and argument marshalling
+- **Deep link intent handling**: Payment return URLs, task notifications
+- **Platform-specific behavior**: Android permissions, lifecycle events
 
 ---
 

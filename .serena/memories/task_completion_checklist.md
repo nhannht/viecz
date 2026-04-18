@@ -16,10 +16,11 @@ When completing a task, verify:
 
 ## Build Commands
 - Go: `cd server && go build ./...`
-- Angular: `cd web && npm run build`
-- Android: `cd android && ./gradlew assembleDevDebug`
+- Angular web: `cd web && bun run build`
+- Mobile (web + native): `cd mobile && bun run build && bunx cap sync android && cd android && ./gradlew assembleDebug`
 
 ## Test Commands
 - Go: `cd server && go test ./internal/services/... -run TestSpecificFunc`
-- Angular: `cd web && npx ng test`
-- Android: `cd android && ./gradlew testDevDebugUnitTest`
+- Angular web: `cd web && npx ng test`
+- Mobile web: `cd mobile && npx ng test`
+- Mobile native: `cd mobile/android && ./gradlew testDebugUnitTest`

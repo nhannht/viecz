@@ -16,10 +16,9 @@
 6. [CORS Configuration](#6-cors-configuration)
 7. [Payment Security](#7-payment-security)
 8. [WebSocket Security](#8-websocket-security)
-9. [Token Storage (Android)](#9-token-storage-android)
-10. [Token Storage (Web Client)](#10-token-storage-web-client)
-11. [File Upload Security](#11-file-upload-security)
-12. [Known Limitations](#12-known-limitations)
+9. [Token Storage (Web & Mobile)](#9-token-storage-web--mobile)
+10. [File Upload Security](#10-file-upload-security)
+11. [Known Limitations](#11-known-limitations)
 
 ---
 
@@ -29,7 +28,7 @@
 
 ```mermaid
 flowchart TD
-    APP["<b>Android App</b><br/>(Jetpack Compose)"]
+    MOBILE["<b>Mobile App</b><br/>(Capacitor + Angular)"]
     WEBAPP["<b>Web Client</b><br/>(Angular 21)"]
 
     subgraph BACKEND ["Go Backend (Gin)"]
@@ -42,7 +41,7 @@ flowchart TD
 
     DB[("<b>PostgreSQL</b> (prod :5432)<br/><b>PostgreSQL</b> (test :5433)")]
 
-    APP -- "HTTPS / Bearer JWT" --> L1
+    MOBILE -- "HTTPS / Bearer JWT" --> L1
     WEBAPP -- "HTTPS / Bearer JWT" --> L1
     L1 --> L2
     L2 --> L3
@@ -56,13 +55,12 @@ flowchart TD
 | Layer | Technology |
 |-------|-----------|
 | Backend framework | Go + Gin |
-| Authentication | Email/password + Google OAuth (OIDC) + JWT (golang-jwt/jwt v5) |
+| Authentication | Email/password + Phone (Firebase) + Google OAuth (OIDC) + JWT (golang-jwt/jwt v5) |
 | Password hashing | bcrypt (golang.org/x/crypto/bcrypt) |
 | ORM | GORM (PostgreSQL for both prod and test) |
 | Payment gateway | PayOS (payos-lib-golang v2) |
 | WebSocket | Gorilla WebSocket |
-| Android HTTP | OkHttp + Retrofit |
-| Android token storage | EncryptedSharedPreferences (AES-256) |
+| Mobile | Capacitor wrapper + Angular (WebView) |
 | Web HTTP | Angular HttpClient + functional interceptors |
 | Web token storage | localStorage (browser) |
 | Web route protection | Angular functional guards (authGuard) |
@@ -680,49 +678,9 @@ This check applies to: sending messages, typing indicators, joining conversation
 
 ---
 
-## 9. Token Storage (Android)
+## 9. Token Storage (Web & Mobile)
 
-### 9.1 EncryptedSharedPreferences
-
-Tokens are stored using Android's `EncryptedSharedPreferences` with AES-256 encryption:
-
-```kotlin
-private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-
-private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
-    "encrypted_auth_prefs",
-    masterKeyAlias,
-    context,
-    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,    // key encryption
-    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM   // value encryption
-)
-```
-
-**Stored values:** `access_token`, `refresh_token`, `user_id`, `user_email`, `user_name`, `is_tasker`
-
-**Source:** `android/app/src/main/java/com/viecz/vieczandroid/data/local/TokenManager.kt`
-
-### 9.2 AuthInterceptor
-
-An OkHttp interceptor automatically attaches the access token to all API requests:
-
-```kotlin
-val request = originalRequest.newBuilder()
-    .addHeader("Authorization", "Bearer $token")
-    .build()
-```
-
-On receiving a 401 response (except for `/auth/login` and `/auth/register` endpoints), the interceptor:
-1. Clears all stored tokens
-2. Emits an unauthorized event to trigger re-login in the UI
-
-**Source:** `android/app/src/main/java/com/viecz/vieczandroid/data/api/AuthInterceptor.kt`
-
----
-
-## 10. Token Storage (Web Client)
-
-### 10.1 localStorage
+### 9.1 localStorage (Web & Mobile WebView)
 
 The Angular web client stores JWT tokens in `localStorage`:
 
@@ -734,11 +692,11 @@ The Angular web client stores JWT tokens in `localStorage`:
 
 **Source:** `web/src/app/core/auth.service.ts`
 
-### 10.2 SSR Safety
+### 9.2 SSR Safety (Web)
 
 All localStorage access checks `isPlatformBrowser(platformId)` before reading/writing. On the server (SSR), token operations are no-ops to avoid Node.js `ReferenceError`.
 
-### 10.3 Auth Interceptor (Web)
+### 9.3 Auth Interceptor (Web & Mobile)
 
 A functional `HttpInterceptorFn` that:
 1. Reads access token from `AuthService.getAccessToken()`
@@ -748,13 +706,13 @@ A functional `HttpInterceptorFn` that:
 
 **Source:** `web/src/app/core/auth.interceptor.ts`
 
-### 10.4 Route Protection (Web)
+### 9.4 Route Protection (Web & Mobile)
 
 A functional `CanActivateFn` guard (`authGuard`) checks if an access token exists. If not, redirects to `/login`. Applied to all routes under the `ShellComponent` layout.
 
 **Source:** `web/src/app/core/auth.guard.ts`
 
-### 10.5 Security Considerations
+### 9.5 Security Considerations
 
 | Concern | Status |
 |---------|--------|
@@ -765,7 +723,7 @@ A functional `CanActivateFn` guard (`authGuard`) checks if an access token exist
 
 ---
 
-## 11. File Upload Security
+## 10. File Upload Security
 
 Avatar upload endpoint (`POST /api/v1/users/me/avatar`) implements multiple defense layers:
 
@@ -783,41 +741,41 @@ Avatar upload endpoint (`POST /api/v1/users/me/avatar`) implements multiple defe
 
 ---
 
-## 12. Known Limitations
+## 11. Known Limitations
 
-### 12.1 WebSocket Origin Check Disabled
+### 11.1 WebSocket Origin Check Disabled
 
 The WebSocket upgrader accepts all origins. Should be restricted to known origins in production.
 
-### 12.2 No Rate Limiting
+### 11.2 No Rate Limiting
 
 No rate limiting is implemented on any endpoint. Login is still vulnerable to brute-force attacks. Registration is partially protected by Cloudflare Turnstile (blocks automated signups) but has no per-IP rate limit.
 
-### 12.3 Refresh Token Not Rotated
+### 11.3 Refresh Token Not Rotated
 
 The `/auth/refresh` endpoint issues a new access token but does not rotate the refresh token. A stolen refresh token remains valid for its full 7-day lifetime.
 
-### 12.4 Refresh Token Uses Stale Claims
+### 11.4 Refresh Token Uses Stale Claims
 
 The refresh handler reconstructs a user from token claims instead of fetching fresh data from the database. Role changes (e.g., becoming a tasker) are not reflected in new access tokens until the user logs in again.
 
-### 12.5 JWT Secret Shared Between Access and Refresh Tokens
+### 11.5 JWT Secret Shared Between Access and Refresh Tokens
 
 Both token types use the same secret and same signing algorithm. There is no `type` claim to distinguish them. A refresh token could theoretically be used as an access token if the claims overlap sufficiently.
 
-### 12.6 Webhook Endpoint Is Public
+### 11.6 Webhook Endpoint Is Public
 
 `POST /api/v1/payment/webhook` has no auth middleware (by design -- PayOS must reach it). Security relies entirely on the PayOS SDK signature verification.
 
-### 12.7 Token in WebSocket Query String
+### 11.7 Token in WebSocket Query String
 
 JWT tokens passed via `?token=` are visible in server access logs and proxy logs. Mitigated by short (30-minute) token lifetime.
 
-### 12.8 Web Client Token in localStorage
+### 11.8 Web & Mobile Token in localStorage
 
-JWT tokens stored in `localStorage` are accessible to any JavaScript running on the page. Unlike Android's `EncryptedSharedPreferences` (AES-256), `localStorage` has no encryption. XSS vulnerabilities could lead to token theft. Mitigated by Angular's built-in template sanitization, but remains a risk if third-party scripts are loaded.
+JWT tokens stored in `localStorage` (browser on web, WebView on mobile) are accessible to any JavaScript running on the page. Unlike native encrypted storage, `localStorage` has no encryption. XSS vulnerabilities could lead to token theft. Mitigated by Angular's built-in template sanitization, but remains a risk if third-party scripts are loaded.
 
-### 12.9 Web Client CORS Origin
+### 11.9 Web Client CORS Origin
 
 The server accepts a single `CLIENT_URL` for CORS. The web client must be served from the configured origin. The test server uses `*` (accepts all origins) for development convenience.
 

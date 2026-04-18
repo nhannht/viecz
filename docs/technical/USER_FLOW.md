@@ -10,16 +10,16 @@ Viecz has two clients that share the same Go backend API:
 
 | Platform | Technology | Navigation | Token Storage |
 |----------|-----------|------------|---------------|
-| **Android** | Kotlin + Jetpack Compose | Bottom tabs + NavHost | EncryptedSharedPreferences |
+| **Mobile** | Capacitor wrapper + Angular 21 (WebView) | Sticky navbar + Router | localStorage (in WebView) |
 | **Web** | Angular 21 + nhannht-metro-meow + Tailwind 4 | Sticky navbar + Router | localStorage |
 
-All user flows below apply to **both platforms** unless noted otherwise. The flows reference Android screen names (e.g., `LoginScreen.kt`); the web equivalents are Angular components in `web/src/app/` (e.g., `auth/login.component.ts`).
+All user flows below apply to **both platforms**. The flows reference Angular component paths (e.g., `auth/login.component.ts`).
 
-**Key differences:**
-- **App launch**: Android has `SplashScreen` → token check. Web loads directly to `/login` or the last route (auth guard handles redirect).
-- **Navigation**: Android uses bottom tabs (Home, Chat, Profile). Web uses a sticky top navbar (Marketplace, Wallet, Chat) with notifications menu and user menu.
-- **Deep links**: Android uses `task_detail/{taskId}`. Web uses `/tasks/:id`.
-- **Offline**: Android caches data in Room. Web has no offline support.
+**Key points:**
+- **App launch**: Mobile loads Angular web directly in WebView. Web loads directly to `/login` or the last route (auth guard handles redirect).
+- **Navigation**: Both use a sticky top navbar (Marketplace, Wallet, Chat) with notifications menu and user menu.
+- **Offline**: No offline support (localStorage limited to token/cache, no sync).
+- **Native plugins**: Mobile can use Capacitor plugins (camera, notifications, file storage); web cannot.
 
 ---
 
@@ -48,18 +48,15 @@ All user flows below apply to **both platforms** unless noted otherwise. The flo
 
 ### 1.1 Launch Flow
 
-```
-App Opens
-    |
-    v
-SplashScreen (1s delay)
-    |
-    +-- Has valid JWT? --YES--> MainScreen
-    |
-    +-- No token? ------NO---> LoginScreen
-```
+**Mobile (Capacitor WebView):**
+- Capacitor loads Angular web in WebView
+- Angular app launches, auth guard redirects based on token presence
 
-**Screen:** `SplashScreen.kt` -- Shows "Viecz" branding, checks `TokenManager.isLoggedIn`.
+**Web:**
+- Browser loads app, Angular bootstrap starts
+- Auth guard redirects: token exists → last route or `/marketplace`, no token → `/login`
+
+Both platforms: If user has a valid JWT in `localStorage`, they're logged in.
 
 ### 1.2 Registration
 
@@ -91,11 +88,12 @@ POST /api/v1/auth/register  (includes turnstile_token on web)
 JWT tokens saved --> MainScreen
 ```
 
-**Screen:** `RegisterScreen.kt` (Android), `register.component.ts` (Web)
+**Component:** `register.component.ts`
 **API:** `POST /api/v1/auth/register` -- `{ email, password, name, turnstile_token? }`
 **Response:** `{ access_token, refresh_token, user }`
-**Note:** `turnstile_token` is required when `TURNSTILE_SECRET_KEY` is configured on the server. Android omits it (server skips validation for unconfigured Turnstile). Web always sends it.
-**Web (phone-first auth update):**
+**Note:** `turnstile_token` is required when `TURNSTILE_SECRET_KEY` is configured on the server. Mobile/web always send it.
+
+**Phone-first auth (primary flow):**
 - Primary auth entry is `/phone` (OTP can sign in existing users or create new users)
 - `/register` route now redirects to `/phone`
 - Email registration code remains in repository for backward compatibility, but registration UI is hidden in the login screen
@@ -118,9 +116,9 @@ POST /api/v1/auth/login
 JWT tokens saved --> MainScreen
 ```
 
-**Screen:** `LoginScreen.kt`
+**Component:** `login.component.ts`
 **API:** `POST /api/v1/auth/login` -- `{ email, password }`
-**Web note:** Email login is kept for legacy accounts; the default unauthenticated flow redirects to `/phone`.
+**Note:** Email login is kept for legacy accounts; the default unauthenticated flow redirects to `/phone`.
 
 ### 1.4 Phone / Firebase Authentication
 
@@ -162,9 +160,7 @@ Server-side:
 JWT tokens saved --> MainScreen
 ```
 
-**Screens:**
-- Android: `PhoneLoginScreen.kt`
-- Web: `phone-login.component.ts`
+**Component:** `phone-login.component.ts`
 
 **API:** `POST /api/v1/auth/phone` -- `{ id_token }`
 **Response:** `{ access_token, refresh_token, user }`
@@ -218,7 +214,7 @@ Server-side:
 JWT tokens saved --> MainScreen
 ```
 
-**Screen:** `LoginScreen.kt`
+**Component:** `login.component.ts` (Google button)
 **API:** `POST /api/v1/auth/google` -- `{ id_token }`
 **Response:** `{ access_token, refresh_token, user }`
 **Notes:**
@@ -241,92 +237,67 @@ Tap "Logout" (confirm) --> Clear tokens --> LoginScreen
 
 ---
 
-## 2. Main Screen & Navigation
+## 2. Navigation
 
-`MainScreen.kt` is the primary container after login. It provides a bottom navigation bar and a shared top bar.
+The app uses a sticky top navbar (shell component) that's always visible. Navigation is handled by Angular Router.
 
-### 2.1 Bottom Navigation Tabs
+### 2.1 Top Navbar Layout
 
-| Tab Index | Label       | Icon                  | Content                  |
-|-----------|-------------|-----------------------|--------------------------|
-| 0         | Marketplace | Home                  | `HomeContent` -- task list |
-| 1         | Profile     | Person                | `ProfileContent` -- user profile |
-| 2         | Messages    | Chat                  | `ConversationListContent` -- conversations |
-| 3         | Wallet      | AccountBalanceWallet  | `WalletContent` -- balance & history |
+| Section | Items | Notes |
+|---------|-------|-------|
+| **Left** | Logo "Viecz" | Links to marketplace |
+| **Center** | Task search bar (marketplace view) | Appears/disappears contextually |
+| **Right** | Notifications bell, User menu, Logout | Always visible |
 
-### 2.2 Top Bar Actions (Context-Sensitive)
-
-| Tab         | Actions                                  |
-|-------------|------------------------------------------|
-| Marketplace | Near Me toggle, Search toggle, Add Job (+), Notifications |
-| Wallet      | Deposit (+), Notifications               |
-| Others      | Notifications only                       |
-
-### 2.3 Navigation Routes
+### 2.2 Main Routes
 
 ```
-NavigationRoutes (Navigation.kt):
-
-splash ---------> login | main
-login ----------> register | main
-register -------> main
-main -----------> (tabs: HomeContent, ProfileContent, ConversationListContent, WalletContent)
-
-From MainScreen:
-  create_task ------------> task_detail/{taskId}
-  task_detail/{taskId} ---> apply_task/{taskId}/{price} | edit_task/{taskId} | chat/{conversationId}
-  profile (standalone) ---> my_jobs/{mode}
-  notifications ----------> task_detail/{taskId}
-  chat/{conversationId}
-  wallet (standalone)
-  my_jobs/{mode} ---------> task_detail/{taskId}
+/ (root) --------> redirects to /marketplace
+/login ----------> Email/password or Google sign-in
+/phone ----------> Phone OTP sign-in (primary)
+/register -------> Redirects to /phone
+/marketplace ---> Task feed, search, filters
+/marketplace/:id -> Task detail
+/profile -------> User profile
+/wallet --------> Wallet balance, transactions
+/messages ------> Conversation list
+/messages/:id ->> Chat screen
+/create-task ---> Create new task
+/settings ------> User settings
 ```
+
+### 2.3 Shell Component
+
+`app.component.ts` provides the sticky navbar and outlet for route content.
 
 ---
 
 ## 3. Browse & Search Tasks
 
 ```
-MainScreen > Marketplace tab (tab 0)
+/marketplace
     |
     v
-HomeContent loads tasks via TaskListViewModel
+marketplace.component.ts (task list)
     |
-    +-- Near Me toggle (top bar)
-    |     Request location permission (coarse/fine)
-    |     If granted: get current coordinates
-    |     Send geo query with sort=distance
-    |     If denied/unavailable: show status banner, keep normal list
+    +-- Filters:
+    |     Category chips (All | Viec nha | Van chuyen | Day kem | ...)
+    |     Search bar in top navbar
     |
-    +-- Radius chips (when Near Me enabled)
-    |     All | 1km | 3km | 5km | 10km
-    |     Updates radius filter in geo query
+    +-- View modes:
+    |     List view (default) - LazyLoad, pagination
+    |     Map view (toggle) - MapLibre with task markers
     |
-    +-- View mode toggle (top bar)
-    |     List view <-> Map view
-    |     Map view renders only tasks with latitude/longitude
-    |     Tap marker -> show task card popup at bottom
-    |     Map center: user location (if available) else HCMC default
-    |
-    +-- Category filter chips (LazyRow)
-    |     All | Viec nha | Van chuyen | Day kem | ...
-    |
-    +-- Search bar (toggle via top bar Search icon)
-    |     Type query --> taskListViewModel.searchTasks(query)
-    |
-    +-- Task list (LazyColumn, paginated, pull-to-refresh)
-    |     Each TaskCard shows: title, price, location, status
-    |     Own tasks (requesterId == currentUserId) show "Your Task" badge
+    +-- Task cards show:
+    |     Title, price, location, "Your Task" badge (if owner)
     |
     v
-Tap TaskCard --> navigate to task_detail/{taskId}
+Click TaskCard --> /marketplace/:taskId (detail page)
 ```
 
-**Screen:** `HomeScreen.kt` (`HomeContent` composable)
+**Component:** `marketplace.component.ts`, `task-card.component.ts`
 **API:** `GET /api/v1/tasks?page=N&category_id=X&search=Q&lat=A&lng=B&radius=R&sort=distance`
-**Features:** Infinite scroll (`loadMore()`), pull-to-refresh, shimmer loading, own-task indicator, MapLibre map mode with marker selection popup
-
-**Auto-refresh:** The marketplace uses `repeatOnLifecycle(Lifecycle.State.RESUMED)` to automatically refresh the task list whenever the user returns to the Marketplace tab (e.g., after navigating back from task detail). This ensures that tasks whose status changed (e.g., moved to `in_progress` after accepting an application) disappear from the marketplace list without manual refresh.
+**Features:** Pagination with infinite scroll, category filtering, search, MapLibre map mode, refresh on route return via Angular lifecycle
 
 ---
 

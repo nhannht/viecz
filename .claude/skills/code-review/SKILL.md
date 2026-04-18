@@ -43,7 +43,7 @@ Parse the diff for file paths. Determine which platforms are affected:
 |---------------|----------|
 | `server/` | `go` |
 | `web/` | `angular` |
-| `android/` | `kotlin` |
+| `mobile/` | `capacitor` |
 | `.md`, `.yml`, `.json`, config files only | `non-code` |
 
 ### Step 3 — Skip Non-Code
@@ -202,29 +202,17 @@ When a Go style violation is found, reference the specific guideline file (e.g.,
 - Mock not updated when interface changes
 - Test assertions that always pass (e.g., checking wrong variable)
 
-### Kotlin/Android (`android/`)
+### Capacitor/Mobile (`mobile/`)
 
 **Bugs**:
-- Unhandled exceptions in coroutines (missing try/catch)
-- State not collected safely (missing `collectAsStateWithLifecycle`)
-- Navigation crashes (missing null checks on arguments)
-- Memory leaks (context references in ViewModels)
+- Missing back button handler (`@capacitor/app` backButton listener)
+- Capacitor config pointing to wrong server URL
+- Missing `www/` directory for `cap sync`
 
 **Security**:
 - API keys or tokens in source code
-- Sensitive data stored in SharedPreferences without encryption
-- HTTP instead of HTTPS in API URLs
-
-**UI/UX**:
-- Missing loading states for network calls
-- Missing error states/messages for failures
-- Hardcoded strings (should use string resources for i18n)
-- Click handlers without debounce on critical actions (payments, submit)
-
-**Architecture**:
-- UI logic in Composables (should be in ViewModel)
-- Repository calls in ViewModel init without error handling
-- Missing `@Inject` on new dependencies
+- Keystore passwords in unprotected files
+- HTTP instead of HTTPS in server URL
 
 ### Angular/Web (`web/`)
 

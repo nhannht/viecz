@@ -151,27 +151,6 @@ app.use((req, res, next) => {
 });
 ```
 
-#### H6: 160+ Unstripped Log.d() Calls with PII in Release Builds
-
-- **Component:** Android
-- **Files:** 21+ source files (AuthRepository, AuthViewModel, ChatViewModel, WalletRepository, WebSocketClient, etc.)
-- **Description:** Emails, wallet balances, chat messages, payment URLs, deep link URIs logged to logcat via `Log.d()` in release builds. No ProGuard strip rule and no `BuildConfig.DEBUG` guards.
-- **Sensitive data logged:** user emails (AuthRepository:53, AuthViewModel:44), chat content (ChatViewModel:83), wallet balances (WalletRepository:26), payment URLs (PaymentViewModel:43)
-- **Fix:** Add to `android/app/proguard-rules.pro`:
-
-```pro
--assumenosideeffects class android.util.Log {
-    public static int d(...);
-    public static int v(...);
-}
-```
-
-#### H7: `security-crypto` 1.0.0 is Deprecated
-
-- **Component:** Android
-- **File:** `android/gradle/libs.versions.toml:23`
-- **Description:** `androidx.security:security-crypto` 1.0.0 deprecated by Google (April 2025). All APIs deprecated in v1.1.0. Recommended to migrate to Android Keystore platform APIs directly.
-- **Fix:** Migrate to direct Keystore APIs or community fork.
 
 ---
 
@@ -191,8 +170,6 @@ app.use((req, res, next) => {
 | M10 | Angular | Auth guard checks token existence only, not expiry — flash of content then redirect | `core/auth.guard.ts:9` |
 | M11 | Angular | Raw server error messages displayed in snackbar | `core/error.interceptor.ts:12-13` |
 | M12 | Angular | `window.open(checkout_url)` without domain validation — potential phishing via compromised API | `wallet/deposit-dialog.component.ts:69` |
-| M13 | Android | Backup rules exclude wrong path (DataStore path, but app uses EncryptedSharedPreferences) | `res/xml/data_extraction_rules.xml:4-5` |
-| M14 | Android | Deep link handler trusts payment query params without server-side verification | `MainActivity.kt:67-105` |
 
 ---
 

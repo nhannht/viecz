@@ -27,7 +27,7 @@
 Viecz is a P2P marketplace connecting university students for small services. The system consists of:
 
 - **Go backend** (Gin + GORM) serving REST and WebSocket APIs
-- **Native Android app** (Kotlin + Jetpack Compose) with MVVM architecture
+- **Mobile app** (Capacitor wrapper + Angular 21, WebView-based) at `mobile/` with native Android project at `mobile/android/`
 - **Angular web client** (Angular 21 + nhannht-metro-meow + Tailwind CSS 4) with SSR support
 - **PostgreSQL** (production, port 5432) / **PostgreSQL** (test server, port 5433, Docker tmpfs) for persistence
 - **PayOS** for payment processing (deposit via payment links, escrow via wallet)
@@ -39,17 +39,9 @@ Viecz is a P2P marketplace connecting university students for small services. Th
 
 ```mermaid
 graph TD
-    subgraph ANDROID_CLIENT["ANDROID CLIENT"]
-        ComposeUI["Compose UI"]
-        ViewModels["ViewModels<br/>(State)"]
-        Repositories["Repositories<br/>(Data)"]
-        Retrofit["Retrofit<br/>+ OkHttp"]
-        WebSocketClient["WebSocket Client"]
-
-        ComposeUI --> ViewModels
-        ViewModels --> Repositories
-        Repositories --> Retrofit
-        WebSocketClient --> Retrofit
+    subgraph MOBILE_CLIENT["MOBILE CLIENT (Capacitor)"]
+        WebView["WebView<br/>(hosts Angular app)"]
+        CapacitorBridge["Capacitor Bridge<br/>(plugins: camera, notifications, etc.)"]
     end
 
     subgraph WEB_CLIENT["WEB CLIENT (Angular 21)"]
@@ -63,10 +55,11 @@ graph TD
         AngularServices --> WsService
     end
 
+    WebView --> AngularComponents
+    CapacitorBridge -.-> AngularServices
+
     CLOUDFLARE["Cloudflare Tunnel<br/>(SSL + Routing)"]
 
-    Retrofit -- "HTTPS / WSS" --> CLOUDFLARE
-    WebSocketClient -- "WSS" --> CLOUDFLARE
     HttpClient -- "HTTPS" --> CLOUDFLARE
     WsService -- "WSS" --> CLOUDFLARE
 
