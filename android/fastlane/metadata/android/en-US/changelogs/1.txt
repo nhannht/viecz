@@ -1,8 +1,0 @@
-Initial release of Viecz.
-
-- Task browsing, creation, and management
-- User authentication and profile management
-- Wallet system with PayOS payment integration
-- Real-time chat via WebSocket
-- Category-based task filtering
-- Material Design 3 UI with Jetpack Compose
