@@ -14,7 +14,7 @@ description: Task management workflow — must be followed before any code chang
 - **Modify**: `task <id> modify <changes>`
 
 ## Structure
-- `project:viecz` (or `viecz.web`, `viecz.server`, `viecz.android`, `viecz.jellyfish`)
+- `project:viecz` (or `viecz.web`, `viecz.server`, `viecz.mobile`, `viecz.jellyfish`)
 - Tags: `+bug`, `+feature`, `+task`, `+chore`, `+research`
 - Use `epic:` and `milestone:` UDAs for grouping
 

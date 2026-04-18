@@ -1,0 +1,327 @@
+{
+  "data": [
+    {
+      "data_point": "Average monthly living expenses for students",
+      "value": "2-7 million VND/month (varies by accommodation type)",
+      "geographic_scope": "National",
+      "source_name": "Vietnam.vn",
+      "source_type": "government",
+      "data_year": 2024,
+      "source_url": "https://www.vietnam.vn/en/chi-phi-mot-nam-cua-sinh-vien-tai-tp-hcm-la-bao-nhieu",
+      "citation_text": "Vietnam.vn reports that average monthly student living expenses range from 2-7 million VND/month, depending on accommodation type and spending habits (2024)."
+    },
+    {
+      "data_point": "Average monthly living expenses for TP.HCM students",
+      "value": "5 million VND/month (average, excluding tuition)",
+      "geographic_scope": "TP.HCM",
+      "source_name": "Vietnam.vn",
+      "source_type": "government",
+      "data_year": 2024,
+      "source_url": "https://www.vietnam.vn/en/chi-phi-mot-nam-cua-sinh-vien-tai-tp-hcm-la-bao-nhieu",
+      "citation_text": "Vietnam.vn indicates that most students in Ho Chi Minh City spend an average of 5 million VND/month or more on living expenses, not including tuition fees (2024)."
+    },
+    {
+      "data_point": "Annual education spending per student",
+      "value": "9.5 million VND/year (36.3% increase from 2022)",
+      "geographic_scope": "National",
+      "source_name": "General Statistics Office (GSO), VHLSS 2024",
+      "source_type": "government",
+      "data_year": 2024,
+      "source_url": "https://www.vietnam-briefing.com/news/vietnams-rising-purchasing-power-2024-household-living-standards-survey.html/",
+      "citation_text": "The 2024 Vietnam Household Living Standards Survey (VHLSS) conducted by GSO reports that education investment reached VND 9.5 million per student annually, representing a 36.3% increase from VND 7 million in 2022."
+    },
+    {
+      "data_point": "Urban vs rural education spending",
+      "value": "Urban: 10.7 million VND/student/year; Rural: 5.1 million VND/student/year",
+      "geographic_scope": "National (urban/rural comparison)",
+      "source_name": "General Statistics Office (GSO)",
+      "source_type": "government",
+      "data_year": 2020,
+      "source_url": "https://www.gso.gov.vn/du-lieu-va-so-lieu-thong-ke/2021/09/chi-tieu-cho-giao-duc-dao-tao-cua-cac-ho-gia-dinh-o-viet-nam-nhung-nam-gan-day/",
+      "citation_text": "GSO data (2020) shows significant urban-rural disparities in education spending: urban households spent 10.7 million VND per student annually, 2.1 times higher than rural households."
+    },
+    {
+      "data_point": "Part-time work participation rate among students",
+      "value": "22.1% of university and vocational students",
+      "geographic_scope": "National",
+      "source_name": "General Statistics Office (GSO)",
+      "source_type": "government",
+      "data_year": 2018,
+      "source_url": "https://www.gso.gov.vn/",
+      "citation_text": "According to GSO data from 2018, approximately 22.1% of university and vocational students in Vietnam engage in part-time work."
+    },
+    {
+      "data_point": "Students working less than 5 hours per week",
+      "value": "30.5% (highest percentage)",
+      "geographic_scope": "National",
+      "source_name": "University research survey",
+      "source_type": "academic",
+      "data_year": 2022,
+      "source_url": "https://www.researchgate.net/publication/310843746_STUDENT_PART_TIME_EMPLOYMENT_CASE_STUDY_AT_TON_DUC_THANG_UNIVERSITY_IN_VIETNAM",
+      "citation_text": "[uncertain] Research on part-time work patterns shows that 30.5% of surveyed university students work less than 5 hours per week, representing the highest single category of work intensity."
+    },
+    {
+      "data_point": "Student part-time work hourly rates",
+      "value": "20,000-60,000 VND/hour (market rate); 15,000-20,000 VND/hour (common range)",
+      "geographic_scope": "National",
+      "source_name": "Multiple industry surveys and legal data",
+      "source_type": "industry_report",
+      "data_year": 2025,
+      "source_url": "https://thuvienphapluat.vn/lao-dong-tien-luong/cam-nang-di-lam/sinh-vien-lam-them-partime-bao-nhieu-tien-1-gio-437.html",
+      "citation_text": "Market surveys indicate part-time student wages typically range from 20,000-60,000 VND/hour, with common rates around 15,000-20,000 VND/hour, varying by job type and location (2025)."
+    },
+    {
+      "data_point": "Minimum student hourly wage - Zone I",
+      "value": "25,500 VND/hour from 2026",
+      "geographic_scope": "Zone I (TP.HCM and major urban areas)",
+      "source_name": "Vietnamese Government, Decree 293/2025/NĐ-CP",
+      "source_type": "government",
+      "data_year": 2026,
+      "source_url": "https://baochinhphu.vn/tang-luong-toi-thieu-vung-tu-1-1-2026-102251110175033018.htm",
+      "citation_text": "The Vietnamese Government's Decree 293/2025/NĐ-CP, effective January 1, 2026, establishes a minimum hourly wage of 25,500 VND for student workers in Zone I areas including TP.HCM."
+    },
+    {
+      "data_point": "Reasons for part-time work",
+      "value": "To practice professional skills and gain experience (80.8%); To increase income (80.8%)",
+      "geographic_scope": "National",
+      "source_name": "Academic case study",
+      "source_type": "academic",
+      "data_year": 2016,
+      "source_url": "https://www.researchgate.net/publication/310843746_STUDENT_PART_TIME_EMPLOYMENT_CASE_STUDY_AT_TON_DUC_THANG_UNIVERSITY_IN_VIETNAM",
+      "citation_text": "Research on Vietnamese student part-time employment shows that 80.8% cite professional skills development and 80.8% cite income needs as motivations for working while studying."
+    },
+    {
+      "data_point": "Student spending sufficiency assessment",
+      "value": "Just sufficient: 64.7%; Difficulty: 23.4%; Never spent all allowance: 11.9%",
+      "geographic_scope": "National",
+      "source_name": "University survey",
+      "source_type": "academic",
+      "data_year": 2022,
+      "source_url": "https://www.scribd.com/document/728050938/",
+      "citation_text": "[uncertain] A student spending survey found that 64.7% report their spending level as just sufficient, 23.4% report difficulty affording expenses, and 11.9% reported never spending all their monthly allowance."
+    },
+    {
+      "data_point": "Student accommodation patterns",
+      "value": "Living with family: 52.34%; Rental housing: 40.43%; Dormitory: 7.23%",
+      "geographic_scope": "National",
+      "source_name": "University survey",
+      "source_type": "academic",
+      "data_year": 2022,
+      "source_url": "https://www.scribd.com/document/728050938/",
+      "citation_text": "[uncertain] A survey of Vietnamese students shows residence patterns: 52.34% live with family, 40.43% in rental housing, and 7.23% in university dormitories."
+    },
+    {
+      "data_point": "MoMo e-wallet adoption among users",
+      "value": "62% of respondents use MoMo (most popular e-wallet in Vietnam)",
+      "geographic_scope": "National",
+      "source_name": "Decision Lab survey",
+      "source_type": "industry_report",
+      "data_year": 2024,
+      "source_url": "https://www.decisionlab.co/blog/demystifying-the-rise-of-e-wallets-in-vietnam",
+      "citation_text": "A 2024 Decision Lab survey found that MoMo is the most widely used e-wallet in Vietnam, with 62% of respondents reporting regular usage."
+    },
+    {
+      "data_point": "E-wallet usage frequency among Vietnamese consumers",
+      "value": "Weekly: 66%; 3-5 times per week: 35%; Daily: 30%",
+      "geographic_scope": "National",
+      "source_name": "E-wallet market research survey",
+      "source_type": "industry_report",
+      "data_year": 2024,
+      "source_url": "https://www.statista.com/topics/8647/e-wallets-in-vietnam/",
+      "citation_text": "Market research indicates that two-thirds of Vietnamese consumers use e-wallets on a weekly basis, with 35% using them 3-5 times per week and 30% using them daily (2024)."
+    },
+    {
+      "data_point": "E-wallet adoption rate among Vietnamese consumers",
+      "value": "Close to 60% of respondents; 60% of users have at least 2 e-wallet apps",
+      "geographic_scope": "National",
+      "source_name": "E-wallet adoption survey",
+      "source_type": "industry_report",
+      "data_year": 2021,
+      "source_url": "https://www.statista.com/topics/8647/e-wallets-in-vietnam/",
+      "citation_text": "A 2021 survey found that e-wallet adoption reached approximately 60% among Vietnamese respondents, with over 60% of users maintaining multiple e-wallet applications."
+    },
+    {
+      "data_point": "Young adults (under 30) fintech adoption",
+      "value": "E-banking: 37.95%; E-payments: 30.12%",
+      "geographic_scope": "National",
+      "source_name": "Fintech adoption research",
+      "source_type": "industry_report",
+      "data_year": 2024,
+      "source_url": "https://fintechnews.sg/45609/vietnam/abd-low-financial-literacy-hampering-fintech-adoption-in-vietnam",
+      "citation_text": "Research shows that young people aged under 30 in Vietnam demonstrate significantly higher fintech adoption than older demographics: 37.95% use e-banking and 30.12% use e-payments."
+    },
+    {
+      "data_point": "Bank transfer adoption among Vietnamese users",
+      "value": "Most widely adopted digital payment method; Preferred for security and reliability",
+      "geographic_scope": "National",
+      "source_name": "Payment methods research",
+      "source_type": "industry_report",
+      "data_year": 2024,
+      "source_url": "https://knowledge.antom.com/most-popular-payment-methods-in-vietnam",
+      "citation_text": "Bank transfers are the most widely adopted digital payment method in Vietnam, with strong preference among both individuals and businesses due to perceived security and reliability."
+    },
+    {
+      "data_point": "Informal employment rate among young workers",
+      "value": "79.5% of young workers in informal employment",
+      "geographic_scope": "National",
+      "source_name": "International Labour Organization (ILO)",
+      "source_type": "government",
+      "data_year": 2015,
+      "source_url": "https://www.ilo.org/sites/default/files/wcmsp5/groups/public/@asia/@ro-bangkok/@ilo-hanoi/documents/publication/wcms_819789.pdf",
+      "citation_text": "According to ILO data from 2015, informal employment affected 79.5% of young workers in Vietnam."
+    },
+    {
+      "data_point": "Youth employment rate (ages 15-24)",
+      "value": "66.3% employment rate; 33.3% agriculture, 33.4% industry, 32.6% services",
+      "geographic_scope": "National",
+      "source_name": "International Labour Organization (ILO)",
+      "source_type": "government",
+      "data_year": 2015,
+      "source_url": "https://www.ilo.org/media/428391/download",
+      "citation_text": "ILO data (2015) shows that two-thirds of young Vietnamese (66.3%) were employed, with fairly even sectoral distribution across agriculture (33.3%), industry (33.4%), and services (32.6%)."
+    },
+    {
+      "data_point": "Out-of-school working adolescents (ages 15-17)",
+      "value": "18.3% of young adolescents aged 15-17 out of school and working",
+      "geographic_scope": "National",
+      "source_name": "International Labour Organization (ILO)",
+      "source_type": "government",
+      "data_year": 2015,
+      "source_url": "https://www.ilo.org/media/428391/download",
+      "citation_text": "ILO statistics indicate that 18.3% of young adolescents aged 15-17 in Vietnam were out of school and engaged in work (2015)."
+    },
+    {
+      "data_point": "Vulnerable employment among young workers",
+      "value": "34.6% in vulnerable employment: 12.9% own-account workers, 21.7% unpaid family workers",
+      "geographic_scope": "National",
+      "source_name": "International Labour Organization (ILO)",
+      "source_type": "government",
+      "data_year": 2015,
+      "source_url": "https://www.ilo.org/media/428391/download",
+      "citation_text": "ILO data (2015) reveals that more than one-third (34.6%) of young workers in Vietnam remain in vulnerable employment, including own-account workers (12.9%) and unpaid family workers (21.7%)."
+    },
+    {
+      "data_point": "Student average monthly part-time work income",
+      "value": "1-2 million VND/month (30 hours/week); Factory workers: 250,000-400,000 VND/shift",
+      "geographic_scope": "National",
+      "source_name": "Student economic research",
+      "source_type": "academic",
+      "data_year": 2023,
+      "source_url": "https://ijrpr.com/uploads/V5ISSUE7/IJRPR31398.pdf",
+      "citation_text": "[uncertain] Research on Vietnamese student part-time earnings shows typical monthly income ranges from 1-2 million VND from approximately 30 hours/week, with factory workers earning 250,000-400,000 VND per shift."
+    },
+    {
+      "data_point": "Gen Z financial literacy scores",
+      "value": "Overall score: 66.8 points (ages 20-29); 68.5 points (ages 30-39); Financial situation: 55.7 points; Long-term planning: 23.8 points",
+      "geographic_scope": "National",
+      "source_name": "Vietnam financial literacy research",
+      "source_type": "academic",
+      "data_year": 2024,
+      "source_url": "https://www.mdpi.com/2071-1050/15/20/14854",
+      "citation_text": "[uncertain] Financial literacy assessments show Gen Z in Vietnam scores 66.8 points overall (ages 20-29), with weak long-term financial planning scores of 23.8 points (2024)."
+    },
+    {
+      "data_point": "Young adults avoiding overdrafts",
+      "value": "Only 54.8% of young people avoid overdrafts",
+      "geographic_scope": "National",
+      "source_name": "Financial literacy and behavior survey",
+      "source_type": "academic",
+      "data_year": 2024,
+      "source_url": "https://www.mdpi.com/2071-1050/15/20/14854",
+      "citation_text": "[uncertain] Financial behavior research shows that only 54.8% of young Vietnamese avoid overdrafts, indicating concerning spending patterns among this demographic (2024)."
+    },
+    {
+      "data_point": "Young adults spending more than monthly income",
+      "value": "52.2-47.8% spend more than their monthly income allows",
+      "geographic_scope": "National",
+      "source_name": "Financial behavior survey",
+      "source_type": "academic",
+      "data_year": 2024,
+      "source_url": "https://www.mdpi.com/2071-1050/15/20/14854",
+      "citation_text": "[uncertain] A financial behavior survey found that nearly half (52.2-47.8%) of young Vietnamese spend more than their monthly income allows (2024)."
+    },
+    {
+      "data_point": "Young adults with emergency funds",
+      "value": "72.8% have emergency savings",
+      "geographic_scope": "National",
+      "source_name": "Financial literacy survey",
+      "source_type": "academic",
+      "data_year": 2024,
+      "source_url": "https://www.mdpi.com/2071-1050/15/20/14854",
+      "citation_text": "[uncertain] Survey data indicates that 72.8% of young Vietnamese maintain emergency savings funds (2024)."
+    },
+    {
+      "data_point": "Young adults with budgets",
+      "value": "70.6% maintain a budget",
+      "geographic_scope": "National",
+      "source_name": "Financial literacy survey",
+      "source_type": "academic",
+      "data_year": 2024,
+      "source_url": "https://www.mdpi.com/2071-1050/15/20/14854",
+      "citation_text": "[uncertain] Financial management surveys show that 70.6% of young Vietnamese maintain a personal budget (2024)."
+    },
+    {
+      "data_point": "Vietnam NEET youth (Not in Employment, Education, or Training)",
+      "value": "1.4 million (10.2% of youth population, ages 15-24)",
+      "geographic_scope": "National",
+      "source_name": "General Statistics Office (GSO)",
+      "source_type": "government",
+      "data_year": 2025,
+      "source_url": "https://news.tuoitre.vn/14-million-of-vietnams-youth-are-neet-as-global-figure-hits-260-million-in-2025-103260116145551625.htm",
+      "citation_text": "GSO data from Q4 2025 reports that Vietnam had approximately 1.4 million young people aged 15-24 not engaged in employment, education, or training, representing 10.2% of the total youth population."
+    },
+    {
+      "data_point": "Facebook as job search platform for students",
+      "value": "38% of Vietnamese university students find part-time jobs via Facebook",
+      "geographic_scope": "National",
+      "source_name": "Q&Me market research",
+      "source_type": "industry_report",
+      "data_year": 2023,
+      "source_url": "https://qandme.net/en/report/38-of-Vietnamese-University-Students-find-the-job-via-Facebook.html",
+      "citation_text": "Market research from Q&Me shows that 38% of Vietnamese university students rely on Facebook to find part-time employment opportunities (2023)."
+    },
+    {
+      "data_point": "Online transaction value via mobile wallets",
+      "value": "USD 18.2 billion in 2024; 73% cleared via mobile wallet super-apps",
+      "geographic_scope": "National",
+      "source_name": "Vietnam mobile payments market analysis",
+      "source_type": "industry_report",
+      "data_year": 2024,
+      "source_url": "https://www.transfi.com/blog/vietnams-top-payment-methods-momo-zalopay-vietqr-explained",
+      "citation_text": "Analysis of Vietnam's mobile payments sector shows that online transaction values exceeded USD 18.2 billion in 2024, with 73% processed through mobile wallet super-app integrations (2024)."
+    },
+    {
+      "data_point": "MoMo mobile wallet user base",
+      "value": "Over 31 million users with 140,000 payment points",
+      "geographic_scope": "National",
+      "source_name": "MoMo market data",
+      "source_type": "industry_report",
+      "data_year": 2024,
+      "source_url": "https://www.transfi.com/blog/vietnams-top-payment-methods-momo-zalopay-vietqr-explained",
+      "citation_text": "MoMo has expanded to over 31 million users with 140,000 merchant payment points, processing 5.5 billion transactions in Q1 2025 and achieving first-time profitability in 2024."
+    },
+    {
+      "data_point": "Top income quintile university attendance",
+      "value": "Nearly 80% of young adults in top quintile have attended university",
+      "geographic_scope": "National",
+      "source_name": "World Bank higher education analysis",
+      "source_type": "government",
+      "data_year": 2020,
+      "source_url": "https://documents1.worldbank.org/curated/en/099062823070547678/pdf/P17811209b96300a09154049f2039bb6e0.html",
+      "citation_text": "[uncertain] World Bank analysis (2020) shows significant equity gaps: nearly 80% of young adults in the top income quintile attend university, while bottom two quintiles account for only 10% of enrollments."
+    },
+    {
+      "data_point": "Tuition fees as share of education costs",
+      "value": "Public sector: 46% of direct cost; Private sector: 69% of direct cost",
+      "geographic_scope": "National",
+      "source_name": "World Bank higher education study",
+      "source_type": "government",
+      "data_year": 2016,
+      "source_url": "https://documents1.worldbank.org/curated/en/099062823070547678/pdf/P17811209b96300a09154049f2039bb6e0.html",
+      "citation_text": "World Bank data (2016) indicates that tuition fees comprise 46% of direct education costs in public institutions and 69% in private institutions, reflecting significant student cost-sharing."
+    }
+  ],
+  "uncertain": [
+    "citation_text"
+  ]
+}

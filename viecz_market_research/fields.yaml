@@ -1,0 +1,107 @@
+## Field definitions for Viecz market research
+
+regulatory:
+  - name: law_or_decree
+    description: "Name and number of the law, decree, or circular"
+    detail_level: brief
+
+  - name: applicable_clause
+    description: "Specific article/clause number relevant to P2P labor platforms"
+    detail_level: moderate
+
+  - name: summary
+    description: "What the law/clause says in plain language"
+    detail_level: moderate
+
+  - name: implication_for_viecz
+    description: "How this specifically affects Viecz's operations (escrow, tasker classification, data collection)"
+    detail_level: detailed
+
+  - name: compliance_action_needed
+    description: "What Viecz needs to do to comply (register, notify, restructure, nothing)"
+    detail_level: detailed
+
+  - name: severity
+    description: "blocking / manageable / non-issue"
+    detail_level: brief
+
+  - name: source_url
+    description: "URL to the official text or credible analysis"
+    detail_level: brief
+
+student_economics:
+  - name: data_point
+    description: "What is being measured (e.g., average monthly spending, part-time participation rate)"
+    detail_level: brief
+
+  - name: value
+    description: "The actual number or range"
+    detail_level: brief
+
+  - name: geographic_scope
+    description: "National, TP.HCM, or specific university"
+    detail_level: brief
+
+  - name: source_name
+    description: "Organization that published the data (GSO, MOLISA, university, research institute)"
+    detail_level: brief
+
+  - name: source_type
+    description: "government / academic / industry_report / news_citing_study"
+    detail_level: brief
+
+  - name: data_year
+    description: "Year the data was collected or published"
+    detail_level: brief
+
+  - name: source_url
+    description: "URL to the source"
+    detail_level: brief
+
+  - name: citation_text
+    description: "Ready-to-use citation for the Bản mô tả document"
+    detail_level: moderate
+
+competitor:
+  - name: platform_name
+    description: "Name of the platform or service"
+    detail_level: brief
+
+  - name: country
+    description: "Country of operation"
+    detail_level: brief
+
+  - name: launch_year
+    description: "Year launched"
+    detail_level: brief
+
+  - name: model
+    description: "peer-to-peer / managed / hybrid"
+    detail_level: brief
+
+  - name: target_user
+    description: "Who it serves (students, general public, specific demographic)"
+    detail_level: brief
+
+  - name: key_features
+    description: "Core features — especially map-based, escrow, micro-task support"
+    detail_level: moderate
+
+  - name: current_status
+    description: "active / dead / pivoted / acquired"
+    detail_level: brief
+
+  - name: user_count
+    description: "Number of users or downloads if known"
+    detail_level: brief
+
+  - name: relevance_to_viecz
+    description: "Why this matters for Viecz — what can be learned, how it validates or challenges our model"
+    detail_level: detailed
+
+  - name: source_url
+    description: "URL to source"
+    detail_level: brief
+
+uncertain:
+  description: "List of field names where data could not be verified"

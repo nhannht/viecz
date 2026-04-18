@@ -1,0 +1,119 @@
+[
+  {
+    "law_or_decree": "Labor Code No. 45/2019/QH14",
+    "applicable_clause": "Article 3, Chapter I (General Provisions)",
+    "summary": "Defines an 'employee' as a person who works for an employer under an agreement, is paid, and is managed/supervised by the employer. The definition establishes three key elements: (1) agreement, (2) payment/wages, and (3) management and supervision/subordination.",
+    "implication_for_viecz": "Viecz taskers could be classified as employees if they meet all three criteria. Viecz must ensure taskers are NOT under direct management, supervision, or control if positioning them as independent contractors. Platform algorithm-based task assignment could constitute 'management' under Vietnamese law, triggering employee status.",
+    "compliance_action_needed": "Conduct legal review of tasker classification. Document that taskers are NOT subordinate to platform management. Consider: (1) taskers have freedom to accept/reject tasks, (2) taskers set their own rates, (3) taskers control work schedule, (4) no direct supervision. If any element of management is present, establish formal employment contracts with full labor protections.",
+    "severity": "blocking",
+    "source_url": "https://boluatlaodong2019.molisa.gov.vn/lang_en/topic/viet_nam_labour_code/index"
+  },
+  {
+    "law_or_decree": "Labor Code No. 45/2019/QH14",
+    "applicable_clause": "Article 5, Chapter I + provisions on workers without employment relationship",
+    "summary": "Introduces concept of 'workers without employment relationship' - individuals working without a labor contract (e.g., freelancers). Labor Code applies to such workers though specific implementing regulations are still being clarified by Government.",
+    "implication_for_viecz": "Viecz taskers could fall under 'workers without employment relationship' classification if properly structured as independent contractors. However, the scope of Labor Code protections applicable to this category is still unclear pending Government implementation guidance. Risk: courts may expand protections to gig workers if legislative intent suggests broad worker protection.",
+    "compliance_action_needed": "Monitor Government circulars and guidance on 'workers without employment relationship'. Document contractual language clearly stating tasker status and limited protections. Consider voluntary provision of some protections (health insurance, dispute resolution) as risk mitigation.",
+    "severity": "manageable",
+    "source_url": "https://vietnam-business-law.info/blog/2021/7/30/the-concepts-of-employees-employment-contracts-and-a-worker-without-an-employment-relationship-under-vietnamese-labour-law"
+  },
+  {
+    "law_or_decree": "Circular 40/2024/TT-NHNN (State Bank of Vietnam)",
+    "applicable_clause": "Articles on e-wallet services, minimum capital requirements, escrow accounts",
+    "summary": "Regulates payment intermediary services including e-wallet services. Requires minimum charter capital of VND 50 billion for e-wallet/payment order/collection order services. E-wallet service providers must maintain escrow/guarantee accounts equal to total customer balances. Took effect July 17, 2024, replacing previous Circular 39/2014.",
+    "implication_for_viecz": "If Viecz acts as payment intermediary (holding tasker funds in escrow before disbursement), Viecz must obtain State Bank license. VND 50 billion (~USD 2 million) minimum capital requirement is substantial barrier. Alternative: partner with licensed payment intermediary rather than self-provide. All customer money must be held in dedicated bank guarantee account.",
+    "compliance_action_needed": "CRITICAL: If holding tasker/customer funds in escrow: (1) Apply for payment intermediary service license from State Bank (60-day processing), (2) Establish VND 50 billion minimum charter capital, (3) Open dedicated guarantee account at bank to hold all customer balances, (4) Implement compliance monitoring. If using third-party payment processor, ensure they hold proper license.",
+    "severity": "blocking",
+    "source_url": "https://english.luatvietnam.vn/tai-chinh/circular-40-2024-tt-nhnn-provision-of-intermediary-payment-services-360680-d1.html"
+  },
+  {
+    "law_or_decree": "Decree 52/2024/ND-CP with Circular 40/2024/TT-NHNN",
+    "applicable_clause": "Provisions on payment intermediary service licensing, charter capital, operational requirements",
+    "summary": "Updated 2024 regulations establishing licensing framework for payment intermediaries. Minimum capital VND 50 billion for e-wallet services. Licensing term 10 years, renewable. Processing time 60 days from complete application submission.",
+    "implication_for_viecz": "Viecz must meet strict capital and operational requirements if providing escrow services. License must be obtained BEFORE platform launch if funds are held. 60-day approval timeline requires early planning.",
+    "compliance_action_needed": "If providing payment intermediary services: (1) Prepare complete license application 90+ days before launch, (2) Establish VND 50 billion capital reserve, (3) Appoint qualified legal representative/general director (university degree + 3 years finance/banking/law experience), (4) Document proper technical infrastructure and security measures, (5) Submit application to State Bank with all required documents.",
+    "severity": "blocking",
+    "source_url": "https://www.mondaq.com/financial-services/1474726/non-cash-payment-under-decree-no-522024nd-cp"
+  },
+  {
+    "law_or_decree": "Decree 13/2023/ND-CP on Personal Data Protection",
+    "applicable_clause": "Articles on consent requirements (Article 5-6), definition of personal data processing, location/movement data",
+    "summary": "Vietnam's first comprehensive personal data protection law effective July 1, 2023. Requires clear, voluntary, affirmative consent for all personal data processing. Consent must be in writing/voice/checkbox/technical settings and must be printable/copyable. Data subject must knowingly understand: (a) types of data collected, (b) purpose, (c) which organizations process it, (d) subject's rights. Covers location data and automated profiling of individuals including location tracking.",
+    "implication_for_viecz": "Viecz collects location data from taskers in real-time for task assignment and matching. Viecz must obtain EXPLICIT, INFORMED consent before collecting/processing location data. Consent cannot be bundled into terms of service; must be separate, affirmative action. Location data for tasker/customer matching requires specific consent mentioning location tracking purpose.",
+    "compliance_action_needed": "IMMEDIATE: (1) Obtain explicit, written consent from all taskers/customers before location collection. Cannot use pre-checked boxes. (2) Provide separate consent form clearly stating: location data collection purpose, how long data retained, which organizations access it, user's data rights (access, deletion, portability). (3) Implement consent management system with timestamps. (4) Make consent printable/copyable. (5) Allow opt-out without service denial (unless location essential to service, explicitly state). (6) Document all consent obtained. (7) Establish data retention schedule for location data.",
+    "severity": "blocking",
+    "source_url": "https://dlapiper.com/en-us/insights/publications/crossroads-icr-insights/2023/vietnam-decree-13-and-the-new-regulations-on-personal-data-protection"
+  },
+  {
+    "law_or_decree": "Decree 13/2023/ND-CP on Personal Data Protection",
+    "applicable_clause": "Data breach notification provisions, enforcement by Ministry of Public Security Department of Cybersecurity",
+    "summary": "Organizations must notify Ministry of Public Security's Cybersecurity Department within 72 hours of detecting data protection violation. Notification must include: breach nature/time/place, data types/volume affected, contact of data protection officer, remedial measures taken. Late notification requires explanation. Enforcement by Cybersecurity Department under Ministry of Public Security.",
+    "implication_for_viecz": "If Viecz experiences data breach (tasker location compromised, payment data exposed, personal info leaked), must notify Vietnamese government within 72 hours. Failure triggers penalties. Viecz must maintain incident response procedures and dedicated data protection officer.",
+    "compliance_action_needed": "Establish: (1) Data security incident response plan with 72-hour notification procedure, (2) Designated data protection officer, (3) Monitoring systems to detect breaches, (4) Incident documentation process, (5) Notification template for cybersecurity@mps.gov.vn. Test response procedures quarterly.",
+    "severity": "manageable",
+    "source_url": "https://dlapiper.com/en-us/insights/publications/crossroads-icr-insights/2023/vietnam-decree-13-and-the-new-regulations-on-personal-data-protection"
+  },
+  {
+    "law_or_decree": "Decree 13/2023/ND-CP on Personal Data Protection",
+    "applicable_clause": "Administrative penalties for violations (Decree 13 base + draft enhanced sanctions decree)",
+    "summary": "Base penalties VND 5-100 million (USD 200-4,000) for violations. Draft decree proposes maximum VND 1 billion (USD 40,000) or up to 5% of enterprise turnover for serious violations including: data collection without consent, illegal personal data sale, disclosure/loss of 5M+ citizen records, repeat violations in marketing/advertising. Enforcement by Ministry of Public Security.",
+    "implication_for_viecz": "Non-compliance with Decree 13 (improper location data collection, inadequate consent, data breach) could result in USD 200-40,000+ fines plus operational restrictions. Significant financial and reputational damage.",
+    "compliance_action_needed": "Treat Decree 13 compliance as critical operational requirement. Implement: (1) Data protection audit, (2) Consent management system, (3) Data inventory and classification, (4) Security controls, (5) Incident response, (6) Documentation of compliance. Budget for compliance infrastructure as non-negotiable cost.",
+    "severity": "blocking",
+    "source_url": "https://securiti.ai/vietnam-personal-data-protection-decree/"
+  },
+  {
+    "law_or_decree": "Personal Income Tax Law 2025 (amended, effective 2026)",
+    "applicable_clause": "Articles on tax-exempt revenue threshold, household enterprise taxation, micro-business classification",
+    "summary": "Effective January 1, 2026: Tax-exempt revenue threshold for household/individual businesses RAISED from VND 200M to VND 500M annually. Individuals/households with revenue VND 500M-3B: 15% tax rate on profits. VND 3B-50B: 17% rate. Above VND 50B: 20% rate. Previously, VND 100M threshold applied for basic tax registration exemption; now raised to VND 500M. Personal deduction increased to VND 15.5M/month.",
+    "implication_for_viecz": "Taskers earning <VND 500M annually (USD ~19,200/year) are exempt from income tax and VAT. This creates natural incentive for taskers to remain below threshold. Viecz platform must NOT withhold PIT from tasker payments below this threshold. Platform complies automatically as long as individual tasker annual earnings <VND 500M.",
+    "compliance_action_needed": "(1) Document tasker annual earnings to verify compliance with VND 500M threshold, (2) Do NOT withhold PIT from taskers below threshold, (3) Notify taskers earning above VND 500M of tax obligations, (4) For taskers 500M-3B revenue: they owe 15% on profits (not gross). Viecz should not withhold unless directed by tax authority.",
+    "severity": "manageable",
+    "source_url": "https://vietanlaw.com/new-2026-rules-for-household-enterprises-tax-in-vietnam/"
+  },
+  {
+    "law_or_decree": "Decree 117/2025/ND-CP on Tax Management for E-Commerce and Digital Platforms",
+    "applicable_clause": "Provisions on platform VAT and PIT withholding obligations, timing of withholding, monthly filing requirements",
+    "summary": "Effective July 1, 2025: E-commerce/digital platforms with payment functions must withhold and remit VAT and Personal Income Tax (PIT) on behalf of household/individual sellers for each transaction. Withholding occurs immediately upon transaction confirmation and payment acceptance. Withheld taxes deducted from seller payment before funds transferred to seller. Monthly tax declaration due to tax authority. Revenue threshold 2026: only sellers earning VND 200M+ annually subject to withholding (previous 100M threshold).",
+    "implication_for_viecz": "CRITICAL for Viecz platform: If Viecz processes payments directly and taskers earn revenue through the platform, Viecz must implement VAT/PIT withholding starting July 1, 2025. Withholding timing: immediately upon successful transaction and payment acceptance. Funds held until monthly filing with tax authority. Creates escrow-like mechanism where platform holds taxes before seller payment.",
+    "compliance_action_needed": "URGENT (deadline July 1, 2025): (1) Audit whether Viecz qualifies as 'e-commerce or digital platform with payment functions' - if YES, mandatory compliance, (2) Implement automated withholding system calculating correct VAT/PIT per transaction, (3) Establish monthly tax declaration process and tax account, (4) Deduct withholding from tasker payment immediately (do not pay first then reclaim), (5) Register with tax authority for platform withholding reporting, (6) Train finance team on new procedures. Non-compliance triggers penalties and potential platform suspension.",
+    "severity": "blocking",
+    "source_url": "https://www.ey.com/en_vn/technical/tax/tax-and-law-updates/people-advisory-service-tax-alert-june-2025-decree-117-on-tax-management-for-business-activities-on-e-commerce-and-digital-platforms"
+  },
+  {
+    "law_or_decree": "Decree 117/2025/ND-CP on Tax Management for E-Commerce and Digital Platforms",
+    "applicable_clause": "Revenue threshold for withholding obligations, effective 2026",
+    "summary": "Starting 2026: Only sellers earning VND 200M+ annually subject to VAT and PIT withholding obligations. Below VND 200M: no withholding required. This differs from general income tax exemption threshold (VND 500M for household businesses) - withholding has stricter threshold (VND 200M vs 500M exemption).",
+    "implication_for_viecz": "Viecz must track individual tasker annual earnings to determine withholding obligations. Tasker earning <VND 200M in year 2026+: Viecz does NOT withhold. VND 200M+: Viecz must withhold VAT and PIT per transaction.",
+    "compliance_action_needed": "(1) Implement annual earnings tracking per tasker, (2) Starting 2026: Only withhold from taskers with prior-year earnings VND 200M+, (3) Communicate threshold to taskers to set expectations, (4) Maintain detailed records of withholding per tasker.",
+    "severity": "manageable",
+    "source_url": "https://www.globalvatcompliance.com/globalvatnews/vietnam-digital-platform-tax/"
+  },
+  {
+    "law_or_decree": "Vietnam Gig Economy Regulatory Landscape",
+    "applicable_clause": "General labor law application to platform/gig workers, Social Insurance Law 2024 changes",
+    "summary": "Vietnam has NO specific gig economy regulation. Gig workers are currently classified by general labor law (Labor Code 2019) or as 'workers without employment relationship'. Social Insurance Law 2024 (effective July 1, 2025) allows voluntary UI enrollment for 16M informal/gig workers, first time they can access unemployment insurance. Government acknowledges gig workers as distinct category but regulatory framework still evolving.",
+    "implication_for_viecz": "No specific gig platform regulations in Vietnam. Viecz operates in gray area where tasker classification is uncertain. Must comply with general Labor Code (Article 3 'employee' definition) and anticipate future specific gig regulation. Advantage: more flexibility than regulated markets. Risk: sudden regulatory change requiring restructuring.",
+    "compliance_action_needed": "(1) Classify taskers as 'workers without employment relationship' (not employees), document basis, (2) Monitor for government guidance on platform workers, (3) Prepare contingency for stricter future regulations, (4) Consider voluntary UI enrollment option for taskers as goodwill gesture starting 2025, (5) Track labor law changes monthly.",
+    "severity": "manageable",
+    "source_url": "https://www.macrothink.org/journal/index.php/ber/article/download/23195/17801"
+  },
+  {
+    "law_or_decree": "[Uncertain] Platform Worker Misclassification Enforcement",
+    "applicable_clause": "Potential enforcement by Ministry of Labor or Labor Inspectorate",
+    "summary": "[Uncertain] No specific documented enforcement actions against Vietnamese gig/platform companies for worker misclassification identified in public sources. Grab and Be operate as ride-hailing platforms and are subject to general labor law, but no high-profile enforcement case located.",
+    "implication_for_viecz": "Low evidence of aggressive enforcement against gig platforms for misclassification. However, absence of evidence is not absence of risk - enforcement could emerge as gig economy grows. Gojek exit from Vietnam (2024) attributed to market competition, not regulatory enforcement.",
+    "compliance_action_needed": "Do not rely on enforcement gap as compliance strategy. Maintain proper tasker classification and documentation. Monitor news for enforcement trends monthly.",
+    "severity": "non-issue",
+    "source_url": "[uncertain - no confirmed enforcement actions found]"
+  },
+  {
+    "law_or_decree": "[Uncertain] Ride-Hailing Regulatory Precedent",
+    "applicable_clause": "Potential tax/labor issues affecting similar platforms",
+    "summary": "[Uncertain] August 2019: Grab drivers in Ho Chi Minh City staged strike over new tax policy imposing VND 60,000/day extra tax on drivers earning >VND 100M annually. Indicates driver taxation is contentious but represents isolated driver action, not government enforcement. 2024: Gojek exited Vietnam citing market competition, not regulatory action.",
+    "implication_for_viecz": "Ride-hailing precedent shows Vietnamese tax/labor authorities ARE engaged with platform worker economics. However, no centralized 'crackdown' documented. Isolated enforcement or worker actions possible. Tax threshold issues (VND 100M) are historical; current threshold is VND 200M-500M per recent law changes.",
+    "compliance_action_needed": "Use ride-hailing experience as case study: ensure transparent tax treatment of taskers, communicate tax obligations clearly, do not attempt to misclassify workers to avoid taxes.",
+    "severity": "non-issue",
+    "source_url": "https://www.rippling.com/country-hiring/vietnam-employees"
+  }
+]

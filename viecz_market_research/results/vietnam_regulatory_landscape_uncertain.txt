@@ -1,0 +1,20 @@
+UNCERTAIN FIELDS IN VIETNAM REGULATORY LANDSCAPE RESEARCH
+
+The following fields could not be fully verified or have incomplete information:
+
+1. Platform Worker Misclassification Enforcement
+   - No specific documented enforcement actions against Vietnamese gig/platform companies located in public sources
+   - Risk: enforcement could emerge as gig economy grows
+   - Source limitation: limited public disclosure of enforcement actions in Vietnam
+
+2. Ride-Hailing Regulatory Precedent
+   - Limited public information on government enforcement history against ride-hailing platforms
+   - 2019 Grab driver strike (documented) used as proxy for worker/tax authority engagement
+   - 2024 Gojek exit from Vietnam (documented) but attributed to market competition, not regulation
+   - Source limitation: enforcement details not widely published by Vietnamese government
+
+3. Specific Application of Labor Code "Workers Without Employment Relationship" Category
+   - Government implementation guidance and regulations still pending as of 2026
+   - Courts have not yet ruled on how this category applies to platform/gig workers
+   - Scope of protections applicable to this worker category remains unclear
+   - Source limitation: regulations are still in development phase

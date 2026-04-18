@@ -82,7 +82,7 @@ These needs repeat daily across every campus, but today students only have Zalo 
                   │
        ┌──────────┼──────────┐
        ▼                     ▼
-  Angular 21 (SSR)    Android (Kotlin)
+  Angular 21 (SSR)    Mobile (Capacitor)
        │                     │
        └──────────┬──────────┘
                   ▼
@@ -98,7 +98,7 @@ These needs repeat daily across every campus, but today students only have Zalo 
 | Database | PostgreSQL | Transactional data with ACID guarantees |
 | Search | Meilisearch | Full-text search with typo tolerance for quick mobile searches |
 | Web | Angular 21 (SSR) | Server-Side Rendering for fast loads and SEO. Responsive. |
-| Android | Kotlin + Jetpack Compose | Native Material Design 3 app |
+| Mobile | Ionic/Capacitor | Android wrapper for the Angular web app |
 | Payments | PayOS | Vietnamese payment gateway — domestic bank transfers |
 | Chat | WebSocket | Real-time messaging between matched users |
 | Maps | MapLibre + MapTiler | Interactive maps with location-based task discovery |
@@ -110,10 +110,9 @@ These needs repeat daily across every campus, but today students only have Zalo 
 ### Prerequisites
 
 - Go 1.25+
-- Bun (for Angular)
+- Bun (for Angular + Capacitor)
 - PostgreSQL 15+
 - Docker (for Meilisearch)
-- Android Studio (optional, for mobile app)
 
 ### Development Setup
 
@@ -136,10 +135,6 @@ cd web
 bun install
 bunx ng serve                     # http://localhost:4200, proxies to :9999
 
-# Android (optional, separate terminal)
-cd android
-adb reverse tcp:9999 tcp:9999
-./gradlew installDevDebug
 ```
 
 > **Note:** `source .env.dev` alone won't export variables. Always use `set -a && source .env.dev && set +a`.
@@ -151,7 +146,6 @@ cd server && go test ./...                    # Go tests
 cd web && bunx ng test                        # Angular tests
 cd server && golangci-lint run ./...           # Go linting
 cd web && bunx eslint 'src/**/*.ts'           # TS linting
-cd android && ./gradlew testDevDebugUnitTest  # Android tests
 ```
 
 ## User Guide

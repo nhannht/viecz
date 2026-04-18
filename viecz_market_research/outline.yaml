@@ -1,0 +1,34 @@
+topic: "Viecz micro-task platform - targeted market research"
+
+items:
+  - name: "Vietnam regulatory landscape for P2P labor platforms"
+    category: "Regulatory Risk"
+    description: >
+      Labor Code 2019 contractor vs employee classification for peer-to-peer task platforms.
+      State Bank of Vietnam requirements for escrow/payment intermediary licensing.
+      Decree 13/2023 on personal data protection — compliance for platforms collecting location and payment data.
+      Tax thresholds for micro-income earners (individual business tax exemption at 100M VND/year).
+      Any precedent enforcement actions against Vietnamese gig/sharing economy platforms.
+
+  - name: "Vietnamese student income and spending patterns"
+    category: "Market Data"
+    description: >
+      Credible data on Vietnamese university student monthly income, spending, and part-time work patterns.
+      Sources must be government (GSO, MOLISA), academic, or reputable industry reports — NOT Quora, Reddit, or forums.
+      Key data needed: average monthly student spending, part-time work participation rate, hourly wage range,
+      percentage of students doing informal gig work, preferred payment methods among students.
+      Focus on data from 2022-2026. TP.HCM specific data preferred.
+
+  - name: "Southeast Asian campus and hyperlocal service platforms 2024-2026"
+    category: "Competitive Intelligence"
+    description: >
+      Any new or existing platforms serving micro-task, errand, or peer-to-peer service needs
+      specifically for university students or hyperlocal communities in Southeast Asia (Vietnam, Indonesia,
+      Thailand, Philippines, Malaysia). Include both active and dead/pivoted platforms.
+      Also check for any academic papers studying campus gig economy or peer-to-peer errand services
+      published 2023-2026. If papers are behind paywalls, use /scihub-paper to retrieve them.
+
+execution:
+  batch_size: 3
+  items_per_agent: 1
+  output_dir: ./results

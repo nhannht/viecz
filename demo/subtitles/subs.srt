@@ -1,0 +1,45 @@
+1
+00:00:00,000 --> 00:01:42,440
+Viecz — Nền tảng kết nối việc vặt sinh viên
+Viecz — Student Micro-Task Marketplace
+
+2
+00:01:42,440 --> 00:01:55,086
+Đăng ký tài khoản bằng số điện thoại
+Register with your phone number
+
+3
+00:01:55,086 --> 00:02:31,300
+Tìm kiếm việc gần bạn trên bản đồ
+Browse tasks near you on the map
+
+4
+00:02:31,300 --> 00:02:43,194
+Đăng một việc cần làm trong 30 giây
+Post a task in 30 seconds
+
+5
+00:02:43,194 --> 00:02:54,497
+Người khác thấy và ứng tuyển ngay
+Others see your task and apply instantly
+
+6
+00:02:54,497 --> 00:03:02,516
+Chấp nhận ứng viên và bắt đầu chat
+Accept an applicant and start chatting
+
+7
+00:03:02,516 --> 00:03:07,455
+Trò chuyện trực tiếp với người nhận việc
+Chat in real-time with the tasker
+
+8
+00:03:07,455 --> 00:03:14,248
+Nạp tiền vào ví qua ngân hàng Việt Nam
+Deposit funds via Vietnamese bank transfer
+
+9
+00:03:14,248 --> 00:03:22,685
+Hoàn thành việc — tiền được thanh toán
+Task completed — payment released
+

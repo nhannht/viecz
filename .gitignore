@@ -21,6 +21,17 @@ build/
 *.dll
 *.so
 *.dylib
+server/glitchtip-bridge
+
+# Demo generated output
+demo/output/clips/*.mp4
+demo/output/clips/*.webm
+demo/output/demo-*.mp4
+
+# Scratch images
+*.jpeg
+!docs/**/*.jpeg
+!public/**/*.jpeg
 
 # Test coverage
 *.out

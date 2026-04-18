@@ -4,7 +4,7 @@ description: Build, test, lint commands
 
 # Dev Commands
 
-**Android**: `./gradlew assembleDevDebug | installDevDebug | testDevDebugUnitTest`. Flavors: `dev`/`prod`. Always `adb reverse tcp:9999 tcp:9999`.
+**Mobile (Ionic/Capacitor)**: `cd mobile && bunx cap sync android` to sync web build. `bunx cap open android` to open in Android Studio.
 
 **Go**: `go test ./...` | `go run cmd/server/main.go`. Test DB: `docker compose -f docker-compose.testdb.yml up -d` (PG 5433, Meili 7700).
 
