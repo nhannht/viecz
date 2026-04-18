@@ -1,9 +1,6 @@
 ---
-theme: default
-title: "Viecz — Nền tảng kết nối việc vặt cho sinh viên"
-info: |
-  Cuộc thi Sáng tạo – Khởi nghiệp HCMUS I&E 2025
-  Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM
+theme: apple-basic
+title: "Viecz"
 class: text-center
 drawings:
   persist: false
@@ -11,329 +8,146 @@ transition: slide-left
 mdc: true
 ---
 
-<div class="frost-cover">
-  <div class="cover-accent"></div>
-  <h1>Viecz</h1>
-  <p class="cover-subtitle">Nền tảng kết nối việc vặt dựa trên vị trí cho sinh viên</p>
-  <br>
-  <p class="cover-info">Cuộc thi Sáng tạo – Khởi nghiệp HCMUS I&E 2025</p>
-  <p class="cover-info">Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM</p>
+<div class="cover">
+  <div class="cover-bar"></div>
+  <h1 class="cover-title">Viecz</h1>
+  <p class="cover-sub">Kết nối việc vặt theo vị trí cho sinh viên</p>
+  <p class="cover-meta">HCMUS I&E 2025 · ĐHKHTN, ĐHQG-HCM</p>
 </div>
 
 ---
+layout: center
+---
 
-# Vấn đề
-
-<div class="grid grid-cols-2 gap-8">
-<div class="glass-card">
-
-### Thực trạng sinh viên
-
-- **2,15 triệu** sinh viên đại học tại Việt Nam
-- Chi phí sinh hoạt TP.HCM: **5 triệu VND/tháng**
-- Thu nhập part-time trung bình: **1,2–1,8 triệu VND/tháng**
-- Chỉ **22,1%** sinh viên tham gia làm thêm
-
-</div>
-<div class="glass-card">
-
-### Nhu cầu vi mô chưa được phục vụ
-
-- Khiêng đồ KTX — 30 phút, 50k
-- Luyện speaking trước thi — 30 phút
-- Mua hộ đồ ăn đêm
-- Thiết kế slide gấp
-
-Những việc xảy ra hàng ngày, nhưng **chưa có nền tảng nào** giải quyết.
-
-</div>
+<div class="big-quote">
+  <h1>Vấn đề</h1>
+  <p>Lan vừa lên TP.HCM nhập học.</p>
+  <p>Kệ sách ở tầng trệt. Phòng ở tầng 5. Không quen ai.</p>
+  <p>Đăng Zalo: <em>"Cần giúp khiêng kệ, trả 50k"</em></p>
+  <p class="big-stat">200 thành viên. 0 phản hồi.</p>
+  <p class="punchline">Minh ở tầng 3, cách 30 mét, đang rảnh.<br>Chỉ thiếu cách để tìm nhau.</p>
 </div>
 
 ---
-
-# Giải pháp hiện tại — không hiệu quả
-
-<div class="glass-card">
-
-| Cách | Hạn chế |
-|---|---|
-| **Nhóm Zalo/Facebook** | Không thanh toán, không đánh giá, tin bị trôi |
-| **Nhờ bạn bè** | Phạm vi hẹp, phụ thuộc quen biết |
-| **Dịch vụ bên ngoài** | Giá gấp 2–3 lần |
-| **Grab/Gojek** | Chỉ vận chuyển, cần phương tiện |
-| **TaskRabbit** | Không có ở VN, phí 22,5% |
-
-</div>
-
-<br>
-
-<p class="accent-text">Chưa có nền tảng nào tại Việt Nam hay Đông Nam Á phục vụ micro-task sinh viên.</p>
-
+layout: center
 ---
 
-# Viecz — Cách hoạt động
+# Cách hoạt động
 
 <div class="flow-steps">
   <div class="flow-step">
     <div class="flow-number">1</div>
     <div class="flow-title">Đăng việc</div>
-    <div class="flow-desc">30 giây, mô tả + vị trí + mức trả</div>
   </div>
   <div class="flow-arrow">→</div>
   <div class="flow-step">
     <div class="flow-number">2</div>
-    <div class="flow-title">Bản đồ</div>
-    <div class="flow-desc">Người gần đó thấy ngay trên bản đồ thời gian thực</div>
+    <div class="flow-title">Hiện trên bản đồ</div>
   </div>
   <div class="flow-arrow">→</div>
   <div class="flow-step">
     <div class="flow-number">3</div>
-    <div class="flow-title">Nhận việc</div>
-    <div class="flow-desc">Chat trực tiếp, thỏa thuận và bắt đầu</div>
+    <div class="flow-title">Chat & nhận việc</div>
   </div>
   <div class="flow-arrow">→</div>
   <div class="flow-step">
     <div class="flow-number">4</div>
-    <div class="flow-title">Thanh toán</div>
-    <div class="flow-desc">Escrow qua PayOS, tiền giữ đến khi hoàn thành</div>
+    <div class="flow-title">Escrow thanh toán</div>
   </div>
 </div>
 
 ---
 
-# Sản phẩm — đang hoạt động
+# Bản đồ thời gian thực
 
-<div class="grid grid-cols-2 gap-6 items-center">
+<img src="/marketplace-map.png" alt="Bản đồ Viecz" style="max-height: 400px; width: auto;" />
 
-<div class="glass-card">
+---
 
-**[https://viecz.fishcmus.io.vn](https://viecz.fishcmus.io.vn)**
+# Sản phẩm hoạt động 24/7
 
-| Chỉ số | Giá trị |
+<div class="two-up">
+
+<img src="/marketplace-mobile.png" alt="Marketplace" />
+
+<img src="/messages.png" alt="Chat" />
+
+</div>
+
+---
+layout: center
+---
+
+<div class="three-stats">
+  <div class="stat-card">
+    <p class="stat-number">Bản đồ</p>
+    <p class="stat-label">là giao diện chính</p>
+    <p class="stat-sub">Không phải danh sách</p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-number">5.000đ</p>
+    <p class="stat-label">escrow tối thiểu</p>
+    <p class="stat-sub">Chuyển khoản ngân hàng VN</p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-number">200k</p>
+    <p class="stat-label">VND/tháng vận hành</p>
+    <p class="stat-sub">Rẻ hơn một bữa cơm</p>
+  </div>
+</div>
+
+---
+
+# Kế hoạch pilot
+
+<div class="two-up-text">
+<div>
+
+| Chỉ số | Mục tiêu |
 |---|---|
-| Trạng thái | Deployed, 24/7 |
-| Tính năng | 7/7 cốt lõi |
-| Test coverage | >70% |
-| Phát triển | ~5 tháng |
-| Nền tảng | Web + Android |
+| Người dùng | **50** |
+| Giao dịch tháng đầu | **200** |
+| Tỉ lệ hoàn thành | **> 80%** |
 
 </div>
-
 <div>
-<img src="/marketplace-desktop.png" class="screenshot-large" />
-</div>
 
-</div>
-
----
-
-# Marketplace — bản đồ thời gian thực
-
-<div class="grid grid-cols-2 gap-4">
-
-<div>
-<img src="/marketplace-desktop.png" class="screenshot-full" />
-<p class="caption">Danh sách việc + bộ lọc danh mục</p>
-</div>
-
-<div>
-<img src="/marketplace-map.png" class="screenshot-full" />
-<p class="caption">Bản đồ vị trí — tính năng cốt lõi</p>
-</div>
-
-</div>
-
----
-
-# Trải nghiệm mobile-first
-
-<div class="grid grid-cols-3 gap-6 items-center">
-
-<div class="text-center">
-<img src="/marketplace-mobile.png" class="screenshot-mobile" />
-<p class="caption">Marketplace</p>
-</div>
-
-<div class="text-center">
-<img src="/task-detail-mobile.png" class="screenshot-mobile" />
-<p class="caption">Chi tiết việc</p>
-</div>
-
-<div class="text-center">
-<img src="/wallet-mobile.png" class="screenshot-mobile" />
-<p class="caption">Vi / Thanh toán</p>
-</div>
-
-</div>
-
----
-
-# Luồng sử dụng (1/2)
-
-<div class="grid grid-cols-2 gap-6 items-start">
-
-<div class="glass-card">
-<img src="/login.png" class="screenshot-card-lg" />
-<p class="caption">Đăng nhập OTP — xác thực qua email</p>
-</div>
-
-<div class="glass-card">
-<img src="/task-create.png" class="screenshot-card-lg" />
-<p class="caption">Tạo việc — 30 giây, mô tả + vị trí + mức trả</p>
-</div>
-
-</div>
-
----
-
-# Luồng sử dụng (2/2)
-
-<div class="grid grid-cols-2 gap-6 items-start">
-
-<div class="glass-card">
-<img src="/messages.png" class="screenshot-card-lg" />
-<p class="caption">Chat real-time — trao đổi trực tiếp qua WebSocket</p>
-</div>
-
-<div class="glass-card">
-<img src="/wallet.png" class="screenshot-card-lg" />
-<p class="caption">Thanh toán escrow — nạp/rút tiền qua PayOS</p>
-</div>
-
-</div>
-
----
-
-# Khác biệt
-
-<div class="grid grid-cols-3 gap-6">
-
-<div class="glass-card highlight">
-<h3>Bản đồ là giao diện chính</h3>
-<p>Không phải danh sách. Việc gần nhất hiển thị trước. "Cần gấp, cần gần."</p>
-</div>
-
-<div class="glass-card highlight">
-<h3>Escrow cho giao dịch siêu nhỏ</h3>
-<p>PayOS + chuyển khoản ngân hàng VN. Giao dịch từ 5.000 VND. Không cần thẻ quốc tế.</p>
-</div>
-
-<div class="glass-card highlight">
-<h3>Mô hình hai chiều</h3>
-<p>Mỗi người dùng mới = tăng cả cung lẫn cầu. Hiệu ứng mạng lưới mạnh hơn mô hình một chiều.</p>
-</div>
-
-</div>
-
----
-
-# Quy mô thị trường
-
-<div class="market-funnel">
-
-<div class="funnel-level funnel-tam">
-<div class="funnel-label">TAM — 2,15 triệu SV cả nước</div>
-</div>
-
-<div class="funnel-level funnel-sam">
-<div class="funnel-label">SAM — 500.000 SV tại TP.HCM</div>
-</div>
-
-<div class="funnel-level funnel-som">
-<div class="funnel-label">SOM — Pilot ĐHKHTN (200–500 SV)</div>
-</div>
-
-</div>
-
-<br>
-
-<p class="accent-text">84% người Việt sở hữu smartphone. Thị trường gig economy đang tăng trưởng mạnh.</p>
-
----
-
-# Khả thi
-
-<div class="grid grid-cols-2 gap-6">
-
-<div class="glass-card">
-
-### Chi phí vận hành
-
-| Hạng mục | Chi phí/tháng |
+| Giai đoạn | Thời gian |
 |---|---|
-| VPS | ~150.000 VND |
-| Cloudflare, MapTiler | Miễn phí |
-| PayOS | Miễn phí |
-| **Tổng** | **~200.000 VND** |
-
-Hoa hồng 10–15% mỗi giao dịch. Hòa vốn: ~40 giao dịch/tháng.
+| MVP hoàn thành | 10/2025 ✓ |
+| 7/7 tính năng | 02/2026 ✓ |
+| **Pilot ĐHKHTN** | **06/2026** |
+| Mở rộng 3 trường | HK1/2027 |
 
 </div>
-
-<div class="glass-card">
-
-### Lộ trình
-
-| Giai đoạn | Thời gian | Trạng thái |
-|---|---|---|
-| MVP bắt đầu | 10/2025 | Xong |
-| 7/7 tính năng | 02/2026 | Xong |
-| Pilot ĐHKHTN | 06/2026 | Tiếp theo |
-| Đánh giá | 08/2026 | Kế hoạch |
-| Mở rộng TP.HCM | HK1/2027 | Kế hoạch |
-
-</div>
-
 </div>
 
 ---
+layout: center
+---
 
-# Đội ngũ
-
-<div class="grid grid-cols-4 gap-4">
-
-<div class="glass-card team-lead">
-<h3>Nguyễn Hữu Thiện Nhân</h3>
-<p class="team-role-lead">Trưởng nhóm</p>
-<p class="team-detail">Kiến trúc sư phần mềm</p>
+<div class="team">
+  <h1>Đội ngũ</h1>
+  <div class="team-lead-card">
+    <p class="team-name-big">Nguyễn Hữu Thiện Nhân</p>
+    <p class="team-role-text">Trưởng nhóm · Kiến trúc sư phần mềm</p>
+  </div>
+  <div class="team-members">
+    <span>Trương Hoài Đức</span>
+    <span>Thái Kha Bảo</span>
+    <span>Trần Gia Sang</span>
+  </div>
+  <p class="team-note">Kiểm thử · Đảm bảo chất lượng</p>
 </div>
-
-<div class="glass-card team-member">
-<h3>Trương Hoài Đức</h3>
-<p class="team-role">Kiểm thử</p>
-<p class="team-detail">Đảm bảo chất lượng</p>
-</div>
-
-<div class="glass-card team-member">
-<h3>Thái Kha Bảo</h3>
-<p class="team-role">Kiểm thử</p>
-<p class="team-detail">Đảm bảo chất lượng</p>
-</div>
-
-<div class="glass-card team-member">
-<h3>Trần Gia Sang</h3>
-<p class="team-role">Kiểm thử</p>
-<p class="team-detail">Đảm bảo chất lượng</p>
-</div>
-
-</div>
-
-<br>
-
-<p class="text-center opacity-60">Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM</p>
 
 ---
 layout: center
 class: text-center
 ---
 
-<div class="frost-cover closing">
-  <h1>Cảm ơn</h1>
-  <br>
-  <h3><a href="https://viecz.fishcmus.io.vn">https://viecz.fishcmus.io.vn</a></h3>
-  <br>
-  <p class="cover-info">Dự án Viecz — HCMUS I&E 2025</p>
-  <p class="cover-info">Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM</p>
-  <p class="cover-info">Tháng 3/2026</p>
+<div class="close">
+  <h1 class="close-name">Viecz</h1>
+  <p class="close-line">30 giây là đủ để tìm sự giúp đỡ.</p>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://viecz.fishcmus.io.vn" class="qr" />
+  <p class="close-url">viecz.fishcmus.io.vn</p>
 </div>
-
