@@ -8,7 +8,9 @@ description: Build, test, lint commands
 
 **Capacitor**: `cd mobile && bunx cap sync android` (after building web). `bunx cap add android` to regenerate native project.
 
-**Go**: `go test ./...` | `go run cmd/server/main.go`. Test DB: `docker compose -f docker-compose.testdb.yml up -d` (PG 5433, Meili 7700).
+**Go**: `go test ./...` | Test DB: `docker compose -f docker-compose.testdb.yml up -d` (PG 5433, Meili 7700).
+
+**Local dev server**: `bash -c "set -a && source .env.dev && set +a && go run cmd/testserver/main.go"` — has mocked PayOS, auto-seeding, and bulk Meilisearch indexing. `cmd/server/main.go` is the **production** binary — do NOT use it for local dev.
 
 **Web**: `bunx ng test` (NOT `bunx vitest run`) | `bun run build`
 

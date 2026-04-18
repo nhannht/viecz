@@ -186,52 +186,35 @@ type location struct {
 	lng  float64
 }
 
-// locations returns ~35 real Vietnamese locations with coordinates.
-// Distribution: ~40% HCMC, ~25% Hanoi, ~10% Da Nang, ~25% other cities.
+// locations returns ~20 locations focused on HCMUS campus and Làng Đại học Thủ Đức.
 func locations() []location {
 	return []location{
-		// TP.HCM — 14 locations
-		{"Quận 1, TP.HCM", 10.7769, 106.7009},
-		{"Quận 2, TP.HCM", 10.7869, 106.7499},
-		{"Quận 3, TP.HCM", 10.7840, 106.6919},
-		{"Quận 4, TP.HCM", 10.7579, 106.7039},
-		{"Quận 5, TP.HCM", 10.7559, 106.6689},
-		{"Quận 7, TP.HCM", 10.7350, 106.7180},
-		{"Quận 10, TP.HCM", 10.7749, 106.6680},
-		{"Quận Bình Thạnh, TP.HCM", 10.8109, 106.7110},
-		{"Quận Phú Nhuận, TP.HCM", 10.7999, 106.6800},
-		{"Quận Gò Vấp, TP.HCM", 10.8380, 106.6500},
-		{"Quận Tân Bình, TP.HCM", 10.8010, 106.6490},
-		{"TP. Thủ Đức, TP.HCM", 10.8500, 106.7700},
-		{"Quận 12, TP.HCM", 10.8671, 106.6413},
-		{"Huyện Nhà Bè, TP.HCM", 10.6940, 106.7040},
+		// ĐHKHTN (HCMUS) campus — Linh Trung, Thủ Đức
+		{"Cổng trước ĐHKHTN, Thủ Đức", 10.8628, 106.7590},
+		{"Thư viện ĐHKHTN, Thủ Đức", 10.8621, 106.7601},
+		{"Nhà A ĐHKHTN, Thủ Đức", 10.8635, 106.7605},
+		{"Căn tin ĐHKHTN, Thủ Đức", 10.8618, 106.7612},
+		{"Sân bóng ĐHKHTN, Thủ Đức", 10.8642, 106.7618},
 
-		// Hà Nội — 9 locations
-		{"Hoàn Kiếm, Hà Nội", 21.0285, 105.8542},
-		{"Đống Đa, Hà Nội", 21.0152, 105.8324},
-		{"Cầu Giấy, Hà Nội", 21.0313, 105.7998},
-		{"Thanh Xuân, Hà Nội", 20.9933, 105.8094},
-		{"Hai Bà Trưng, Hà Nội", 21.0110, 105.8563},
-		{"Ba Đình, Hà Nội", 21.0340, 105.8194},
-		{"Nam Từ Liêm, Hà Nội", 21.0183, 105.7623},
-		{"Long Biên, Hà Nội", 21.0470, 105.8886},
-		{"Hoàng Mai, Hà Nội", 20.9804, 105.8593},
+		// KTX Khu A & B — ĐHQG-HCM
+		{"KTX Khu A ĐHQG, Thủ Đức", 10.8789, 106.8064},
+		{"KTX Khu B ĐHQG, Thủ Đức", 10.8752, 106.8010},
 
-		// Đà Nẵng — 4 locations
-		{"Hải Châu, Đà Nẵng", 16.0678, 108.2208},
-		{"Thanh Khê, Đà Nẵng", 16.0748, 108.1888},
-		{"Sơn Trà, Đà Nẵng", 16.1030, 108.2500},
-		{"Liên Chiểu, Đà Nẵng", 16.0720, 108.1500},
+		// Làng Đại học Thủ Đức — neighboring universities
+		{"ĐH Bách Khoa, Thủ Đức", 10.8804, 106.8057},
+		{"ĐH KHXH&NV, Thủ Đức", 10.8776, 106.8020},
+		{"ĐH Quốc tế, Thủ Đức", 10.8787, 106.8003},
+		{"ĐH Kinh tế-Luật, Thủ Đức", 10.8715, 106.7834},
+		{"ĐH Công nghệ Thông tin, Thủ Đức", 10.8700, 106.8030},
+		{"ĐH Nông Lâm, Thủ Đức", 10.8718, 106.7930},
 
-		// Other cities — 8 locations
-		{"TP. Huế, Thừa Thiên Huế", 16.4637, 107.5909},
-		{"Ninh Kiều, Cần Thơ", 10.0452, 105.7469},
-		{"Nha Trang, Khánh Hòa", 12.2388, 109.1967},
-		{"TP. Đà Lạt, Lâm Đồng", 11.9404, 108.4583},
-		{"TP. Biên Hòa, Đồng Nai", 10.9574, 106.8426},
-		{"TP. Vũng Tàu, Bà Rịa-Vũng Tàu", 10.3460, 107.0843},
-		{"TP. Thái Nguyên, Thái Nguyên", 21.5928, 105.8442},
-		{"TP. Vinh, Nghệ An", 18.6796, 105.6813},
+		// Khu vực xung quanh — nhà trọ, quán ăn
+		{"Đường Tô Vĩnh Diện, Thủ Đức", 10.8560, 106.7560},
+		{"Đường Lê Văn Chí, Thủ Đức", 10.8490, 106.7660},
+		{"Chợ Thủ Đức, Thủ Đức", 10.8480, 106.7530},
+		{"Gigamall Thủ Đức", 10.8430, 106.7720},
+		{"Phòng trọ Linh Trung, Thủ Đức", 10.8580, 106.7640},
+		{"Phòng trọ Linh Chiểu, Thủ Đức", 10.8520, 106.7580},
 	}
 }
 
@@ -247,71 +230,71 @@ type taskTemplate struct {
 
 func taskTemplates() []taskTemplate {
 	return []taskTemplate{
-		// 0: Moving & Transport
-		{0, "Chuyển đồ phòng trọ ở %s", "Cần người giúp chuyển đồ từ phòng trọ, khoảng 8-10 thùng carton. Có thang máy.", 150_000, 300_000},
-		{0, "Chuyển nhà nhỏ tại %s", "Dọn đồ căn phòng 20m2, cần 1-2 người khỏe. Tầng 3 không thang máy.", 200_000, 400_000},
-		{0, "Vận chuyển bàn ghế %s", "Cần chở 1 bàn làm việc và 2 ghế từ cửa hàng về nhà, khoảng 3km.", 100_000, 200_000},
-		{0, "Chuyển đồ ký túc xá %s", "Chuyển đồ từ KTX sang phòng trọ mới, khoảng 5 thùng và 1 xe đạp.", 120_000, 250_000},
+		// 0: Moving & Transport — student KTX scenarios
+		{0, "Khiêng kệ sách lên tầng 5 KTX %s", "Kệ sách ở tầng trệt, phòng ở tầng 5. Không thang máy. Cần 1 người khỏe phụ.", 30_000, 60_000},
+		{0, "Chuyển đồ từ KTX sang trọ %s", "Hết hạn KTX, cần chuyển 4 thùng carton và 1 xe đạp sang phòng trọ gần đó.", 80_000, 150_000},
+		{0, "Phụ khiêng tủ quần áo %s", "Mới mua tủ nhựa lắp ghép, cần 1 bạn phụ khiêng từ xe lên phòng tầng 3.", 30_000, 50_000},
+		{0, "Chở đồ từ nhà lên KTX %s", "Đầu học kỳ, cần bạn có xe máy chở 2 thùng đồ từ bến xe lên KTX.", 50_000, 100_000},
 
-		// 1: Delivery
-		{1, "Giao hàng gấp tại %s", "Giao 1 gói hàng nhỏ (dưới 5kg) trong vòng 1 tiếng. Cần có xe máy.", 30_000, 80_000},
-		{1, "Ship đồ ăn %s", "Mua và giao đồ ăn từ quán đến nhà, khoảng 2km. Cần giao nhanh.", 25_000, 50_000},
-		{1, "Giao tài liệu tại %s", "Giao 1 phong bì tài liệu quan trọng, cần giao tận tay và xác nhận.", 40_000, 70_000},
-		{1, "Giao hàng online %s", "Giao 3 đơn hàng cho shop, mỗi đơn dưới 2kg. Khu vực nội thành.", 50_000, 120_000},
+		// 1: Delivery — food & campus errands
+		{1, "Mua cơm hộp mang lên thư viện %s", "Đang ôn thi không muốn mất chỗ, cần bạn mua 1 phần cơm gà từ căn tin.", 15_000, 25_000},
+		{1, "Ship trà sữa từ Highlands %s", "Nhóm 4 đứa ôn bài, cần 1 bạn chạy mua 4 ly trà sữa Highlands gần cổng.", 20_000, 30_000},
+		{1, "Mua bánh mì sáng %s", "Sáng mai thi sớm, cần bạn mua 2 ổ bánh mì trước 6:30 giao phòng KTX.", 10_000, 20_000},
+		{1, "Giao tài liệu in cho bạn %s", "Vừa in xong 50 trang tiểu luận ở tiệm, cần bạn giao tận phòng KTX B.", 15_000, 25_000},
 
 		// 2: Assembly & Installation
-		{2, "Lắp kệ sách IKEA tại %s", "Lắp ráp 2 kệ sách KALLAX, có đầy đủ dụng cụ và hướng dẫn.", 120_000, 200_000},
-		{2, "Lắp giường ngủ mới %s", "Lắp giường gỗ kích thước 1m6, đã có hướng dẫn. Cần mang theo cờ lê.", 150_000, 250_000},
-		{2, "Lắp đặt rèm cửa %s", "Lắp 3 bộ rèm cửa sổ, cần khoan tường. Đã có rèm và phụ kiện.", 100_000, 180_000},
-		{2, "Sửa khóa cửa tại %s", "Khóa cửa phòng bị kẹt, cần thợ đến kiểm tra và sửa hoặc thay mới.", 80_000, 150_000},
+		{2, "Lắp kệ sách nhựa phòng KTX %s", "Mới mua kệ sách nhựa lắp ghép, 5 tầng. Có hướng dẫn nhưng mình vụng tay.", 30_000, 50_000},
+		{2, "Lắp quạt trần phòng trọ %s", "Phòng trọ nóng quá, mua quạt trần rồi nhưng không biết lắp.", 40_000, 70_000},
+		{2, "Sửa ổ khóa cửa phòng %s", "Ổ khóa phòng trọ bị kẹt, xoay không được. Cần bạn biết sửa.", 30_000, 50_000},
+		{2, "Lắp giá phơi đồ ban công %s", "Mua giá phơi đồ inox, cần khoan tường lắp. Ai có máy khoan cho mượn+lắp.", 40_000, 60_000},
 
 		// 3: Cleaning
-		{3, "Dọn dẹp căn hộ tại %s", "Dọn dẹp căn hộ 2 phòng ngủ: lau sàn, dọn bếp, phòng tắm. Khoảng 3 tiếng.", 200_000, 350_000},
-		{3, "Vệ sinh máy lạnh %s", "Vệ sinh 2 máy lạnh treo tường, đã lâu chưa bảo trì.", 150_000, 250_000},
-		{3, "Dọn nhà sau sửa chữa %s", "Dọn dẹp bụi bẩn và rác thải xây dựng sau khi sửa nhà. Cần 2 người.", 300_000, 500_000},
-		{3, "Giặt sofa vải tại %s", "Giặt 1 bộ sofa vải 3 chỗ ngồi, cần mang thiết bị giặt chuyên dụng.", 250_000, 400_000},
+		{3, "Dọn phòng KTX cuối kỳ %s", "Sắp trả phòng KTX, cần dọn sạch sẽ để nộp lại. Khoảng 2 tiếng.", 50_000, 80_000},
+		{3, "Giặt chăn mền lớn %s", "Chăn mền KTX to quá máy giặt không vào, cần bạn phụ mang ra tiệm giặt.", 20_000, 40_000},
+		{3, "Dọn dẹp phòng trọ %s", "Dọn phòng trọ 15m2 trước khi bạn mới dọn vào: lau sàn, rửa toilet.", 40_000, 70_000},
+		{3, "Lau dọn sau tiệc liên hoan %s", "Tối qua tiệc cuối kỳ, phòng bừa bộn. Cần 1 bạn phụ dọn.", 30_000, 50_000},
 
 		// 4: Tutoring & Teaching
-		{4, "Gia sư Toán lớp 12 tại %s", "Cần gia sư ôn thi đại học môn Toán, 3 buổi/tuần, mỗi buổi 2 tiếng.", 300_000, 500_000},
-		{4, "Dạy tiếng Anh giao tiếp %s", "Cần người dạy tiếng Anh giao tiếp cơ bản, 2 buổi/tuần. Trình độ A2.", 200_000, 400_000},
-		{4, "Gia sư Lý-Hóa cấp 3 %s", "Cần gia sư dạy kèm Lý và Hóa cho học sinh lớp 11, chuẩn bị thi cuối kỳ.", 250_000, 450_000},
-		{4, "Dạy guitar cơ bản tại %s", "Muốn học guitar acoustic từ đầu, 1 buổi/tuần, mỗi buổi 1.5 tiếng.", 150_000, 300_000},
+		{4, "Kèm Giải tích 1 trước thi %s", "Thi Giải tích 1 tuần sau, cần bạn giỏi Toán kèm 2-3 buổi tối.", 50_000, 100_000},
+		{4, "Hướng dẫn làm báo cáo thí nghiệm %s", "Chưa biết format báo cáo TN Vật lý, cần bạn khóa trên chỉ.", 30_000, 50_000},
+		{4, "Dạy kèm lập trình C++ %s", "Mới học lập trình, bài tập pointer không hiểu. Cần bạn giải thích 1-2 tiếng.", 50_000, 80_000},
+		{4, "Luyện IELTS Speaking %s", "Cần partner luyện Speaking, mình đang 5.5 muốn lên 6.5. 1 buổi/tuần.", 40_000, 70_000},
 
 		// 5: Tech Support
-		{5, "Sửa laptop bị chậm tại %s", "Laptop chạy chậm, cần cài lại Windows, diệt virus và tối ưu hệ thống.", 100_000, 200_000},
-		{5, "Cài đặt máy in %s", "Cài đặt và kết nối máy in mới với laptop qua WiFi. Máy in Canon.", 50_000, 100_000},
-		{5, "Sửa WiFi không vào được %s", "Router WiFi bị lỗi, đèn nhấp nháy liên tục. Cần người đến kiểm tra.", 80_000, 150_000},
-		{5, "Khôi phục dữ liệu USB %s", "USB 32GB bị lỗi, không đọc được dữ liệu. Cần khôi phục file quan trọng.", 100_000, 250_000},
+		{5, "Cài lại laptop bị chậm %s", "Laptop lag quá, cần cài lại Windows và backup dữ liệu. Mình đang bận ôn thi.", 50_000, 80_000},
+		{5, "Fix lỗi code bài tập lớn %s", "Bài tập lớn OOP bị lỗi segfault, deadline ngày mai. Cần bạn rành C++ giúp.", 50_000, 100_000},
+		{5, "Sửa WiFi phòng trọ %s", "Router phòng trọ bị reset, không biết cài lại. Cần bạn biết mạng.", 30_000, 50_000},
+		{5, "Dán kính cường lực điện thoại %s", "Mới mua miếng dán, dán bị bọt khí. Bạn nào dán giỏi giúp mình.", 10_000, 20_000},
 
 		// 6: Event Help
-		{6, "Phụ trang trí sinh nhật %s", "Cần 1-2 người phụ trang trí và phục vụ tiệc sinh nhật 20 khách.", 200_000, 400_000},
-		{6, "Hỗ trợ sự kiện CLB %s", "Cần người phụ setup bàn ghế, âm thanh và dọn dẹp sau sự kiện CLB.", 150_000, 300_000},
-		{6, "MC dẫn chương trình %s", "Cần MC cho buổi giao lưu sinh viên, khoảng 50 người, thời lượng 2 tiếng.", 300_000, 600_000},
-		{6, "Quay video sự kiện tại %s", "Quay và chỉnh sửa video highlight cho sự kiện từ thiện, 3 tiếng quay.", 400_000, 800_000},
+		{6, "Phụ setup sự kiện CLB %s", "CLB tổ chức workshop, cần 2 bạn phụ kê bàn ghế và treo banner.", 40_000, 70_000},
+		{6, "Phụ trang trí sinh nhật %s", "Tổ chức sinh nhật bạn ở phòng KTX, cần 1 bạn phụ thổi bóng, dán chữ.", 30_000, 50_000},
+		{6, "Quay video TikTok cho CLB %s", "CLB cần quay 1 video ngắn giới thiệu sự kiện, ai có điện thoại quay ổn.", 50_000, 80_000},
+		{6, "Phụ bán sticker ngày hội %s", "Ngày hội CLB cần 1 bạn phụ bán sticker và giữ booth 3 tiếng.", 40_000, 60_000},
 
 		// 7: Shopping & Errands
-		{7, "Mua đồ ăn chợ %s", "Mua danh sách đồ ăn từ chợ (rau, thịt, gia vị) và giao về nhà.", 50_000, 100_000},
-		{7, "Xếp hàng mua vé tại %s", "Cần người xếp hàng mua 2 vé concert, dự kiến chờ 2-3 tiếng.", 100_000, 200_000},
-		{7, "Đi chợ hoa Tết %s", "Mua 1 cành đào/mai và 3 chậu hoa nhỏ từ chợ hoa, giao về nhà.", 80_000, 150_000},
-		{7, "Mua thuốc và đồ dùng %s", "Mua thuốc theo đơn bác sĩ và vài món đồ dùng cá nhân, giao tận nơi.", 40_000, 80_000},
+		{7, "In tiểu luận gấp %s", "Deadline sáng mai, cần bạn in 30 trang tiểu luận và đóng bìa giúp.", 15_000, 30_000},
+		{7, "Mua đồ ăn vặt từ chợ %s", "Thèm bánh tráng trộn và trái cây, ai đi ngang chợ mua giúp.", 15_000, 25_000},
+		{7, "Mua pin dự phòng gấp %s", "Điện thoại sắp hết pin mà đang ở thư viện, ai có bán/cho mượn.", 10_000, 20_000},
+		{7, "Nộp hồ sơ ở phòng đào tạo %s", "Bận đi làm, cần bạn nộp giúp 1 tờ đơn ở phòng đào tạo trước 16h.", 20_000, 40_000},
 
 		// 8: Pet Care
-		{8, "Trông mèo 3 ngày tại %s", "Đi công tác 3 ngày, cần người đến cho mèo ăn và dọn khay cát mỗi ngày.", 200_000, 350_000},
-		{8, "Dắt chó đi dạo %s", "Cần người dắt chó Golden đi dạo buổi sáng, 30 phút/lần, 5 ngày/tuần.", 150_000, 300_000},
-		{8, "Tắm và cắt lông chó %s", "Tắm và cắt tỉa lông cho chó Poodle, cần mang dụng cụ.", 100_000, 200_000},
-		{8, "Chăm cá cảnh khi đi vắng %s", "Đi du lịch 5 ngày, cần người cho cá ăn và kiểm tra bể cá mỗi ngày.", 100_000, 180_000},
+		{8, "Trông mèo cuối tuần %s", "Về quê 2 ngày, cần bạn qua phòng trọ cho mèo ăn và dọn khay.", 50_000, 80_000},
+		{8, "Dắt chó đi dạo buổi sáng %s", "Mình có tiết sáng, cần bạn dắt chó corgi đi dạo 30 phút quanh KTX.", 20_000, 40_000},
+		{8, "Tắm chó nhỏ %s", "Chó Pomeranian cần tắm, mình không có chỗ rộng. Bạn nào rành giúp.", 30_000, 50_000},
+		{8, "Cho cá ăn khi đi vắng %s", "Đi thực tập 1 tuần, cần bạn qua phòng cho cá ăn mỗi tối.", 30_000, 50_000},
 
 		// 9: Photography
-		{9, "Chụp ảnh sản phẩm tại %s", "Chụp 20 sản phẩm handmade cho shop online, cần nền trắng chuyên nghiệp.", 250_000, 500_000},
-		{9, "Chụp ảnh chân dung %s", "Chụp ảnh profile cá nhân ngoài trời, khoảng 30 tấm, có chỉnh sửa.", 200_000, 400_000},
-		{9, "Chụp ảnh đồ ăn %s", "Chụp ảnh menu 15 món cho quán cà phê mới mở. Cần setup ánh sáng.", 300_000, 600_000},
-		{9, "Chụp ảnh kỷ yếu nhóm %s", "Chụp ảnh kỷ yếu nhóm 10 người, ngoại cảnh, khoảng 2 tiếng.", 400_000, 700_000},
+		{9, "Chụp ảnh thẻ xin việc %s", "Cần chụp ảnh thẻ 3x4 nền trắng gấp, ai có máy ảnh giúp.", 20_000, 40_000},
+		{9, "Chụp ảnh kỷ yếu nhóm %s", "Nhóm 6 bạn muốn chụp ảnh kỷ yếu trong khuôn viên trường.", 80_000, 150_000},
+		{9, "Chụp ảnh sản phẩm cho shop %s", "Bán hàng online, cần chụp 10 sản phẩm handmade nền sạch.", 50_000, 100_000},
+		{9, "Quay video giới thiệu bản thân %s", "Cần quay 1 video 2 phút để nộp hồ sơ thực tập.", 40_000, 70_000},
 
 		// 10: Other
-		{10, "Viết CV tiếng Anh %s", "Cần người giúp viết lại CV bằng tiếng Anh, chuyên ngành IT.", 100_000, 200_000},
-		{10, "Dịch tài liệu Anh-Việt %s", "Dịch 10 trang tài liệu kỹ thuật từ tiếng Anh sang tiếng Việt.", 150_000, 300_000},
-		{10, "Thiết kế poster sự kiện %s", "Thiết kế 1 poster A3 cho sự kiện CLB, có sẵn nội dung và hình ảnh.", 100_000, 250_000},
-		{10, "Nhập liệu Excel %s", "Nhập khoảng 500 dòng dữ liệu từ ảnh chụp vào file Excel.", 80_000, 150_000},
+		{10, "Viết CV xin thực tập %s", "Cần bạn giỏi tiếng Anh giúp viết lại CV cho đẹp, chuyên ngành CNTT.", 30_000, 60_000},
+		{10, "Thiết kế poster CLB %s", "CLB cần 1 poster A4 cho sự kiện tuần sau, có sẵn nội dung.", 40_000, 80_000},
+		{10, "Giúp điền form đăng ký học bổng %s", "Form học bổng dài 5 trang, nhiều câu hỏi tiếng Anh. Cần bạn giúp dịch+điền.", 30_000, 50_000},
+		{10, "Đổi tiền lẻ gấp %s", "Cần đổi 200k thành tiền lẻ 10k, 20k để trả phí photo. Ai có đổi giúp.", 5_000, 10_000},
 	}
 }
 

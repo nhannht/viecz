@@ -8,6 +8,12 @@
 
 All rules are in `.claude/rules/` — auto-loaded by Claude Code. Path-scoped rules (server, web) only apply when touching matching files.
 
+## Server Binaries
+
+- **`cmd/testserver/`** — Local dev: mocked PayOS, auto-seeds DB, bulk-indexes Meilisearch after seed
+- **`cmd/server/`** — Production: real PayOS, no seeding, tasks indexed individually via `IndexTask()` on create/update
+- **NEVER add bulk reindex to production startup** — Meilisearch stays in sync via per-task indexing
+
 ## Private Data
 
 - Team PII (names, student IDs, phones) → `team.local.yml` (gitignored via `*.local.yml`)
